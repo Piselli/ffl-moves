@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navbar } from "@/components/Navbar";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Fantasy EPL on Movement",
@@ -18,9 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <WalletProvider>
-          <div className="min-h-screen main-gradient soccer-pattern">
+          <div className="min-h-screen main-gradient soccer-pattern text-white">
             <Navbar />
             <main className="relative z-10">{children}</main>
           </div>
