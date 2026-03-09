@@ -314,20 +314,17 @@ export default function Home() {
         {/* Background color */}
         <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
-        {/* Real Manager Background Image (Right Side, Faded) */}
-        <div className="absolute inset-0 pointer-events-none -z-10">
-          {/* Image positioned to the right half */}
-          <div className="absolute right-0 top-0 w-[65%] h-full opacity-75">
-            <img
-              src="/images/manager-bg.png"
-              alt="Fantasy EPL Tactical Board"
-              className="absolute inset-0 w-full h-full object-cover object-center"
-            />
-            {/* Fade left edge into background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/60 to-transparent" />
-            {/* Subtle fade top and bottom */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/40 via-transparent to-[#0D0F12]/60" />
-          </div>
+        {/* Hero Background Image */}
+        <div className="absolute inset-0 -z-10">
+          <img
+            src="/images/manager-bg.png"
+            alt="Fantasy EPL Tactical Board"
+            className="absolute inset-0 w-full h-full object-cover object-right"
+          />
+          {/* Gradient: dark on left for text readability, fades to transparent on right to show the image */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] from-35% via-[#0D0F12]/60 via-55% to-transparent" />
+          {/* Subtle top/bottom fade */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/30 via-transparent to-[#0D0F12]/50" />
         </div>
 
         {/* Ambient accent glows */}
