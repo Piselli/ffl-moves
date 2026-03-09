@@ -315,17 +315,18 @@ export default function Home() {
         <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
         {/* Real Manager Background Image (Right Side, Faded) */}
-        <div className="absolute inset-0 right-0 pointer-events-none -z-10 flex justify-end opacity-40 mix-blend-luminosity">
-          <div className="relative w-full sm:w-[85%] lg:w-[70%] max-w-5xl h-full">
+        <div className="absolute inset-0 pointer-events-none -z-10">
+          {/* Image positioned to the right half */}
+          <div className="absolute right-0 top-0 w-[65%] h-full opacity-75">
             <img
               src="/images/manager-bg.png"
-              alt="Manager Pep Guardiola Tactical Board"
-              className="absolute inset-0 w-full h-full object-cover object-right-top"
+              alt="Fantasy EPL Tactical Board"
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
-            {/* Gradient masks to fade out the image smoothly to the left, bottom, and top */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F12] via-[#0D0F12]/50 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12] via-transparent to-transparent h-40" />
+            {/* Fade left edge into background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/60 to-transparent" />
+            {/* Subtle fade top and bottom */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/40 via-transparent to-[#0D0F12]/60" />
           </div>
         </div>
 
