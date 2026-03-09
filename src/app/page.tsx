@@ -310,7 +310,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[85vh] flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-32 pb-20 overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[140px] pb-24 overflow-hidden">
         {/* Background color */}
         <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
