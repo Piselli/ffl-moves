@@ -311,11 +311,9 @@ export default function Home() {
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
       <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[140px] pb-24 overflow-hidden">
-        {/* Background color */}
-        <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
         {/* Hero Background Image */}
-        <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 z-0">
           <img
             src="/images/manager-bg.png"
             alt="Fantasy EPL Tactical Board"
