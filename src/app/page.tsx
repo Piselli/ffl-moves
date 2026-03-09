@@ -310,7 +310,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-28 sm:pt-36 pb-16 overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-20 overflow-hidden">
         {/* Background color */}
         <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
@@ -318,7 +318,7 @@ export default function Home() {
         <div className="absolute inset-0 right-0 pointer-events-none -z-10 flex justify-end opacity-40 mix-blend-luminosity">
           <div className="relative w-full sm:w-[85%] lg:w-[70%] max-w-5xl h-full">
             <img
-              src="https://e0.365dm.com/23/09/2048x1152/skysports-pep-guardiola-manchester-city_6305560.jpg"
+              src="/images/manager-bg.png"
               alt="Manager Pep Guardiola Tactical Board"
               className="absolute inset-0 w-full h-full object-cover object-right-top"
             />
@@ -334,20 +334,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl mb-12 sm:mb-20">
-          {/* Live badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50 mb-6 border border-white/10 rounded-full px-4 py-1.5 bg-white/5 backdrop-blur-sm"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inset-0 rounded-full bg-[#00e676] opacity-75" />
-              <span className="relative rounded-full h-1.5 w-1.5 bg-[#00e676]" />
-            </span>
-            Сезон 1 · Живий на Movement
-          </motion.div>
+        <div className="relative z-10 w-full max-w-2xl">
 
           {/* Headline */}
           <motion.h1
@@ -375,7 +362,7 @@ export default function Home() {
         </div>
 
         {/* ── Bottom/Center: Stats & CTAs ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full flex flex-col items-center mt-auto">
+        <div className="relative z-10 w-full flex flex-col items-center mt-16">
           {/* Live on-chain stats */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
