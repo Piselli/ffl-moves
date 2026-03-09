@@ -337,7 +337,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl sm:text-7xl lg:text-8xl font-display font-black uppercase leading-[0.92] tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
+            className="text-6xl sm:text-7xl font-display font-black uppercase leading-[1.1] tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40 pb-2"
           >
             Керуй.
             <br />
@@ -364,11 +364,11 @@ export default function Home() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex flex-row items-stretch justify-start gap-3 mb-6"
+            className="flex flex-row items-center justify-start gap-4 mb-8"
           >
-            <div className="flex flex-col items-start bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 shadow-lg shadow-black/40">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.18em] font-bold mb-1">Призовий фонд</p>
-              <p className="text-xl font-display font-black text-white tabular-nums">
+            <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">Призовий фонд</p>
+              <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
@@ -378,9 +378,9 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex flex-col items-start bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 shadow-lg shadow-black/40">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.18em] font-bold mb-1">Менеджерів</p>
-              <p className="text-xl font-display font-black text-white tabular-nums">
+            <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">Менеджерів</p>
+              <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : totalManagers !== null ? (
@@ -397,33 +397,37 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col items-start gap-4"
+            className="flex flex-col items-center sm:items-start gap-4 w-full sm:w-auto"
           >
             {connected ? (
               <Link
                 href="/gameweek"
-                className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-display font-bold uppercase tracking-widest text-sm bg-white text-black hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+                className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-white text-black hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
               >
                 Зібрати склад
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
             ) : (
-              <div className="relative group cursor-pointer inline-block">
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-70 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
-                <div className="relative bg-[#0D0F12] border border-white/10 text-white px-12 py-5 rounded-2xl font-display font-black uppercase tracking-widest text-base text-center">
-                  Обрати свій склад →
+              <div className="relative group cursor-pointer inline-block w-full sm:w-auto">
+                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-70 group-hover:opacity-100 blur transition-opacity duration-300" />
+                <div className="relative bg-[#0D0F12] border border-white/10 text-white px-12 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
+                  <span>Обрати свій склад</span>
+                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </div>
               </div>
             )}
+            
             <motion.a
               href="#how-it-works"
               whileHover={{ y: 2 }}
-              className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-medium transition-colors"
+              className="flex items-center justify-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors sm:ml-4"
             >
               Як це працює
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </motion.a>
