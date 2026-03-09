@@ -435,6 +435,7 @@ export default function Home() {
             </motion.a>
           </motion.div>
         </div>
+        </div>
       </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS ════════════════════════════ */}
