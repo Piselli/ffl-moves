@@ -310,36 +310,37 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 sm:px-10 lg:px-16 pt-32 pb-24 overflow-hidden">
+      <section className="relative min-h-[90vh] flex flex-col justify-between px-6 sm:px-10 lg:px-16 pt-24 lg:pt-32 pb-12 overflow-hidden">
         {/* Background color */}
         <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
         {/* Real Manager Background Image (Right Side, Faded) */}
         <div className="absolute inset-0 right-0 pointer-events-none -z-10 flex justify-end opacity-40 mix-blend-luminosity">
-          <div className="relative w-[80%] max-w-4xl h-full">
+          <div className="relative w-[100%] sm:w-[80%] lg:w-[65%] max-w-4xl h-full">
             <img
-              src="/images/manager-bg.png"
-              alt="Manager Tactical Board"
-              className="absolute inset-0 w-full h-full object-cover object-right"
+              src="/images/manager-bg.jpg"
+              alt="Manager Pep Guardiola"
+              className="absolute inset-0 w-full h-full object-cover object-right-top"
             />
-            {/* Gradient mask to fade out the image smoothly to the left and bottom */}
+            {/* Gradient masks to fade out the image smoothly to the left, bottom, and slightly top */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F12] via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F12] via-[#0D0F12]/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12] via-transparent to-transparent h-32" />
           </div>
         </div>
 
         {/* Ambient accent glows */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(139,92,246,0.1)_0%,transparent_60%)] pointer-events-none -z-10" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(139,92,246,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(0,240,255,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
-        {/* ── Center: Text + Stats ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-4xl flex flex-col items-center text-center mt-12">
+        {/* ── Top/Left: Text ─────────────────────────────────────── */}
+        <div className="relative z-10 w-full max-w-2xl mt-4 sm:mt-8">
           {/* Live badge */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.25em] text-white/50 mb-8 border border-white/10 rounded-full px-4 py-1.5 bg-white/5 backdrop-blur-sm"
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50 mb-6 border border-white/10 rounded-full px-4 py-1.5 bg-white/5 backdrop-blur-sm"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inset-0 rounded-full bg-[#00e676] opacity-75" />
@@ -350,10 +351,10 @@ export default function Home() {
 
           {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl sm:text-7xl lg:text-[7rem] font-display font-black uppercase leading-[0.9] tracking-tighter mb-8 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
+            className="text-6xl sm:text-7xl lg:text-[7rem] font-display font-black uppercase leading-[0.85] tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
           >
             Керуй.
             <span className="block my-1 text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)] text-[0.95em]">Перемагай.</span>
@@ -365,20 +366,23 @@ export default function Home() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.25 }}
-            className="text-lg sm:text-xl text-white/50 leading-relaxed max-w-2xl mb-12"
+            className="text-lg sm:text-xl text-white/50 leading-relaxed max-w-xl"
           >
             Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої тактичні знання в реальні крипто-нагороди.
           </motion.p>
+        </div>
 
+        {/* ── Bottom/Center: Stats & CTAs ─────────────────────────────────────── */}
+        <div className="relative z-10 w-full flex flex-col items-center mt-auto pt-16">
           {/* Live on-chain stats */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-12 w-full max-w-3xl"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-8 w-full max-w-3xl"
           >
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Призовий фонд</p>
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Призовий фонд</p>
               <p className="text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
@@ -389,9 +393,9 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="w-px h-12 bg-white/10 hidden sm:block" />
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Менеджерів</p>
+            <div className="w-px h-10 bg-white/10 hidden sm:block" />
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Менеджерів</p>
               <p className="text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
@@ -402,9 +406,9 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="w-px h-12 bg-white/10 hidden sm:block" />
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Мережа</p>
+            <div className="w-px h-10 bg-white/10 hidden sm:block" />
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Мережа</p>
               <p className="text-3xl font-display font-black text-[#00e676] drop-shadow-[0_0_10px_rgba(0,230,118,0.3)]">On-Chain</p>
             </div>
           </motion.div>
@@ -414,7 +418,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col sm:flex-row items-center gap-5"
+            className="flex flex-col sm:flex-row items-center gap-5 pb-4"
           >
             {connected ? (
               <Link
@@ -437,7 +441,7 @@ export default function Home() {
             <motion.a
               href="#how-it-works"
               whileHover={{ y: 2 }}
-              className="flex items-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors mt-4 sm:mt-0 px-6 py-4"
+              className="flex items-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors mt-2 sm:mt-0 px-6 py-4"
             >
               Як це працює
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
