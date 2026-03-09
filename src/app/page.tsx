@@ -310,20 +310,36 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col lg:flex-row items-center justify-between px-6 sm:px-10 lg:px-16 pt-24 pb-16 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 sm:px-10 lg:px-16 pt-32 pb-24 overflow-hidden">
+        {/* Background color */}
+        <div className="absolute inset-0 bg-[#0D0F12] pointer-events-none -z-20" />
 
-        {/* Graphite radial background glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(139,92,246,0.08)_0%,transparent_60%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(0,240,255,0.05)_0%,transparent_60%)] pointer-events-none" />
+        {/* Real Manager Background Image (Right Side, Faded) */}
+        <div className="absolute inset-0 right-0 pointer-events-none -z-10 flex justify-end opacity-40 mix-blend-luminosity">
+          <div className="relative w-[80%] max-w-4xl h-full">
+            <img
+              src="/images/manager-bg.png"
+              alt="Manager Tactical Board"
+              className="absolute inset-0 w-full h-full object-cover object-right"
+            />
+            {/* Gradient mask to fade out the image smoothly to the left and bottom */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F12] via-transparent to-transparent" />
+          </div>
+        </div>
 
-        {/* ── Left: Text + Stats ─────────────────────────────────────── */}
-        <div className="relative z-10 flex-1 max-w-xl mb-16 lg:mb-0">
+        {/* Ambient accent glows */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(139,92,246,0.1)_0%,transparent_60%)] pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
+
+        {/* ── Center: Text + Stats ─────────────────────────────────────── */}
+        <div className="relative z-10 w-full max-w-4xl flex flex-col items-center text-center mt-12">
           {/* Live badge */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-8"
+            className="inline-flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.25em] text-white/50 mb-8 border border-white/10 rounded-full px-4 py-1.5 bg-white/5 backdrop-blur-sm"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inset-0 rounded-full bg-[#00e676] opacity-75" />
@@ -334,15 +350,13 @@ export default function Home() {
 
           {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl sm:text-7xl lg:text-8xl font-display font-black uppercase leading-[0.88] tracking-tight mb-8"
+            className="text-6xl sm:text-7xl lg:text-[7rem] font-display font-black uppercase leading-[0.9] tracking-tighter mb-8 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
           >
             Керуй.
-            <br />
-            <span className="text-white/20">Перемагай.</span>
-            <br />
+            <span className="block my-1 text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)] text-[0.95em]">Перемагай.</span>
             Заробляй.
           </motion.h1>
 
@@ -351,9 +365,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.25 }}
-            className="text-base text-white/40 leading-relaxed mb-10 max-w-md"
+            className="text-lg sm:text-xl text-white/50 leading-relaxed max-w-2xl mb-12"
           >
-            Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої знання в реальні нагороди.
+            Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої тактичні знання в реальні крипто-нагороди.
           </motion.p>
 
           {/* Live on-chain stats */}
@@ -361,11 +375,11 @@ export default function Home() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex flex-wrap items-stretch gap-3 mb-10"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-12 w-full max-w-3xl"
           >
-            <div className="flex-1 min-w-[130px] bg-white/[0.03] border border-white/8 rounded-2xl px-5 py-4">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mb-1.5">Призовий фонд</p>
-              <p className="text-2xl font-display font-black text-white tabular-nums">
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Призовий фонд</p>
+              <p className="text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
@@ -375,9 +389,10 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex-1 min-w-[130px] bg-white/[0.03] border border-white/8 rounded-2xl px-5 py-4">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mb-1.5">Менеджерів</p>
-              <p className="text-2xl font-display font-black text-white tabular-nums">
+            <div className="w-px h-12 bg-white/10 hidden sm:block" />
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Менеджерів</p>
+              <p className="text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : totalManagers !== null ? (
@@ -387,9 +402,10 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex-1 min-w-[130px] bg-white/[0.03] border border-white/8 rounded-2xl px-5 py-4">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mb-1.5">Мережа</p>
-              <p className="text-2xl font-display font-black text-white">On-Chain</p>
+            <div className="w-px h-12 bg-white/10 hidden sm:block" />
+            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-white/20 transition-colors rounded-2xl px-6 py-5 shadow-2xl shadow-black/50">
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Мережа</p>
+              <p className="text-3xl font-display font-black text-[#00e676] drop-shadow-[0_0_10px_rgba(0,230,118,0.3)]">On-Chain</p>
             </div>
           </motion.div>
 
@@ -398,12 +414,12 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-wrap items-center gap-4"
+            className="flex flex-col sm:flex-row items-center gap-5"
           >
             {connected ? (
               <Link
                 href="/gameweek"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-display font-bold uppercase tracking-wider text-sm bg-white text-black hover:bg-white/90 transition-colors duration-200 shadow-lg shadow-white/10"
+                className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-display font-bold uppercase tracking-widest text-sm bg-white text-black hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
               >
                 Зібрати склад
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -411,17 +427,17 @@ export default function Home() {
                 </svg>
               </Link>
             ) : (
-              <div className="relative inline-block">
-                <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-50 blur" />
-                <div className="relative bg-[#0D0F12] border border-white/20 text-white/70 px-8 py-3.5 rounded-xl font-display font-bold uppercase tracking-wider text-sm">
+              <div className="relative group cursor-pointer inline-block">
+                <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-60 group-hover:opacity-100 blur transition-opacity duration-300" />
+                <div className="relative bg-[#0D0F12] border-0 text-white/90 px-10 py-4 rounded-xl font-display font-bold uppercase tracking-widest text-sm text-center">
                   Підключи гаманець, щоб грати
                 </div>
               </div>
             )}
             <motion.a
               href="#how-it-works"
-              whileHover={{ x: 3 }}
-              className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-sm transition-colors duration-200"
+              whileHover={{ y: 2 }}
+              className="flex items-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors mt-4 sm:mt-0 px-6 py-4"
             >
               Як це працює
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -430,25 +446,6 @@ export default function Home() {
             </motion.a>
           </motion.div>
         </div>
-
-        {/* ── Right: Pitch + Players ─────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex-shrink-0 w-full max-w-[420px] lg:max-w-[480px] aspect-[500/340]"
-        >
-          {/* Pitch SVG */}
-          <PitchSVG />
-
-          {/* Ambient pitch glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,230,118,0.04)_0%,transparent_70%)] pointer-events-none" />
-
-          {/* Player cutouts */}
-          {players.map((p) => (
-            <PlayerCutout key={p.name} {...p} />
-          ))}
-        </motion.div>
       </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS ════════════════════════════ */}
