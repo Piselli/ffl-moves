@@ -1,173 +1,192 @@
 "use client";
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  AnimatePresence,
-} from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { getConfig, getGameweek } from "@/lib/aptos";
+import { octasToMOVE } from "@/lib/utils";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { ScoreCounter } from "@/components/widgets/ScoreCounter";
 import { SquadStatusWidget } from "@/components/widgets/SquadStatusWidget";
 import { NextFixtureWidget } from "@/components/widgets/NextFixtureWidget";
 
-// ─── Stagger container helpers ─────────────────────────────────────────────
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
-};
-
-const itemVariants = {
+// ─── Animation helpers ────────────────────────────────────────────────────
+const fadeUp = {
   hidden: { opacity: 0, y: 28 },
-  show:   { opacity: 1, y: 0,  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// ─── Floating accent orbs ──────────────────────────────────────────────────
-function FloatingOrb({ className }: { className: string }) {
+const stagger = (delayChildren = 0.1) => ({
+  hidden: {},
+  show:   { transition: { staggerChildren: delayChildren } },
+});
+
+// ─── Background orb ─────────────────────────────────────────────────────
+function Orb({ className }: { className: string }) {
   return (
     <motion.div
-      animate={{ y: [0, -24, 0], scale: [1, 1.04, 1] }}
-      transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-      className={`absolute rounded-full pointer-events-none blur-[120px] -z-10 ${className}`}
+      animate={{ y: [0, -30, 0] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      className={`absolute rounded-full pointer-events-none -z-10 ${className}`}
     />
   );
 }
 
-// ─── Steps data ────────────────────────────────────────────────────────────
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Draft Squad",
-    desc: "Scout & select your optimal 11 in a 4-3-3 formation from real Premier League players.",
-    gradient: "from-fpl-cyan to-blue-500",
-    glow: "cyan" as const,
-    icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
-  },
-  {
-    step: "02",
-    title: "Stake Entry",
-    desc: "Sign the on-chain transaction to lock your team and enter the gameweek prize pool.",
-    gradient: "from-fpl-purple to-pink-500",
-    glow: "purple" as const,
-    icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-  },
-  {
-    step: "03",
-    title: "Track Action",
-    desc: "Watch live as your players rack up points from real Premier League stats.",
-    gradient: "from-fpl-green to-emerald-500",
-    glow: "green" as const,
-    icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
-  },
-  {
-    step: "04",
-    title: "Claim Rewards",
-    desc: "Top managers automatically receive a share of the massive MOVE prize pool.",
-    gradient: "from-amber-400 to-orange-500",
-    glow: "gold" as const,
-    icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z",
-  },
-];
-
-const POSITIVE_RULES = [
-  ["Playing 1+ minutes",    "+1", "text-white/60"],
-  ["Playing 60+ minutes",   "+1", "text-white/60"],
-  ["Goal (Forward)",        "+4", "text-fpl-cyan"],
-  ["Goal (Midfielder)",     "+5", "text-fpl-cyan"],
-  ["Goal (Defender / GK)",  "+6", "text-fpl-purple"],
-  ["Assist",                "+3", "text-white/60"],
-  ["Clean Sheet (GK / DEF)","+4", "text-fpl-green"],
-  ["Penalty Saved",         "+5", "text-amber-400"],
-];
-
-const NEGATIVE_RULES = [
-  ["Yellow Card",     "-1"],
-  ["Red Card",        "-3"],
-  ["Own Goal",        "-2"],
-  ["Penalty Missed",  "-2"],
-];
-
-const RATING_RULES = [
-  ["Rating 9.0+",     "+3", "text-fpl-cyan"],
-  ["Rating 8.0-8.9",  "+2", "text-fpl-cyan"],
-  ["Rating 7.5-7.9",  "+1", "text-white/60"],
-  ["Rating < 6.0",    "-1", "text-destructive"],
-];
+// ─── Scoring row ────────────────────────────────────────────────────────
+function ScoreRow({ label, pts, color = "text-white/70" }: { label: string; pts: string; color?: string }) {
+  return (
+    <motion.li
+      whileHover={{ x: 5, backgroundColor: "rgba(255,255,255,0.04)" }}
+      transition={{ duration: 0.15 }}
+      className="flex justify-between items-center py-2.5 px-3 rounded-xl cursor-default"
+    >
+      <span className="text-muted-foreground font-medium">{label}</span>
+      <span className={`font-display font-black text-lg ${color}`}>{pts}</span>
+    </motion.li>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Home() {
   const { connected } = useWallet();
   const heroRef = useRef<HTMLDivElement>(null);
-  const [prizePool, setPrizePool] = useState(5000);
-  const [totalManagers, setTotalManagers] = useState(1240);
 
-  // parallax for hero badge / headline
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY    = useTransform(scrollYProgress, [0, 1], [0, -80]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  // Live on-chain data
+  const [prizePool, setPrizePool] = useState<number | null>(null);
+  const [totalManagers, setTotalManagers] = useState<number | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    async function fetch() {
-      const cfg = await getConfig();
-      if (cfg?.currentGameweek) {
-        const gw = await getGameweek(cfg.currentGameweek);
-        if (gw?.prizePool)      setPrizePool(Number(gw.prizePool) / 1e8);
-        if (gw?.totalEntries)   setTotalManagers(Number(gw.totalEntries));
+    async function fetchOnChainData() {
+      try {
+        const cfg = await getConfig();
+        if (cfg?.currentGameweek) {
+          const gw = await getGameweek(cfg.currentGameweek);
+          if (gw) {
+            setPrizePool(octasToMOVE(gw.prizePool));
+            setTotalManagers(gw.totalEntries);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch on-chain data:", e);
+      } finally {
+        setDataLoading(false);
       }
     }
-    fetch();
+    fetchOnChainData();
   }, []);
 
+  // Parallax on hero
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY       = useTransform(scrollYProgress, [0, 1], [0, -60]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+
+  // ── Steps ─────────────────────────────────────────────────────────────
+  const steps = [
+    {
+      num: "01",
+      title: "Збери склад",
+      desc: "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Аналізуй форму, розклад і статистику.",
+      gradient: "from-fpl-cyan to-blue-500",
+      glow: "cyan" as const,
+      icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+    },
+    {
+      num: "02",
+      title: "Зареєструй склад",
+      desc: "Зафіксуй свою команду смарт-контрактом на блокчейні Movement. Без посередників, без довіри — тільки код.",
+      gradient: "from-fpl-purple to-pink-500",
+      glow: "purple" as const,
+      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    },
+    {
+      num: "03",
+      title: "Перемагай",
+      desc: "Гравці забивають, асистують і тримають 'суху' в реальному житті — ти автоматично отримуєш MOVE токени.",
+      gradient: "from-fpl-green to-emerald-500",
+      glow: "green" as const,
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    },
+  ];
+
+  // ── Positive scoring rules ────────────────────────────────────────────
+  const posRules = [
+    { label: "Вихід на поле (1+ хв)",    pts: "+1",  color: "text-white/60" },
+    { label: "Вихід на поле (60+ хв)",   pts: "+1",  color: "text-white/60" },
+    { label: "Гол (Нападник)",           pts: "+4",  color: "text-fpl-cyan"  },
+    { label: "Гол (Півзахисник)",        pts: "+5",  color: "text-fpl-cyan"  },
+    { label: "Гол (Захисник / ВР)",      pts: "+6",  color: "text-fpl-purple"},
+    { label: "Передача (Асист)",         pts: "+3",  color: "text-white/60" },
+    { label: "Суха пара (ВР / Захист)",  pts: "+4",  color: "text-fpl-green" },
+    { label: "Відбитий пенальті",        pts: "+5",  color: "text-amber-400" },
+  ];
+  const negRules = [
+    { label: "Жовта картка",  pts: "−1" },
+    { label: "Червона картка", pts: "−3" },
+    { label: "Автогол",       pts: "−2" },
+    { label: "Незабитий пенальті", pts: "−2" },
+  ];
+  const ratingRules = [
+    { label: "Рейтинг 9.0+",    pts: "+3", color: "text-fpl-cyan"    },
+    { label: "Рейтинг 8.0–8.9", pts: "+2", color: "text-fpl-cyan"    },
+    { label: "Рейтинг 7.5–7.9", pts: "+1", color: "text-white/60"    },
+    { label: "Рейтинг < 6.0",   pts: "−1", color: "text-destructive" },
+  ];
+
+  // ======================================================================
   return (
     <div className="relative overflow-x-hidden">
 
-      {/* ── Background orbs ─────────────────────────────────────── */}
-      <FloatingOrb className="w-[520px] h-[520px] bg-fpl-purple/25 top-0 -right-40" />
-      <FloatingOrb className="w-[600px] h-[600px] bg-fpl-cyan/15 top-1/3 -left-60" />
+      {/* ── Ambient orbs ────────────────────────────────────────────── */}
+      <Orb className="w-[560px] h-[560px] bg-fpl-purple/20 blur-[140px] -top-24 -right-40" />
+      <Orb className="w-[480px] h-[480px] bg-fpl-cyan/12 blur-[120px] top-1/2 -left-48" />
 
-      {/* ══════════════════════ HERO ════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 py-24">
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-4xl mx-auto">
-
+      {/* ════════════════════ SECTION 1: HERO ══════════════════════════ */}
+      <section
+        ref={heroRef}
+        className="relative flex flex-col items-center justify-center text-center px-4 pt-28 pb-24 min-h-[88vh]"
+      >
+        <motion.div
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="max-w-4xl mx-auto w-full"
+        >
           {/* Live badge */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
+            initial={{ opacity: 0, scale: 0.88 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass-card border-fpl-purple/30 text-fpl-purple font-bold tracking-widest text-xs mb-8 uppercase"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass-card border-fpl-purple/30 text-fpl-purple font-bold tracking-widest text-xs mb-10 uppercase"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inset-0 rounded-full bg-fpl-cyan opacity-75" />
               <span className="relative rounded-full h-2 w-2 bg-fpl-cyan" />
             </span>
-            Season 1 is Live on Movement
+            Сезон 1 — Живий на Movement
           </motion.div>
 
           {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 36 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl sm:text-6xl md:text-8xl font-display font-black text-white uppercase tracking-tight leading-none mb-6"
+            transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="text-5xl sm:text-6xl md:text-[82px] font-display font-black text-white uppercase tracking-tight leading-[0.9] mb-7"
           >
-            Fantasy EPL<br />
-            <span className="bg-gradient-to-r from-fpl-cyan via-fpl-purple to-fpl-cyan bg-clip-text text-transparent bg-[length:200%_auto] animate-pulse">
-              On-Chain
+            Керуй.{" "}
+            <span className="bg-gradient-to-r from-fpl-cyan via-fpl-purple to-fpl-cyan bg-clip-text text-transparent bg-[length:200%_auto]">
+              Перемагай.
             </span>
+            <br />Заробляй.
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Sub-headline */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7 }}
-            className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-light"
+            transition={{ duration: 0.7, delay: 0.35 }}
+            className="text-lg sm:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light leading-relaxed"
           >
-            Collect, build&nbsp;&&nbsp;compete. The ultimate Web3 fantasy football ecosystem powered by the{" "}
+            Фентезі АПЛ нового покоління — твої знання конвертуються в реальні нагороди на{" "}
             <span className="text-white font-semibold">Movement Network</span>.
           </motion.p>
 
@@ -175,231 +194,254 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
             {connected ? (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
                 <Link
                   href="/gameweek"
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-white bg-fpl-purple font-display uppercase tracking-wider text-sm glow-purple hover:bg-fpl-cyan hover:text-fpl-navy transition-all duration-200"
                 >
-                  Pick Your Squad
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
+                  Зібрати склад
                 </Link>
               </motion.div>
             ) : (
-              <div className="glass-card px-8 py-4 rounded-xl border-fpl-cyan/40 text-fpl-cyan font-display font-bold uppercase tracking-wider text-sm animate-pulse">
-                Connect Wallet to Play
+              <div className="relative">
+                {/* pulsing glow ring */}
+                <div className="absolute -inset-1 rounded-xl bg-fpl-purple/40 blur-md animate-pulse" />
+                <div className="relative glass-card px-8 py-4 rounded-xl border-fpl-purple/50 text-fpl-purple font-display font-bold uppercase tracking-wider text-sm">
+                  Підключи гаманець, щоб грати
+                </div>
               </div>
             )}
             <motion.a
               whileHover={{ scale: 1.04 }}
               href="#how-it-works"
-              className="text-muted-foreground hover:text-white transition-colors font-medium text-sm uppercase tracking-wide"
+              className="text-muted-foreground hover:text-white transition-colors text-sm font-medium flex items-center gap-1.5"
             >
-              See How It Works ↓
+              Як це працює
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </motion.a>
           </motion.div>
 
-          {/* Floating stat pills */}
+          {/* ── Live on-chain stats ────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="mt-16 flex flex-wrap justify-center gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.65 }}
+            className="flex flex-wrap items-center justify-center gap-4"
           >
-            {[
-              { label: "Prize Pool", value: prizePool, suffix: " MOVE", decimals: 0 },
-              { label: "Managers",   value: totalManagers, suffix: "+", decimals: 0 },
-              { label: "On Movement", value: 100, suffix: "% On-Chain", decimals: 0 },
-            ].map(({ label, value, suffix, decimals }) => (
-              <div key={label} className="glass-card px-6 py-3 rounded-2xl border-white/10 text-center min-w-[130px]">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-2xl font-display font-black text-white">
-                  <ScoreCounter to={value} suffix={suffix} decimals={decimals} />
-                </p>
-              </div>
-            ))}
+            {/* Prize Pool — real on-chain */}
+            <div className="glass-card px-7 py-5 rounded-2xl border-fpl-cyan/20 text-center min-w-[160px]">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1.5">
+                Призовий фонд
+              </p>
+              <p className="text-3xl font-display font-black text-fpl-cyan">
+                {dataLoading ? (
+                  <span className="animate-pulse text-white/30">—</span>
+                ) : prizePool !== null ? (
+                  <ScoreCounter to={prizePool} suffix=" MOVE" decimals={0} duration={1.4} />
+                ) : (
+                  <span className="text-white/30">N/A</span>
+                )}
+              </p>
+            </div>
+
+            {/* Total Managers — real on-chain */}
+            <div className="glass-card px-7 py-5 rounded-2xl border-fpl-purple/20 text-center min-w-[160px]">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1.5">
+                Менеджерів
+              </p>
+              <p className="text-3xl font-display font-black text-white">
+                {dataLoading ? (
+                  <span className="animate-pulse text-white/30">—</span>
+                ) : totalManagers !== null ? (
+                  <ScoreCounter to={totalManagers} suffix="+" decimals={0} duration={1.4} />
+                ) : (
+                  <span className="text-white/30">N/A</span>
+                )}
+              </p>
+            </div>
+
+            {/* Chain badge — static */}
+            <div className="glass-card px-7 py-5 rounded-2xl border-white/10 text-center min-w-[160px]">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1.5">
+                Блокчейн
+              </p>
+              <p className="text-2xl font-display font-black text-white">100% On-Chain</p>
+            </div>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* ══════════════════ DASHBOARD INJECT (connected only) ══════ */}
+      {/* ════ SECTION 1.5: CONNECTED DASHBOARD INJECT ══════════════════ */}
       <AnimatePresence>
         {connected && (
           <motion.section
             key="dashboard"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: "auto", marginBottom: "6rem" }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-24 overflow-hidden"
+            className="overflow-hidden px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
           >
             <h2 className="text-2xl font-display font-black text-white uppercase tracking-wide mb-6 flex items-center gap-3">
-              <span className="w-3 h-3 rounded-full bg-fpl-green animate-pulse" />
-              Your Command Center
+              <span className="w-2.5 h-2.5 rounded-full bg-fpl-green animate-pulse" />
+              Твій Command Center
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="md:col-span-1"><NextFixtureWidget /></div>
-              <div className="md:col-span-1"><SquadStatusWidget connected={connected} /></div>
-              <AnimatedCard glowColor="cyan" delay={0.2} className="p-6 flex flex-col justify-center items-center text-center gap-2">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Prize Pool GW1</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <NextFixtureWidget />
+              <SquadStatusWidget connected={connected} />
+              <AnimatedCard glowColor="cyan" delay={0.25} className="p-6 flex flex-col justify-center items-center text-center gap-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Призовий фонд</p>
                 <p className="text-5xl font-display font-black text-fpl-cyan glow-cyan">
-                  <ScoreCounter to={prizePool} suffix=" MOVE" />
+                  {prizePool !== null
+                    ? <ScoreCounter to={prizePool} suffix=" MOVE" decimals={0} />
+                    : "—"
+                  }
                 </p>
-                <p className="text-xs text-muted-foreground">{totalManagers} managers entered</p>
+                <p className="text-xs text-muted-foreground">
+                  {totalManagers !== null ? `${totalManagers} менеджерів` : ""}
+                </p>
               </AnimatedCard>
             </div>
           </motion.section>
         )}
       </AnimatePresence>
 
-      {/* ══════════════════ HOW IT WORKS ════════════════════════════ */}
-      <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-32">
+      {/* ════════════════ SECTION 2: HOW IT WORKS ═══════════════════════ */}
+      <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-28">
+        {/* Section header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          variants={stagger()}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          className="text-center mb-14"
         >
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">The Journey</p>
-          <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight mb-4">
-            How&nbsp;It&nbsp;Works
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Master the market, deploy your squad, and dominate the global leaderboards.
-          </p>
+          <motion.p variants={fadeUp} className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] mb-3">
+            Починаємо
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight mb-4">
+            Як це працює
+          </motion.h2>
+          <motion.p variants={fadeUp} className="text-muted-foreground text-lg max-w-lg mx-auto">
+            Три простих кроки, щоб стати частиною найпремільнішої фентезі-ліги на блокчейні.
+          </motion.p>
         </motion.div>
 
+        {/* Steps grid */}
         <motion.div
-          variants={containerVariants}
+          variants={stagger(0.12)}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {HOW_IT_WORKS.map((item) => (
-            <motion.div key={item.step} variants={itemVariants}>
-              <AnimatedCard
-                glowColor={item.glow}
-                className="p-8 h-full flex flex-col group text-center"
-              >
-                {/* Big step number watermark */}
-                <span className="absolute top-4 right-6 text-6xl font-display font-black text-white/5 group-hover:text-white/10 transition-colors select-none">
-                  {item.step}
+          {steps.map((s) => (
+            <motion.div key={s.num} variants={fadeUp}>
+              <AnimatedCard glowColor={s.glow} className="p-9 h-full flex flex-col relative text-center group">
+                {/* Watermark step number */}
+                <span className="absolute top-5 right-7 text-7xl font-display font-black text-white/[0.04] select-none group-hover:text-white/[0.07] transition-colors">
+                  {s.num}
                 </span>
 
                 {/* Icon */}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-6 shadow-lg shadow-black/40 group-hover:-translate-y-1 transition-transform duration-300`}>
-                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                <div className={`w-16 h-16 mx-auto mb-7 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg shadow-black/40 group-hover:-translate-y-1.5 transition-transform duration-300`}>
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={s.icon} />
                   </svg>
                 </div>
 
-                <h3 className="text-xl font-display font-bold text-white mb-3 uppercase">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{item.desc}</p>
+                <h3 className="text-xl font-display font-bold text-white uppercase mb-3">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{s.desc}</p>
               </AnimatedCard>
             </motion.div>
           ))}
         </motion.div>
       </section>
 
-      {/* ══════════════════ SCORING RULES ═══════════════════════════ */}
-      <section id="rules" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-32">
+      {/* ════════════════ SECTION 3: SCORING ENGINE ═════════════════════ */}
+      <section id="scoring" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-28">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          variants={stagger()}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          className="text-center mb-14"
         >
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Game Mechanics</p>
-          <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight">
-            Scoring System
-          </h2>
+          <motion.p variants={fadeUp} className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] mb-3">
+            Механіка гри
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight">
+            Система очок
+          </motion.h2>
         </motion.div>
 
+        {/* Rules grid */}
         <motion.div
-          variants={containerVariants}
+          variants={stagger(0.1)}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-60px" }}
           className="grid md:grid-cols-2 gap-8"
         >
           {/* Positive */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={fadeUp}>
             <AnimatedCard glowColor="green" className="p-8 h-full">
               <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/10">
-                <div className="w-12 h-12 rounded-xl bg-fpl-green/10 border border-fpl-green/30 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-fpl-green/10 border border-fpl-green/30 flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-fpl-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-display font-bold text-white uppercase">Performance Engine</h3>
+                <h3 className="text-2xl font-display font-bold text-white uppercase">Бонуси</h3>
               </div>
-              <ul className="space-y-3">
-                {POSITIVE_RULES.map(([label, pts, color]) => (
-                  <motion.li
-                    key={label}
-                    whileHover={{ x: 4 }}
-                    className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-white/5 transition-colors"
-                  >
-                    <span className="text-muted-foreground font-medium">{label}</span>
-                    <span className={`font-display font-black text-lg ${color}`}>{pts}</span>
-                  </motion.li>
+              <ul className="space-y-1">
+                {posRules.map((r) => (
+                  <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
                 ))}
               </ul>
             </AnimatedCard>
           </motion.div>
 
-          {/* Negative + Rating */}
-          <motion.div variants={itemVariants} className="flex flex-col gap-6">
+          {/* Negative + rating */}
+          <motion.div variants={fadeUp} className="flex flex-col gap-6">
             <AnimatedCard glowColor="purple" className="p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-display font-bold text-white uppercase">Deductions</h3>
+                <h3 className="text-xl font-display font-bold text-white uppercase">Штрафи</h3>
               </div>
-              <ul className="space-y-2">
-                {NEGATIVE_RULES.map(([label, pts]) => (
-                  <motion.li
-                    key={label}
-                    whileHover={{ x: 4 }}
-                    className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-white/5 transition-colors"
-                  >
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="text-destructive font-display font-black">{pts}</span>
-                  </motion.li>
+              <ul className="space-y-1">
+                {negRules.map((r) => (
+                  <ScoreRow key={r.label} label={r.label} pts={r.pts} color="text-destructive" />
                 ))}
               </ul>
             </AnimatedCard>
 
             <AnimatedCard glowColor="cyan" className="p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-fpl-cyan/10 border border-fpl-cyan/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-fpl-cyan/10 border border-fpl-cyan/30 flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-fpl-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-display font-bold text-white uppercase">Match Rating Bonus</h3>
+                <h3 className="text-xl font-display font-bold text-white uppercase">Бонус за рейтинг</h3>
               </div>
-              <ul className="space-y-2">
-                {RATING_RULES.map(([label, pts, color]) => (
-                  <motion.li
-                    key={label}
-                    whileHover={{ x: 4 }}
-                    className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-white/5 transition-colors"
-                  >
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className={`font-display font-black ${color}`}>{pts}</span>
-                  </motion.li>
+              <ul className="space-y-1">
+                {ratingRules.map((r) => (
+                  <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
                 ))}
               </ul>
             </AnimatedCard>
@@ -407,43 +449,43 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ══════════════════ TITLES CTA ══════════════════════════════ */}
+      {/* ════════════════ SECTION 4: TALENTS (COMING SOON) ══════════════ */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-24">
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <AnimatedCard
-            glowColor="purple"
-            className="p-12 md:p-16 text-center relative"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsla(260,100%,65%,0.12)_0%,transparent_70%)] pointer-events-none" />
-            <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-fpl-navy border border-fpl-purple/40 mx-auto flex items-center justify-center mb-8 glow-purple">
-                <svg className="w-8 h-8 text-fpl-purple" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                </svg>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-display font-black text-white mb-6 uppercase">
-                Unlock Elite Status
-              </h2>
-              <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-                Acquire unique NFT Titles and form Guilds to unlock huge scoring multipliers (5–15%).
-                Strategize your title selection to maximise returns based on match conditions.
-              </p>
-              <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }}>
-                <Link
-                  href="/titles"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-white bg-white/5 border border-fpl-purple/50 hover:bg-fpl-purple/20 hover:border-fpl-purple transition-all duration-300 font-display uppercase tracking-wider text-sm"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          <AnimatedCard glowColor="purple" className="p-10 md:p-14 relative overflow-hidden">
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsla(260,100%,65%,0.12)_0%,transparent_65%)] pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              {/* Icon */}
+              <div className="shrink-0">
+                <div className="w-20 h-20 rounded-2xl bg-fpl-navy border border-fpl-purple/40 flex items-center justify-center glow-purple">
+                  <svg className="w-10 h-10 text-fpl-purple" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                   </svg>
-                  Explore Marketplace
-                </Link>
-              </motion.div>
+                </div>
+              </div>
+
+              {/* Text */}
+              <div className="text-center md:text-left flex-1">
+                <div className="inline-block px-3 py-1 rounded-full bg-fpl-purple/10 border border-fpl-purple/30 text-fpl-purple text-xs font-bold uppercase tracking-widest mb-4">
+                  Незабаром
+                </div>
+                <h2 className="text-3xl md:text-4xl font-display font-black text-white uppercase mb-3">
+                  Таланти
+                </h2>
+                <p className="text-muted-foreground text-lg leading-relaxed max-w-xl">
+                  Розблокуй унікальні{" "}
+                  <span className="text-white font-medium">Таланти</span>{" "}
+                  за MOVE — ігрову механіку, яка буде множити твої бали на 5%, 10% або 15% за певних умов.
+                  Стратегічний вибір Таланта стане ключовим у боротьбі за лідерство.
+                </p>
+              </div>
             </div>
           </AnimatedCard>
         </motion.div>
