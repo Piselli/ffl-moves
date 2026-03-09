@@ -310,7 +310,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[110px] pb-16">
+      <section className="relative min-h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[110px] pb-20">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
@@ -330,14 +330,14 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl">
+        <div className="relative z-10 w-full max-w-2xl pt-3">
 
           {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl sm:text-7xl lg:text-8xl font-display font-black uppercase leading-[0.88] tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
+            className="text-6xl sm:text-7xl lg:text-8xl font-display font-black uppercase leading-[0.92] tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40"
           >
             Керуй.
             <br />
@@ -397,7 +397,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center gap-5"
+            className="flex flex-col items-start gap-4"
           >
             {connected ? (
               <Link
@@ -420,10 +420,10 @@ export default function Home() {
             <motion.a
               href="#how-it-works"
               whileHover={{ y: 2 }}
-              className="flex items-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors mt-2 sm:mt-0 px-6 py-4"
+              className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-medium transition-colors"
             >
               Як це працює
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </motion.a>
