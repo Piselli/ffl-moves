@@ -321,8 +321,8 @@ export default function Home() {
           />
           {/* Gradient: Much darker on left for perfect text readability, fades to transparent on right */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/95 from-20% via-[#0D0F12]/90 via-50% to-transparent" />
-          {/* Subtle top/bottom fade */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/40 via-transparent to-[#0D0F12]/60" />
+          {/* Bottom fade — fades fully to #0D0F12 so the transition to the next section is seamless */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0D0F12]" />
         </div>
 
         {/* Ambient accent glows */}
