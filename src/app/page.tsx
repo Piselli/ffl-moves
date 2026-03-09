@@ -319,10 +319,10 @@ export default function Home() {
             alt="Fantasy EPL Tactical Board"
             className="absolute inset-0 w-full h-full object-cover object-right"
           />
-          {/* Gradient: dark on left for text readability, fades to transparent on right to show the image */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] from-35% via-[#0D0F12]/60 via-55% to-transparent" />
+          {/* Gradient: Much darker on left for perfect text readability, fades to transparent on right */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/95 from-20% via-[#0D0F12]/90 via-50% to-transparent" />
           {/* Subtle top/bottom fade */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/30 via-transparent to-[#0D0F12]/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0F12]/40 via-transparent to-[#0D0F12]/60" />
         </div>
 
         {/* Ambient accent glows */}
@@ -330,42 +330,44 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl pt-3">
+        <div className="relative z-10 w-full max-w-2xl pt-3 flex flex-col gap-10">
 
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl sm:text-7xl font-display font-black uppercase leading-[1.1] tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40 pb-2"
-          >
-            Керуй.
-            <br />
-            <span className="text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]">Перемагай.</span>
-            <br />
-            Заробляй.
-          </motion.h1>
+          {/* Text Group */}
+          <div className="flex flex-col gap-5">
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="text-6xl sm:text-7xl font-display font-black uppercase leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40 pb-2"
+            >
+              Керуй.
+              <br />
+              <span className="text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]">Перемагай.</span>
+              <br />
+              Заробляй.
+            </motion.h1>
 
-          {/* Subheadline */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
-            className="text-lg text-white/50 leading-relaxed max-w-xl"
-          >
-            Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої тактичні знання в реальні крипто-нагороди.
-          </motion.p>
-        </div>
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.25 }}
+              className="text-lg text-white/50 leading-relaxed max-w-xl"
+            >
+              Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої тактичні знання в реальні крипто-нагороди.
+            </motion.p>
+          </div>
 
-        {/* ── Bottom/Left: Stats & CTAs ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl flex flex-col items-start mt-8">
-          {/* Live on-chain stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex flex-row items-center justify-start gap-4 mb-8"
-          >
+          {/* ── Bottom/Left: Stats & CTAs ─────────────────────────────────────── */}
+          <div className="flex flex-col items-start gap-8">
+            {/* Live on-chain stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+              className="flex flex-row items-center justify-start gap-4"
+            >
             <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
               <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">Призовий фонд</p>
               <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
