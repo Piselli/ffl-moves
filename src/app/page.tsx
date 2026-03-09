@@ -310,7 +310,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[140px] pb-24 overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[180px] pb-24 overflow-hidden">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
@@ -357,16 +357,16 @@ export default function Home() {
           </motion.p>
         </div>
 
-        {/* ── Bottom/Center: Stats & CTAs ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full flex flex-col items-center mt-16">
+        {/* ── Bottom/Left: Stats & CTAs ─────────────────────────────────────── */}
+        <div className="relative z-10 w-full max-w-2xl flex flex-col items-start mt-12">
           {/* Live on-chain stats */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full max-w-3xl mb-8"
+            className="flex flex-col sm:flex-row items-stretch justify-start gap-4 sm:gap-6 w-full mb-8"
           >
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
+            <div className="flex-1 w-full flex flex-col items-start bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
               <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Призовий фонд</p>
               <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
@@ -378,8 +378,8 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="w-px h-10 bg-white/10 hidden sm:block" />
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
+            <div className="w-px h-12 self-center bg-white/10 hidden sm:block" />
+            <div className="flex-1 w-full flex flex-col items-start bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
               <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Менеджерів</p>
               <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums drop-shadow-md">
                 {dataLoading ? (
@@ -391,11 +391,6 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="w-px h-10 bg-white/10 hidden sm:block" />
-            <div className="flex-1 w-full flex flex-col items-center bg-white/[0.04] backdrop-blur-md border border-white/10 transition-colors rounded-2xl px-6 py-4 shadow-xl shadow-black/50">
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1.5">Мережа</p>
-              <p className="text-2xl sm:text-3xl font-display font-black text-[#00e676] drop-shadow-[0_0_10px_rgba(0,230,118,0.3)]">On-Chain</p>
-            </div>
           </motion.div>
 
           {/* CTAs */}
@@ -403,7 +398,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col sm:flex-row items-center gap-5"
+            className="flex flex-col sm:flex-row items-start sm:items-center gap-5"
           >
             {connected ? (
               <Link
@@ -419,7 +414,7 @@ export default function Home() {
               <div className="relative group cursor-pointer inline-block">
                 <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-60 group-hover:opacity-100 blur transition-opacity duration-300" />
                 <div className="relative bg-[#0D0F12] border border-white/10 text-white/90 px-10 py-4 rounded-xl font-display font-bold uppercase tracking-widest text-sm text-center">
-                  Підключи гаманець, щоб грати
+                  Обрати свій склад
                 </div>
               </div>
             )}
