@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <WalletProvider>
-          <div className="min-h-screen main-gradient soccer-pattern text-white">
+          <div className="min-h-screen bg-[#0D0F12] text-white">
             <Navbar />
             <main className="relative z-10">{children}</main>
           </div>

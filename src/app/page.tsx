@@ -412,7 +412,10 @@ export default function Home() {
                 </svg>
               </Link>
             ) : (
-              <div className="relative group cursor-pointer inline-block w-full sm:w-auto">
+              <div
+                className="relative group cursor-pointer inline-block w-full sm:w-auto"
+                onClick={() => (document.getElementById('wallet-connect-btn') as HTMLButtonElement)?.click()}
+              >
                 <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-70 group-hover:opacity-100 blur transition-opacity duration-300" />
                 <div className="relative bg-[#0D0F12] border border-white/10 text-white px-12 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
                   <span>Обрати свій склад</span>
