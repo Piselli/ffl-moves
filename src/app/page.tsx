@@ -442,23 +442,23 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS ════════════════════════════ */}
-      <section id="how-it-works" className="px-6 sm:px-10 lg:px-16 py-28">
+      <section id="how-it-works" className="px-6 sm:px-10 lg:px-16 py-24">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16"
+          className="mb-14 max-w-5xl mx-auto"
         >
-          <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.25em] mb-3">Починаємо</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] mb-3">Починаємо</p>
           <h2 className="text-4xl sm:text-5xl font-display font-black text-white uppercase tracking-tight">
             Як це працює
           </h2>
         </motion.div>
 
         {/* 3D Tilt Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
           {steps.map((s, i) => (
             <motion.div
               key={s.num}
@@ -469,17 +469,17 @@ export default function Home() {
             >
               <TiltCard className="p-8 h-full flex flex-col">
                 {/* Step number watermark */}
-                <span className="absolute top-4 right-6 text-6xl font-display font-black text-white/[0.04] select-none">
+                <span className="absolute top-4 right-6 text-5xl font-display font-black text-white/[0.07] select-none">
                   {s.num}
                 </span>
 
                 {/* Icon */}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${s.accent} flex items-center justify-center mb-7 shadow-xl`}>
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.accent} flex items-center justify-center mb-5 shadow-lg`}>
                   {s.icon}
                 </div>
 
-                <h3 className="text-xl font-display font-bold text-white uppercase mb-3">{s.title}</h3>
-                <p className="text-sm text-white/40 leading-relaxed">{s.desc}</p>
+                <h3 className="text-lg font-display font-bold text-white uppercase mb-2">{s.title}</h3>
+                <p className="text-sm text-white/50 leading-relaxed">{s.desc}</p>
               </TiltCard>
             </motion.div>
           ))}
@@ -487,11 +487,9 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION C: TACTICAL HUD (SCORING) ══════════════════ */}
-      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-28 overflow-hidden">
-        {/* Atmospheric background overlay — very subtle locker room feel */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02)_0%,transparent_70%)] pointer-events-none" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-24 overflow-hidden">
+        {/* Separator line top */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
 
         {/* Header */}
         <motion.div
@@ -499,29 +497,29 @@ export default function Home() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16"
+          className="mb-14 max-w-5xl mx-auto"
         >
-          <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.25em] mb-3">Тактичний планшет</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] mb-3">Тактичний планшет</p>
           <h2 className="text-4xl sm:text-5xl font-display font-black text-white uppercase tracking-tight">
             Система очок
           </h2>
         </motion.div>
 
         {/* HUD Grid */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-5xl">
+        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {/* Bonuses panel */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="bg-white/[0.02] border border-white/8 rounded-2xl p-7"
+            className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex flex-col"
           >
-            <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/8">
-              <div className="w-2 h-6 rounded-full bg-[#00e676]" />
-              <h3 className="text-lg font-display font-bold text-white uppercase tracking-wide">Бонуси</h3>
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+              <div className="w-1.5 h-5 rounded-full bg-[#00e676]" />
+              <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Бонуси</h3>
             </div>
-            <ul className="space-y-0.5">
+            <ul className="space-y-2 flex-1">
               {posRules.map((r) => (
                 <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
               ))}
@@ -534,26 +532,26 @@ export default function Home() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col gap-5"
+            className="flex flex-col gap-4"
           >
-            <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-7 flex-1">
-              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/8">
-                <div className="w-2 h-6 rounded-full bg-red-500" />
-                <h3 className="text-lg font-display font-bold text-white uppercase tracking-wide">Штрафи</h3>
+            <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex-1">
+              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+                <div className="w-1.5 h-5 rounded-full bg-red-500" />
+                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Штрафи</h3>
               </div>
-              <ul className="space-y-0.5">
+              <ul className="space-y-2">
                 {negRules.map((r) => (
                   <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
                 ))}
               </ul>
             </div>
 
-            <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-7 flex-1">
-              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/8">
-                <div className="w-2 h-6 rounded-full bg-amber-400" />
-                <h3 className="text-lg font-display font-bold text-white uppercase tracking-wide">Бонус рейтингу</h3>
+            <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex-1">
+              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+                <div className="w-1.5 h-5 rounded-full bg-amber-400" />
+                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Бонус рейтингу</h3>
               </div>
-              <ul className="space-y-0.5">
+              <ul className="space-y-2">
                 {ratingRules.map((r) => (
                   <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
                 ))}
@@ -564,41 +562,49 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION D: TALENTS TEASER ══════════════════════════ */}
-      <section className="px-6 sm:px-10 lg:px-16 py-28">
+      <section className="px-6 sm:px-10 lg:px-16 py-16">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="relative max-w-5xl rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden p-10 md:p-14"
+          className="relative max-w-5xl mx-auto rounded-2xl border border-[#8B5CF6]/20 bg-[#8B5CF6]/[0.04] overflow-hidden p-8 md:p-10"
         >
-          {/* Subtle neon purple glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.10)_0%,transparent_60%)] pointer-events-none" />
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-[#8B5CF6]/5 blur-[100px] pointer-events-none" />
+          {/* Purple glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12)_0%,transparent_60%)] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#8B5CF6]/8 blur-[80px] pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-10 md:gap-16">
-            {/* Abstract glowing object */}
-            <div className="shrink-0 relative w-24 h-24">
-              {/* Outer ring */}
-              <div className="absolute inset-0 rounded-2xl border border-[#8B5CF6]/30 animate-spin" style={{ animationDuration: "12s" }} />
-              {/* Inner */}
-              <div className="absolute inset-2 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
-                <svg className="w-10 h-10 text-[#8B5CF6]/70" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              </div>
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-12">
+            {/* Static badge icon */}
+            <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center shadow-lg shadow-[#8B5CF6]/30">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
             </div>
 
-            <div>
-              <div className="inline-block px-3 py-1 rounded-full border border-[#8B5CF6]/30 text-[#8B5CF6] text-[10px] font-bold uppercase tracking-widest mb-4">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] text-[10px] font-bold uppercase tracking-widest mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6] animate-pulse" />
                 Незабаром
               </div>
-              <h2 className="text-3xl sm:text-4xl font-display font-black text-white uppercase mb-4">
-                Таланти
+              <h2 className="text-2xl sm:text-3xl font-display font-black text-white uppercase mb-3">
+                Таланти & Гільдії
               </h2>
-              <p className="text-white/40 text-base leading-relaxed max-w-xl">
-                Розблокуй унікальні <span className="text-white/70 font-medium">Таланти</span> за MOVE — ігрову механіку, що множить твої очки на +5%, +10% або +15% за конкретних умов. Стратегічний вибір Таланта може вирішити все в боротьбі за перше місце.
+              <p className="text-white/45 text-sm leading-relaxed max-w-xl">
+                Розблокуй унікальні <span className="text-white/75 font-semibold">Таланти</span> та <span className="text-white/75 font-semibold">Гільдії</span> за MOVE — вони множать фінальні очки на +5%, +10% або +15% при виконанні умов. Стратегічний вибір може вирішити все в боротьбі за перше місце.
               </p>
+            </div>
+
+            {/* Multiplier pills */}
+            <div className="shrink-0 flex flex-col gap-2">
+              {["+5%", "+10%", "+15%"].map((m, i) => (
+                <div key={m} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/8 text-center">
+                  <span className="text-lg font-display font-black text-white">{m}</span>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">
+                    {["Common", "Rare", "Epic"][i]}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </motion.div>
