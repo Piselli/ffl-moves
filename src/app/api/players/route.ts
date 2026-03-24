@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+
+const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
+const PHOTO_BASE =
+  "https://resources.premierleague.com/premierleague/photos/players/250x250/p";
+
+const POSITION_MAP: Record<number, "GK" | "DEF" | "MID" | "FWD"> = {
+  1: "GK",
+  2: "DEF",
+  3: "MID",
+  4: "FWD",
+};
+
+export const revalidate = 3600; // cache for 1 hour
+
+export async function GET() {
+  try {
+    const res = await fetch(FPL_URL, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      cache: "no-store", // FPL response is 2.6MB, over Next.js 2MB cache limit
+    });
+
+    if (!res.ok) {
+      throw new Error(`FPL API returned ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // Build team id → name map
+    const teamMap: Record<number, string> = {};
+    for (const t of data.teams) {
+      teamMap[t.id] = t.name;
+    }
+
+    // Filter players: must be selectable and not loaned out
+    const players = data.elements
+      .filter((el: any) => el.can_select && el.status !== "u")
+      .map((el: any, idx: number) => ({
+        id: idx + 1,
+        fplId: el.id,
+        name: el.known_name || `${el.first_name} ${el.second_name}`,
+        webName: el.web_name,
+        team: teamMap[el.team] || "Unknown",
+        teamId: el.team,
+        position: POSITION_MAP[el.element_type] || "MID",
+        positionId: el.element_type - 1,
+        photo: `${PHOTO_BASE}${el.code}.jpg`,
+        status: el.status, // 'a' = available, 'd' = doubtful, 'i' = injured
+        chanceOfPlaying: el.chance_of_playing_next_round,
+        news: el.news || "",
+        totalPoints: el.total_points,
+        form: parseFloat(el.form),
+        selectedByPercent: parseFloat(el.selected_by_percent),
+      }));
+
+    return NextResponse.json(players);
+  } catch (err) {
+    console.error("Failed to fetch FPL players:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch player data" },
+      { status: 500 }
+    );
+  }
+}

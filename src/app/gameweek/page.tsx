@@ -8,7 +8,6 @@ import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
-import playersData from "@/data/players.json";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 
@@ -24,8 +23,22 @@ export default function GameweekPage() {
   const [config, setConfig] = useState<any>(null);
   const [currentGameweek, setCurrentGameweek] = useState<any>(null);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [playersLoading, setPlayersLoading] = useState(true);
 
-  const players: Player[] = playersData as Player[];
+  // Fetch live FPL players
+  useEffect(() => {
+    fetch("/api/players")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setPlayers(data as Player[]);
+      })
+      .catch(() => {
+        // Fall back to local data if API fails
+        import("@/data/players.json").then((m) => setPlayers(m.default as Player[]));
+      })
+      .finally(() => setPlayersLoading(false));
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -376,25 +389,44 @@ export default function GameweekPage() {
           </div>
 
           <div className="h-[600px] overflow-y-auto space-y-2 pr-2">
-            {filteredPlayers.map((player) => {
-              const isSelected = selectedPlayers.has(player.id);
-              const canSelect = canSelectPlayer(player);
-
-              return (
-                <div
-                  key={player.id}
-                  className={cn(
-                    !isSelected && !canSelect && "opacity-50"
-                  )}
-                >
-                  <PlayerCard
-                    player={player}
-                    selected={isSelected}
-                    onClick={() => handlePlayerSelect(player)}
-                  />
+            {playersLoading ? (
+              // Loading skeleton
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-xl bg-secondary/30 animate-pulse flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-secondary/60" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-secondary/60 rounded w-32" />
+                    <div className="h-3 bg-secondary/40 rounded w-20" />
+                  </div>
+                  <div className="w-10 h-6 bg-secondary/60 rounded" />
                 </div>
-              );
-            })}
+              ))
+            ) : filteredPlayers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <p className="text-lg">No players found</p>
+                <p className="text-sm mt-1">Try adjusting your search or filter</p>
+              </div>
+            ) : (
+              filteredPlayers.map((player) => {
+                const isSelected = selectedPlayers.has(player.id);
+                const canSelect = canSelectPlayer(player);
+
+                return (
+                  <div
+                    key={player.id}
+                    className={cn(
+                      !isSelected && !canSelect && "opacity-50"
+                    )}
+                  >
+                    <PlayerCard
+                      player={player}
+                      selected={isSelected}
+                      onClick={() => handlePlayerSelect(player)}
+                    />
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

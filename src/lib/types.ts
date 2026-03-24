@@ -1,12 +1,21 @@
 export interface Player {
   id: number;
+  fplId?: number;
   name: string;
+  webName?: string;
   team: string;
   teamId: number;
   position: "GK" | "DEF" | "MID" | "FWD";
   positionId: number;
-  price: number;
-  imageUrl?: string;
+  price?: number;          // kept for backward-compat, no longer shown in UI
+  photo?: string;          // FPL photo URL
+  imageUrl?: string;       // legacy field
+  status?: string;         // 'a' = available, 'd' = doubtful, 'i' = injured
+  chanceOfPlaying?: number | null;
+  news?: string;
+  totalPoints?: number;
+  form?: number;
+  selectedByPercent?: number;
 }
 
 export interface SelectedPlayer extends Player {

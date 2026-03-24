@@ -237,28 +237,34 @@ export default function Home() {
   ];
 
   // ── Scoring rules ──────────────────────────────────────────────────────────
-  const posRules = [
-    { label: "Вихід на поле (1+ хв)",   pts: "+1" },
-    { label: "Вихід на поле (60+ хв)",  pts: "+1" },
-    { label: "Гол (Нападник)",          pts: "+4", color: "text-[#00e676]" },
-    { label: "Гол (Півзахисник)",       pts: "+5", color: "text-[#00e676]" },
-    { label: "Гол (Захисник / ВР)",     pts: "+6", color: "text-[#00e676]" },
-    { label: "Передача (Асист)",        pts: "+3", color: "text-[#00bcd4]" },
-    { label: "Суха пара (ВР / Захист)", pts: "+4", color: "text-[#00bcd4]" },
-    { label: "Відбитий пенальті",       pts: "+5", color: "text-amber-400" },
+  // ── Scoring categories (Balanced for UI) ───────────────────────────────────
+  const attackRules = [
+    { label: "Гол (Нападник)",            pts: "+5",  color: "text-[#00e676]" },
+    { label: "Гол (Півзахисник)",         pts: "+5",  color: "text-[#00e676]" },
+    { label: "Гол (Захисник)",            pts: "+6",  color: "text-[#00e676]" },
+    { label: "Гол (Воротар)",             pts: "+10", color: "text-[#00e676]" },
+    { label: "Асист",                     pts: "+3",  color: "text-[#00bcd4]" },
   ];
-  const negRules = [
-    { label: "Жовта картка",       pts: "−1", color: "text-red-400" },
-    { label: "Червона картка",     pts: "−3", color: "text-red-400" },
-    { label: "Автогол",            pts: "−2", color: "text-red-400" },
-    { label: "Незабитий пенальті", pts: "−2", color: "text-red-400" },
+  const defenseRules = [
+    { label: "Суха пара (ВР / Зах)",      pts: "+4",  color: "text-[#00bcd4]" },
+    { label: "Суха пара (Півзахист)",     pts: "+1",  color: "text-[#00bcd4]" },
+    { label: "Кожні 3 сейви (ВР)",        pts: "+1",  color: "text-amber-400" },
+    { label: "Відбитий пенальті (ВР)",    pts: "+5",  color: "text-amber-400" },
   ];
-  const ratingRules = [
-    { label: "Рейтинг 9.0+",    pts: "+3", color: "text-[#00e676]" },
-    { label: "Рейтинг 8.0–8.9", pts: "+2", color: "text-[#00e676]" },
-    { label: "Рейтинг 7.5–7.9", pts: "+1" },
-    { label: "Рейтинг < 6.0",   pts: "−1", color: "text-red-400" },
+  const penaltyRules = [
+    { label: "Жовта картка",              pts: "−1",  color: "text-red-400" },
+    { label: "Червона картка",            pts: "−3",  color: "text-red-400" },
+    { label: "Автогол",                   pts: "−2",  color: "text-red-400" },
+    { label: "Незабитий пенальті",        pts: "−2",  color: "text-red-400" },
+    { label: "Пропущений гол (×2, ВР/Зах)", pts: "−1", color: "text-red-400" },
   ];
+  const baseRules = [
+    { label: "Вихід на поле (1–59 хв)",   pts: "+1",  color: "text-white/70" },
+    { label: "Вихід на поле (60+ хв)",    pts: "+2",  color: "text-white/70" },
+    { label: "Гравець матчу (BPS)",       pts: "+3",  color: "text-[#FFD700]" },
+    { label: "Хет-трик",                  pts: "+3",  color: "text-[#FFD700]" },
+  ];
+
 
   // ── Players for hero pitch ─────────────────────────────────────────────────
   // Using publicly available Premier League player images (BBC Sport / transparent stock)
@@ -491,6 +497,9 @@ export default function Home() {
         {/* Separator line top */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
 
+        {/* Ambient glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,230,118,0.05)_0%,transparent_60%)] pointer-events-none" />
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -503,61 +512,104 @@ export default function Home() {
           <h2 className="text-4xl sm:text-5xl font-display font-black text-white uppercase tracking-tight">
             Система очок
           </h2>
+          <p className="mt-3 text-white/40 text-sm max-w-lg">
+            Очки нараховуються автоматично після кожного матчу на основі офіційних даних FPL API.
+          </p>
         </motion.div>
 
-        {/* HUD Grid */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {/* Bonuses panel */}
+        {/* 4-panel grid */}
+        <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto">
+
+          {/* Panel 1 — Атака */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex flex-col"
           >
             <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-              <div className="w-1.5 h-5 rounded-full bg-[#00e676]" />
-              <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Бонуси</h3>
+              <div className="w-8 h-8 rounded-xl bg-[#00e676]/15 flex items-center justify-center text-base">⚔️</div>
+              <div>
+                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Атака</h3>
+                <p className="text-[10px] text-white/30 mt-0.5">Голи та результативні передачі</p>
+              </div>
             </div>
-            <ul className="space-y-2 flex-1">
-              {posRules.map((r) => (
+            <ul className="space-y-1 flex-1">
+              {attackRules.map((r) => (
                 <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
               ))}
             </ul>
           </motion.div>
 
-          {/* Penalties + Rating panels */}
+          {/* Panel 2 — Захист */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col gap-4"
+            transition={{ duration: 0.5, delay: 0.08 }}
+            className="bg-white/[0.03] border border-cyan-400/10 rounded-2xl p-6 flex flex-col"
           >
-            <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex-1">
-              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-                <div className="w-1.5 h-5 rounded-full bg-red-500" />
-                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Штрафи</h3>
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+              <div className="w-8 h-8 rounded-xl bg-cyan-400/10 flex items-center justify-center text-base">🛡️</div>
+              <div>
+                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Захист</h3>
+                <p className="text-[10px] text-white/30 mt-0.5">Сухі матчі та сейви воротаря</p>
               </div>
-              <ul className="space-y-2">
-                {negRules.map((r) => (
-                  <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-                ))}
-              </ul>
             </div>
-
-            <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex-1">
-              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-                <div className="w-1.5 h-5 rounded-full bg-amber-400" />
-                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Бонус рейтингу</h3>
-              </div>
-              <ul className="space-y-2">
-                {ratingRules.map((r) => (
-                  <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-                ))}
-              </ul>
-            </div>
+            <ul className="space-y-1 flex-1">
+              {defenseRules.map((r) => (
+                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
+              ))}
+            </ul>
           </motion.div>
+
+          {/* Panel 3 — Штрафи */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+            className="bg-white/[0.03] border border-red-500/10 rounded-2xl p-6 flex flex-col"
+          >
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+              <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center text-base">🟥</div>
+              <div>
+                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Штрафи</h3>
+                <p className="text-[10px] text-white/30 mt-0.5">Помилки, пропущені голи та картки</p>
+              </div>
+            </div>
+            <ul className="space-y-1 flex-1">
+              {penaltyRules.map((r) => (
+                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Panel 4 — Базові & Бонуси */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.16 }}
+            className="relative bg-gradient-to-br from-[#FFD700]/[0.05] to-transparent border border-[#FFD700]/15 rounded-2xl p-6 flex flex-col overflow-hidden"
+          >
+            {/* Gold glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#FFD700]/8 blur-[40px] pointer-events-none" />
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#FFD700]/15 relative z-10">
+              <div className="w-8 h-8 rounded-xl bg-[#FFD700]/15 flex items-center justify-center text-base">🏆</div>
+              <div>
+                <h3 className="text-sm font-display font-bold text-[#FFD700] uppercase tracking-widest">Активи та Бонуси</h3>
+                <p className="text-[10px] text-white/30 mt-0.5">Ігровий час та спеціальні нагороди</p>
+              </div>
+            </div>
+            <ul className="space-y-1 flex-1 relative z-10">
+              {baseRules.map((r) => (
+                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
+              ))}
+            </ul>
+          </motion.div>
+
         </div>
       </section>
 

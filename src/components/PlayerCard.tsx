@@ -9,7 +9,6 @@ interface PlayerCardProps {
   isCaptain?: boolean;
   onClick?: () => void;
   onCaptainClick?: () => void;
-  showPrice?: boolean;
   compact?: boolean;
 }
 
@@ -27,15 +26,30 @@ const positionBadgeColors = {
   FWD: "bg-rose-500/20 text-rose-400 border-rose-500/30",
 };
 
+/** Availability dot: green = available, amber = doubtful, red = injured */
+function StatusDot({ status, chance }: { status?: string; chance?: number | null }) {
+  if (!status || status === "a") return null;
+  const color =
+    status === "i" ? "bg-red-500" : chance === 0 ? "bg-red-500" : "bg-amber-400";
+  return (
+    <span
+      className={cn("w-2 h-2 rounded-full shrink-0", color)}
+      title={status === "i" ? "Injured" : "Doubtful"}
+    />
+  );
+}
+
+/** Compact version shown inside the pitch formation */
 export function PlayerCard({
   player,
   selected = false,
   isCaptain = false,
   onClick,
   onCaptainClick,
-  showPrice = true,
   compact = false,
 }: PlayerCardProps) {
+  const photoUrl = player.photo || player.imageUrl;
+
   if (compact) {
     return (
       <div
@@ -48,17 +62,34 @@ export function PlayerCard({
           "flex flex-col items-center gap-1"
         )}
       >
-        <div className={cn(
-          "w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br shadow-lg",
-          positionColors[player.position]
-        )}>
-          {player.position}
+        {/* Avatar */}
+        <div
+          className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br shadow-lg overflow-hidden",
+            positionColors[player.position]
+          )}
+        >
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoUrl}
+              alt={player.name}
+              className="w-full h-full object-cover object-top"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            player.position
+          )}
         </div>
         <span className="text-xs font-medium text-center truncate w-full text-foreground">
-          {player.name.split(" ").pop()}
+          {player.webName || player.name.split(" ").pop()}
         </span>
         {isCaptain && (
-          <span className="text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">C</span>
+          <span className="text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
+            C
+          </span>
         )}
       </div>
     );
@@ -75,25 +106,49 @@ export function PlayerCard({
       )}
     >
       <div className="flex items-center gap-3">
+        {/* Avatar */}
         <div
           className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-lg",
+            "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-lg overflow-hidden shrink-0",
             positionColors[player.position]
+          )}
+        >
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoUrl}
+              alt={player.name}
+              className="w-full h-full object-cover object-top"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            player.position
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-medium text-foreground truncate">
+              {player.webName || player.name}
+            </p>
+            <StatusDot status={player.status} chance={player.chanceOfPlaying} />
+          </div>
+          <p className="text-sm text-muted-foreground">{player.team}</p>
+        </div>
+
+        {/* Position badge (no price) */}
+        <div
+          className={cn(
+            "px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border",
+            positionBadgeColors[player.position]
           )}
         >
           {player.position}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-foreground truncate">{player.name}</p>
-          <p className="text-sm text-muted-foreground">{player.team}</p>
-        </div>
-        {showPrice && (
-          <div className="text-right">
-            <p className="font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">{player.price.toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground">MOVE</p>
-          </div>
-        )}
       </div>
+
       {selected && onCaptainClick && (
         <button
           onClick={(e) => {
@@ -107,7 +162,7 @@ export function PlayerCard({
               : "bg-secondary text-muted-foreground hover:bg-secondary/80"
           )}
         >
-          {isCaptain ? "Captain" : "Make Captain"}
+          {isCaptain ? "Captain ©" : "Make Captain"}
         </button>
       )}
     </div>
