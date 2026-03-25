@@ -50,10 +50,10 @@ function AnimatedStep({
         className="flex-1 w-full max-w-xl"
       >
         <div className="flex items-center gap-4 mb-4">
-          <span className="text-[#F5A623] text-sm md:text-base font-bold tracking-[0.2em] uppercase">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/25 text-[#00F0FF] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]" />
             {subheader}
-          </span>
-          <div className="h-px bg-[#F5A623]/30 flex-1" />
+          </div>
         </div>
         <h3 className="text-4xl md:text-5xl lg:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-6 drop-shadow-xl">
           {title}
@@ -443,8 +443,8 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
-      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 py-32 overflow-hidden bg-gradient-to-b from-[#0D0F12] via-[#121620] to-[#0D0F12]">
-        <div className="max-w-7xl mx-auto space-y-32">
+      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 py-20 overflow-hidden bg-gradient-to-b from-[#0D0F12] via-[#121620] to-[#0D0F12]">
+        <div className="max-w-7xl mx-auto space-y-24">
           
           <AnimatedStep
             subheader="Крок 1: Твоя тактика"
@@ -620,12 +620,39 @@ export default function Home() {
               </div>
             }
           />
+          <AnimatedStep
+            subheader="Крок 3: Перемагай"
+            title="Заробляй MOVE токени"
+            desc="Гравці забивають, асистують і захищають в реальних матчах — ти автоматично отримуєш нагороди з призового фонду на свій гаманець."
+            visual={
+              <div className="relative w-full aspect-square md:aspect-[4/3] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,188,212,0.15)_0%,transparent_60%)] pointer-events-none" />
+                <motion.div 
+                  className="relative flex flex-col items-center justify-center gap-6"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#00F0FF] to-[#0077FF] flex items-center justify-center shadow-[0_20px_50px_rgba(0,240,255,0.3)] shadow-[#00F0FF]/30">
+                    <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col items-center p-6 rounded-2xl bg-[#0A0E17]/90 backdrop-blur-xl border border-white/10 shadow-2xl">
+                    <span className="text-white/50 text-xs uppercase tracking-widest font-bold mb-2">Нагорода отримана</span>
+                    <span className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00F0FF] to-white">+1,250 MOVE</span>
+                  </div>
+                </motion.div>
+              </div>
+            }
+          />
           
         </div>
       </section>
 
       {/* ═══════════════════ SECTION C: INTERACTIVE SCORING ENGINE ══════════════ */}
-      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-32 overflow-hidden">
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-20 overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05)_0%,transparent_70%)] pointer-events-none" />
 
@@ -634,9 +661,10 @@ export default function Home() {
           {/* Header Left (Sticky) */}
           <div className="md:w-2/5">
             <div className="sticky top-32">
-              <span className="text-[#F5A623] text-sm font-bold tracking-[0.2em] uppercase">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
                 Правила Гри
-              </span>
+              </div>
               <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mt-4 mb-6">
                 Система Очок
               </h2>
@@ -729,11 +757,11 @@ export default function Home() {
               <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
                 <div className="p-6 border-b border-white/[0.04]">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20">
                       <span className="text-xl">🏆</span>
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-[#F5A623] uppercase tracking-wider mb-1">Активи та Бонуси</h3>
+                      <h3 className="text-sm font-bold text-[#8B5CF6] uppercase tracking-wider mb-1">Активи та Бонуси</h3>
                       <p className="text-[10px] text-white/40 uppercase tracking-widest">Ігровий час та спеціальні нагороди</p>
                     </div>
                   </div>
@@ -757,7 +785,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION D: TALENTS TEASER ══════════════════════════ */}
-      <section className="px-6 sm:px-10 lg:px-16 py-16">
+      <section className="px-6 sm:px-10 lg:px-16 py-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}

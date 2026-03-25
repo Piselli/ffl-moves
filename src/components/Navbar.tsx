@@ -148,7 +148,7 @@ export function Navbar() {
               <button
                 id="wallet-connect-btn"
                 onClick={() => setShowWalletList(!showWalletList)}
-                className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-white/90 bg-white/[0.05] border border-white/10 hover:border-[#8B5CF6]/60 hover:bg-[#8B5CF6]/10 hover:shadow-[0_0_20px_rgba(139,92,246,0.2)] transition-all duration-300 focus:outline-none"
+                className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-[#00F0FF] bg-[#00F0FF]/10 border border-[#00F0FF]/30 hover:border-[#00F0FF]/60 hover:bg-[#00F0FF]/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all duration-300 focus:outline-none"
               >
                 Підключити гаманець
               </button>
