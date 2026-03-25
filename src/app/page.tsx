@@ -312,8 +312,7 @@ function LiveDataCarousel() {
                   {/* Team Home */}
                   <div className="flex flex-col items-center z-10 w-[30%] min-w-0">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 relative mb-3 group flex shrink-0 items-center justify-center">
-                      <div className="absolute inset-0 blur-[20px] opacity-40 transition-opacity duration-500 group-hover:opacity-70" style={{ backgroundColor: slide.teamH.color }} />
-                      <img src={slide.teamH.badge} alt={slide.teamH.name} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-transform duration-500 group-hover:scale-110 relative z-10" />
+                      <img src={slide.teamH.badge} alt={slide.teamH.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110 relative z-10" />
                     </div>
                     <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center">{slide.teamH.short}</span>
                   </div>
@@ -328,11 +327,10 @@ function LiveDataCarousel() {
                   {/* Team Away */}
                   <div className="flex flex-col items-center text-center w-[30%] min-w-0">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center pb-2">
-                       <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
+                       <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain" />
                     </div>
                     <div className="flex flex-col mt-2 md:mt-3 w-full">
-                      <span className="text-[9px] sm:text-[10px] font-black text-white tracking-widest uppercase mb-1 leading-tight truncate px-1">{slide.teamA.name}</span>
-                      <span className="text-sm sm:text-base md:text-lg font-black text-white/50 tracking-[0.1em] uppercase">{slide.teamA.short}</span>
+                      <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center uppercase">{slide.teamA.short}</span>
                     </div>
                   </div>
                 </div>
