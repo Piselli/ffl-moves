@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { motion, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getConfig, getGameweek } from "@/lib/aptos";
@@ -25,52 +25,123 @@ function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
   return <span ref={nodeRef}>0{suffix}</span>;
 }
 
-// ─── 3D tilt card (How It Works) ─────────────────────────────────────────────
-function TiltCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-80, 80], [12, -12]);
-  const rotateY = useTransform(x, [-80, 80], [-12, 12]);
-  const glareX = useTransform(x, [-80, 80], [0, 100]);
-  const glareY = useTransform(y, [-80, 80], [0, 100]);
-  const springX = useSpring(rotateX, { stiffness: 300, damping: 30 });
-  const springY = useSpring(rotateY, { stiffness: 300, damping: 30 });
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      x.set(e.clientX - rect.left - rect.width / 2);
-      y.set(e.clientY - rect.top - rect.height / 2);
-    },
-    [x, y]
-  );
-  const handleMouseLeave = useCallback(() => {
-    x.set(0);
-    y.set(0);
-  }, [x, y]);
-
+// ─── Animated step (How It Works) ─────────────────────────────────────────────
+function AnimatedStep({
+  title,
+  desc,
+  subheader,
+  visual,
+  reverse = false,
+}: {
+  title: string;
+  desc: string;
+  subheader: string;
+  visual: React.ReactNode;
+  reverse?: boolean;
+}) {
   return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ rotateX: springX, rotateY: springY, transformStyle: "preserve-3d", perspective: 800 }}
-      whileHover={{ scale: 1.03 }}
-      transition={{ scale: { duration: 0.2 } }}
-      className={`relative overflow-hidden rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors duration-300 ${className}`}
-    >
-      {/* Glare layer */}
+    <div className={`flex flex-col gap-12 lg:gap-20 items-center ${reverse ? "lg:flex-row-reverse" : "lg:flex-row"}`}>
+      {/* Text Content */}
       <motion.div
-        style={{
-          background: useTransform(
-            [glareX, glareY],
-            ([gx, gy]) =>
-              `radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.10) 0%, transparent 60%)`
-          ),
-        }}
-        className="absolute inset-0 pointer-events-none z-10"
-      />
-      {children}
-    </motion.div>
+        initial={{ opacity: 0, x: reverse ? 40 : -40 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="flex-1 w-full max-w-xl"
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-[#F5A623] text-sm md:text-base font-bold tracking-[0.2em] uppercase">
+            {subheader}
+          </span>
+          <div className="h-px bg-[#F5A623]/30 flex-1" />
+        </div>
+        <h3 className="text-4xl md:text-5xl lg:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-6 drop-shadow-xl">
+          {title}
+        </h3>
+        <p className="text-lg md:text-xl text-white/50 leading-relaxed font-medium">
+          {desc}
+        </p>
+      </motion.div>
+
+      {/* Visual Content */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 40 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="flex-1 w-full relative flex items-center justify-center p-8"
+      >
+        {visual}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Accordion ───────────────────────────────────────────────────────────────
+function ScoringAccordion({
+  title,
+  subtitle,
+  icon,
+  rules,
+  isOpen,
+  onClick,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  rules: { label: string; pts: string; color: string }[];
+  isOpen: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className={`w-full bg-white/[0.02] border transition-all duration-300 rounded-2xl overflow-hidden ${isOpen ? 'border-[#00F0FF]/30 shadow-[0_0_30px_rgba(0,240,255,0.05)]' : 'border-white/5 hover:border-white/10'}`}>
+      <button
+        onClick={onClick}
+        className="w-full flex items-center justify-between p-6 text-left outline-none group"
+      >
+        <div className="flex items-center gap-5">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-300 ${isOpen ? 'bg-[#00F0FF]/15 scale-110 shadow-lg' : 'bg-white/5 group-hover:bg-white/10'}`}>
+            {icon}
+          </div>
+          <div>
+            <h3 className="text-xl font-display font-black text-white uppercase tracking-wide">{title}</h3>
+            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">{subtitle}</p>
+          </div>
+        </div>
+        <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 ${isOpen ? "rotate-180 border-[#00F0FF]/50 text-[#00F0FF] bg-[#00F0FF]/10" : "border-white/10 text-white/50 group-hover:border-white/20"}`}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="p-6 pt-0 border-t border-white/5">
+              <ul className="space-y-1">
+                {rules.map((r, i) => (
+                  <motion.li
+                    key={r.label}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.05 }}
+                  >
+                    <ScoreRow label={r.label} pts={r.pts} color={r.color} />
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -91,31 +162,58 @@ function ScoreRow({ label, pts, color = "text-white/60" }: { label: string; pts:
 // ─── CSS Pitch SVG ────────────────────────────────────────────────────────────
 function PitchSVG() {
   return (
-    <svg
-      viewBox="0 0 500 340"
-      className="w-full h-full opacity-[0.18]"
-      fill="none"
-      stroke="white"
-      strokeWidth="1.5"
-    >
-      {/* Outer boundary */}
-      <rect x="20" y="20" width="460" height="300" rx="2" />
-      {/* Centre line */}
-      <line x1="250" y1="20" x2="250" y2="320" />
-      {/* Centre circle */}
-      <circle cx="250" cy="170" r="46" />
-      <circle cx="250" cy="170" r="2" fill="white" stroke="none" />
-      {/* Left penalty area */}
-      <rect x="20" y="100" width="80" height="140" />
-      {/* Left goal area */}
-      <rect x="20" y="135" width="30" height="70" />
-      {/* Right penalty area */}
-      <rect x="400" y="100" width="80" height="140" />
-      {/* Right goal area */}
-      <rect x="450" y="135" width="30" height="70" />
-      {/* Penalty spots */}
-      <circle cx="76" cy="170" r="2.5" fill="white" stroke="none" />
-      <circle cx="424" cy="170" r="2.5" fill="white" stroke="none" />
+    <svg className="absolute inset-0 w-full h-full opacity-[0.85] pointer-events-none" viewBox="0 0 650 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        {/* Soft elegant fading gradient for the field lines */}
+        <linearGradient id="lineFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(0, 255, 135, 0)" />
+          <stop offset="15%" stopColor="rgba(0, 255, 135, 0.4)" />
+          <stop offset="50%" stopColor="rgba(0, 255, 135, 0.2)" />
+          <stop offset="85%" stopColor="rgba(0, 255, 135, 0.5)" />
+          <stop offset="100%" stopColor="rgba(0, 255, 135, 0.9)" />
+        </linearGradient>
+
+        <radialGradient id="pitchGlow" cx="50%" cy="80%" r="70%">
+          <stop offset="0%" stopColor="rgba(0, 255, 135, 0.15)" />
+          <stop offset="100%" stopColor="rgba(0, 255, 135, 0)" />
+        </radialGradient>
+      </defs>
+
+      {/* Subtle glowing floor plane */}
+      <rect x="0" y="0" width="650" height="1000" fill="url(#pitchGlow)" rx="20" />
+
+      {/* Modern, elegant, faint grid */}
+      <g stroke="rgba(255,255,255,0.03)" strokeWidth="1">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 50} x2="650" y2={i * 50} />
+        ))}
+        {Array.from({ length: 13 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="1000" />
+        ))}
+      </g>
+
+      <g stroke="url(#lineFade)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* Pitch Outer Bounds (slightly thinner, elegant corners) */}
+        <rect x="25" y="25" width="600" height="950" rx="10" />
+        {/* Center Line */}
+        <line x1="25" y1="500" x2="625" y2="500" />
+        {/* Center Circle */}
+        <circle cx="325" cy="500" r="90" />
+        
+        {/* Penalty Box (Bottom) */}
+        <rect x="125" y="825" width="400" height="150" />
+        {/* Goal Area (Bottom) */}
+        <rect x="235" y="915" width="180" height="60" />
+        {/* Penalty Arc (Bottom) */}
+        <path d="M 265 825 A 70 70 0 0 0 385 825" />
+        
+        {/* Penalty Box (Top) */}
+        <rect x="125" y="25" width="400" height="150" />
+        {/* Goal Area (Top) */}
+        <rect x="235" y="25" width="180" height="60" />
+        {/* Penalty Arc (Top) */}
+        <path d="M 265 175 A 70 70 0 0 1 385 175" />
+      </g>
     </svg>
   );
 }
@@ -178,6 +276,9 @@ export default function Home() {
   const [prizePool, setPrizePool] = useState<number | null>(null);
   const [totalManagers, setTotalManagers] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Accordion state
+  const [openAccordion, setOpenAccordion] = useState<number | null>(0);
 
   useEffect(() => {
     async function fetchOnChainData() {
@@ -266,49 +367,23 @@ export default function Home() {
   ];
 
 
-  // ── Players for hero pitch ─────────────────────────────────────────────────
-  // Using publicly available Premier League player images (BBC Sport / transparent stock)
-  const players = [
-    {
-      name: "Haaland",
-      pos: "FWD",
-      pts: 18,
-      imgUrl: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223094.png",
-      style: { left: "50%", top: "10%", transform: "translateX(-50%)" },
-      delay: 0.2,
-    },
-    {
-      name: "Salah",
-      pos: "MID",
-      pts: 14,
-      imgUrl: "https://resources.premierleague.com/premierleague/photos/players/250x250/p118748.png",
-      style: { left: "18%", top: "38%", transform: "translateX(-50%)" },
-      delay: 0.35,
-    },
-    {
-      name: "Saka",
-      pos: "MID",
-      pts: 11,
-      imgUrl: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223340.png",
-      style: { right: "18%", top: "38%", transform: "translateX(50%)" },
-      delay: 0.5,
-    },
-    {
-      name: "Alexander-Arnold",
-      pos: "DEF",
-      pts: 9,
-      imgUrl: "https://resources.premierleague.com/premierleague/photos/players/250x250/p193490.png",
-      style: { left: "28%", top: "66%", transform: "translateX(-50%)" },
-      delay: 0.65,
-    },
-    {
-      name: "Raya",
-      pos: "GK",
-      pts: 7,
-      imgUrl: "https://resources.premierleague.com/premierleague/photos/players/250x250/p177815.png",
-      style: { right: "28%", top: "66%", transform: "translateX(50%)" },
-      delay: 0.8,
-    },
+  // ── 11-Man Squad for hero pitch (4-3-3 Horizontal) - Centered & Tightened
+  const squad11 = [
+    // GK (Goal box bottom)
+    { name: "Pickford", pos: "GK", pts: 7, imgUrl: "p111234.png", left: "50%", top: "96%", z: 10, delay: 0.1 },
+    // DEF (Curved line)
+    { name: "Cucurella", pos: "DEF", pts: 6, imgUrl: "p179268.png", left: "15%", top: "76%", z: 20, delay: 0.2 },
+    { name: "Saliba", pos: "DEF", pts: 8, imgUrl: "p462424.png", left: "38%", top: "80%", z: 30, delay: 0.3 },
+    { name: "Gabriel", pos: "DEF", pts: 6, imgUrl: "p226597.png", left: "62%", top: "80%", z: 30, delay: 0.4 },
+    { name: "Porro", pos: "DEF", pts: 9, imgUrl: "p441164.png", left: "85%", top: "76%", z: 20, delay: 0.5 },
+    // MID (V-shape)
+    { name: "Palmer", pos: "MID", pts: 12, imgUrl: "p244851.png", left: "25%", top: "54%", z: 40, delay: 0.6 },
+    { name: "Foden", pos: "MID", pts: 8, imgUrl: "p209244.png", left: "50%", top: "60%", z: 50, delay: 0.7 },
+    { name: "Bruno", pos: "MID", pts: 11, imgUrl: "p208706.png", left: "75%", top: "54%", z: 40, delay: 0.8 },
+    // FWD (V-shape, Swap Watkins <-> Saka)
+    { name: "Watkins", pos: "FWD", pts: 15, imgUrl: "p178301.png", left: "25%", top: "34%", z: 60, delay: 0.9 },
+    { name: "Haaland", pos: "FWD", pts: 18, imgUrl: "p223094.png", left: "50%", top: "28%", z: 70, delay: 1.0 },
+    { name: "Saka", pos: "FWD", pts: 14, imgUrl: "p223340.png", left: "75%", top: "34%", z: 60, delay: 1.1 },
   ];
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -447,169 +522,233 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════ SECTION B: HOW IT WORKS ════════════════════════════ */}
-      <section id="how-it-works" className="px-6 sm:px-10 lg:px-16 py-24">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-14 max-w-5xl mx-auto"
-        >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] mb-3">Починаємо</p>
-          <h2 className="text-4xl sm:text-5xl font-display font-black text-white uppercase tracking-tight">
-            Як це працює
-          </h2>
-        </motion.div>
+      {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
+      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 py-32 overflow-hidden bg-gradient-to-b from-[#0D0F12] via-[#121620] to-[#0D0F12]">
+        <div className="max-w-7xl mx-auto space-y-32">
+          
+          <AnimatedStep
+            subheader="Крок 1: Твоя тактика"
+            title="Збирай свій склад"
+            desc="У тебе є можливість зібрати 11 найкращих гравців з Англійської Прем'єр-ліги. Зроби трансфери, обери капітана та розстав пріоритети на полі. Твоє рішення безповоротно фіксується смарт-контрактом."
+            visual={
+              <div 
+                className="relative w-full max-w-4xl mx-auto h-[450px] sm:h-[650px] flex items-center justify-center mt-10 mb-20 md:mb-0"
+                style={{ perspective: '1200px' }}
+              >
+                {/* 3D Floor (The Pitch) - Static to preserve native 3D hardware matrix w/ strict aspect ratio */}
+                <div 
+                  className="absolute w-[95%] sm:w-[85%] h-[130%] origin-center"
+                  style={{ 
+                    transformStyle: 'preserve-3d', 
+                    transform: 'rotateX(55deg) translateY(-5%) scale(1.1)' 
+                  }}
+                >
+                  {/* Glowing floor base WITHOUT backdrop-blur (which flattens 3D) */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#00FF87]/10 via-[#00FF87]/5 to-transparent border-2 border-[#00FF87]/30 rounded-xl shadow-[0_0_100px_rgba(0,255,135,0.2)]" />
+                  
+                  {/* Grid Lines */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,255,135,0.1)_1px,transparent_1px),linear-gradient(to_right,rgba(0,255,135,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" style={{ maskImage: 'linear-gradient(to bottom, transparent, black 80%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 80%)' }} />
 
-        {/* 3D Tilt Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-          {steps.map((s, i) => (
-            <motion.div
-              key={s.num}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: i * 0.1 }}
-            >
-              <TiltCard className="p-8 h-full flex flex-col">
-                {/* Step number watermark */}
-                <span className="absolute top-4 right-6 text-5xl font-display font-black text-white/[0.07] select-none">
-                  {s.num}
-                </span>
+                  <PitchSVG />
 
-                {/* Icon */}
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.accent} flex items-center justify-center mb-5 shadow-lg`}>
-                  {s.icon}
+                  {/* 3D Players layer */}
+                  <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
+                    {squad11.map((p, i) => (
+                      <motion.div 
+                        key={p.name}
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: p.delay, duration: 0.6, type: "spring" }}
+                        className="absolute cursor-pointer group hover:!z-[999]"
+                        style={{ left: p.left, top: p.top, zIndex: p.z, transformStyle: 'preserve-3d' }}
+                      >
+                        {/* STAND-UP counter-rotation WITH explicit absolute center constraints */}
+                        <div 
+                          className="absolute flex flex-col items-center"
+                          style={{ 
+                            transform: 'translateX(-50%) translateY(-100%) rotateX(-55deg)',
+                            transformOrigin: 'bottom center'
+                          }}
+                        >
+                          {/* Player Card (Unified sizes for true near-orthographic 3D effect) */}
+                          <div className="relative w-14 h-20 sm:w-20 sm:h-28 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/50 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.9)] transition-transform duration-300 group-hover:scale-110 group-hover:border-[#00FF87]/50 group-hover:-translate-y-6 bg-[#00FF87]/10">
+                            <img 
+                              src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${p.imgUrl}`}
+                              alt={p.name} 
+                              className="object-contain w-[140%] h-[140%] drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] translate-y-2 pointer-events-none" 
+                              onError={(e) => { (e.target as HTMLImageElement).src = 'https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'; }}
+                            />
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+                          </div>
+                          
+                          {/* Name Label */}
+                          <div className="absolute -bottom-5 bg-black/90 border border-white/20 px-3 py-1 rounded-md shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:border-[#00FF87]">
+                            <span className="text-[9px] sm:text-[10px] font-black uppercase text-white tracking-widest whitespace-nowrap">{p.name}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
+              </div>
+            }
+          />
 
-                <h3 className="text-lg font-display font-bold text-white uppercase mb-2">{s.title}</h3>
-                <p className="text-sm text-white/50 leading-relaxed">{s.desc}</p>
-              </TiltCard>
-            </motion.div>
-          ))}
+          <AnimatedStep
+            subheader="Крок 2: Живі дані"
+            title="Ваші гравці. Реальні матчі."
+            desc="Отримуй очки щоразу, коли твої гравці забивають, асистують або зберігають ворота сухими в реальному житті. Результати безпомилково синхронізуються через офіційний API Прем'єр-ліги."
+            reverse
+            visual={
+              <div className="relative w-full aspect-square md:aspect-[4/3] flex items-center justify-center p-4">
+                {/* Glowing background */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,135,0.15)_0%,transparent_60%)] pointer-events-none" />
+                
+                {/* Live Match Widget Container */}
+                <motion.div 
+                  className="relative w-full max-w-sm rounded-2xl bg-[#0A0E17]/90 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                >
+                  {/* Scoreboard Header */}
+                  <div className="w-full bg-gradient-to-b from-black/60 to-transparent p-4 border-b border-white/5 flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-red-500 text-[10px] font-black tracking-widest uppercase">Live 72'</span>
+                    </div>
+                    <div className="flex items-center justify-between w-full px-6">
+                      <span className="text-xl font-black text-white">ARS</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl font-display font-black text-white/50">0</span>
+                        <span className="text-white/30 font-bold">-</span>
+                        <span className="text-3xl font-display font-black text-[#6CABDD]">2</span>
+                      </div>
+                      <span className="text-xl font-black text-white/50">MCI</span>
+                    </div>
+                  </div>
+
+                  {/* Event Feed */}
+                  <div className="p-4 space-y-3 relative overflow-hidden h-[220px]">
+                    {/* Event 1 */}
+                    <motion.div 
+                      className="w-full bg-gradient-to-r from-[#6CABDD]/20 to-transparent border-l-2 border-[#6CABDD] rounded-r-lg p-3 flex justify-between items-center"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">⚽️</span>
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold text-sm">E. Haaland</span>
+                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Гол (Нападник)</span>
+                        </div>
+                      </div>
+                      <span className="text-[#6CABDD] font-black text-lg">+5</span>
+                    </motion.div>
+
+                    {/* Event 2 */}
+                    <motion.div 
+                      className="w-full bg-gradient-to-r from-[#6CABDD]/20 to-transparent border-l-2 border-[#6CABDD] rounded-r-lg p-3 flex justify-between items-center"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8, duration: 0.4 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">👟</span>
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold text-sm">P. Foden</span>
+                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Асист (Півзахисник)</span>
+                        </div>
+                      </div>
+                      <span className="text-[#6CABDD] font-black text-lg">+3</span>
+                    </motion.div>
+                    
+                    {/* Event 3 */}
+                    <motion.div 
+                      className="w-full bg-gradient-to-r from-red-500/20 to-transparent border-l-2 border-red-500 rounded-r-lg p-3 flex justify-between items-center"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.3, duration: 0.4 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">🟨</span>
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold text-sm">W. Saliba</span>
+                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Жовта Картка</span>
+                        </div>
+                      </div>
+                      <span className="text-red-500 font-black text-lg">-1</span>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </div>
+            }
+          />
+          
         </div>
       </section>
 
-      {/* ═══════════════════ SECTION C: TACTICAL HUD (SCORING) ══════════════════ */}
-      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-24 overflow-hidden">
-        {/* Separator line top */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-
+      {/* ═══════════════════ SECTION C: INTERACTIVE SCORING ENGINE ══════════════ */}
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-32 overflow-hidden">
         {/* Ambient glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,230,118,0.05)_0%,transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05)_0%,transparent_70%)] pointer-events-none" />
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-14 max-w-5xl mx-auto"
-        >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] mb-3">Тактичний планшет</p>
-          <h2 className="text-4xl sm:text-5xl font-display font-black text-white uppercase tracking-tight">
-            Система очок
-          </h2>
-          <p className="mt-3 text-white/40 text-sm max-w-lg">
-            Очки нараховуються автоматично після кожного матчу на основі офіційних даних FPL API.
-          </p>
-        </motion.div>
-
-        {/* 4-panel grid */}
-        <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto">
-
-          {/* Panel 1 — Атака */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex flex-col"
-          >
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-              <div className="w-8 h-8 rounded-xl bg-[#00e676]/15 flex items-center justify-center text-base">⚔️</div>
-              <div>
-                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Атака</h3>
-                <p className="text-[10px] text-white/30 mt-0.5">Голи та результативні передачі</p>
-              </div>
+        <div className="max-w-3xl mx-auto flex flex-col md:flex-row gap-16 md:gap-8">
+          
+          {/* Header Left (Sticky) */}
+          <div className="md:w-1/3">
+            <div className="sticky top-32">
+              <span className="text-[#F5A623] text-sm font-bold tracking-[0.2em] uppercase">
+                Правила Гри
+              </span>
+              <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mt-4 mb-6">
+                Система Очок
+              </h2>
+              <p className="text-white/50 text-base leading-relaxed">
+                Дізнайтесь, як ваші футболісти здобувають або втрачають переможні бали в режимі реального часу.
+              </p>
             </div>
-            <ul className="space-y-1 flex-1">
-              {attackRules.map((r) => (
-                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-              ))}
-            </ul>
-          </motion.div>
+          </div>
 
-          {/* Panel 2 — Захист */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.08 }}
-            className="bg-white/[0.03] border border-cyan-400/10 rounded-2xl p-6 flex flex-col"
-          >
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-              <div className="w-8 h-8 rounded-xl bg-cyan-400/10 flex items-center justify-center text-base">🛡️</div>
-              <div>
-                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Захист</h3>
-                <p className="text-[10px] text-white/30 mt-0.5">Сухі матчі та сейви воротаря</p>
-              </div>
-            </div>
-            <ul className="space-y-1 flex-1">
-              {defenseRules.map((r) => (
-                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Panel 3 — Штрафи */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.12 }}
-            className="bg-white/[0.03] border border-red-500/10 rounded-2xl p-6 flex flex-col"
-          >
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
-              <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center text-base">🟥</div>
-              <div>
-                <h3 className="text-sm font-display font-bold text-white uppercase tracking-widest">Штрафи</h3>
-                <p className="text-[10px] text-white/30 mt-0.5">Помилки, пропущені голи та картки</p>
-              </div>
-            </div>
-            <ul className="space-y-1 flex-1">
-              {penaltyRules.map((r) => (
-                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Panel 4 — Базові & Бонуси */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.16 }}
-            className="relative bg-gradient-to-br from-[#FFD700]/[0.05] to-transparent border border-[#FFD700]/15 rounded-2xl p-6 flex flex-col overflow-hidden"
-          >
-            {/* Gold glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#FFD700]/8 blur-[40px] pointer-events-none" />
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#FFD700]/15 relative z-10">
-              <div className="w-8 h-8 rounded-xl bg-[#FFD700]/15 flex items-center justify-center text-base">🏆</div>
-              <div>
-                <h3 className="text-sm font-display font-bold text-[#FFD700] uppercase tracking-widest">Активи та Бонуси</h3>
-                <p className="text-[10px] text-white/30 mt-0.5">Ігровий час та спеціальні нагороди</p>
-              </div>
-            </div>
-            <ul className="space-y-1 flex-1 relative z-10">
-              {baseRules.map((r) => (
-                <ScoreRow key={r.label} label={r.label} pts={r.pts} color={r.color} />
-              ))}
-            </ul>
-          </motion.div>
-
+          {/* Accordion List Right */}
+          <div className="md:w-2/3 space-y-4 relative z-10">
+            <ScoringAccordion
+              isOpen={openAccordion === 0}
+              onClick={() => setOpenAccordion(openAccordion === 0 ? null : 0)}
+              title="Атака"
+              subtitle="Голи та результативні передачі"
+              icon="⚽️"
+              rules={attackRules}
+            />
+            <ScoringAccordion
+              isOpen={openAccordion === 1}
+              onClick={() => setOpenAccordion(openAccordion === 1 ? null : 1)}
+              title="Захист"
+              subtitle="Сухі матчі та сейви воротаря"
+              icon="🛡️"
+              rules={defenseRules}
+            />
+            <ScoringAccordion
+              isOpen={openAccordion === 2}
+              onClick={() => setOpenAccordion(openAccordion === 2 ? null : 2)}
+              title="Штрафи"
+              subtitle="Помилки, пропущені голи та картки"
+              icon="🟥"
+              rules={penaltyRules}
+            />
+            <ScoringAccordion
+              isOpen={openAccordion === 3}
+              onClick={() => setOpenAccordion(openAccordion === 3 ? null : 3)}
+              title="База та Бонуси"
+              subtitle="Ігровий час та спеціальні нагороди"
+              icon="🏆"
+              rules={baseRules}
+            />
+          </div>
+          
         </div>
       </section>
 
