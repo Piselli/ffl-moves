@@ -134,6 +134,13 @@
                0 0 20px hsla(189, 100%, 50%, 0.3);
 }
 
+/* Pitch levitation animation */
+@keyframes pitchFloat {
+  0%   { transform: rotateX(55deg) translateY(-5%) scale(1.1) translateZ(0px); }
+  50%  { transform: rotateX(55deg) translateY(-5%) scale(1.1) translateZ(18px); }
+  100% { transform: rotateX(55deg) translateY(-5%) scale(1.1) translateZ(0px); }
+}
+
 /* Animated gradient border for premium elements */
 @keyframes spin-slow {
   to {

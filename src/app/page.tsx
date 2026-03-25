@@ -77,73 +77,6 @@ function AnimatedStep({
   );
 }
 
-// ─── Accordion ───────────────────────────────────────────────────────────────
-function ScoringAccordion({
-  title,
-  subtitle,
-  icon,
-  rules,
-  isOpen,
-  onClick,
-}: {
-  title: string;
-  subtitle: string;
-  icon: string;
-  rules: { label: string; pts: string; color: string }[];
-  isOpen: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <div className={`w-full bg-white/[0.02] border transition-all duration-300 rounded-2xl overflow-hidden ${isOpen ? 'border-[#00F0FF]/30 shadow-[0_0_30px_rgba(0,240,255,0.05)]' : 'border-white/5 hover:border-white/10'}`}>
-      <button
-        onClick={onClick}
-        className="w-full flex items-center justify-between p-6 text-left outline-none group"
-      >
-        <div className="flex items-center gap-5">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-300 ${isOpen ? 'bg-[#00F0FF]/15 scale-110 shadow-lg' : 'bg-white/5 group-hover:bg-white/10'}`}>
-            {icon}
-          </div>
-          <div>
-            <h3 className="text-xl font-display font-black text-white uppercase tracking-wide">{title}</h3>
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">{subtitle}</p>
-          </div>
-        </div>
-        <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 ${isOpen ? "rotate-180 border-[#00F0FF]/50 text-[#00F0FF] bg-[#00F0FF]/10" : "border-white/10 text-white/50 group-hover:border-white/20"}`}>
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="p-6 pt-0 border-t border-white/5">
-              <ul className="space-y-1">
-                {rules.map((r, i) => (
-                  <motion.li
-                    key={r.label}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
-                  >
-                    <ScoreRow label={r.label} pts={r.pts} color={r.color} />
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 // ─── Score row (Tactical HUD) ─────────────────────────────────────────────────
 function ScoreRow({ label, pts, color = "text-white/60" }: { label: string; pts: string; color?: string }) {
@@ -162,57 +95,43 @@ function ScoreRow({ label, pts, color = "text-white/60" }: { label: string; pts:
 // ─── CSS Pitch SVG ────────────────────────────────────────────────────────────
 function PitchSVG() {
   return (
-    <svg className="absolute inset-0 w-full h-full opacity-[0.85] pointer-events-none" viewBox="0 0 650 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 650 1000" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        {/* Soft elegant fading gradient for the field lines */}
-        <linearGradient id="lineFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(0, 255, 135, 0)" />
-          <stop offset="15%" stopColor="rgba(0, 255, 135, 0.4)" />
-          <stop offset="50%" stopColor="rgba(0, 255, 135, 0.2)" />
-          <stop offset="85%" stopColor="rgba(0, 255, 135, 0.5)" />
-          <stop offset="100%" stopColor="rgba(0, 255, 135, 0.9)" />
-        </linearGradient>
-
-        <radialGradient id="pitchGlow" cx="50%" cy="80%" r="70%">
-          <stop offset="0%" stopColor="rgba(0, 255, 135, 0.15)" />
-          <stop offset="100%" stopColor="rgba(0, 255, 135, 0)" />
+        {/* Subtle grass shadowing */}
+        <radialGradient id="pitchGlow" cx="50%" cy="50%" r="70%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.2)" />
         </radialGradient>
       </defs>
 
-      {/* Subtle glowing floor plane */}
-      <rect x="0" y="0" width="650" height="1000" fill="url(#pitchGlow)" rx="20" />
+      {/* Surface ambient darkening */}
+      <rect x="0" y="0" width="650" height="1000" fill="url(#pitchGlow)" rx="2" />
 
-      {/* Modern, elegant, faint grid */}
-      <g stroke="rgba(255,255,255,0.03)" strokeWidth="1">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={i * 50} x2="650" y2={i * 50} />
-        ))}
-        {Array.from({ length: 13 }).map((_, i) => (
-          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="1000" />
-        ))}
-      </g>
-
-      <g stroke="url(#lineFade)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        {/* Pitch Outer Bounds (slightly thinner, elegant corners) */}
-        <rect x="25" y="25" width="600" height="950" rx="10" />
+      {/* Realistic Solid White Lines WITHOUT extra margins */}
+      <g stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Pitch Outer Bounds */}
+        <rect x="0" y="0" width="650" height="1000" />
         {/* Center Line */}
-        <line x1="25" y1="500" x2="625" y2="500" />
+        <line x1="0" y1="500" x2="650" y2="500" />
         {/* Center Circle */}
         <circle cx="325" cy="500" r="90" />
+        <circle cx="325" cy="500" r="3" fill="rgba(255,255,255,0.75)" />
         
         {/* Penalty Box (Bottom) */}
-        <rect x="125" y="825" width="400" height="150" />
+        <rect x="125" y="850" width="400" height="150" />
         {/* Goal Area (Bottom) */}
-        <rect x="235" y="915" width="180" height="60" />
+        <rect x="235" y="940" width="180" height="60" />
+        <circle cx="325" cy="900" r="3" fill="rgba(255,255,255,0.75)" />
         {/* Penalty Arc (Bottom) */}
-        <path d="M 265 825 A 70 70 0 0 0 385 825" />
+        <path d="M 265 850 A 70 70 0 0 0 385 850" />
         
         {/* Penalty Box (Top) */}
-        <rect x="125" y="25" width="400" height="150" />
+        <rect x="125" y="0" width="400" height="150" />
         {/* Goal Area (Top) */}
-        <rect x="235" y="25" width="180" height="60" />
+        <rect x="235" y="0" width="180" height="60" />
+        <circle cx="325" cy="100" r="3" fill="rgba(255,255,255,0.75)" />
         {/* Penalty Arc (Top) */}
-        <path d="M 265 175 A 70 70 0 0 1 385 175" />
+        <path d="M 265 150 A 70 70 0 0 1 385 150" />
       </g>
     </svg>
   );
@@ -243,8 +162,8 @@ function PlayerCutout({
       className="absolute flex flex-col items-center select-none"
     >
       {/* Score badge */}
-      <div className="mb-1.5 z-10">
-        <div className="px-2.5 py-0.5 rounded-full bg-[#00e676] text-black text-xs font-black font-display shadow-lg shadow-[#00e676]/30">
+      <div className="mb-0.5 z-10 text-[0px]"> {/* closer to the card */}
+        <div className="px-2 py-0.5 rounded-full bg-[#00e676] text-black text-[11px] font-black font-display shadow-lg shadow-[#00e676]/30 leading-none">
           {pts}
         </div>
       </div>
@@ -260,9 +179,10 @@ function PlayerCutout({
         />
       </div>
       {/* Name + position */}
-      <div className="mt-1 text-center">
-        <div className="text-[10px] font-bold text-white/90 uppercase tracking-wider leading-none">{name}</div>
-        <div className="text-[9px] text-white/40 font-medium mt-0.5">{pos}</div>
+      <div className="-mt-1 text-center"> {/* Pulled up slightly */}
+        <div className="text-[10px] font-bold text-white/90 uppercase tracking-wider leading-none bg-[#0D0F12]/95 border border-white/[0.12] px-2 py-0.5 rounded shadow-lg">
+          {name}
+        </div>
       </div>
     </motion.div>
   );
@@ -367,23 +287,23 @@ export default function Home() {
   ];
 
 
-  // ── 11-Man Squad for hero pitch (4-3-3 Horizontal) - Centered & Tightened
+  // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
-    // GK (Goal box bottom)
-    { name: "Pickford", pos: "GK", pts: 7, imgUrl: "p111234.png", left: "50%", top: "96%", z: 10, delay: 0.1 },
-    // DEF (Curved line)
-    { name: "Cucurella", pos: "DEF", pts: 6, imgUrl: "p179268.png", left: "15%", top: "76%", z: 20, delay: 0.2 },
-    { name: "Saliba", pos: "DEF", pts: 8, imgUrl: "p462424.png", left: "38%", top: "80%", z: 30, delay: 0.3 },
-    { name: "Gabriel", pos: "DEF", pts: 6, imgUrl: "p226597.png", left: "62%", top: "80%", z: 30, delay: 0.4 },
-    { name: "Porro", pos: "DEF", pts: 9, imgUrl: "p441164.png", left: "85%", top: "76%", z: 20, delay: 0.5 },
-    // MID (V-shape)
-    { name: "Palmer", pos: "MID", pts: 12, imgUrl: "p244851.png", left: "25%", top: "54%", z: 40, delay: 0.6 },
-    { name: "Foden", pos: "MID", pts: 8, imgUrl: "p209244.png", left: "50%", top: "60%", z: 50, delay: 0.7 },
-    { name: "Bruno", pos: "MID", pts: 11, imgUrl: "p208706.png", left: "75%", top: "54%", z: 40, delay: 0.8 },
-    // FWD (V-shape, Swap Watkins <-> Saka)
-    { name: "Watkins", pos: "FWD", pts: 15, imgUrl: "p178301.png", left: "25%", top: "34%", z: 60, delay: 0.9 },
-    { name: "Haaland", pos: "FWD", pts: 18, imgUrl: "p223094.png", left: "50%", top: "28%", z: 70, delay: 1.0 },
-    { name: "Saka", pos: "FWD", pts: 14, imgUrl: "p223340.png", left: "75%", top: "34%", z: 60, delay: 1.1 },
+    // GK - В воротарській
+    { name: "Pickford", pos: "GK", pts: 7, imgUrl: "p111234.png", left: "50%", top: "99%", z: 10, delay: 0.1 },
+    // DEF — Строго в ряд
+    { name: "Cucurella", pos: "DEF", pts: 6, imgUrl: "p179268.png", left: "15%", top: "80%", z: 20, delay: 0.2 },
+    { name: "Saliba", pos: "DEF", pts: 8, imgUrl: "p462424.png", left: "38.3%", top: "80%", z: 20, delay: 0.3 },
+    { name: "Gabriel", pos: "DEF", pts: 6, imgUrl: "p226597.png", left: "61.6%", top: "80%", z: 20, delay: 0.4 },
+    { name: "Porro", pos: "DEF", pts: 9, imgUrl: "p441164.png", left: "85%", top: "80%", z: 20, delay: 0.5 },
+    // MID — Бруно, Палмер, Фоден (строго в ряд)
+    { name: "Bruno", pos: "MID", pts: 11, imgUrl: "p208706.png", left: "25%", top: "56%", z: 30, delay: 0.6 },
+    { name: "Palmer", pos: "MID", pts: 12, imgUrl: "p244851.png", left: "50%", top: "56%", z: 30, delay: 0.7 },
+    { name: "Foden", pos: "MID", pts: 8, imgUrl: "p209244.png", left: "75%", top: "56%", z: 30, delay: 0.8 },
+    // FWD — Строго в ряд
+    { name: "Watkins", pos: "FWD", pts: 15, imgUrl: "p178301.png", left: "25%", top: "32%", z: 40, delay: 0.9 },
+    { name: "Haaland", pos: "FWD", pts: 18, imgUrl: "p223094.png", left: "50%", top: "32%", z: 40, delay: 1.0 },
+    { name: "Saka", pos: "FWD", pts: 14, imgUrl: "p223340.png", left: "75%", top: "32%", z: 40, delay: 1.1 },
   ];
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -497,8 +417,8 @@ export default function Home() {
                 className="relative group cursor-pointer inline-block w-full sm:w-auto"
                 onClick={() => (document.getElementById('wallet-connect-btn') as HTMLButtonElement)?.click()}
               >
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-70 group-hover:opacity-100 blur transition-opacity duration-300" />
-                <div className="relative bg-[#0D0F12] border border-white/10 text-white px-12 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
+                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+                <div className="relative bg-[#0D0F12] border border-white/10 text-white px-10 py-4 w-full sm:w-auto sm:min-w-[260px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
                   <span>Обрати свій склад</span>
                   <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -533,26 +453,36 @@ export default function Home() {
             visual={
               <div 
                 className="relative w-full max-w-4xl mx-auto h-[450px] sm:h-[650px] flex items-center justify-center mt-10 mb-20 md:mb-0"
-                style={{ perspective: '1200px' }}
+                style={{ perspective: '1800px' }}
               >
-                {/* 3D Floor (The Pitch) - Static to preserve native 3D hardware matrix w/ strict aspect ratio */}
+                {/* 3D Floor (The Pitch) — levitating tactical board */}
                 <div 
                   className="absolute w-[95%] sm:w-[85%] h-[130%] origin-center"
                   style={{ 
                     transformStyle: 'preserve-3d', 
-                    transform: 'rotateX(55deg) translateY(-5%) scale(1.1)' 
+                    transform: 'rotateX(55deg) scale(1.1)',
                   }}
                 >
-                  {/* Glowing floor base WITHOUT backdrop-blur (which flattens 3D) */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#00FF87]/10 via-[#00FF87]/5 to-transparent border-2 border-[#00FF87]/30 rounded-xl shadow-[0_0_100px_rgba(0,255,135,0.2)]" />
-                  
-                  {/* Grid Lines */}
-                  <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,255,135,0.1)_1px,transparent_1px),linear-gradient(to_right,rgba(0,255,135,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" style={{ maskImage: 'linear-gradient(to bottom, transparent, black 80%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 80%)' }} />
+                  {/* 3D Realistic Striped Green Grass Surface */}
+                  <div 
+                    className="absolute inset-0 shadow-[0_30px_80px_rgba(0,0,0,0.7)]"
+                    style={{
+                      backgroundColor: '#388E3C', // Base emerald green
+                      backgroundImage: `repeating-linear-gradient(
+                        0deg,
+                        transparent,
+                        transparent 50px,
+                        rgba(0, 0, 0, 0.08) 50px,
+                        rgba(0, 0, 0, 0.08) 100px
+                      )`,
+                      border: '4px solid #2E7D32' // Darker green turf boundary
+                    }}
+                  />
 
                   <PitchSVG />
 
-                  {/* 3D Players layer */}
-                  <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
+                  {/* 3D Players layer — overflow-visible so labels at edges show fully */}
+                  <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d', overflow: 'visible' }}>
                     {squad11.map((p, i) => (
                       <motion.div 
                         key={p.name}
@@ -563,7 +493,7 @@ export default function Home() {
                         className="absolute cursor-pointer group hover:!z-[999]"
                         style={{ left: p.left, top: p.top, zIndex: p.z, transformStyle: 'preserve-3d' }}
                       >
-                        {/* STAND-UP counter-rotation WITH explicit absolute center constraints */}
+                        {/* STAND-UP counter-rotation */}
                         <div 
                           className="absolute flex flex-col items-center"
                           style={{ 
@@ -571,20 +501,23 @@ export default function Home() {
                             transformOrigin: 'bottom center'
                           }}
                         >
-                          {/* Player Card (Unified sizes for true near-orthographic 3D effect) */}
-                          <div className="relative w-14 h-20 sm:w-20 sm:h-28 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/50 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.9)] transition-transform duration-300 group-hover:scale-110 group-hover:border-[#00FF87]/50 group-hover:-translate-y-6 bg-[#00FF87]/10">
-                            <img 
-                              src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${p.imgUrl}`}
-                              alt={p.name} 
-                              className="object-contain w-[140%] h-[140%] drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] translate-y-2 pointer-events-none" 
-                              onError={(e) => { (e.target as HTMLImageElement).src = 'https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'; }}
-                            />
-                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
-                          </div>
-                          
-                          {/* Name Label */}
-                          <div className="absolute -bottom-5 bg-black/90 border border-white/20 px-3 py-1 rounded-md shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:border-[#00FF87]">
-                            <span className="text-[9px] sm:text-[10px] font-black uppercase text-white tracking-widest whitespace-nowrap">{p.name}</span>
+                          {/* HOVER WRAPPER: Both card and nameplate scale and move up together */}
+                          <div className="flex flex-col items-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-4">
+                            {/* Player Card */}
+                            <div className="relative w-14 h-20 sm:w-16 sm:h-22 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/60 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] transition-colors duration-300 group-hover:border-white/30">
+                              <img 
+                                src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${p.imgUrl}`}
+                                alt={p.name} 
+                                className="object-contain w-[140%] h-[140%] drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] translate-y-2 pointer-events-none" 
+                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'; }}
+                              />
+                              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+                            </div>
+                            
+                            {/* Premium Dark Glassmorphism Nameplate */}
+                            <div className="mt-1.5 bg-black/40 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.6)] transition-all duration-300 group-hover:bg-black/60 group-hover:border-white/30 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] z-10 flex items-center justify-center">
+                              <span className="text-[9px] sm:text-[10px] font-black uppercase text-white tracking-[0.15em] whitespace-nowrap leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{p.name}</span>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -696,10 +629,10 @@ export default function Home() {
         {/* Ambient glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05)_0%,transparent_70%)] pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto flex flex-col md:flex-row gap-16 md:gap-8">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-12 md:gap-12">
           
           {/* Header Left (Sticky) */}
-          <div className="md:w-1/3">
+          <div className="md:w-2/5">
             <div className="sticky top-32">
               <span className="text-[#F5A623] text-sm font-bold tracking-[0.2em] uppercase">
                 Правила Гри
@@ -713,40 +646,111 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Accordion List Right */}
-          <div className="md:w-2/3 space-y-4 relative z-10">
-            <ScoringAccordion
-              isOpen={openAccordion === 0}
-              onClick={() => setOpenAccordion(openAccordion === 0 ? null : 0)}
-              title="Атака"
-              subtitle="Голи та результативні передачі"
-              icon="⚽️"
-              rules={attackRules}
-            />
-            <ScoringAccordion
-              isOpen={openAccordion === 1}
-              onClick={() => setOpenAccordion(openAccordion === 1 ? null : 1)}
-              title="Захист"
-              subtitle="Сухі матчі та сейви воротаря"
-              icon="🛡️"
-              rules={defenseRules}
-            />
-            <ScoringAccordion
-              isOpen={openAccordion === 2}
-              onClick={() => setOpenAccordion(openAccordion === 2 ? null : 2)}
-              title="Штрафи"
-              subtitle="Помилки, пропущені голи та картки"
-              icon="🟥"
-              rules={penaltyRules}
-            />
-            <ScoringAccordion
-              isOpen={openAccordion === 3}
-              onClick={() => setOpenAccordion(openAccordion === 3 ? null : 3)}
-              title="База та Бонуси"
-              subtitle="Ігровий час та спеціальні нагороди"
-              icon="🏆"
-              rules={baseRules}
-            />
+          {/* Elegant Dark Card Scoring Grid Right */}
+          <div className="md:w-3/5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+              
+              {/* Attack Column */}
+              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+                <div className="p-6 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                      <span className="text-xl">⚽️</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Атака</h3>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Голи та результативні передачі</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 px-6">
+                  <ul className="space-y-3.5">
+                    {attackRules.map((r) => (
+                      <li key={r.label} className="flex justify-between items-center text-sm">
+                        <span className="text-white/60">{r.label}</span>
+                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Defense Column */}
+              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+                <div className="p-6 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                      <span className="text-xl">🛡️</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Захист</h3>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Сухі матчі та сейви воротаря</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 px-6">
+                  <ul className="space-y-3.5">
+                    {defenseRules.map((r) => (
+                      <li key={r.label} className="flex justify-between items-center text-sm">
+                        <span className="text-white/60">{r.label}</span>
+                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Penalty Column */}
+              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+                <div className="p-6 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <span className="text-xl">🟥</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Штрафи</h3>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Помилки, пропущені голи, картки</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 px-6">
+                  <ul className="space-y-3.5">
+                    {penaltyRules.map((r) => (
+                      <li key={r.label} className="flex justify-between items-center text-sm">
+                        <span className="text-white/60">{r.label}</span>
+                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Base & Bonus Column */}
+              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+                <div className="p-6 border-b border-white/[0.04]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20">
+                      <span className="text-xl">🏆</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#F5A623] uppercase tracking-wider mb-1">Активи та Бонуси</h3>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Ігровий час та спеціальні нагороди</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 px-6">
+                  <ul className="space-y-3.5">
+                    {baseRules.map((r) => (
+                      <li key={r.label} className="flex justify-between items-center text-sm">
+                        <span className="text-white/60">{r.label}</span>
+                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+            </div>
           </div>
           
         </div>
