@@ -189,7 +189,227 @@ function PlayerCutout({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Live Data Carousel (Swipeable) ──────────────────────────────────────────
+const CAROUSEL_MATCHES = [
+  {
+    league: "Premier League",
+    time: "74:12",
+    statusText: "LIVE",
+    halfText: "2nd Half",
+    scoreH: 2,
+    scoreA: 1,
+    teamH: { name: "MANCHESTER CITY", short: "MNC", badge: "https://resources.premierleague.com/premierleague/badges/t43.png", color: "#87CEEB" },
+    teamA: { name: "ARSENAL", short: "ARS", badge: "https://resources.premierleague.com/premierleague/badges/t3.png", color: "#EF0107" },
+    stadium: "Etihad Stadium",
+    matchday: 26,
+    events: [
+      { player: "E. Haaland", action: "Goal!", pts: "+5", color: "#00e676", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+      { player: "P. Foden", action: "Assist", pts: "+3", color: "#00F0FF", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+      { player: "B. Saka", action: "Yellow Card", pts: "-1", color: "#F5A623", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
+    ]
+  },
+  {
+    league: "Premier League",
+    time: "FT",
+    statusText: "FINISHED",
+    halfText: "",
+    scoreH: 1,
+    scoreA: 3,
+    teamH: { name: "TOTTENHAM", short: "TOT", badge: "https://resources.premierleague.com/premierleague/badges/t6.png", color: "#FFFFFF" },
+    teamA: { name: "CHELSEA", short: "CHE", badge: "https://resources.premierleague.com/premierleague/badges/t8.png", color: "#034694" },
+    stadium: "Hotspur Stadium",
+    matchday: 26,
+    events: [
+      { player: "C. Palmer", action: "2 Goals", pts: "+10", color: "#00e676", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
+      { player: "P. Porro", action: "Clean Tackle", pts: "+1", color: "#00F0FF", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+      { player: "S. Heung-Min", action: "Goal!", pts: "+4", color: "#00e676", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
+    ]
+  },
+  {
+    league: "Premier League",
+    time: "24:00",
+    statusText: "LIVE",
+    halfText: "1st Half",
+    scoreH: 0,
+    scoreA: 0,
+    teamH: { name: "EVERTON", short: "EVE", badge: "https://resources.premierleague.com/premierleague/badges/t11.png", color: "#003399" },
+    teamA: { name: "LIVERPOOL", short: "LIV", badge: "https://resources.premierleague.com/premierleague/badges/t14.png", color: "#C8102E" },
+    stadium: "Goodison Park",
+    matchday: 26,
+    events: [
+      { player: "J. Pickford", action: "3 Saves", pts: "+2", color: "#00F0FF", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+      { player: "T. Alex-Arnold", action: "Key Pass", pts: "+1", color: "#00F0FF", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
+      { player: "J. Branthwaite", action: "Clean Sheet HT", pts: "+2", color: "#00e676", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
+    ]
+  }
+];
+
+const ALL_PLAYERS = [
+  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Saves"}, {icon: "🛡", text: "Clean Sheet"}], pts: "+7 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Clean Tackle"}, {icon: "⏱", text: "90+ Mins"}], pts: "+6 PTS", color: "#A855F7", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "⏱", text: "90+ Mins"}], pts: "+8 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "🟨", text: "Yellow Card"}], pts: "+6 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", stats: [{icon: "👟", text: "Assist"}, {icon: "🛡", text: "Clean Tackle"}], pts: "+9 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⏱", text: "90+ Mins"}], pts: "+11 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "🌟", text: "MOTM"}], pts: "+12 PTS", color: "#FFD700", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", stats: [{icon: "👟", text: "Assist"}, {icon: "⚡️", text: "Key Pass"}], pts: "+8 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Goal"}, {icon: "👟", text: "Assist"}], pts: "+15 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "⏱", text: "90+ Mins"}], pts: "+18 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⚡️", text: "Key pass"}], pts: "+14 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+];
+
+function LiveDataCarousel() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % CAROUSEL_MATCHES.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const slide = CAROUSEL_MATCHES[activeIndex];
+  const marqueePlayers = [...ALL_PLAYERS, ...ALL_PLAYERS];
+
+  return (
+    <div className="relative w-full flex flex-col items-center">
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+      {/* Container for both panels */}
+      <div className="relative w-full rounded-[2.5rem] bg-[#0A0D14]/90 backdrop-blur-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.6)] flex flex-col xl:flex-row p-3 sm:p-4 md:p-5 lg:p-6 gap-3 md:gap-4 lg:gap-5 overflow-hidden items-stretch mb-4">
+        
+        {/* TOP/LEFT: Live Match Panel */}
+        <div className="w-full xl:w-[35%] h-auto min-h-[300px] flex flex-col bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] border border-white/5 p-4 sm:p-5 md:p-6 relative overflow-hidden justify-between shrink-0">
+          {/* Glow */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[40px] rounded-full pointer-events-none" />
+          
+          <div className="flex flex-col flex-1 w-full relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeIndex + "left"}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.4 }}
+                className="flex flex-col items-center justify-center relative w-full h-full"
+              >
+                {/* Match Status Pill */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full mb-4 sm:mb-5">
+                  {slide.statusText === "LIVE" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mt-px" />}
+                  <span className={`text-[9px] font-bold tracking-[0.15em] uppercase leading-none flex items-center gap-1.5 ${slide.statusText === "LIVE" ? "text-red-500" : "text-white/40"}`}>
+                    {slide.statusText} 
+                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00F0FF]">{slide.halfText}</span></>}
+                    <span className="text-white/20">•</span> <span className="text-white tracking-widest">{slide.time}</span>
+                  </span>
+                </div>
+
+                <div className="flex flex-row items-center justify-between w-full relative">
+                  {/* Team Home */}
+                  <div className="flex flex-col items-center z-10 w-[30%] min-w-0">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 relative mb-3 group flex shrink-0 items-center justify-center">
+                      <div className="absolute inset-0 blur-[20px] opacity-40 transition-opacity duration-500 group-hover:opacity-70" style={{ backgroundColor: slide.teamH.color }} />
+                      <img src={slide.teamH.badge} alt={slide.teamH.name} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-transform duration-500 group-hover:scale-110 relative z-10" />
+                    </div>
+                    <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center">{slide.teamH.short}</span>
+                  </div>
+                  
+                  {/* Center Info - BIG SCORE */}
+                  <div className="flex flex-col items-center justify-center z-10 w-[40%] min-w-0 mb-3">
+                    <div className="text-5xl sm:text-6xl md:text-7xl font-display font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] leading-none flex items-center justify-center w-full transition-all duration-300">
+                      {slide.scoreH}<span className="text-white/10 mx-2 sm:mx-3 font-normal">-</span>{slide.scoreA}
+                    </div>
+                  </div>
+                  
+                  {/* Team Away */}
+                  <div className="flex flex-col items-center text-center w-[30%] min-w-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center pb-2">
+                       <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
+                    </div>
+                    <div className="flex flex-col mt-2 md:mt-3 w-full">
+                      <span className="text-[9px] sm:text-[10px] font-black text-white tracking-widest uppercase mb-1 leading-tight truncate px-1">{slide.teamA.name}</span>
+                      <span className="text-sm sm:text-base md:text-lg font-black text-white/50 tracking-[0.1em] uppercase">{slide.teamA.short}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          
+          {/* Static Location (Not animated so it stays still) */}
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 text-white/50 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] mt-auto pt-4 md:pt-6 border-t border-white/5 font-medium w-full relative z-10">
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              Matchday 26
+            </div>
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={slide.stadium}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="whitespace-nowrap"
+                >{slide.stadium}</motion.span>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: MARQUEE PLAYER FEED */}
+        <div className="w-full xl:w-[68%] min-h-[300px] flex flex-col bg-[#0D1017] rounded-[1.5rem] border border-white/5 p-0 relative shadow-inner overflow-hidden justify-center items-center">
+          
+          <div className="flex-1 w-full relative overflow-hidden flex items-center h-[300px]">
+            <div className="flex gap-4 sm:gap-5 w-max animate-[marquee_50s_linear_infinite] px-4 sm:px-6 hover:[animation-play-state:paused] items-center h-full">
+              {marqueePlayers.map((ev, i) => (
+                 <div key={i} className="flex flex-col items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] p-4 sm:p-5 rounded-2xl border border-white/10 transition-all duration-300 w-[200px] sm:w-[240px] md:w-[260px] h-[250px] shrink-0 group relative overflow-hidden backdrop-blur-md">
+                   {/* Background Glow */}
+                   <div className="absolute top-0 right-0 w-32 h-32 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-40" style={{ backgroundColor: ev.color }} />
+                   
+                   <img src={ev.image} className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 bg-[#0A0D14] object-cover object-top shrink-0 transition-transform duration-300 group-hover:scale-110 mb-2" style={{ borderColor: ev.color, boxShadow: `0 0 15px ${ev.color}4D` }} alt={ev.player} />
+                   
+                   <span className="text-white font-black text-base sm:text-lg tracking-wide truncate text-center w-full mb-2">{ev.player}</span>
+                   
+                   {/* Multiple Player Stats Line */}
+                   <div className="flex flex-col gap-1 w-full mb-3 px-2">
+                     {ev.stats.map((stat: any, idx: number) => (
+                       <div key={idx} className="flex items-center justify-between w-full opacity-80 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 truncate">{stat.text}</span>
+                         <span className="text-[9px] sm:text-[10px] font-bold" style={{ color: ev.color }}>{stat.icon}</span>
+                       </div>
+                     ))}
+                   </div>
+
+                   <div className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:brightness-125 w-full mt-auto tracking-wider" style={{ borderColor: ev.color, backgroundColor: `${ev.color}1A`, boxShadow: `0 0 15px ${ev.color}40` }}>
+                      <span className="text-sm sm:text-base font-black whitespace-nowrap" style={{ color: ev.color, textShadow: `0 0 12px ${ev.color}90` }}>{ev.pts}</span>
+                   </div>
+                 </div>
+              ))}
+            </div>
+            {/* Edge Gradients for smooth fade in/out */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-r from-[#0D1017] to-transparent pointer-events-none z-10" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-l from-[#0D1017] to-transparent pointer-events-none z-10" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Slider Dots */}
+      <div className="flex items-center justify-center gap-2 md:gap-3 mt-1 md:mt-2">
+        {CAROUSEL_MATCHES.map((_, i) => (
+           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00F0FF] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,240,255,1)]" : "bg-white/20 hover:bg-white/40"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+
   const { connected } = useWallet();
 
   // Live on-chain data
@@ -528,98 +748,45 @@ export default function Home() {
             }
           />
 
-          <AnimatedStep
-            subheader="Крок 2: Живі дані"
-            title="Ваші гравці. Реальні матчі."
-            desc="Отримуй очки щоразу, коли твої гравці забивають, асистують або зберігають ворота сухими в реальному житті. Результати безпомилково синхронізуються через офіційний API Прем'єр-ліги."
-            reverse
-            visual={
-              <div className="relative w-full aspect-square md:aspect-[4/3] flex items-center justify-center p-4">
-                {/* Glowing background */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,135,0.15)_0%,transparent_60%)] pointer-events-none" />
-                
-                {/* Live Match Widget Container */}
-                <motion.div 
-                  className="relative w-full max-w-sm rounded-2xl bg-[#0A0E17]/90 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                >
-                  {/* Scoreboard Header */}
-                  <div className="w-full bg-gradient-to-b from-black/60 to-transparent p-4 border-b border-white/5 flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-red-500 text-[10px] font-black tracking-widest uppercase">Live 72'</span>
-                    </div>
-                    <div className="flex items-center justify-between w-full px-6">
-                      <span className="text-xl font-black text-white">ARS</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl font-display font-black text-white/50">0</span>
-                        <span className="text-white/30 font-bold">-</span>
-                        <span className="text-3xl font-display font-black text-[#6CABDD]">2</span>
-                      </div>
-                      <span className="text-xl font-black text-white/50">MCI</span>
-                    </div>
-                  </div>
-
-                  {/* Event Feed */}
-                  <div className="p-4 space-y-3 relative overflow-hidden h-[220px]">
-                    {/* Event 1 */}
-                    <motion.div 
-                      className="w-full bg-gradient-to-r from-[#6CABDD]/20 to-transparent border-l-2 border-[#6CABDD] rounded-r-lg p-3 flex justify-between items-center"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3, duration: 0.4 }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">⚽️</span>
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold text-sm">E. Haaland</span>
-                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Гол (Нападник)</span>
-                        </div>
-                      </div>
-                      <span className="text-[#6CABDD] font-black text-lg">+5</span>
-                    </motion.div>
-
-                    {/* Event 2 */}
-                    <motion.div 
-                      className="w-full bg-gradient-to-r from-[#6CABDD]/20 to-transparent border-l-2 border-[#6CABDD] rounded-r-lg p-3 flex justify-between items-center"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.8, duration: 0.4 }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">👟</span>
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold text-sm">P. Foden</span>
-                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Асист (Півзахисник)</span>
-                        </div>
-                      </div>
-                      <span className="text-[#6CABDD] font-black text-lg">+3</span>
-                    </motion.div>
-                    
-                    {/* Event 3 */}
-                    <motion.div 
-                      className="w-full bg-gradient-to-r from-red-500/20 to-transparent border-l-2 border-red-500 rounded-r-lg p-3 flex justify-between items-center"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.3, duration: 0.4 }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">🟨</span>
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold text-sm">W. Saliba</span>
-                          <span className="text-white/50 text-[10px] uppercase tracking-wider">Жовта Картка</span>
-                        </div>
-                      </div>
-                      <span className="text-red-500 font-black text-lg">-1</span>
-                    </motion.div>
-                  </div>
-                </motion.div>
+        {/* STEP 2: Cinematic Full-Width */}
+        <div id="step-2" className="mt-8 md:mt-16 w-full max-w-[1600px] mx-auto relative z-10 flex flex-col items-center">
+          {/* Glowing background behind step 2 */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.08)_0%,transparent_50%)] pointer-events-none" />
+          
+          <div className="w-full max-w-4xl mx-auto px-4 text-center mb-6 sm:mb-10 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]"></span>
+                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00F0FF] uppercase">
+                  Крок 2: Живі дані
+                </span>
               </div>
-            }
-          />
+              <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight">
+                Ваші гравці. <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
+              </h3>
+              <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
+                Отримуй очки щоразу, коли твої гравці забивають, асистують або зберігають ворота сухими.
+              </p>
+            </motion.div>
+          </div>
+          
+          <div className="w-full px-2 sm:px-4 lg:px-8 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <LiveDataCarousel />
+            </motion.div>
+          </div>
+        </div>
           <AnimatedStep
             subheader="Крок 3: Перемагай"
             title="Заробляй MOVE токени"
