@@ -311,10 +311,10 @@ function LiveDataCarousel() {
                 <div className="flex flex-row items-center justify-between w-full relative">
                   {/* Team Home */}
                   <div className="flex flex-col items-center z-10 w-[30%] min-w-0">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 relative mb-3 group flex shrink-0 items-center justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex shrink-0 items-center justify-center mb-2">
                       <img src={slide.teamH.badge} alt={slide.teamH.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110 relative z-10" />
                     </div>
-                    <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center">{slide.teamH.short}</span>
+                    <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center uppercase">{slide.teamH.short}</span>
                   </div>
                   
                   {/* Center Info - BIG SCORE */}
@@ -326,10 +326,10 @@ function LiveDataCarousel() {
                   
                   {/* Team Away */}
                   <div className="flex flex-col items-center text-center w-[30%] min-w-0">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center pb-2">
-                       <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain" />
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center mb-2">
+                      <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain" />
                     </div>
-                    <div className="flex flex-col mt-2 md:mt-3 w-full">
+                    <div className="flex flex-col mt-0 w-full">
                       <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center uppercase">{slide.teamA.short}</span>
                     </div>
                   </div>
