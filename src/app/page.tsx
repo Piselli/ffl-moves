@@ -285,8 +285,7 @@ function LiveDataCarousel() {
         
         {/* TOP/LEFT: Live Match Panel */}
         <div className="w-full xl:w-[35%] h-auto min-h-[300px] flex flex-col bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] border border-white/5 p-4 sm:p-5 md:p-6 relative overflow-hidden justify-between shrink-0">
-          {/* Glow */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[40px] rounded-full pointer-events-none" />
+          {/* (Glow removed) */}
           
           <div className="flex flex-col flex-1 w-full relative overflow-hidden">
             <AnimatePresence mode="wait">
