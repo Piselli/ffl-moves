@@ -6,6 +6,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getConfig, getGameweek } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
+import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 
 // ─── Animated number counter ─────────────────────────────────────────────────
 function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
@@ -784,33 +785,103 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
-          <AnimatedStep
-            subheader="Крок 3: Перемагай"
-            title="Заробляй MOVE токени"
-            desc="Гравці забивають, асистують і захищають в реальних матчах — ти автоматично отримуєш нагороди з призового фонду на свій гаманець."
-            visual={
-              <div className="relative w-full aspect-square md:aspect-[4/3] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,188,212,0.15)_0%,transparent_60%)] pointer-events-none" />
-                <motion.div 
-                  className="relative flex flex-col items-center justify-center gap-6"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
+
+        {/* ═══════════════════ STEP 3: REWARDS (SORARE STYLE) ═══════════════════ */}
+        <section id="step-3" className="relative mt-14 md:mt-20 w-full">
+          {/* Subtle Token Drift (atmosphere) */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <style>{`
+              @keyframes tokenDrift {
+                0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+                12%  { opacity: 0.20; }
+                50%  { transform: translate3d(var(--dx, 20px), var(--dy, 40px), 0) rotate(12deg); opacity: 0.20; }
+                100% { transform: translate3d(calc(var(--dx, 20px) * -1), calc(var(--dy, 40px) * -1), 0) rotate(-12deg); opacity: 0; }
+              }
+              .token-drift {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: var(--size, 18px);
+                height: var(--size, 18px);
+                filter: blur(5px);
+                opacity: 0.20;
+                animation: tokenDrift var(--dur, 22s) ease-in-out var(--delay, 0s) infinite;
+                will-change: transform, opacity;
+              }
+            `}</style>
+
+            {Array.from({ length: 10 }).map((_, i) => {
+              const seed = i + 7;
+              const rand01 = (n: number) => {
+                const x = Math.sin(n) * 10000;
+                return x - Math.floor(x);
+              };
+              const left = rand01(seed * 1.11) * 100;
+              const top = rand01(seed * 2.07) * 100;
+              const size = 14 + rand01(seed * 3.17) * 16;
+              const dx = (rand01(seed * 4.01) - 0.5) * 90;
+              const dy = (rand01(seed * 5.03) - 0.5) * 90;
+              const dur = 18 + rand01(seed * 6.07) * 16;
+              const delay = rand01(seed * 7.11) * 6;
+
+              return (
+                <div
+                  key={`drift-${i}`}
+                  className="token-drift"
+                  style={
+                    {
+                      left: `${left}%`,
+                      top: `${top}%`,
+                      ["--size" as any]: `${size}px`,
+                      ["--dx" as any]: `${dx}px`,
+                      ["--dy" as any]: `${dy}px`,
+                      ["--dur" as any]: `${dur}s`,
+                      ["--delay" as any]: `${delay}s`,
+                    } as any
+                  }
+                  aria-hidden="true"
                 >
-                  <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#00F0FF] to-[#0077FF] flex items-center justify-center shadow-[0_20px_50px_rgba(0,240,255,0.3)] shadow-[#00F0FF]/30">
-                    <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div className="flex flex-col items-center p-6 rounded-2xl bg-[#0A0E17]/90 backdrop-blur-xl border border-white/10 shadow-2xl">
-                    <span className="text-white/50 text-xs uppercase tracking-widest font-bold mb-2">Нагорода отримана</span>
-                    <span className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00F0FF] to-white">+1,250 MOVE</span>
-                  </div>
-                </motion.div>
+                  <svg viewBox="0 0 24 24" className="w-full h-full">
+                    <circle cx="12" cy="12" r="10" fill="rgba(0,240,255,0.06)" stroke="rgba(0,240,255,0.35)" strokeWidth="2" />
+                    <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="rgba(0,240,255,0.8)" />
+                  </svg>
+                </div>
+              );
+            })}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 max-w-[1600px] mx-auto"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-start lg:items-stretch">
+              {/* LEFT: Text */}
+              <div className="max-w-2xl flex flex-col">
+                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
+                  <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
+                  <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00F0FF] uppercase">
+                    КРОК 3: ПЕРЕМАГАЙ
+                  </span>
+                </div>
+
+                <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight">
+                  РОЗДІЛИ ПРИЗОВИЙ ПУЛ
+                </h3>
+                <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-xl leading-relaxed">
+                  Топ-10 менеджерів туру розділяють 80% призового фонду. Ваші знання АПЛ конвертуються в реальні MOVE токени.
+                </p>
               </div>
-            }
-          />
+
+              {/* RIGHT: Leaderboard */}
+              <div className="w-full lg:self-stretch">
+                <RewardsLeaderboardTable />
+              </div>
+            </div>
+          </motion.div>
+        </section>
           
         </div>
       </section>
