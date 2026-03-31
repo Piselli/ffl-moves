@@ -6,7 +6,7 @@ import { FormationGrid } from "@/components/FormationGrid";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
-import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam } from "@/lib/aptos";
+import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -25,6 +25,8 @@ export default function GameweekPage() {
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
+  const [gameweekStats, setGameweekStats] = useState<Record<string, any>>({});
+  const [teamResult, setTeamResult] = useState<any>(null);
 
   // Fetch live FPL players
   useEffect(() => {
@@ -61,6 +63,17 @@ export default function GameweekPage() {
               try {
                 setRegisteredTeam(JSON.parse(saved));
               } catch {}
+            }
+          }
+
+          // Fetch stats if resolved
+          if (gwData?.status === "resolved") {
+            const stats = await getGameweekStats(configData.currentGameweek);
+            setGameweekStats(stats);
+            
+            if (account?.address) {
+              const res = await getTeamResult(account.address.toString(), configData.currentGameweek);
+              setTeamResult(res);
             }
           }
         }
@@ -127,6 +140,57 @@ export default function GameweekPage() {
     }
 
     return null;
+  };
+
+  const calculatePlayerPoints = (player: Player) => {
+    // Try both number and string keys
+    const stats = gameweekStats[player.id] || gameweekStats[player.id.toString()];
+    if (!stats) return 0;
+
+    let points = 0;
+    
+    // Safely handle both snake_case (from Move) and potentially camelCase
+    const mins = Number(stats.minutes_played ?? stats.minutesPlayed ?? 0);
+    const goals = Number(stats.goals ?? 0);
+    const assists = Number(stats.assists ?? 0);
+    const cleanSheet = stats.clean_sheet ?? stats.cleanSheet ?? false;
+    const saves = Number(stats.saves ?? 0);
+    const penaltiesSaved = Number(stats.penalties_saved ?? stats.penaltiesSaved ?? 0);
+    const penaltiesMissed = Number(stats.penalties_missed ?? stats.penaltiesMissed ?? 0);
+    const ownGoals = Number(stats.own_goals ?? stats.ownGoals ?? 0);
+    const yellowCards = Number(stats.yellow_cards ?? stats.yellowCards ?? 0);
+    const redCards = Number(stats.red_cards ?? stats.redCards ?? 0);
+
+    if (mins > 0) {
+      points += 1;
+      if (mins >= 60) points += 1;
+    }
+
+    if (goals > 0) {
+      const posId = player.positionId;
+      const goalPoints = posId === 3 ? 4 : posId === 2 ? 5 : 6;
+      points += goals * goalPoints;
+    }
+
+    points += assists * 3;
+
+    if (cleanSheet && mins >= 60 && (player.positionId === 0 || player.positionId === 1)) {
+      points += 4;
+    }
+
+    if (player.positionId === 0) {
+      points += Math.floor(saves / 3);
+    }
+
+    points += penaltiesSaved * 5;
+
+    let deductions = 0;
+    deductions += penaltiesMissed * 2;
+    deductions += ownGoals * 2;
+    deductions += yellowCards;
+    deductions += redCards * 3;
+
+    return Math.max(0, points - deductions);
   };
 
   const handlePlayerSelect = (player: Player) => {
@@ -280,15 +344,30 @@ export default function GameweekPage() {
               if (!posPlayers.length) return null;
               return (
                 <div key={pos}>
-                  {posPlayers.map((player) => (
-                    <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
-                        {player.position}
-                      </span>
-                      <span className="text-white font-medium flex-1">{player.webName || player.name}</span>
-                      <span className="text-white/40 text-sm">{player.team}</span>
-                    </div>
-                  ))}
+                  {posPlayers.map((player) => {
+                    const points = calculatePlayerPoints(player);
+                    return (
+                      <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
+                          {player.position}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{player.webName || player.name}</p>
+                          <p className="text-white/40 text-[10px]">{player.team}</p>
+                        </div>
+                        {currentGameweek?.status === "resolved" && (
+                          <div className="text-right">
+                            <span className={cn(
+                              "text-sm font-bold",
+                              points > 0 ? "text-emerald-400" : points < 0 ? "text-rose-400" : "text-white/40"
+                            )}>
+                              {points > 0 ? `+${points}` : points} pts
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -300,15 +379,27 @@ export default function GameweekPage() {
           <div className="glass-card rounded-2xl p-6">
             <h2 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">Запасні</h2>
             <div className="space-y-1">
-              {benchToShow.map((player) => (
-                <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors opacity-70">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
-                    {player.position}
-                  </span>
-                  <span className="text-white font-medium flex-1">{player.webName || player.name}</span>
-                  <span className="text-white/40 text-sm">{player.team}</span>
-                </div>
-              ))}
+              {benchToShow.map((player) => {
+                const points = calculatePlayerPoints(player);
+                return (
+                  <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors opacity-70">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
+                      {player.position}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{player.webName || player.name}</p>
+                      <p className="text-white/40 text-[10px]">{player.team}</p>
+                    </div>
+                    {currentGameweek?.status === "resolved" && (
+                      <div className="text-right">
+                        <span className="text-xs text-white/40 font-medium">
+                          ({points} pts)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

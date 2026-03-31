@@ -35,8 +35,12 @@ export default function AdminPage() {
       setConfig(configData);
 
       if (configData?.currentGameweek) {
-        const gwData = await getGameweek(configData.currentGameweek);
-        setCurrentGameweek(gwData);
+        try {
+          const gwData = await getGameweek(configData.currentGameweek);
+          setCurrentGameweek(gwData);
+        } catch (e) {
+          console.log("No active gameweek found on chain yet (likely initialized to 0).");
+        }
       }
       setIsLoading(false);
     }
@@ -66,7 +70,6 @@ export default function AdminPage() {
         remaining: status.requestsRemaining,
       });
       setApiWarning(status.warning || "");
-      setFetchError("");
     } else {
       setFetchError(status.error || "Invalid API key");
       setApiWarning("");
@@ -152,6 +155,32 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
+      alert(`Failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReopenGameweek = async () => {
+    if (!connected || !currentGameweek) return;
+    
+    if (!confirm(`Are you sure you want to RE-OPEN Gameweek ${currentGameweek.id}? This will clear all submitted stats and calculated results for this gameweek locally and on-chain!`)) return;
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("reopen_gameweek"),
+          typeArguments: [],
+          functionArguments: [currentGameweek.id.toString()],
+        },
+      });
+      alert(`Gameweek ${currentGameweek.id} is now OPEN again!`);
+      // Refresh
+      const gwData = await getGameweek(currentGameweek.id);
+      setCurrentGameweek(gwData);
+    } catch (error: any) {
+      console.error("Failed to reopen gameweek:", error);
       alert(`Failed: ${error.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
@@ -264,8 +293,8 @@ export default function AdminPage() {
             resultsGameweekId,
             [], // title_triggered_owners
             [], // guild_triggered_owners
-            ["1", "2", "3"], // prize_ranks
-            ["50", "30", "20"], // prize_percentages
+            ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], // prize_ranks
+            ["30", "20", "15", "8", "7", "6", "5", "4", "3", "2"], // prize_percentages
           ],
         },
       });
@@ -454,26 +483,39 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Close Gameweek (Admin) */}
-        {isAdmin && currentGameweek?.status === "open" && (
+        {/* Close/Reopen Gameweek (Admin) */}
+        {isAdmin && currentGameweek && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  {currentGameweek.status === "open" ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  )}
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">Close Registration</h2>
+              <h2 className="text-xl font-bold text-white">
+                {currentGameweek.status === "open" ? "Close Registration" : "Re-open Gameweek"}
+              </h2>
             </div>
             <p className="text-muted-foreground mb-4">
-              Close GW {currentGameweek.id} to stop new team registrations and prepare for stats submission.
+              {currentGameweek.status === "open" 
+                ? `Close GW ${currentGameweek.id} to stop new team registrations and prepare for stats submission.`
+                : `Reset GW ${currentGameweek.id} back to OPEN status. WARNING: This will clear calculated results and submitted stats.`}
             </p>
             <button
-              onClick={handleCloseGameweek}
+              onClick={currentGameweek.status === "open" ? handleCloseGameweek : handleReopenGameweek}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25 disabled:opacity-50"
+              className={cn(
+                "px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
+                currentGameweek.status === "open" 
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400"
+                  : "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500"
+              )}
             >
-              {isSubmitting ? "..." : "Close Gameweek"}
+              {isSubmitting ? "..." : currentGameweek.status === "open" ? "Close Gameweek" : "Re-open Gameweek"}
             </button>
           </div>
         )}

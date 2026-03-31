@@ -5,7 +5,7 @@ export const NETWORK = Network.CUSTOM;
 export const MOVEMENT_TESTNET_URL = "https://testnet.movementnetwork.xyz/v1";
 
 // Contract address
-export const MODULE_ADDRESS = "0x7e4bb3190ea304798c1825e8f0d8d49e85429cba5511cdd51ba3d23921228b41";
+export const MODULE_ADDRESS = "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb"; // The user's exclusive new M1 contract
 
 // Module name
 export const MODULE_NAME = "fantasy_epl";

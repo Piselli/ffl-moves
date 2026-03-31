@@ -167,6 +167,7 @@ export async function getTeamResult(owner: string, gameweekId: number) {
     const ratingBonus = Number(result[1]);
     const ratingBonusNegative = result[2] as boolean;
     return {
+      owner,
       basePoints: Number(result[0]),
       ratingBonus: ratingBonusNegative ? -ratingBonus : ratingBonus,
       titleTriggered: result[3] as boolean,
@@ -180,5 +181,61 @@ export async function getTeamResult(owner: string, gameweekId: number) {
     };
   } catch (e) {
     return null;
+  }
+}
+
+export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
+  try {
+    const result = await aptos.view({
+      payload: {
+        function: moduleFunction("get_gameweek_teams"),
+        typeArguments: [],
+        functionArguments: [gameweekId.toString()],
+      },
+    });
+    return (result[0] as string[]).map(addr => addr.toString());
+  } catch (e) {
+    console.error("Failed to get gameweek teams:", e);
+    return [];
+  }
+}
+
+export async function getGameweekStats(gameweekId: number) {
+  try {
+    const result = await aptos.view({
+      payload: {
+        function: moduleFunction("get_gameweek_stats"),
+        typeArguments: [],
+        functionArguments: [gameweekId.toString()],
+      },
+    });
+    
+    const stats: Record<string, any> = {};
+    
+    if (result[0]) {
+      // Aptos SimpleMap can be { data: [ { key, value }, ... ] } 
+      // OR a direct array of { key, value }
+      // OR even a direct object in some environments
+      const rawData = result[0] as any;
+      const entries = rawData.data || (Array.isArray(rawData) ? rawData : null);
+
+      if (entries && Array.isArray(entries)) {
+        entries.forEach((item: any) => {
+          if (item && item.key !== undefined && item.value !== undefined) {
+            stats[item.key.toString()] = item.value;
+          }
+        });
+      } else if (typeof rawData === "object") {
+        // Fallback for direct object mapping
+        Object.entries(rawData).forEach(([key, value]) => {
+          stats[key] = value;
+        });
+      }
+    }
+    
+    return stats;
+  } catch (e) {
+    console.error("Error fetching gameweek stats:", e);
+    return {};
   }
 }
