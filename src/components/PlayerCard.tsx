@@ -6,9 +6,7 @@ import { cn } from "@/lib/utils";
 interface PlayerCardProps {
   player: Player;
   selected?: boolean;
-  isCaptain?: boolean;
   onClick?: () => void;
-  onCaptainClick?: () => void;
   compact?: boolean;
 }
 
@@ -43,9 +41,7 @@ function StatusDot({ status, chance }: { status?: string; chance?: number | null
 export function PlayerCard({
   player,
   selected = false,
-  isCaptain = false,
   onClick,
-  onCaptainClick,
   compact = false,
 }: PlayerCardProps) {
   const photoUrl = player.photo || player.imageUrl;
@@ -86,11 +82,6 @@ export function PlayerCard({
         <span className="text-xs font-medium text-center truncate w-full text-foreground">
           {player.webName || player.name.split(" ").pop()}
         </span>
-        {isCaptain && (
-          <span className="text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
-            C
-          </span>
-        )}
       </div>
     );
   }
@@ -149,22 +140,6 @@ export function PlayerCard({
         </div>
       </div>
 
-      {selected && onCaptainClick && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCaptainClick();
-          }}
-          className={cn(
-            "mt-3 w-full py-2 rounded-lg text-sm font-medium transition-all",
-            isCaptain
-              ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
-              : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-          )}
-        >
-          {isCaptain ? "Captain ©" : "Make Captain"}
-        </button>
-      )}
     </div>
   );
 }

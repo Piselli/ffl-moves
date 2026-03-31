@@ -16,13 +16,13 @@ export default function GameweekPage() {
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [bench, setBench] = useState<(Player | null)[]>(Array(3).fill(null));
-  const [captain, setCaptain] = useState<Player | null>(null);
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [config, setConfig] = useState<any>(null);
   const [currentGameweek, setCurrentGameweek] = useState<any>(null);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
 
@@ -52,6 +52,17 @@ export default function GameweekPage() {
         if (account?.address) {
           const registered = await hasRegisteredTeam(account.address.toString(), configData.currentGameweek);
           setAlreadyRegistered(registered);
+
+          // Try to restore saved team from localStorage
+          if (registered) {
+            const key = `ffl_team_gw${configData.currentGameweek}_${account.address.toString()}`;
+            const saved = localStorage.getItem(key);
+            if (saved) {
+              try {
+                setRegisteredTeam(JSON.parse(saved));
+              } catch {}
+            }
+          }
         }
       }
     }
@@ -126,7 +137,6 @@ export default function GameweekPage() {
         const newStarters = [...starters];
         newStarters[starterIdx] = null;
         setStarters(newStarters);
-        if (captain?.id === player.id) setCaptain(null);
         return;
       }
 
@@ -155,9 +165,6 @@ export default function GameweekPage() {
     }
   };
 
-  const handleCaptainSelect = (player: Player) => {
-    setCaptain(captain?.id === player.id ? null : player);
-  };
 
   const handleSlotClick = (index: number, isBench: boolean) => {
     if (isBench && bench[index]) {
@@ -165,7 +172,6 @@ export default function GameweekPage() {
       newBench[index] = null;
       setBench(newBench);
     } else if (!isBench && starters[index]) {
-      if (captain?.id === starters[index]?.id) setCaptain(null);
       const newStarters = [...starters];
       newStarters[index] = null;
       setStarters(newStarters);
@@ -175,9 +181,8 @@ export default function GameweekPage() {
   const isTeamComplete = useMemo(() => {
     const hasAllStarters = starters.every((p) => p !== null);
     const hasAllBench = bench.every((p) => p !== null);
-    const hasCaptain = captain !== null;
-    return hasAllStarters && hasAllBench && hasCaptain;
-  }, [starters, bench, captain]);
+    return hasAllStarters && hasAllBench;
+  }, [starters, bench]);
 
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
@@ -187,7 +192,8 @@ export default function GameweekPage() {
       const playerIds = [...starters, ...bench].map((p) => p!.id.toString());
       const playerPositions = [...starters, ...bench].map((p) => p!.positionId.toString());
       const playerClubs = [...starters, ...bench].map((p) => p!.teamId.toString());
-      const captainId = captain!.id.toString();
+      // Captain is required by the contract — auto-assign first starter (hidden from UI for now)
+      const captainId = starters[0]!.id.toString();
 
       await signAndSubmitTransaction({
         data: {
@@ -203,8 +209,14 @@ export default function GameweekPage() {
         },
       });
 
+      // Save the team snapshot for display (in memory + localStorage)
+      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };
+      setRegisteredTeam(teamSnapshot);
+      if (account?.address && currentGameweek?.id) {
+        const key = `ffl_team_gw${currentGameweek.id}_${account.address.toString()}`;
+        localStorage.setItem(key, JSON.stringify(teamSnapshot));
+      }
       setAlreadyRegistered(true);
-      alert("Team registered successfully!");
     } catch (error: any) {
       console.error("Failed to register team:", error);
       alert(`Failed to register team: ${error.message || "Unknown error"}`);
@@ -230,20 +242,76 @@ export default function GameweekPage() {
   }
 
   if (alreadyRegistered) {
+    const positionOrder = ["GK", "DEF", "MID", "FWD"];
+    const positionColors: Record<string, string> = {
+      GK: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      DEF: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      MID: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      FWD: "bg-rose-500/20 text-rose-400 border-rose-500/30",
+    };
+    const teamToShow = registeredTeam?.starters || [];
+    const benchToShow = registeredTeam?.bench || [];
+
     return (
-      <div className="max-w-7xl mx-auto px-4 pt-24 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12 glow-green">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-12">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">Gameweek {currentGameweek?.id}</span>
+            </div>
+            <h1 className="text-3xl font-bold text-white">Твій зареєстрований склад</h1>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-4">Already Registered</h1>
-          <p className="text-muted-foreground mb-4">
-            You have already registered a team for Gameweek {currentGameweek?.id}.
-          </p>
-          <p className="text-emerald-400 font-medium">Check the leaderboard for results!</p>
+          <a
+            href="/leaderboard"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-sm hover:bg-emerald-500/30 transition-colors"
+          >
+            Лідерборд →
+          </a>
         </div>
+
+        {/* Starters */}
+        <div className="glass-card rounded-2xl p-6 mb-4">
+          <h2 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">Основа</h2>
+          <div className="space-y-1">
+            {positionOrder.map((pos) => {
+              const posPlayers = teamToShow.filter((p) => p.position === pos);
+              if (!posPlayers.length) return null;
+              return (
+                <div key={pos}>
+                  {posPlayers.map((player) => (
+                    <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
+                        {player.position}
+                      </span>
+                      <span className="text-white font-medium flex-1">{player.webName || player.name}</span>
+                      <span className="text-white/40 text-sm">{player.team}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bench */}
+        {benchToShow.length > 0 && (
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">Запасні</h2>
+            <div className="space-y-1">
+              {benchToShow.map((player) => (
+                <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors opacity-70">
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
+                    {player.position}
+                  </span>
+                  <span className="text-white font-medium flex-1">{player.webName || player.name}</span>
+                  <span className="text-white/40 text-sm">{player.team}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -292,9 +360,7 @@ export default function GameweekPage() {
           <FormationGrid
             starters={starters}
             bench={bench}
-            captain={captain}
             onPlayerClick={handleSlotClick}
-            onCaptainSelect={handleCaptainSelect}
           />
 
           <div className="mt-6 glass-card rounded-xl p-4 flex items-center justify-between">
@@ -322,17 +388,6 @@ export default function GameweekPage() {
                   bench.filter(Boolean).length === 3 ? "bg-emerald-400" : "bg-muted-foreground"
                 )} />
                 {bench.filter(Boolean).length}/3 Subs
-              </span>
-              <span className={cn(
-                "flex items-center gap-2 px-3 py-1 rounded-full",
-                captain
-                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                  : "bg-secondary text-muted-foreground"
-              )}>
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                </svg>
-                {captain ? "Captain Set" : "Select Captain"}
               </span>
             </div>
           </div>

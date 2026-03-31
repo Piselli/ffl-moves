@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [newGameweekId, setNewGameweekId] = useState("");
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
+  const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
 
   // API states
   const [apiKey, setApiKey] = useState("");
@@ -151,6 +152,30 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
+      alert(`Failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdatePrizePool = async () => {
+    if (!connected || !newPrizePoolPct) return;
+    
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("set_prize_pool_percent"),
+          typeArguments: [],
+          functionArguments: [newPrizePoolPct.toString()],
+        },
+      });
+      alert("Prize pool percentage updated!");
+      const configData = await getConfig();
+      setConfig(configData);
+      setNewPrizePoolPct("");
+    } catch (error: any) {
+      console.error("Failed to update percentage:", error);
       alert(`Failed: ${error.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
@@ -330,20 +355,19 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Current Status */}
       <div className="glass-card rounded-2xl p-6 mb-8">
         <h2 className="text-xl font-bold text-white mb-4">Current Status</h2>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="stat-card px-4 py-3 rounded-xl">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
             <p className="text-muted-foreground text-sm mb-1">Current Gameweek</p>
             <p className="text-3xl font-bold text-white">
               {currentGameweek?.id || "None"}
             </p>
           </div>
-          <div className="stat-card px-4 py-3 rounded-xl">
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
             <p className="text-muted-foreground text-sm mb-1">Status</p>
             <div className={cn(
-              "inline-flex items-center gap-2 text-2xl font-bold",
+              "inline-flex items-center gap-2 text-2xl font-bold items-center mt-1",
               currentGameweek?.status === "open" && "text-emerald-400",
               currentGameweek?.status === "closed" && "text-amber-400",
               currentGameweek?.status === "resolved" && "text-blue-400"
@@ -356,6 +380,12 @@ export default function AdminPage() {
               )} />
               {currentGameweek?.status?.toUpperCase() || "N/A"}
             </div>
+          </div>
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-2">
+            <p className="text-muted-foreground text-sm mb-1">Prize Pool Percentage</p>
+            <p className="text-3xl font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+              {config?.prizePoolPercent || "0"}%
+            </p>
           </div>
         </div>
       </div>
@@ -375,7 +405,7 @@ export default function AdminPage() {
             <div className="flex gap-4">
               <input
                 type="number"
-                placeholder="Gameweek ID (e.g., 1)"
+                placeholder="Gameweek ID (e.g., 2)"
                 value={newGameweekId}
                 onChange={(e) => setNewGameweekId(e.target.value)}
                 className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary border border-border"
@@ -386,6 +416,39 @@ export default function AdminPage() {
                 className="btn-primary px-6 py-3 rounded-xl font-medium disabled:opacity-50"
               >
                 {isSubmitting ? "..." : "Create"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Adjust Prize Pool (Admin) */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Adjust Prize Pool (%)</h2>
+                <p className="text-sm text-muted-foreground mt-1">Change what percentage of entry fees goes to the prize pool vs platform.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 mt-4">
+              <input
+                type="number"
+                placeholder="New Percentage (e.g., 80)"
+                value={newPrizePoolPct}
+                onChange={(e) => setNewPrizePoolPct(e.target.value)}
+                className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-border"
+              />
+              <button
+                onClick={handleUpdatePrizePool}
+                disabled={isSubmitting || !newPrizePoolPct}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-400 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50"
+              >
+                {isSubmitting ? "..." : "Update %"}
               </button>
             </div>
           </div>

@@ -7,17 +7,13 @@ import { cn } from "@/lib/utils";
 interface FormationGridProps {
   starters: (Player | null)[];
   bench: (Player | null)[];
-  captain: Player | null;
   onPlayerClick?: (index: number, isBench: boolean) => void;
-  onCaptainSelect?: (player: Player) => void;
 }
 
 export function FormationGrid({
   starters,
   bench,
-  captain,
   onPlayerClick,
-  onCaptainSelect,
 }: FormationGridProps) {
   // Formation: 4-3-3
   // Index 0: GK
@@ -73,13 +69,7 @@ export function FormationGrid({
         <PlayerCard
           player={player}
           selected={true}
-          isCaptain={captain?.id === player.id}
           compact
-          onCaptainClick={
-            !isBench && onCaptainSelect
-              ? () => onCaptainSelect(player)
-              : undefined
-          }
         />
       </div>
     );
