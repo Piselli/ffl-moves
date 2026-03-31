@@ -1,132 +1,225 @@
 "use client";
 
-type RewardsRow = {
-  rank: number;
-  name: string;
-  sharePct: number;
-  badge?: "crown" | "silver" | "bronze";
-};
+import { motion } from "framer-motion";
 
-const ROWS: RewardsRow[] = [
-  { rank: 1, name: "FPL_KING", sharePct: 40, badge: "crown" },
-  { rank: 2, name: "GoalMachine", sharePct: 20, badge: "silver" },
-  { rank: 3, name: "MoveMaster", sharePct: 10, badge: "bronze" },
-  { rank: 4, name: "TacticalAce", sharePct: 8 },
-  { rank: 5, name: "CleanSheetHero", sharePct: 7 },
-  { rank: 6, name: "AssistAgent", sharePct: 6 },
-  { rank: 7, name: "MidfieldMind", sharePct: 5 },
-  { rank: 8, name: "DefenderDynamo", sharePct: 5 },
-  { rank: 9, name: "BenchBoss", sharePct: 4 },
-  { rank: 10, name: "SubChamp", sharePct: 5 },
+/* ── Prize Distribution (percentages) ──────────────────────────────────────── */
+const PRIZE_TIERS = [
+  { rank: 1, pct: 30 },
+  { rank: 2, pct: 20 },
+  { rank: 3, pct: 15 },
+  { rank: 4, pct: 8 },
+  { rank: 5, pct: 7 },
+  { rank: 6, pct: 6 },
+  { rank: 7, pct: 5 },
+  { rank: 8, pct: 4 },
+  { rank: 9, pct: 3 },
+  { rank: 10, pct: 2 },
 ];
 
-function GoldCrownIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        d="M3 8l4.2 4.2L12 6l4.8 6.2L21 8v11.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 19.5V8z"
-        fill="#FBBF24"
-        opacity="0.95"
-      />
-      <path
-        d="M3 8l4.2 4.2L12 6l4.8 6.2L21 8"
-        fill="none"
-        stroke="#FDE68A"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-        opacity="0.9"
-      />
-      <circle cx="12" cy="10" r="1.35" fill="#FDE68A" opacity="0.95" />
-    </svg>
-  );
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
+function formatMOVE(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
+  return n.toLocaleString("en-US");
 }
 
-function MedalIcon({ tone, className }: { tone: "silver" | "bronze"; className?: string }) {
-  const fill = tone === "silver" ? "#C0C0C0" : "#CD7F32";
-  const stroke = tone === "silver" ? "#E5E7EB" : "#FDE3C7";
+/* ── Row styles ────────────────────────────────────────────────────────────── */
+const VIP_STYLES = {
+  1: {
+    bg: "bg-gradient-to-r from-yellow-400/20 via-yellow-400/5 to-transparent",
+    border: "border border-yellow-400/30",
+    textAmount: "text-yellow-400 drop-shadow-md",
+    textLabel: "text-yellow-400/70",
+    glow: "shadow-[inset_4px_0_0_#FACC15]",
+    icon: "🥇",
+    label: "1-ШЕ МІСЦЕ",
+  },
+  2: {
+    bg: "bg-gradient-to-r from-gray-300/15 via-gray-300/5 to-transparent",
+    border: "border border-gray-300/20",
+    textAmount: "text-gray-200",
+    textLabel: "text-gray-300/60",
+    glow: "shadow-[inset_4px_0_0_#D1D5DB]",
+    icon: "🥈",
+    label: "2-ГЕ МІСЦЕ",
+  },
+  3: {
+    bg: "bg-gradient-to-r from-amber-600/20 via-amber-600/5 to-transparent",
+    border: "border border-amber-600/20",
+    textAmount: "text-amber-500",
+    textLabel: "text-amber-500/60",
+    glow: "shadow-[inset_4px_0_0_#D97706]",
+    icon: "🥉",
+    label: "3-ТЄ МІСЦЕ",
+  },
+} as const;
+
+/* ── Main Component ────────────────────────────────────────────────────────── */
+export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | null }) {
+  const pool = (totalPool && totalPool > 0) ? totalPool : 10000;
+
+  const allTiers = PRIZE_TIERS.map(tier => {
+    let type = "standard";
+    let icon = null;
+    let colorClass = "text-white/80";
+    
+    if (tier.rank === 1) {
+      type = "gold";
+      icon = "🥇";
+      colorClass = "text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)]";
+    } else if (tier.rank === 2) {
+      type = "silver";
+      icon = "🥈";
+      colorClass = "text-[#E2E8F0] drop-shadow-[0_0_8px_rgba(226,232,240,0.4)]";
+    } else if (tier.rank === 3) {
+      type = "bronze";
+      icon = "🥉";
+      colorClass = "text-[#F59E0B] drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+    }
+
+    return {
+      ...tier,
+      type,
+      icon,
+      colorClass,
+      moveAmount: Math.round((pool * tier.pct) / 100)
+    };
+  });
+
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path d="M7 2h10l-2.4 5H9.4L7 2z" fill={stroke} opacity="0.8" />
-      <circle cx="12" cy="14" r="6.5" fill={fill} opacity="0.95" />
-      <circle cx="12" cy="14" r="4.2" fill="rgba(0,0,0,0.18)" />
-      <path d="M10.6 14.1l.9.9 1.9-2.3" fill="none" stroke={stroke} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+    <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 lg:gap-16 pb-2 items-center">
+      
+      {/* ══════════ LEFT COLUMN: TITLES & HORIZONTAL CHEST ══════════ */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left relative"
+      >
+        {/* Ambient Glows */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#00F0FF]/15 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-function RowRankCell({ row }: { row: RewardsRow }) {
-  if (row.rank === 1) return <GoldCrownIcon className="w-5 h-5" />;
-  if (row.rank === 2) return <MedalIcon tone="silver" className="w-5 h-5" />;
-  if (row.rank === 3) return <MedalIcon tone="bronze" className="w-5 h-5" />;
-  return <span className="text-white/60 text-xs font-black tabular-nums">{row.rank}</span>;
-}
-
-export function RewardsLeaderboardTable() {
-  return (
-    <div className="relative h-full">
-      {/* Ambient cyan glow behind the card */}
-      <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle,rgba(0,243,255,0.13)_0%,transparent_60%)] blur-[70px] pointer-events-none" />
-
-      <div className="h-full rounded-[12px] bg-[#0a0a0a]/80 backdrop-blur-[15px] border border-white/[0.05] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-        {/* Title */}
-        <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-white/[0.05] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GoldCrownIcon className="w-4 h-4 drop-shadow-[0_0_10px_rgba(251,191,36,0.25)]" />
-            <span className="text-white font-black tracking-tight">ТОП-10 ПЕРЕМОЖЦІВ</span>
+        {/* Top Header Block */}
+        <div className="w-full mt-2 lg:mt-0">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3">
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF]" />
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#00F0FF] uppercase">
+              КРОК 3: ПЕРЕМАГАЙ
+            </span>
           </div>
+
+          <h3 className="text-4xl sm:text-5xl lg:text-[60px] md:leading-[1.1] font-display font-black text-white tracking-tight drop-shadow-md mb-4">
+            РОЗДІЛИ <br className="hidden lg:block" /> ПРИЗОВИЙ ПУЛ
+          </h3>
+
+          <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-8">
+            Топ-10 найкращих менеджерів туру розділять цей пул. Знання АПЛ конвертуються в реальні активи безпосередньо на твій гаманець.
+          </p>
         </div>
 
-        {/* Header */}
-        <div className="px-4 sm:px-5 py-2.5 grid grid-cols-[54px_1fr_150px] items-center text-[10px] uppercase tracking-[0.22em] font-bold text-white/50 border-b border-white/[0.05]">
-          <div>МІСЦЕ</div>
-          <div>МЕНЕДЖЕР</div>
-          <div className="text-right">ЧАСТКА ПУЛУ</div>
+        {/* Visual Chest Container (Horizontal Rectangle, aligned exactly under the text) */}
+        <div className="relative z-10 w-full max-w-[340px] md:max-w-[420px] h-[200px] md:h-[240px] flex items-center justify-center">
+          <motion.div 
+            animate={{ y: [-6, 6, -6] }} 
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            className="relative w-full h-full"
+          >
+            {/* Ambient Background Glow for the Chest */}
+            <div className="absolute inset-0 bg-[#00F0FF]/25 blur-[80px] rounded-full scale-110 -z-10" />
+            
+            <div className="absolute inset-0 flex flex-col items-center justify-center border border-white/5 bg-gradient-to-b from-white/[0.05] to-transparent rounded-[32px] shadow-2xl backdrop-blur-sm group hover:border-[#00F0FF]/30 transition-colors duration-500">
+              <span className="text-[80px] mb-2 group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl">💎</span>
+              <span className="text-[10px] md:text-xs uppercase font-bold text-[#00F0FF]/50 tracking-[0.3em] text-center px-4 group-hover:text-white transition-colors">
+                [ 3D Скриня (Горизонтальна) ]
+              </span>
+            </div>
+          </motion.div>
         </div>
 
-        {/* Rows */}
-        <div className="px-2 sm:px-3">
-          {ROWS.map((row) => {
-            const isTop1 = row.rank === 1;
-            const pct = Math.max(0, Math.min(100, row.sharePct));
+      </motion.div>
 
-            return (
-              <div
-                key={row.rank}
-                className={[
-                  "grid grid-cols-[54px_1fr_150px] items-center",
-                  "px-2 sm:px-2.5 py-2.5",
-                  "border-b border-white/[0.05] last:border-b-0",
-                  isTop1 ? "bg-gradient-to-r from-[#00F3FF]/[0.16] to-transparent shadow-[inset_0_0_0_1px_rgba(0,243,255,0.10)]" : "bg-transparent",
-                ].join(" ")}
+
+      {/* ══════════ RIGHT COLUMN: THE PURE TABLE ══════════ */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="w-full lg:w-[480px] flex-shrink-0"
+      >
+        <div className="w-full bg-[#111214]/60 backdrop-blur-xl rounded-[2rem] border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-2 sm:p-2 flex flex-col overflow-hidden relative">
+          
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
+
+          {/* New Compact Header with only Pool Sum */}
+          <div className="relative flex flex-col items-center justify-center px-4 py-2 border-b border-white/[0.04]">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl sm:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 tracking-tighter drop-shadow-md">
+                {pool.toLocaleString("en-US")}
+              </span>
+              <span className="text-sm md:text-base font-bold text-[#00F0FF] uppercase tracking-widest drop-shadow-sm">
+                Move
+              </span>
+            </div>
+          </div>
+
+          {/* Tiny complementary explanation header */}
+          <div className="relative flex items-center justify-between px-6 sm:px-8 pb-3">
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+              Позиція
+            </span>
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+              Розподіл
+            </span>
+          </div>
+
+          {/* Table Body - Aggressively compressed vertical paddings */}
+          <div className="relative flex flex-col divide-y divide-white/[0.02] px-2 md:px-3 pb-1">
+            {allTiers.map((tier) => (
+              <div 
+                key={tier.rank} 
+                className="group flex items-center justify-between px-4 sm:px-5 py-1.5 rounded-xl hover:bg-white/[0.02] transition-colors relative"
               >
-                {/* Rank */}
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white/[0.02] border border-white/10 flex items-center justify-center">
-                    <RowRankCell row={row} />
+                
+                {/* Left Side: Rank & Place */}
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="w-6 flex justify-center text-lg sm:text-xl drop-shadow-sm">
+                    {tier.icon ? (
+                      <span className="filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">{tier.icon}</span>
+                    ) : (
+                      <span className="text-xs font-black text-white/20 tabular-nums">
+                        {tier.rank}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-[#A0AEC0] text-xs font-medium ${tier.icon ? 'text-white/80' : 'text-white/40'}`}>
+                    {tier.rank}-те місце
+                  </span>
+                </div>
+
+                {/* Right Side: PCT & MOVE Output */}
+                <div className="flex items-center gap-3 sm:gap-5">
+                  <span className="text-[9px] text-white/20 font-bold tabular-nums">
+                    {tier.pct}%
+                  </span>
+                  
+                  <div className="flex items-baseline gap-1.5 w-[75px] sm:w-[90px] justify-end">
+                    <span className={`text-base sm:text-lg font-display font-black tabular-nums tracking-tight ${tier.colorClass}`}>
+                      {formatMOVE(tier.moveAmount)}
+                    </span>
+                    <span className={`text-[8px] font-bold uppercase tracking-widest ${tier.icon ? tier.colorClass : 'text-white/20'}`}>
+                      MOVE
+                    </span>
                   </div>
                 </div>
 
-                {/* Manager */}
-                <div className="min-w-0">
-                  <div className="text-white text-[13px] sm:text-[14px] font-medium truncate">{row.name}</div>
-                </div>
-
-                {/* Share bar + pct */}
-                <div className="flex items-center justify-end gap-3">
-                  <div className="w-[110px] h-2 rounded-full bg-[#00F3FF]/20 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[#00F3FF] shadow-[0_0_16px_rgba(0,243,255,0.45)]"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="text-white font-black tabular-nums text-[12px] w-[40px] text-right">{row.sharePct}%</div>
-                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
         </div>
-      </div>
+      </motion.div>
+
     </div>
   );
 }
-
