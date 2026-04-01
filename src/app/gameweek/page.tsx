@@ -130,7 +130,7 @@ export default function GameweekPage() {
   }, [starters]);
 
   const uniqueTeams = useMemo(() => {
-    const teams = [...new Set(players.map((p) => p.team))].filter(Boolean);
+    const teams = Array.from(new Set(players.map((p) => p.team))).filter(Boolean);
     return teams.sort((a, b) => a.localeCompare(b));
   }, [players]);
 
