@@ -853,7 +853,7 @@ export default function Home() {
           />
 
         {/* STEP 2: Cinematic Full-Width */}
-        <div id="step-2" className="mt-8 md:mt-16 w-full max-w-[1600px] mx-auto relative z-10 flex flex-col items-center">
+        <div id="step-2" className="mt-8 md:mt-16 w-full mx-auto relative z-10 flex flex-col items-center">
           {/* subtle backdrop for step 2 — no color tint */}
           
           <div className="w-full max-w-4xl mx-auto px-4 text-center mb-6 sm:mb-10 relative z-10">
@@ -898,7 +898,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 mx-auto flex flex-col items-center"
+            className="relative z-10 w-full mx-auto flex flex-col items-center"
           >
             {/* Content: Left=Chest, Right=Table */}
             <RewardsLeaderboardTable totalPool={prizePool} />
@@ -1043,45 +1043,35 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION D: TALENTS TEASER ══════════════════════════ */}
-      <section className="px-6 sm:px-10 lg:px-16 py-10">
+      <section className="px-6 sm:px-10 lg:px-16 pt-2 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="relative max-w-7xl mx-auto rounded-2xl border border-[#8B5CF6]/20 bg-[#8B5CF6]/[0.04] overflow-hidden p-8 md:p-10"
+          className="relative max-w-7xl mx-auto rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden px-8 py-6 md:px-10 md:py-7"
         >
-          {/* Purple glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12)_0%,transparent_60%)] pointer-events-none" />
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#8B5CF6]/8 blur-[80px] pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10">
 
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-12">
-            {/* Static badge icon */}
-            <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center shadow-lg shadow-[#8B5CF6]/30">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            </div>
-
-            <div className="flex-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] text-[10px] font-bold uppercase tracking-widest mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6] animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/35 text-[10px] font-bold uppercase tracking-widest mb-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
                 Незабаром
               </div>
-              <h2 className="text-2xl sm:text-3xl font-display font-black text-white uppercase mb-3">
-                Таланти & Гільдії
+              <h2 className="text-xl sm:text-2xl font-display font-black text-white/70 uppercase mb-2">
+                Таланти
               </h2>
-              <p className="text-white/45 text-sm leading-relaxed max-w-xl">
-                Розблокуй унікальні <span className="text-white/75 font-semibold">Таланти</span> та <span className="text-white/75 font-semibold">Гільдії</span> за MOVE — вони множать фінальні очки на +5%, +10% або +15% при виконанні умов. Стратегічний вибір може вирішити все в боротьбі за перше місце.
+              <p className="text-white/35 text-sm leading-relaxed max-w-xl">
+                Розблокуй унікальні <span className="text-white/55 font-semibold">Таланти</span> які множать фінальні очки на +5%, +10% або +15% при виконанні умов. Стратегічний вибір може вирішити все в боротьбі за перше місце.
               </p>
             </div>
 
             {/* Multiplier pills */}
-            <div className="shrink-0 flex flex-col gap-2">
+            <div className="shrink-0 flex flex-row md:flex-col gap-2">
               {["+5%", "+10%", "+15%"].map((m, i) => (
-                <div key={m} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/8 text-center">
-                  <span className="text-lg font-display font-black text-white">{m}</span>
-                  <p className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">
+                <div key={m} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center opacity-50">
+                  <span className="text-base font-display font-black text-white/60">{m}</span>
+                  <p className="text-[8px] text-white/20 uppercase tracking-widest mt-0.5">
                     {["Common", "Rare", "Epic"][i]}
                   </p>
                 </div>
