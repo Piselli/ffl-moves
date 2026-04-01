@@ -53,7 +53,7 @@ export function Navbar() {
   const logoEl = (
     <Link href="/" className="flex items-center gap-2.5 group shrink-0">
       {/* Logo icon */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00F0FF] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#00F0FF]/20 group-hover:shadow-[#00F0FF]/40 group-hover:scale-105 transition-all duration-300">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00C46A] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#00C46A]/20 group-hover:shadow-[#00C46A]/40 group-hover:scale-105 transition-all duration-300">
         <svg className="w-5 h-5 text-[#0D0F12]" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="12" cy="12" r="3" />
@@ -61,7 +61,7 @@ export function Navbar() {
         </svg>
       </div>
       <span className="font-display font-black text-xl uppercase tracking-tighter text-white">
-        FPL<span className="text-[#00F0FF] drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]">MOVE</span>
+        FPL<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MOVE</span>
       </span>
     </Link>
   );
@@ -113,7 +113,7 @@ export function Navbar() {
                 </span>
                 <span
                   className={`mt-0.5 w-1 h-1 rounded-full transition-all duration-300 ${
-                    isActive ? "bg-[#00F0FF] shadow-[0_0_6px_rgba(0,240,255,0.8)]" : "bg-transparent"
+                    isActive ? "bg-[#00C46A] shadow-[0_0_6px_rgba(0,196,106,0.8)]" : "bg-transparent"
                   }`}
                 />
               </Link>
@@ -139,8 +139,8 @@ export function Navbar() {
             <div className="flex items-center gap-3">
               {/* Address pill */}
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse shadow-[0_0_6px_rgba(0,240,255,0.8)]" />
-                <span className="text-xs text-[#00F0FF] font-black font-display uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse shadow-[0_0_6px_rgba(0,196,106,0.8)]" />
+                <span className="text-xs text-[#00C46A] font-black font-display uppercase tracking-wider">
                   {shortenAddress(account.address.toString())}
                 </span>
               </div>
@@ -158,7 +158,7 @@ export function Navbar() {
               <button
                 id="wallet-connect-btn"
                 onClick={() => setShowWalletList(!showWalletList)}
-                className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-[#00F0FF] bg-[#00F0FF]/10 border border-[#00F0FF]/30 hover:border-[#00F0FF]/60 hover:bg-[#00F0FF]/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all duration-300 focus:outline-none"
+                className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none"
               >
                 Підключити гаманець
               </button>
@@ -180,13 +180,13 @@ export function Navbar() {
                           onClick={() => handleConnectWallet(wallet.name)}
                           className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00F0FF]/40 transition-colors flex shrink-0 items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00C46A]/40 transition-colors flex shrink-0 items-center justify-center">
                             {wallet.icon && (
                               <img src={wallet.icon} alt={wallet.name} className="w-full h-full object-contain" />
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-display font-bold text-white group-hover:text-[#00F0FF] transition-colors">
+                            <p className="text-sm font-display font-bold text-white group-hover:text-[#00C46A] transition-colors">
                               {wallet.name}
                             </p>
                             <p className="text-xs text-[#00e676] font-bold uppercase tracking-wider mt-0.5">
@@ -201,7 +201,7 @@ export function Navbar() {
                         <p className="text-sm font-bold text-white mb-1">Гаманців не знайдено</p>
                         <p className="text-xs text-white/40 leading-relaxed">
                           Встанови{" "}
-                          <a href="https://nightly.app" target="_blank" rel="noreferrer" className="text-[#00F0FF] hover:underline">
+                          <a href="https://nightly.app" target="_blank" rel="noreferrer" className="text-[#00C46A] hover:underline">
                             Nightly
                           </a>{" "}
                           або інший гаманець Movement.

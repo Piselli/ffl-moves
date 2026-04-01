@@ -11,14 +11,14 @@ interface AnimatedCardProps {
 }
 
 const glowMap = {
-  cyan:   "rgba(0,240,255,0.15)",
+  cyan:   "rgba(0,196,106,0.15)",
   purple: "rgba(139,92,246,0.15)",
   green:  "rgba(0,255,135,0.15)",
   gold:   "rgba(251,191,36,0.15)",
 };
 
 const borderMap = {
-  cyan:   "rgba(0,240,255,0.4)",
+  cyan:   "rgba(0,196,106,0.4)",
   purple: "rgba(139,92,246,0.4)",
   green:  "rgba(0,255,135,0.4)",
   gold:   "rgba(251,191,36,0.4)",

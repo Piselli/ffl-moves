@@ -98,14 +98,12 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
         transition={{ duration: 0.6 }}
         className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left relative"
       >
-        {/* Ambient Glows */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#00F0FF]/15 blur-[120px] rounded-full pointer-events-none -z-10" />
 
         {/* Top Header Block */}
         <div className="w-full mt-2 lg:mt-0">
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3">
-            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF]" />
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#00F0FF] uppercase">
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A]" />
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#00C46A] uppercase">
               КРОК 3: ПЕРЕМАГАЙ
             </span>
           </div>
@@ -127,11 +125,11 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
             className="relative w-full h-full"
           >
             {/* Ambient Background Glow for the Chest */}
-            <div className="absolute inset-0 bg-[#00F0FF]/25 blur-[80px] rounded-full scale-110 -z-10" />
+            <div className="absolute inset-0 bg-[#00C46A]/[0.07] blur-[60px] rounded-full scale-75 -z-10" />
             
-            <div className="absolute inset-0 flex flex-col items-center justify-center border border-white/5 bg-gradient-to-b from-white/[0.05] to-transparent rounded-[32px] shadow-2xl backdrop-blur-sm group hover:border-[#00F0FF]/30 transition-colors duration-500">
+            <div className="absolute inset-0 flex flex-col items-center justify-center border border-white/5 bg-gradient-to-b from-white/[0.05] to-transparent rounded-[32px] shadow-2xl backdrop-blur-sm group hover:border-[#00C46A]/30 transition-colors duration-500">
               <span className="text-[80px] mb-2 group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl">💎</span>
-              <span className="text-[10px] md:text-xs uppercase font-bold text-[#00F0FF]/50 tracking-[0.3em] text-center px-4 group-hover:text-white transition-colors">
+              <span className="text-[10px] md:text-xs uppercase font-bold text-[#00C46A]/50 tracking-[0.3em] text-center px-4 group-hover:text-white transition-colors">
                 [ 3D Скриня (Горизонтальна) ]
               </span>
             </div>
@@ -159,7 +157,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
               <span className="text-4xl sm:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 tracking-tighter drop-shadow-md">
                 {pool.toLocaleString("en-US")}
               </span>
-              <span className="text-sm md:text-base font-bold text-[#00F0FF] uppercase tracking-widest drop-shadow-sm">
+              <span className="text-sm md:text-base font-bold text-[#00C46A] uppercase tracking-widest drop-shadow-sm">
                 Move
               </span>
             </div>

@@ -66,7 +66,7 @@
       hsla(260, 100%, 65%, 0.1) 0%, 
       transparent 80%),
     radial-gradient(100% 100% at 100% 0%, 
-      hsla(189, 100%, 50%, 0.15) 0%, 
+      hsla(152, 100%, 38%, 0.12) 0%, 
       transparent 80%),
     linear-gradient(180deg, 
       hsl(220 39% 11%) 0%, 
@@ -115,8 +115,8 @@
    ========================================= */
 
 .glow-cyan {
-  box-shadow: 0 0 20px hsla(189, 100%, 50%, 0.4),
-              0 0 40px hsla(189, 100%, 50%, 0.2);
+  box-shadow: 0 0 20px hsla(152, 100%, 38%, 0.4),
+              0 0 40px hsla(152, 100%, 38%, 0.2);
 }
 
 .glow-purple {
@@ -130,8 +130,8 @@
 }
 
 .text-glow-cyan {
-  text-shadow: 0 0 10px hsla(189, 100%, 50%, 0.5),
-               0 0 20px hsla(189, 100%, 50%, 0.3);
+  text-shadow: 0 0 10px hsla(152, 100%, 38%, 0.5),
+               0 0 20px hsla(152, 100%, 38%, 0.3);
 }
 
 /* Pitch levitation animation */

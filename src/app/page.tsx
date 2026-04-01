@@ -105,8 +105,8 @@ function AnimatedStep({
         className="flex-1 w-full max-w-xl"
       >
         <div className="flex items-center gap-4 mb-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/25 text-[#00F0FF] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00C46A]/10 border border-[#00C46A]/25 text-[#00C46A] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
             {subheader}
           </div>
         </div>
@@ -292,10 +292,10 @@ const POSITION_CARDS = [
 ];
 
 const UNIVERSAL_BONUSES = [
-  { label: "Гравець матчу (BPS)", pts: "+3", color: "text-[#FFD700]" },
-  { label: "Хет-трик",           pts: "+3", color: "text-[#FFD700]" },
-  { label: "Вихід 60+ хв",       pts: "+2", color: "text-[#00e676]" },
-  { label: "Вихід 1–59 хв",      pts: "+1", color: "text-[#00e676]" },
+  { label: "Гравець матчу (BPS)", pts: "+3", color: "text-[#00C46A]" },
+  { label: "Хет-трик",           pts: "+3", color: "text-[#00C46A]" },
+  { label: "Вихід 60+ хв",       pts: "+2", color: "text-[#00C46A]" },
+  { label: "Вихід 1–59 хв",      pts: "+1", color: "text-[#00C46A]" },
 ];
 
 const UNIVERSAL_PENALTIES = [
@@ -321,9 +321,9 @@ const CAROUSEL_MATCHES = [
     stadium: "Etihad Stadium",
     matchday: 26,
     events: [
-      { player: "E. Haaland", action: "Goal!", pts: "+5", color: "#00e676", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-      { player: "P. Foden", action: "Assist", pts: "+3", color: "#00F0FF", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-      { player: "B. Saka", action: "Yellow Card", pts: "-1", color: "#F5A623", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
+      { player: "E. Haaland", action: "Goal!", pts: "+5", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+      { player: "P. Foden", action: "Assist", pts: "+3", color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+      { player: "B. Saka", action: "Yellow Card", pts: "-1", color: "#F87171", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
     ]
   },
   {
@@ -338,9 +338,9 @@ const CAROUSEL_MATCHES = [
     stadium: "Hotspur Stadium",
     matchday: 26,
     events: [
-      { player: "C. Palmer", action: "2 Goals", pts: "+10", color: "#00e676", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
-      { player: "P. Porro", action: "Clean Tackle", pts: "+1", color: "#00F0FF", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-      { player: "S. Heung-Min", action: "Goal!", pts: "+4", color: "#00e676", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
+      { player: "C. Palmer", action: "2 Goals", pts: "+10", color: "#00C46A", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
+      { player: "P. Porro", action: "Clean Tackle", pts: "+1", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+      { player: "S. Heung-Min", action: "Goal!", pts: "+4", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
     ]
   },
   {
@@ -355,25 +355,25 @@ const CAROUSEL_MATCHES = [
     stadium: "Goodison Park",
     matchday: 26,
     events: [
-      { player: "J. Pickford", action: "3 Saves", pts: "+2", color: "#00F0FF", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-      { player: "T. Alex-Arnold", action: "Key Pass", pts: "+1", color: "#00F0FF", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
-      { player: "J. Branthwaite", action: "Clean Sheet HT", pts: "+2", color: "#00e676", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
+      { player: "J. Pickford", action: "3 Saves", pts: "+2", color: "#00C46A", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+      { player: "T. Alex-Arnold", action: "Key Pass", pts: "+1", color: "#00C46A", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
+      { player: "J. Branthwaite", action: "Clean Sheet HT", pts: "+2", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
     ]
   }
 ];
 
 const ALL_PLAYERS = [
-  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Saves"}, {icon: "🛡", text: "Clean Sheet"}], pts: "+7 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Clean Tackle"}, {icon: "⏱", text: "90+ Mins"}], pts: "+6 PTS", color: "#A855F7", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
-  { player: "W. Saliba", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "⏱", text: "90+ Mins"}], pts: "+8 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
-  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "🟨", text: "Yellow Card"}], pts: "+6 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
-  { player: "P. Porro", stats: [{icon: "👟", text: "Assist"}, {icon: "🛡", text: "Clean Tackle"}], pts: "+9 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⏱", text: "90+ Mins"}], pts: "+11 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
-  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "🌟", text: "MOTM"}], pts: "+12 PTS", color: "#FFD700", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
-  { player: "P. Foden", stats: [{icon: "👟", text: "Assist"}, {icon: "⚡️", text: "Key Pass"}], pts: "+8 PTS", color: "#00F0FF", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Goal"}, {icon: "👟", text: "Assist"}], pts: "+15 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
-  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "⏱", text: "90+ Mins"}], pts: "+18 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-  { player: "B. Saka", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⚡️", text: "Key pass"}], pts: "+14 PTS", color: "#00e676", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Saves"}, {icon: "🛡", text: "Clean Sheet"}], pts: "+7 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Clean Tackle"}, {icon: "⏱", text: "90+ Mins"}], pts: "+6 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "⏱", text: "90+ Mins"}], pts: "+8 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "🟨", text: "Yellow Card"}], pts: "+6 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", stats: [{icon: "👟", text: "Assist"}, {icon: "🛡", text: "Clean Tackle"}], pts: "+9 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⏱", text: "90+ Mins"}], pts: "+11 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "🌟", text: "MOTM"}], pts: "+12 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", stats: [{icon: "👟", text: "Assist"}, {icon: "⚡️", text: "Key Pass"}], pts: "+8 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Goal"}, {icon: "👟", text: "Assist"}], pts: "+15 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "⏱", text: "90+ Mins"}], pts: "+18 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⚡️", text: "Key pass"}], pts: "+14 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
 ];
 
 function LiveDataCarousel() {
@@ -419,7 +419,7 @@ function LiveDataCarousel() {
                   {slide.statusText === "LIVE" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mt-px" />}
                   <span className={`text-[9px] font-bold tracking-[0.15em] uppercase leading-none flex items-center gap-1.5 ${slide.statusText === "LIVE" ? "text-red-500" : "text-white/40"}`}>
                     {slide.statusText} 
-                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00F0FF]">{slide.halfText}</span></>}
+                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00C46A]">{slide.halfText}</span></>}
                     <span className="text-white/20">•</span> <span className="text-white tracking-widest">{slide.time}</span>
                   </span>
                 </div>
@@ -515,7 +515,7 @@ function LiveDataCarousel() {
       {/* Slider Dots */}
       <div className="flex items-center justify-center gap-2 md:gap-3 mt-1 md:mt-2">
         {CAROUSEL_MATCHES.map((_, i) => (
-           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00F0FF] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,240,255,1)]" : "bg-white/20 hover:bg-white/40"}`} />
+           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00C46A] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,196,106,0.8)]" : "bg-white/20 hover:bg-white/40"}`} />
         ))}
       </div>
     </div>
@@ -570,7 +570,7 @@ export default function Home() {
       num: "01",
       title: "Збери склад",
       desc: "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Будь-який гравець, жодних обмежень бюджету.",
-      accent: "from-[#00F0FF] to-[#0077FF]",
+      accent: "from-[#00C46A] to-[#0077FF]",
       icon: (
         <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -644,7 +644,7 @@ export default function Home() {
 
         {/* Ambient accent glows */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(139,92,246,0.12)_0%,transparent_60%)] pointer-events-none -z-10" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,240,255,0.08)_0%,transparent_60%)] pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,196,106,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
         <div className="relative z-10 w-full max-w-2xl pt-3 flex flex-col gap-10">
@@ -729,7 +729,7 @@ export default function Home() {
             {connected ? (
               <Link
                 href="/gameweek"
-                className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-white text-black hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-[#00C46A] text-black hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(0,196,106,0.35)]"
               >
                 Зібрати склад
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -741,7 +741,7 @@ export default function Home() {
                 className="relative group cursor-pointer inline-block w-full sm:w-auto"
                 onClick={() => (document.getElementById('wallet-connect-btn') as HTMLButtonElement)?.click()}
               >
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00F0FF] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00C46A] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
                 <div className="relative bg-[#0D0F12] border border-white/10 text-white px-10 py-4 w-full sm:w-auto sm:min-w-[260px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
                   <span>Обрати свій склад</span>
                   <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -767,7 +767,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
-      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 py-20 overflow-hidden bg-gradient-to-b from-[#0D0F12] via-[#121620] to-[#0D0F12]">
+      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-20 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
         <div className="max-w-7xl mx-auto space-y-24">
           
           <AnimatedStep
@@ -854,8 +854,7 @@ export default function Home() {
 
         {/* STEP 2: Cinematic Full-Width */}
         <div id="step-2" className="mt-8 md:mt-16 w-full max-w-[1600px] mx-auto relative z-10 flex flex-col items-center">
-          {/* Glowing background behind step 2 */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.08)_0%,transparent_50%)] pointer-events-none" />
+          {/* subtle backdrop for step 2 — no color tint */}
           
           <div className="w-full max-w-4xl mx-auto px-4 text-center mb-6 sm:mb-10 relative z-10">
             <motion.div
@@ -865,8 +864,8 @@ export default function Home() {
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]"></span>
-                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00F0FF] uppercase">
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A] shadow-[0_0_8px_#00C46A]"></span>
+                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00C46A] uppercase">
                   Крок 2: Живі дані
                 </span>
               </div>
@@ -910,7 +909,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION C: SCORING BY POSITION ════════════════════ */}
-      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-14 overflow-hidden">
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 pt-10 pb-14 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05)_0%,transparent_65%)] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
@@ -951,8 +950,7 @@ export default function Home() {
 
                 {/* Player header */}
                 <div className="relative flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/[0.05]">
-                  <div className="absolute top-0 left-0 w-20 h-20 rounded-full blur-3xl opacity-15 pointer-events-none" style={{ backgroundColor: card.color }} />
-                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/10 relative z-10" style={{ backgroundColor: `${card.color}18` }}>
+                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/[0.08] bg-white/[0.04] relative z-10">
                     <img
                       src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${card.img}`}
                       alt={card.player}
@@ -961,7 +959,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="relative z-10 min-w-0">
-                    <div className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 bg-white/[0.06] border border-white/[0.10] text-white/50">
                       {card.pos}
                     </div>
                     <p className="text-xs font-bold text-white truncate leading-tight">{card.player}</p>
@@ -975,7 +973,7 @@ export default function Home() {
                     {card.gains.map((g) => (
                       <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
                         <span className="text-xs text-white/50">{g.label}</span>
-                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400' : 'text-[#00e676]'}`}>{g.pts}</span>
+                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400/80' : 'text-[#00C46A]'}`}>{g.pts}</span>
                       </li>
                     ))}
                   </ul>
@@ -985,7 +983,7 @@ export default function Home() {
                 <div className="px-4 py-2.5 border-t border-white/[0.04]">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-white/20 uppercase tracking-widest">Макс. за тур</span>
-                    <span className={`text-sm font-display font-black tabular-nums ${card.colorClass}`}>
+                    <span className="text-sm font-display font-black tabular-nums text-[#00C46A]">
                       {card.gains.filter(g => !('negative' in g && g.negative)).reduce((s, g) => s + parseInt(g.pts), 0)} балів
                     </span>
                   </div>

@@ -303,8 +303,8 @@ export default function GameweekPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center max-w-md w-full">
-          <div className="w-16 h-16 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-[#00F0FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-16 h-16 rounded-2xl bg-[#00C46A]/10 border border-[#00C46A]/20 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-[#00C46A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
@@ -420,7 +420,7 @@ export default function GameweekPage() {
         </div>
         <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Вартість реєстрації</p>
-          <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent">
+          <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent">
             {config ? formatMOVE(config.entryFee) : "—"} MOVE
           </p>
         </div>
@@ -453,7 +453,7 @@ export default function GameweekPage() {
             className={cn(
               "mt-3 w-full py-4 rounded-2xl font-display font-black text-lg uppercase tracking-wide transition-all duration-200",
               isTeamComplete && !isSubmitting
-                ? "bg-gradient-to-r from-emerald-500 to-[#00F0FF] text-black hover:brightness-110 hover:scale-[1.01] shadow-[0_0_30px_rgba(0,240,255,0.25)]"
+                ? "bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 hover:scale-[1.01] shadow-[0_0_30px_rgba(0,196,106,0.25)]"
                 : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed"
             )}
           >
@@ -478,7 +478,7 @@ export default function GameweekPage() {
                 placeholder="Пошук гравця..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00F0FF]/50 border border-white/[0.08] focus:border-[#00F0FF]/30 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] focus:border-[#00C46A]/30 transition-colors"
               />
             </div>
             {/* Position filter */}
@@ -490,7 +490,7 @@ export default function GameweekPage() {
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     positionFilter === pos
-                      ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30 shadow-[0_0_12px_rgba(0,240,255,0.15)]"
+                      ? "bg-[#00C46A]/15 text-[#00C46A] border border-[#00C46A]/30 shadow-[0_0_12px_rgba(0,196,106,0.15)]"
                       : "bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/80"
                   )}
                 >
@@ -506,7 +506,7 @@ export default function GameweekPage() {
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00F0FF]/50 focus:border-[#00F0FF]/30 text-sm appearance-none cursor-pointer transition-colors"
+                className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 focus:border-[#00C46A]/30 text-sm appearance-none cursor-pointer transition-colors"
               >
                 <option value="">Всі команди</option>
                 {uniqueTeams.map((team) => (
@@ -523,7 +523,7 @@ export default function GameweekPage() {
                 <span>{filteredPlayers.length} гравців</span>
                 <button
                   onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }}
-                  className="text-[#00F0FF]/70 hover:text-[#00F0FF] font-semibold transition-colors"
+                  className="text-[#00C46A]/70 hover:text-[#00C46A] font-semibold transition-colors"
                 >
                   Скинути фільтри
                 </button>

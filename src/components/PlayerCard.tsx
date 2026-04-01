@@ -37,7 +37,7 @@ function FormBadge({ form }: { form?: number }) {
   if (!form || isNaN(form)) return null;
   const color =
     form >= 7 ? "text-emerald-400 border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_8px_rgba(52,211,153,0.2)]" :
-    form >= 5 ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/15 shadow-[0_0_8px_rgba(0,240,255,0.15)]" :
+    form >= 5 ? "text-[#00C46A] border-[#00C46A]/40 bg-[#00C46A]/15 shadow-[0_0_8px_rgba(0,196,106,0.15)]" :
     form >= 3 ? "text-amber-400 border-amber-500/50 bg-amber-500/15" :
                 "text-white/40 border-white/15 bg-white/5";
   return (
@@ -59,7 +59,7 @@ function FormBadge({ form }: { form?: number }) {
               <span className="text-white/40 text-[10px]">гравець у топ-формі</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#00F0FF] text-[10px] font-black">≥ 5.0</span>
+              <span className="text-[#00C46A] text-[10px] font-black">≥ 5.0</span>
               <span className="text-white/40 text-[10px]">стабільно набирає</span>
             </div>
             <div className="flex items-center justify-between">
@@ -93,7 +93,7 @@ export function PlayerCard({
         className={cn(
           "p-2 rounded-xl cursor-pointer transition-all flex flex-col items-center gap-1 border",
           selected
-            ? "bg-[#00F0FF]/10 border-[#00F0FF]/30 shadow-[0_0_10px_rgba(0,240,255,0.1)]"
+            ? "bg-[#00C46A]/10 border-[#00C46A]/30 shadow-[0_0_10px_rgba(0,196,106,0.1)]"
             : "bg-white/[0.05] border-white/10 hover:bg-white/[0.08]"
         )}
       >
@@ -128,7 +128,7 @@ export function PlayerCard({
       className={cn(
         "group p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border",
         selected
-          ? "border-[#00F0FF]/30 bg-[#00F0FF]/[0.05] shadow-[0_0_15px_rgba(0,240,255,0.08)]"
+          ? "border-[#00C46A]/30 bg-[#00C46A]/[0.05] shadow-[0_0_15px_rgba(0,196,106,0.08)]"
           : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12]"
       )}
     >

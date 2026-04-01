@@ -26,7 +26,7 @@ export function WidgetCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
       className={`relative glass-card rounded-3xl p-6 md:p-8 flex flex-col group overflow-hidden ${
-        featured ? "border-fpl-cyan/30 shadow-[0_0_30px_rgba(0,240,255,0.1)]" : "border-white/10"
+        featured ? "border-fpl-cyan/30 shadow-[0_0_30px_rgba(0,196,106,0.1)]" : "border-white/10"
       } ${className}`}
     >
       {/* Background Hover Effect */}

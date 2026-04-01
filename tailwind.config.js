@@ -46,7 +46,7 @@ module.exports = {
         // Custom FPL+Sorare Palette Extensions
         fpl: {
           navy: "#0A0E17",
-          cyan: "#00F0FF",
+          cyan: "#00C46A",
           purple: "#8B5CF6",
           green: "#00FF87",
         },
