@@ -147,20 +147,39 @@ export default function LeaderboardPage() {
             <p className="text-3xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent tabular-nums">
               {formatMOVE(currentGameweek.prizePool)}
             </p>
-            <p className="text-white/30 text-xs mt-0.5 mb-3">MOVE</p>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              {[
-                { label: "🥇", share: "30%", color: "text-[#FFD700]" },
-                { label: "🥈", share: "20%", color: "text-white/50" },
-                { label: "🥉", share: "15%", color: "text-[#F59E0B]" },
-              ].map((p) => (
-                <div key={p.label} className="flex items-center gap-1">
-                  <span className="text-xs leading-none">{p.label}</span>
-                  <span className={cn("text-[11px] font-bold tabular-nums", p.color)}>{p.share}</span>
+            <p className="text-white/30 text-xs mt-0.5">MOVE</p>
+            {/* Distribution hint */}
+            <div className="relative group/dist inline-block mt-3">
+              <span className="text-[10px] text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2">
+                розподіл призів
+              </span>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dist:block z-50 w-48 pointer-events-none">
+                <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2.5">Топ-10 отримують</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { rank: "1", icon: "🥇", share: "30%", color: "text-[#FFD700]" },
+                      { rank: "2", icon: "🥈", share: "20%", color: "text-white/70" },
+                      { rank: "3", icon: "🥉", share: "15%", color: "text-[#F59E0B]" },
+                      { rank: "4", icon: null, share: "8%",  color: "text-white/40" },
+                      { rank: "5", icon: null, share: "7%",  color: "text-white/40" },
+                      { rank: "6", icon: null, share: "6%",  color: "text-white/35" },
+                      { rank: "7", icon: null, share: "5%",  color: "text-white/35" },
+                      { rank: "8", icon: null, share: "4%",  color: "text-white/30" },
+                      { rank: "9", icon: null, share: "3%",  color: "text-white/30" },
+                      { rank: "10", icon: null, share: "2%", color: "text-white/25" },
+                    ].map((p) => (
+                      <div key={p.rank} className="flex items-center justify-between">
+                        <span className="text-white/30 text-[11px]">
+                          {p.icon ? p.icon : `#${p.rank}`}
+                        </span>
+                        <span className={cn("text-xs font-bold tabular-nums", p.color)}>{p.share}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-              <span className="text-white/15 text-xs">·</span>
-              <span className="text-white/25 text-[10px]">топ-10 у призах</span>
+                <div className="w-2 h-2 bg-[#1a1d26] border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
+              </div>
             </div>
           </div>
 
