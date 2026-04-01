@@ -94,16 +94,13 @@ export default function LeaderboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 pt-28 pb-12">
       {/* Header */}
-      <div className="flex items-start justify-between mb-10 flex-wrap gap-4">
+      <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#00F0FF]/60">Сезон 2024/25</span>
-          </div>
-          <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mb-1">Лідерборд</h1>
-          <p className="text-white/40 text-sm">Реальні результати з блокчейну Movement</p>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00F0FF]/60">Сезон 2024/25</span>
+          <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mt-1">Лідерборд</h1>
         </div>
 
-        <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] px-4 py-2.5 rounded-2xl">
+        <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-2xl mb-1">
           <span className="text-white/40 text-xs font-bold uppercase tracking-widest">Тур</span>
           <select
             value={selectedGameweek}
@@ -269,10 +266,10 @@ export default function LeaderboardPage() {
             currentUser={account?.address?.toString()}
           />
         ) : (
-          <div className="p-14 text-center">
-            <div className="text-4xl mb-4">🏆</div>
-            <h3 className="text-lg font-display font-black text-white uppercase tracking-tight mb-2">Результатів поки немає</h3>
-            <p className="text-white/30 text-sm max-w-xs mx-auto">
+          <div className="py-10 text-center">
+            <div className="text-3xl mb-3">🏆</div>
+            <h3 className="text-base font-display font-black text-white uppercase tracking-tight mb-1">Результатів поки немає</h3>
+            <p className="text-white/30 text-xs">
               Результати Gameweek {selectedGameweek} ще не опубліковані.
             </p>
           </div>
@@ -280,7 +277,7 @@ export default function LeaderboardPage() {
       </div>
 
       <p className="text-center text-white/20 text-xs mt-6">
-        Реальні on-chain результати · Gameweek {selectedGameweek} · Movement Testnet
+        Реальні on-chain результати · Gameweek {selectedGameweek} · Movement
       </p>
     </div>
   );
