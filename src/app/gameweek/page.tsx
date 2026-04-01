@@ -15,7 +15,6 @@ export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
-  const [bench, setBench] = useState<(Player | null)[]>(Array(3).fill(null));
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,7 +107,7 @@ export default function GameweekPage() {
         .filter(Boolean) as Player[];
 
       if (teamPlayers.length > 0) {
-        const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
+        const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: [] };
         setRegisteredTeam(teamSnapshot);
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
@@ -117,19 +116,16 @@ export default function GameweekPage() {
   }, [alreadyRegistered, registeredTeam, players, account?.address, config]);
 
   const selectedPlayers = useMemo(() => {
-    const all = [...starters, ...bench].filter(Boolean) as Player[];
-    return new Set(all.map((p) => p.id));
-  }, [starters, bench]);
+    return new Set(starters.filter(Boolean).map((p) => p!.id));
+  }, [starters]);
 
   const clubCounts = useMemo(() => {
     const counts: Record<number, number> = {};
-    [...starters, ...bench].forEach((p) => {
-      if (p) {
-        counts[p.teamId] = (counts[p.teamId] || 0) + 1;
-      }
+    starters.forEach((p) => {
+      if (p) counts[p.teamId] = (counts[p.teamId] || 0) + 1;
     });
     return counts;
-  }, [starters, bench]);
+  }, [starters]);
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p) => {
@@ -163,13 +159,6 @@ export default function GameweekPage() {
     if (position === "FWD") {
       for (let i = 8; i <= 10; i++) {
         if (!starters[i]) return { index: i, isBench: false };
-      }
-    }
-
-    // Check bench (any position except GK can be on bench)
-    if (position !== "GK") {
-      for (let i = 0; i < 3; i++) {
-        if (!bench[i]) return { index: i, isBench: true };
       }
     }
 
@@ -229,22 +218,13 @@ export default function GameweekPage() {
 
   const handlePlayerSelect = (player: Player) => {
     if (selectedPlayers.has(player.id)) {
-      // Remove player
       const starterIdx = starters.findIndex((p) => p?.id === player.id);
       if (starterIdx !== -1) {
         const newStarters = [...starters];
         newStarters[starterIdx] = null;
         setStarters(newStarters);
-        return;
       }
-
-      const benchIdx = bench.findIndex((p) => p?.id === player.id);
-      if (benchIdx !== -1) {
-        const newBench = [...bench];
-        newBench[benchIdx] = null;
-        setBench(newBench);
-        return;
-      }
+      return;
     }
 
     if (!canSelectPlayer(player)) return;
@@ -252,24 +232,14 @@ export default function GameweekPage() {
     const slot = getNextAvailableSlot(player.position);
     if (!slot) return;
 
-    if (slot.isBench) {
-      const newBench = [...bench];
-      newBench[slot.index] = player;
-      setBench(newBench);
-    } else {
-      const newStarters = [...starters];
-      newStarters[slot.index] = player;
-      setStarters(newStarters);
-    }
+    const newStarters = [...starters];
+    newStarters[slot.index] = player;
+    setStarters(newStarters);
   };
 
 
   const handleSlotClick = (index: number, isBench: boolean) => {
-    if (isBench && bench[index]) {
-      const newBench = [...bench];
-      newBench[index] = null;
-      setBench(newBench);
-    } else if (!isBench && starters[index]) {
+    if (!isBench && starters[index]) {
       const newStarters = [...starters];
       newStarters[index] = null;
       setStarters(newStarters);
@@ -277,19 +247,17 @@ export default function GameweekPage() {
   };
 
   const isTeamComplete = useMemo(() => {
-    const hasAllStarters = starters.every((p) => p !== null);
-    const hasAllBench = bench.every((p) => p !== null);
-    return hasAllStarters && hasAllBench;
-  }, [starters, bench]);
+    return starters.every((p) => p !== null);
+  }, [starters]);
 
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
 
     setIsSubmitting(true);
     try {
-      const playerIds = [...starters, ...bench].map((p) => p!.id.toString());
-      const playerPositions = [...starters, ...bench].map((p) => p!.positionId.toString());
-      const playerClubs = [...starters, ...bench].map((p) => p!.teamId.toString());
+      const playerIds = starters.map((p) => p!.id.toString());
+      const playerPositions = starters.map((p) => p!.positionId.toString());
+      const playerClubs = starters.map((p) => p!.teamId.toString());
       // Captain is required by the contract — auto-assign first starter (hidden from UI for now)
       const captainId = starters[0]!.id.toString();
 
@@ -308,7 +276,7 @@ export default function GameweekPage() {
       });
 
       // Save the team snapshot for display (in memory + localStorage)
-      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };
+      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: [] };
       setRegisteredTeam(teamSnapshot);
       if (account?.address && currentGameweek?.id) {
         const key = `ffl_team_gw${currentGameweek.id}_${account.address.toString()}`;
@@ -484,7 +452,6 @@ export default function GameweekPage() {
         <div>
           <FormationGrid
             starters={starters}
-            bench={bench}
             onPlayerClick={handleSlotClick}
           />
 
@@ -501,18 +468,6 @@ export default function GameweekPage() {
                   starters.filter(Boolean).length === 11 ? "bg-emerald-400" : "bg-muted-foreground"
                 )} />
                 {starters.filter(Boolean).length}/11 Starters
-              </span>
-              <span className={cn(
-                "flex items-center gap-2 px-3 py-1 rounded-full",
-                bench.filter(Boolean).length === 3
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-secondary text-muted-foreground"
-              )}>
-                <span className={cn(
-                  "w-2 h-2 rounded-full",
-                  bench.filter(Boolean).length === 3 ? "bg-emerald-400" : "bg-muted-foreground"
-                )} />
-                {bench.filter(Boolean).length}/3 Subs
               </span>
             </div>
           </div>

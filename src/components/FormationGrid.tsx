@@ -6,13 +6,12 @@ import { cn } from "@/lib/utils";
 
 interface FormationGridProps {
   starters: (Player | null)[];
-  bench: (Player | null)[];
+  bench?: (Player | null)[];
   onPlayerClick?: (index: number, isBench: boolean) => void;
 }
 
 export function FormationGrid({
   starters,
-  bench,
   onPlayerClick,
 }: FormationGridProps) {
   // Formation: 4-3-3
@@ -127,18 +126,6 @@ export function FormationGrid({
         </div>
       </div>
 
-      {/* Bench */}
-      <div className="relative mt-8 pt-6 border-t border-white/20">
-        <div className="flex items-center gap-2 mb-4">
-          <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
-          <h4 className="text-white/80 text-sm font-medium">Substitutes</h4>
-        </div>
-        <div className="flex justify-center gap-4">
-          {bench.map((player, i) => renderSlot(player, i, true))}
-        </div>
-      </div>
     </div>
   );
 }

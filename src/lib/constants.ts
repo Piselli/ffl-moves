@@ -50,8 +50,8 @@ export const FORMATION = {
   DEF: 4,
   MID: 3,
   FWD: 3,
-  BENCH: 3,
-  TOTAL: 14,
+  BENCH: 0,
+  TOTAL: 11,
 } as const;
 
 // Max players per club

@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
-import { getConfig, getGameweek, getTeamResult, getGameweekTeams } from "@/lib/aptos";
+import { getConfig, getGameweek, getTeamResult, getGameweekTeams, moduleFunction } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 
 export default function LeaderboardPage() {
-  const { account } = useWallet();
+  const { account, connected, signAndSubmitTransaction } = useWallet();
   const [config, setConfig] = useState<any>(null);
   const [currentGameweek, setCurrentGameweek] = useState<any>(null);
   const [selectedGameweek, setSelectedGameweek] = useState<number>(0);
   const [leaderboardData, setLeaderboardData] = useState<TeamResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -53,6 +54,27 @@ export default function LeaderboardPage() {
     }
     fetchData();
   }, [selectedGameweek]);
+
+  const handleClaimPrize = async (gameweekId: number) => {
+    if (!connected) return;
+    setIsClaiming(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("claim_prize"),
+          typeArguments: [],
+          functionArguments: [gameweekId.toString()],
+        },
+      });
+      alert("Prize claimed successfully!");
+      setSelectedGameweek(gameweekId); // refresh
+    } catch (error: any) {
+      const msg = error?.message || error?.toString() || "Unknown error";
+      alert(`Failed to claim: ${msg}`);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   const userResult = account?.address
     ? leaderboardData.find((r) => r.owner === account.address.toString())
@@ -174,8 +196,12 @@ export default function LeaderboardPage() {
             </div>
             <div className="flex items-center justify-center">
               {userResult.prizeAmount > 0 && !userResult.claimed && (
-                <button className="btn-primary px-6 py-3 rounded-xl font-medium">
-                  Claim Prize
+                <button
+                  onClick={() => handleClaimPrize(selectedGameweek)}
+                  disabled={isClaiming}
+                  className="btn-primary px-6 py-3 rounded-xl font-medium disabled:opacity-50"
+                >
+                  {isClaiming ? "Claiming..." : "Claim Prize"}
                 </button>
               )}
               {userResult.claimed && (

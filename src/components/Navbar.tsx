@@ -9,7 +9,6 @@ import { shortenAddress } from "@/lib/utils";
 const navLinks = [
   { href: "/gameweek", label: "Склад" },
   { href: "/leaderboard", label: "Лідерборд" },
-  { href: "/titles", label: "Титули" },
 ];
 
 export function Navbar() {
@@ -112,7 +111,6 @@ export function Navbar() {
                 >
                   {link.label}
                 </span>
-                {/* Active glow dot */}
                 <span
                   className={`mt-0.5 w-1 h-1 rounded-full transition-all duration-300 ${
                     isActive ? "bg-[#00F0FF] shadow-[0_0_6px_rgba(0,240,255,0.8)]" : "bg-transparent"
@@ -121,6 +119,15 @@ export function Navbar() {
               </Link>
             );
           })}
+          {/* Таланти — coming soon, non-clickable */}
+          <div className="relative flex flex-col items-center px-4 py-2 rounded-lg cursor-not-allowed select-none">
+            <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
+              Таланти
+            </span>
+            <span className="mt-0.5 text-[8px] font-bold tracking-widest uppercase text-white/20">
+              незабаром
+            </span>
+          </div>
         </div>
 
         {/* ── Right: Wallet ────────────────────────────── */}

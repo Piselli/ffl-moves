@@ -155,7 +155,8 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      const msg = error?.message || error?.toString() || JSON.stringify(error) || "Unknown error";
+      alert(`Failed: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
