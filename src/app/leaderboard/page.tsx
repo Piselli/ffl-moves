@@ -82,10 +82,10 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
-          <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading blockchain data...</p>
+      <div className="max-w-6xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center">
+          <div className="w-8 h-8 border-2 border-[#00F0FF]/60 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/40 text-sm">Завантаження даних...</p>
         </div>
       </div>
     );
@@ -93,21 +93,25 @@ export default function LeaderboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-28 pb-12">
-      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-10 flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Leaderboard</h1>
-          <p className="text-muted-foreground">See how you rank against other managers</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#00F0FF]/60">Сезон 2024/25</span>
+          </div>
+          <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mb-1">Лідерборд</h1>
+          <p className="text-white/40 text-sm">Реальні результати з блокчейну Movement</p>
         </div>
 
-        <div className="glass-card flex items-center gap-3 px-4 py-3 rounded-xl">
-          <label className="text-muted-foreground text-sm">Gameweek:</label>
+        <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] px-4 py-2.5 rounded-2xl">
+          <span className="text-white/40 text-xs font-bold uppercase tracking-widest">Тур</span>
           <select
             value={selectedGameweek}
             onChange={(e) => setSelectedGameweek(Number(e.target.value))}
-            className="bg-secondary text-foreground px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border border-border"
+            className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer"
           >
             {Array.from({ length: config?.currentGameweek || 1 }, (_, i) => i + 1).map((gw) => (
-              <option key={gw} value={gw}>
+              <option key={gw} value={gw} className="bg-[#0D0F12]">
                 GW {gw}
               </option>
             ))}
@@ -117,103 +121,103 @@ export default function LeaderboardPage() {
 
       {/* Gameweek Summary */}
       {currentGameweek ? (
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <p className="text-muted-foreground text-sm mb-2">Status</p>
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          {/* Status */}
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Статус</p>
             <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-lg font-bold",
-              currentGameweek.status === "open" && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-              currentGameweek.status === "closed" && "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-              currentGameweek.status === "resolved" && "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide border",
+              currentGameweek.status === "open" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+              currentGameweek.status === "closed" && "bg-amber-500/10 text-amber-400 border-amber-500/25",
+              currentGameweek.status === "resolved" && "bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/25"
             )}>
               <span className={cn(
-                "w-2 h-2 rounded-full",
+                "w-1.5 h-1.5 rounded-full",
                 currentGameweek.status === "open" && "bg-emerald-400 animate-pulse",
                 currentGameweek.status === "closed" && "bg-amber-400",
-                currentGameweek.status === "resolved" && "bg-blue-400"
+                currentGameweek.status === "resolved" && "bg-[#00F0FF]"
               )} />
-              {currentGameweek.status.toUpperCase()}
+              {currentGameweek.status === "open" ? "Відкрито" : currentGameweek.status === "closed" ? "Закрито" : "Завершено"}
             </div>
           </div>
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <p className="text-muted-foreground text-sm mb-2">Prize Pool</p>
-            <p className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-              {formatMOVE(currentGameweek.prizePool)} MOVE
+
+          {/* Prize Pool */}
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Призовий фонд</p>
+            <p className="text-3xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent tabular-nums">
+              {formatMOVE(currentGameweek.prizePool)}
             </p>
+            <p className="text-white/30 text-xs mt-0.5">MOVE</p>
           </div>
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <p className="text-muted-foreground text-sm mb-2">Total Entries</p>
-            <p className="text-3xl font-bold text-white">
+
+          {/* Entries */}
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Учасників</p>
+            <p className="text-3xl font-display font-black text-white tabular-nums">
               {currentGameweek.totalEntries}
             </p>
           </div>
         </div>
       ) : (
-        <div className="glass-card rounded-2xl p-8 text-center mb-8">
-          <p className="text-muted-foreground">No data available for Gameweek {selectedGameweek}</p>
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 text-center mb-8">
+          <p className="text-white/30 text-sm">Немає даних для Gameweek {selectedGameweek}</p>
         </div>
       )}
 
       {/* User's Result Highlight */}
       {userResult && (
-        <div className="glass-card rounded-2xl p-6 mb-8 border-2 border-emerald-500/50 glow-green">
-          <div className="flex items-center gap-2 mb-4">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <div className="flex items-center justify-between w-full">
-              <h2 className="text-lg font-bold text-emerald-400">Your Result (GW {selectedGameweek})</h2>
-              {userResult.rank > 0 && userResult.rank <= 10 && (
-                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30">
-                  IN THE PRIZE MONEY!
-                </span>
-              )}
+        <div className="bg-[#00F0FF]/[0.04] border border-[#00F0FF]/20 shadow-[0_0_40px_rgba(0,240,255,0.06)] rounded-2xl p-6 mb-8">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#00F0FF]/15 border border-[#00F0FF]/25 flex items-center justify-center">
+                <svg className="w-4 h-4 text-[#00F0FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">Мій результат · GW {selectedGameweek}</h2>
             </div>
+            {userResult.rank > 0 && userResult.rank <= 10 && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                У призах 🎉
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div className="stat-card px-4 py-3 rounded-xl">
-              <p className={cn(
-                "text-3xl font-bold",
-                userResult.rank === 1 && "rank-gold",
-                userResult.rank === 2 && "rank-silver",
-                userResult.rank === 3 && "rank-bronze",
-                userResult.rank > 3 && "text-white",
-                userResult.rank === 0 && "text-muted-foreground"
-              )}>
-                {userResult.rank > 0 ? `#${userResult.rank}` : "N/A"}
-              </p>
-              <p className="text-sm text-muted-foreground">Rank</p>
-            </div>
-            <div className="stat-card px-4 py-3 rounded-xl">
-              <p className="text-3xl font-bold text-white">{userResult.finalPoints}</p>
-              <p className="text-sm text-muted-foreground">Points</p>
-            </div>
-            <div className="stat-card px-4 py-3 rounded-xl">
-              <p className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-                {userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "-"}
-              </p>
-              <p className="text-sm text-muted-foreground">Prize (MOVE)</p>
-            </div>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              {
+                label: "Місце",
+                value: userResult.rank > 0 ? `#${userResult.rank}` : "—",
+                className: userResult.rank === 1 ? "text-[#FFD700]" : userResult.rank === 2 ? "text-[#E2E8F0]" : userResult.rank === 3 ? "text-[#F59E0B]" : "text-white"
+              },
+              { label: "Очки", value: String(userResult.finalPoints), className: "text-white" },
+              {
+                label: "Приз (MOVE)",
+                value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—",
+                className: "text-emerald-400"
+              },
+            ].map(({ label, value, className }) => (
+              <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
+                <p className={cn("text-2xl font-display font-black tabular-nums", className)}>{value}</p>
+                <p className="text-[10px] text-white/30 uppercase tracking-wider mt-0.5">{label}</p>
+              </div>
+            ))}
             <div className="flex items-center justify-center">
               {userResult.prizeAmount > 0 && !userResult.claimed && (
                 <button
                   onClick={() => handleClaimPrize(selectedGameweek)}
                   disabled={isClaiming}
-                  className="btn-primary px-6 py-3 rounded-xl font-medium disabled:opacity-50"
+                  className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00F0FF] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isClaiming ? "Claiming..." : "Claim Prize"}
+                  {isClaiming ? "..." : "Отримати"}
                 </button>
               )}
               {userResult.claimed && (
-                <span className="flex items-center gap-2 text-emerald-400 font-medium">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Claimed
-                </span>
+                <div className="text-center">
+                  <p className="text-emerald-400 font-bold text-sm">✓ Отримано</p>
+                </div>
               )}
               {userResult.prizeAmount === 0 && (
-                <span className="text-xs text-muted-foreground">No prize this time</span>
+                <p className="text-white/20 text-xs text-center">Без призу</p>
               )}
             </div>
           </div>
@@ -221,54 +225,52 @@ export default function LeaderboardPage() {
       )}
 
       {/* Prize Distribution Info */}
-      <div className="glass-card rounded-2xl p-6 mb-8">
-        <h2 className="text-xl font-bold text-white mb-6 text-center">Prize Distribution (Top 10)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-8">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 text-center mb-5">Розподіл призового фонду · Топ-10</p>
+        <div className="grid grid-cols-5 gap-2">
           {[
-            { rank: "1st", share: "30%", color: "text-amber-400" },
-            { rank: "2nd", share: "20%", color: "text-gray-300" },
-            { rank: "3rd", share: "15%", color: "text-orange-400" },
-            { rank: "4th", share: "8%", color: "text-white" },
-            { rank: "5th", share: "7%", color: "text-white" },
-            { rank: "6th", share: "6%", color: "text-white/80" },
-            { rank: "7th", share: "5%", color: "text-white/80" },
-            { rank: "8th", share: "4%", color: "text-white/80" },
-            { rank: "9th", share: "3%", color: "text-white/60" },
-            { rank: "10th", share: "2%", color: "text-white/60" }
+            { rank: "1", medal: "🥇", share: "30%", color: "text-[#FFD700]" },
+            { rank: "2", medal: "🥈", share: "20%", color: "text-[#E2E8F0]" },
+            { rank: "3", medal: "🥉", share: "15%", color: "text-[#F59E0B]" },
+            { rank: "4", medal: null, share: "8%", color: "text-white/80" },
+            { rank: "5", medal: null, share: "7%", color: "text-white/80" },
+            { rank: "6", medal: null, share: "6%", color: "text-white/60" },
+            { rank: "7", medal: null, share: "5%", color: "text-white/60" },
+            { rank: "8", medal: null, share: "4%", color: "text-white/50" },
+            { rank: "9", medal: null, share: "3%", color: "text-white/50" },
+            { rank: "10", medal: null, share: "2%", color: "text-white/40" }
           ].map((prize) => (
-            <div key={prize.rank} className="bg-secondary/30 rounded-xl p-4 text-center border border-border">
-              <p className="text-sm text-muted-foreground mb-1">{prize.rank}</p>
-              <p className={cn("text-xl font-bold", prize.color)}>{prize.share}</p>
+            <div key={prize.rank} className="bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-2 text-center">
+              <p className="text-xs text-white/25 mb-1">#{prize.rank}</p>
+              <p className={cn("text-lg font-display font-black", prize.color)}>
+                {prize.medal || prize.share}
+              </p>
+              {prize.medal && <p className="text-xs text-white/40 mt-0.5">{prize.share}</p>}
             </div>
           ))}
         </div>
       </div>
 
       {/* Leaderboard Table */}
-      <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden">
         {leaderboardData.length > 0 ? (
           <LeaderboardTable
             results={leaderboardData}
             currentUser={account?.address?.toString()}
           />
         ) : (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">No results yet</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">
-              Results for Gameweek {selectedGameweek} haven't been published by the oracle yet.
+          <div className="p-14 text-center">
+            <div className="text-4xl mb-4">🏆</div>
+            <h3 className="text-lg font-display font-black text-white uppercase tracking-tight mb-2">Результатів поки немає</h3>
+            <p className="text-white/30 text-sm max-w-xs mx-auto">
+              Результати Gameweek {selectedGameweek} ще не опубліковані.
             </p>
           </div>
         )}
       </div>
 
-      <p className="text-center text-muted-foreground text-sm mt-6 glass-card rounded-xl py-4 px-6">
-        Showing real on-chain results for Gameweek {selectedGameweek}.
-        Prize amounts are based on the total MOVE pool for this gameweek.
+      <p className="text-center text-white/20 text-xs mt-6">
+        Реальні on-chain результати · Gameweek {selectedGameweek} · Movement Testnet
       </p>
     </div>
   );

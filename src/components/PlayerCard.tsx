@@ -10,11 +10,11 @@ interface PlayerCardProps {
   compact?: boolean;
 }
 
-const positionColors = {
-  GK: "from-amber-400 to-yellow-600",
-  DEF: "from-blue-400 to-indigo-600",
-  MID: "from-emerald-400 to-green-600",
-  FWD: "from-rose-400 to-red-600",
+const positionGradients = {
+  GK: "from-amber-500 to-orange-600",
+  DEF: "from-blue-500 to-indigo-600",
+  MID: "from-emerald-500 to-teal-600",
+  FWD: "from-rose-500 to-red-600",
 };
 
 const positionBadgeColors = {
@@ -24,17 +24,12 @@ const positionBadgeColors = {
   FWD: "bg-rose-500/20 text-rose-400 border-rose-500/30",
 };
 
-/** Availability dot: green = available, amber = doubtful, red = injured */
+/** Availability dot */
 function StatusDot({ status, chance }: { status?: string; chance?: number | null }) {
   if (!status || status === "a") return null;
   const color =
     status === "i" ? "bg-red-500" : chance === 0 ? "bg-red-500" : "bg-amber-400";
-  return (
-    <span
-      className={cn("w-2 h-2 rounded-full shrink-0", color)}
-      title={status === "i" ? "Injured" : "Doubtful"}
-    />
-  );
+  return <span className={cn("w-2 h-2 rounded-full shrink-0", color)} />;
 }
 
 /** Form badge — avg pts per match last 4 GWs */
@@ -77,14 +72,12 @@ function FormBadge({ form }: { form?: number }) {
             </div>
           </div>
         </div>
-        {/* Arrow pointing right */}
         <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-b-[5px] border-l-[5px] border-t-transparent border-b-transparent border-l-[#1a1d26]" />
       </div>
     </div>
   );
 }
 
-/** Compact version shown inside the pitch formation */
 export function PlayerCard({
   player,
   selected = false,
@@ -98,18 +91,16 @@ export function PlayerCard({
       <div
         onClick={onClick}
         className={cn(
-          "p-2 rounded-xl cursor-pointer transition-all",
+          "p-2 rounded-xl cursor-pointer transition-all flex flex-col items-center gap-1 border",
           selected
-            ? "bg-gradient-to-br from-emerald-500/20 to-green-600/20 border border-emerald-500/50"
-            : "bg-secondary/50 hover:bg-secondary/80 border border-transparent",
-          "flex flex-col items-center gap-1"
+            ? "bg-[#00F0FF]/10 border-[#00F0FF]/30 shadow-[0_0_10px_rgba(0,240,255,0.1)]"
+            : "bg-white/[0.05] border-white/10 hover:bg-white/[0.08]"
         )}
       >
-        {/* Avatar */}
         <div
           className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br shadow-lg overflow-hidden",
-            positionColors[player.position]
+            positionGradients[player.position]
           )}
         >
           {photoUrl ? (
@@ -118,15 +109,13 @@ export function PlayerCard({
               src={photoUrl}
               alt={player.name}
               className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           ) : (
             player.position
           )}
         </div>
-        <span className="text-xs font-medium text-center truncate w-full text-foreground">
+        <span className="text-[10px] font-semibold text-center truncate w-full text-white/80">
           {player.webName || player.name.split(" ").pop()}
         </span>
       </div>
@@ -137,18 +126,18 @@ export function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        "p-4 rounded-xl cursor-pointer transition-all border-2",
+        "group p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border",
         selected
-          ? "border-emerald-500/50 bg-emerald-500/10"
-          : "border-transparent bg-secondary/50 hover:border-border hover:bg-secondary/80"
+          ? "border-[#00F0FF]/30 bg-[#00F0FF]/[0.05] shadow-[0_0_15px_rgba(0,240,255,0.08)]"
+          : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12]"
       )}
     >
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <div
           className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-lg overflow-hidden shrink-0",
-            positionColors[player.position]
+            "w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-lg overflow-hidden shrink-0 border border-white/10",
+            positionGradients[player.position]
           )}
         >
           {photoUrl ? (
@@ -157,40 +146,32 @@ export function PlayerCard({
               src={photoUrl}
               alt={player.name}
               className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           ) : (
             player.position
           )}
         </div>
 
+        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="font-medium text-foreground truncate">
+            <p className="font-semibold text-white truncate text-sm">
               {player.webName || player.name}
             </p>
             <StatusDot status={player.status} chance={player.chanceOfPlaying} />
           </div>
-          <p className="text-sm text-muted-foreground">{player.team}</p>
+          <p className="text-xs text-white/40">{player.team}</p>
         </div>
 
+        {/* Right: position + form */}
         <div className="flex flex-col items-end gap-1.5 shrink-0">
-          {/* Position badge */}
-          <div
-            className={cn(
-              "px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border",
-              positionBadgeColors[player.position]
-            )}
-          >
+          <div className={cn("px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border", positionBadgeColors[player.position])}>
             {player.position}
           </div>
-          {/* Form */}
           <FormBadge form={player.form} />
         </div>
       </div>
-
     </div>
   );
 }

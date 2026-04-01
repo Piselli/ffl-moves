@@ -301,15 +301,15 @@ export default function GameweekPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center max-w-md w-full">
+          <div className="w-16 h-16 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-[#00F0FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-4">Squad Selection</h1>
-          <p className="text-muted-foreground">Please connect your wallet to select your squad.</p>
+          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">Вибір складу</h1>
+          <p className="text-white/40 text-sm leading-relaxed">Підключи гаманець щоб вибрати свій склад на поточний тур.</p>
         </div>
       </div>
     );
@@ -346,8 +346,8 @@ export default function GameweekPage() {
         </div>
 
         {/* Starters */}
-        <div className="glass-card rounded-2xl p-6 mb-4">
-          <h2 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">Основа</h2>
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
+          <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Основа</h2>
           <div className="space-y-1">
             {positionOrder.map((pos) => {
               const posPlayers = teamToShow.filter((p) => p.position === pos);
@@ -390,17 +390,17 @@ export default function GameweekPage() {
 
   if (!currentGameweek || currentGameweek.status !== "open") {
     return (
-      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-6">
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center max-w-md w-full">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-4">No Open Gameweek</h1>
-          <p className="text-muted-foreground">
-            There is no gameweek currently open for registration.
-            {currentGameweek && ` Gameweek ${currentGameweek.id} is ${currentGameweek.status}.`}
+          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">Тур недоступний</h1>
+          <p className="text-white/40 text-sm leading-relaxed">
+            Зараз немає відкритого ігрового тижня.
+            {currentGameweek && ` Gameweek ${currentGameweek.id} — ${currentGameweek.status}.`}
           </p>
         </div>
       </div>
@@ -418,10 +418,10 @@ export default function GameweekPage() {
             Обери 11 гравців. Максимум 3 з однієї команди.
           </p>
         </div>
-        <div className="glass-card px-6 py-4 rounded-xl">
-          <p className="text-sm text-muted-foreground">Вартість реєстрації</p>
-          <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-            {config ? formatMOVE(config.entryFee) : "-"} MOVE
+        <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Вартість реєстрації</p>
+          <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent">
+            {config ? formatMOVE(config.entryFee) : "—"} MOVE
           </p>
         </div>
       </div>
@@ -434,43 +434,39 @@ export default function GameweekPage() {
             onPlayerClick={handleSlotClick}
           />
 
-          <div className="mt-6 glass-card rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm">
+          <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 flex items-center justify-between">
+            <span className={cn(
+              "flex items-center gap-2 text-sm font-semibold",
+              starters.filter(Boolean).length === 11 ? "text-emerald-400" : "text-white/40"
+            )}>
               <span className={cn(
-                "flex items-center gap-2 px-3 py-1 rounded-full",
-                starters.filter(Boolean).length === 11
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-secondary text-muted-foreground"
-              )}>
-                <span className={cn(
-                  "w-2 h-2 rounded-full",
-                  starters.filter(Boolean).length === 11 ? "bg-emerald-400" : "bg-muted-foreground"
-                )} />
-                {starters.filter(Boolean).length}/11 Starters
-              </span>
-            </div>
+                "w-2 h-2 rounded-full",
+                starters.filter(Boolean).length === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20"
+              )} />
+              {starters.filter(Boolean).length}/11 основних
+            </span>
           </div>
 
           <button
             onClick={handleSubmitTeam}
             disabled={!isTeamComplete || isSubmitting}
             className={cn(
-              "mt-4 w-full py-4 rounded-xl font-bold text-lg transition-all",
+              "mt-3 w-full py-4 rounded-2xl font-display font-black text-lg uppercase tracking-wide transition-all duration-200",
               isTeamComplete && !isSubmitting
-                ? "btn-primary"
-                : "bg-secondary text-muted-foreground cursor-not-allowed"
+                ? "bg-gradient-to-r from-emerald-500 to-[#00F0FF] text-black hover:brightness-110 hover:scale-[1.01] shadow-[0_0_30px_rgba(0,240,255,0.25)]"
+                : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed"
             )}
           >
             {isSubmitting
-              ? "Submitting..."
+              ? "Реєстрація..."
               : isTeamComplete
-              ? `Confirm Team (${formatMOVE(config?.entryFee || 0)} MOVE)`
-              : "Complete Your Squad"}
+              ? `Підтвердити склад · ${formatMOVE(config?.entryFee || 0)} MOVE`
+              : "Обери всіх 11 гравців"}
           </button>
         </div>
 
         {/* Player List */}
-        <div className="glass-card rounded-2xl p-4">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4">
           <div className="mb-4 space-y-3">
             {/* Search */}
             <div className="relative">
@@ -482,7 +478,7 @@ export default function GameweekPage() {
                 placeholder="Пошук гравця..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-secondary/50 rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary border border-border"
+                className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00F0FF]/50 border border-white/[0.08] focus:border-[#00F0FF]/30 transition-colors"
               />
             </div>
             {/* Position filter */}
@@ -494,8 +490,8 @@ export default function GameweekPage() {
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     positionFilter === pos
-                      ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25"
-                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30 shadow-[0_0_12px_rgba(0,240,255,0.15)]"
+                      : "bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/80"
                   )}
                 >
                   {pos}
@@ -510,7 +506,7 @@ export default function GameweekPage() {
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 bg-secondary/50 rounded-xl text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm appearance-none cursor-pointer"
+                className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00F0FF]/50 focus:border-[#00F0FF]/30 text-sm appearance-none cursor-pointer transition-colors"
               >
                 <option value="">Всі команди</option>
                 {uniqueTeams.map((team) => (
@@ -523,11 +519,11 @@ export default function GameweekPage() {
             </div>
             {/* Active filters count */}
             {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{filteredPlayers.length} гравців знайдено</span>
+              <div className="flex items-center justify-between text-xs text-white/40">
+                <span>{filteredPlayers.length} гравців</span>
                 <button
                   onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }}
-                  className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                  className="text-[#00F0FF]/70 hover:text-[#00F0FF] font-semibold transition-colors"
                 >
                   Скинути фільтри
                 </button>
@@ -539,19 +535,19 @@ export default function GameweekPage() {
             {playersLoading ? (
               // Loading skeleton
               Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="p-4 rounded-xl bg-secondary/30 animate-pulse flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-secondary/60" />
+                <div key={i} className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] animate-pulse flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.08] shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-secondary/60 rounded w-32" />
-                    <div className="h-3 bg-secondary/40 rounded w-20" />
+                    <div className="h-3.5 bg-white/[0.08] rounded-lg w-32" />
+                    <div className="h-2.5 bg-white/[0.05] rounded-lg w-20" />
                   </div>
-                  <div className="w-10 h-6 bg-secondary/60 rounded" />
+                  <div className="w-10 h-6 bg-white/[0.08] rounded-lg" />
                 </div>
               ))
             ) : filteredPlayers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <p className="text-lg">No players found</p>
-                <p className="text-sm mt-1">Try adjusting your search or filter</p>
+              <div className="flex flex-col items-center justify-center h-full text-white/30">
+                <p className="text-base font-semibold">Гравців не знайдено</p>
+                <p className="text-sm mt-1 text-white/20">Спробуй інші фільтри</p>
               </div>
             ) : (
               filteredPlayers.map((player) => {

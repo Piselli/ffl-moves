@@ -1,7 +1,7 @@
 "use client";
 
 import { TeamResult } from "@/lib/types";
-import { shortenAddress, formatMOVE, getMultiplierDisplay } from "@/lib/utils";
+import { shortenAddress, formatMOVE } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 interface LeaderboardTableProps {
@@ -9,111 +9,117 @@ interface LeaderboardTableProps {
   currentUser?: string;
 }
 
+const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const rankColor: Record<number, string> = {
+  1: "text-[#FFD700] drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]",
+  2: "text-[#E2E8F0] drop-shadow-[0_0_4px_rgba(226,232,240,0.4)]",
+  3: "text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.4)]",
+};
+
 export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-border">
-            <th className="text-left py-4 px-4 text-muted-foreground font-medium text-sm">Rank</th>
-            <th className="text-left py-4 px-4 text-muted-foreground font-medium text-sm">Manager</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Base</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Rating</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Title</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Guild</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Final</th>
-            <th className="text-right py-4 px-4 text-muted-foreground font-medium text-sm">Prize</th>
+          <tr className="border-b border-white/[0.06]">
+            {["#", "Менеджер", "Очки", "Приз"].map((h) => (
+              <th
+                key={h}
+                className={cn(
+                  "py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30",
+                  h === "#" ? "text-left w-12" : h === "Менеджер" ? "text-left" : "text-right"
+                )}
+              >
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
-        <tbody>
-          {results.map((result) => (
-            <tr
-              key={result.owner}
-              className={cn(
-                "border-b border-border/50 hover:bg-secondary/30 transition-colors",
-                currentUser === result.owner && "bg-emerald-500/10"
-              )}
-            >
-              <td className="py-4 px-4">
-                <span
-                  className={cn(
-                    "font-bold text-lg",
-                    result.rank === 1 && "rank-gold",
-                    result.rank === 2 && "rank-silver",
-                    result.rank === 3 && "rank-bronze",
-                    result.rank > 3 && "text-foreground"
-                  )}
-                >
-                  #{result.rank}
-                </span>
-              </td>
-              <td className="py-4 px-4">
-                <span className={cn(
-                  "font-mono text-sm",
-                  currentUser === result.owner ? "text-emerald-400" : "text-foreground"
-                )}>
-                  {shortenAddress(result.owner)}
-                  {currentUser === result.owner && (
-                    <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      You
+        <tbody className="divide-y divide-white/[0.04]">
+          {results.map((result, idx) => {
+            const isUser = currentUser === result.owner;
+            const medal = rankMedal[result.rank];
+            const rColor = rankColor[result.rank];
+            const isTop3 = result.rank <= 3;
+
+            return (
+              <tr
+                key={result.owner}
+                className={cn(
+                  "group transition-colors duration-150",
+                  isUser
+                    ? "bg-[#00F0FF]/[0.04] hover:bg-[#00F0FF]/[0.07]"
+                    : "hover:bg-white/[0.03]"
+                )}
+              >
+                {/* Rank */}
+                <td className="py-4 px-4">
+                  {medal ? (
+                    <span className="text-xl">{medal}</span>
+                  ) : (
+                    <span className={cn("font-display font-black text-base", rColor || "text-white/50")}>
+                      {result.rank > 0 ? `#${result.rank}` : "—"}
                     </span>
                   )}
-                </span>
-              </td>
-              <td className="py-4 px-4 text-right text-foreground">
-                {result.basePoints}
-              </td>
-              <td className="py-4 px-4 text-right">
-                <span className={cn(
-                  "font-medium",
-                  result.ratingBonus > 0 && "text-emerald-400",
-                  result.ratingBonus < 0 && "text-destructive",
-                  result.ratingBonus === 0 && "text-muted-foreground"
-                )}>
-                  {result.ratingBonus > 0 ? "+" : ""}{result.ratingBonus}
-                </span>
-              </td>
-              <td className="py-4 px-4 text-right">
-                {result.titleTriggered ? (
-                  <span className="text-emerald-400 font-medium">
-                    +{getMultiplierDisplay(result.titleMultiplier)}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </td>
-              <td className="py-4 px-4 text-right">
-                {result.guildTriggered ? (
-                  <span className="text-emerald-400 font-medium">
-                    +{getMultiplierDisplay(result.guildMultiplier)}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </td>
-              <td className="py-4 px-4 text-right">
-                <span className="font-bold text-foreground text-lg">
-                  {result.finalPoints}
-                </span>
-              </td>
-              <td className="py-4 px-4 text-right">
-                {result.prizeAmount > 0 ? (
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-medium bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-                      {formatMOVE(result.prizeAmount)} MOVE
-                    </span>
-                    {result.claimed && (
-                      <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                        Claimed
-                      </span>
-                    )}
+                </td>
+
+                {/* Manager */}
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0",
+                      isTop3
+                        ? "bg-gradient-to-br from-white/20 to-white/5 border border-white/15"
+                        : "bg-white/[0.05] border border-white/[0.08]"
+                    )}>
+                      {String(idx + 1)}
+                    </div>
+                    <div>
+                      <p className={cn(
+                        "font-mono text-sm font-medium",
+                        isUser ? "text-[#00F0FF]" : "text-white/80"
+                      )}>
+                        {shortenAddress(result.owner)}
+                      </p>
+                      {isUser && (
+                        <span className="text-[10px] font-bold text-[#00F0FF]/60 uppercase tracking-widest">
+                          Ви
+                        </span>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </td>
-            </tr>
-          ))}
+                </td>
+
+                {/* Points */}
+                <td className="py-4 px-4 text-right">
+                  <span className={cn(
+                    "font-display font-black text-xl tabular-nums",
+                    rColor || (isUser ? "text-[#00F0FF]" : "text-white")
+                  )}>
+                    {result.finalPoints}
+                  </span>
+                </td>
+
+                {/* Prize */}
+                <td className="py-4 px-4 text-right">
+                  {result.prizeAmount > 0 ? (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-display font-black text-sm text-emerald-400 tabular-nums">
+                        {formatMOVE(result.prizeAmount)} MOVE
+                      </span>
+                      {result.claimed && (
+                        <span className="text-[9px] font-bold text-emerald-400/50 uppercase tracking-wider">
+                          Отримано ✓
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-white/20 text-sm">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
