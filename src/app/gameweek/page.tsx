@@ -426,9 +426,9 @@ export default function GameweekPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8 lg:items-start">
         {/* Formation View */}
-        <div>
+        <div className="flex flex-col">
           <FormationGrid
             starters={starters}
             onPlayerClick={handleSlotClick}
@@ -466,7 +466,7 @@ export default function GameweekPage() {
         </div>
 
         {/* Player List */}
-        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)', position: 'sticky', top: '88px' }}>
           <div className="mb-4 space-y-3">
             {/* Search */}
             <div className="relative">
@@ -531,7 +531,7 @@ export default function GameweekPage() {
             )}
           </div>
 
-          <div className="h-[600px] overflow-y-auto space-y-2 pr-2">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-2">
             {playersLoading ? (
               // Loading skeleton
               Array.from({ length: 8 }).map((_, i) => (
