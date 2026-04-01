@@ -3,6 +3,7 @@
 import { TeamResult } from "@/lib/types";
 import { shortenAddress, formatMOVE } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useNickname } from "@/hooks/useNickname";
 
 interface LeaderboardTableProps {
   results: (TeamResult & { owner: string })[];
@@ -17,6 +18,8 @@ const rankColor: Record<number, string> = {
 };
 
 export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps) {
+  const { getNickname } = useNickname();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -111,7 +114,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                         "font-mono text-sm font-medium",
                         isUser ? "text-[#00C46A]" : "text-white/80"
                       )}>
-                        {shortenAddress(result.owner)}
+                        {getNickname(result.owner)}
                       </p>
                       {isUser && (
                         <span className="text-[10px] font-bold text-[#00C46A]/60 uppercase tracking-widest">

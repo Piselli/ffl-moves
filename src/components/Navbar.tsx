@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
+import { useNickname } from "@/hooks/useNickname";
+import { NicknameModal } from "./NicknameModal";
 
 const navLinks = [
   { href: "/gameweek", label: "Склад" },
@@ -15,10 +17,22 @@ const navLinks = [
 export function Navbar() {
   const { connected, account, connect, disconnect, wallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+
+  const address = account?.address?.toString() ?? null;
+  const { getNickname, setNickname, hasNickname, myNickname } = useNickname(address);
+
+  // Auto-open nickname modal on first connection
+  useEffect(() => {
+    if (connected && address && mounted && !hasNickname(address)) {
+      const timer = setTimeout(() => setShowNicknameModal(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [connected, address, mounted, hasNickname]);
 
   useEffect(() => {
     setMounted(true);
@@ -134,17 +148,35 @@ export function Navbar() {
           </div>
         </div>
 
+        {/* ── Nickname Modal ───────────────────────────── */}
+        {showNicknameModal && address && (
+          <NicknameModal
+            address={address}
+            currentNickname={myNickname}
+            onSave={(name) => setNickname(address, name)}
+            onClose={() => setShowNicknameModal(false)}
+          />
+        )}
+
         {/* ── Right: Wallet ────────────────────────────── */}
         <div className="relative flex items-center gap-3" ref={dropdownRef}>
           {connected && account ? (
             <div className="flex items-center gap-3">
-              {/* Address pill */}
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10">
+              {/* Nickname / address pill — click to edit */}
+              <button
+                onClick={() => setShowNicknameModal(true)}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-[#00C46A]/40 hover:bg-white/[0.08] transition-all duration-200 group"
+                title={myNickname ? "Змінити нікнейм" : "Встановити нікнейм"}
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse shadow-[0_0_6px_rgba(0,196,106,0.8)]" />
                 <span className="text-xs text-[#00C46A] font-black font-display uppercase tracking-wider">
-                  {shortenAddress(account.address.toString())}
+                  {myNickname ?? shortenAddress(account.address.toString())}
                 </span>
-              </div>
+                {/* Edit icon */}
+                <svg className="w-3 h-3 text-white/20 group-hover:text-[#00C46A]/60 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
               {/* Disconnect */}
               <button
                 onClick={disconnect}
