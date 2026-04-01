@@ -184,6 +184,25 @@ export async function getTeamResult(owner: string, gameweekId: number) {
   }
 }
 
+export async function getUserTeam(owner: string, gameweekId: number): Promise<{ playerIds: number[], positions: number[], captainId: number } | null> {
+  try {
+    const result = await aptos.view({
+      payload: {
+        function: moduleFunction("get_user_team"),
+        typeArguments: [],
+        functionArguments: [owner, gameweekId.toString()],
+      },
+    });
+    return {
+      playerIds: (result[0] as string[]).map(Number),
+      positions: (result[1] as string[]).map(Number),
+      captainId: Number(result[2]),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
   try {
     const result = await aptos.view({

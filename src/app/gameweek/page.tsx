@@ -6,7 +6,7 @@ import { FormationGrid } from "@/components/FormationGrid";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
-import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult } from "@/lib/aptos";
+import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -55,7 +55,7 @@ export default function GameweekPage() {
           const registered = await hasRegisteredTeam(account.address.toString(), configData.currentGameweek);
           setAlreadyRegistered(registered);
 
-          // Try to restore saved team from localStorage
+          // Try to restore saved team from localStorage, fallback to chain
           if (registered) {
             const key = `ffl_team_gw${configData.currentGameweek}_${account.address.toString()}`;
             const saved = localStorage.getItem(key);
@@ -63,6 +63,23 @@ export default function GameweekPage() {
               try {
                 setRegisteredTeam(JSON.parse(saved));
               } catch {}
+            } else {
+              // Fetch from chain and reconstruct team using players list
+              const chainTeam = await getUserTeam(account.address.toString(), configData.currentGameweek);
+              if (chainTeam) {
+                // Wait for players to be available — fetch them inline if needed
+                const playersRes = await fetch("/api/players").then(r => r.json()).catch(() => null);
+                const allPlayers: Player[] = Array.isArray(playersRes) ? playersRes : [];
+                if (allPlayers.length > 0) {
+                  const teamPlayers = chainTeam.playerIds.map(id => allPlayers.find(p => p.id === id)).filter(Boolean) as Player[];
+                  const teamSnapshot = {
+                    starters: teamPlayers.slice(0, 11),
+                    bench: teamPlayers.slice(11),
+                  };
+                  setRegisteredTeam(teamSnapshot);
+                  localStorage.setItem(key, JSON.stringify(teamSnapshot));
+                }
+              }
             }
           }
 
