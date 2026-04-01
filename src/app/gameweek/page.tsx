@@ -10,12 +10,14 @@ import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekS
 import { formatMOVE, cn } from "@/lib/utils";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
+type TeamFilter = string;
 
 export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
+  const [teamFilter, setTeamFilter] = useState<TeamFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [config, setConfig] = useState<any>(null);
@@ -127,13 +129,19 @@ export default function GameweekPage() {
     return counts;
   }, [starters]);
 
+  const uniqueTeams = useMemo(() => {
+    const teams = [...new Set(players.map((p) => p.team))].filter(Boolean);
+    return teams.sort((a, b) => a.localeCompare(b));
+  }, [players]);
+
   const filteredPlayers = useMemo(() => {
     return players.filter((p) => {
       if (positionFilter !== "ALL" && p.position !== positionFilter) return false;
+      if (teamFilter && p.team !== teamFilter) return false;
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [players, positionFilter, searchQuery]);
+  }, [players, positionFilter, teamFilter, searchQuery]);
 
   const canSelectPlayer = (player: Player): boolean => {
     if (selectedPlayers.has(player.id)) return false;
@@ -464,19 +472,21 @@ export default function GameweekPage() {
         {/* Player List */}
         <div className="glass-card rounded-2xl p-4">
           <div className="mb-4 space-y-3">
+            {/* Search */}
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
-                placeholder="Search players..."
+                placeholder="Пошук гравця..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-secondary/50 rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary border border-border"
               />
             </div>
-            <div className="flex gap-2">
+            {/* Position filter */}
+            <div className="flex gap-2 flex-wrap">
               {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
                 <button
                   key={pos}
@@ -492,6 +502,37 @@ export default function GameweekPage() {
                 </button>
               ))}
             </div>
+            {/* Team filter */}
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18M3 14h12M3 18h8" />
+              </svg>
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                className="w-full pl-9 pr-8 py-2.5 bg-secondary/50 rounded-xl text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm appearance-none cursor-pointer"
+              >
+                <option value="">Всі команди</option>
+                {uniqueTeams.map((team) => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {/* Active filters count */}
+            {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{filteredPlayers.length} гравців знайдено</span>
+                <button
+                  onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                >
+                  Скинути фільтри
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="h-[600px] overflow-y-auto space-y-2 pr-2">

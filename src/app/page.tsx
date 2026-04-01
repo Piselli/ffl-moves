@@ -8,6 +8,60 @@ import { getConfig, getGameweek } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 
+// ─── Countdown Timer ──────────────────────────────────────────────────────────
+function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number }) {
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    function update() {
+      const diff = new Date(targetTime).getTime() - Date.now();
+      if (diff <= 0) { setExpired(true); setTimeLeft({ d: 0, h: 0, m: 0, s: 0 }); return; }
+      setTimeLeft({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [targetTime]);
+
+  if (!timeLeft) return <span className="text-white/20 animate-pulse text-lg">—</span>;
+
+  const units = [
+    { v: timeLeft.d, l: "д" },
+    { v: timeLeft.h, l: "г" },
+    { v: timeLeft.m, l: "хв" },
+    { v: timeLeft.s, l: "с" },
+  ];
+
+  return (
+    <div className="flex flex-col items-start">
+      <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">
+        До дедлайну GW{gwId}
+      </p>
+      {expired ? (
+        <span className="text-white/40 text-sm font-bold">Дедлайн пройшов</span>
+      ) : (
+        <div className="flex items-end gap-1.5">
+          {units.map(({ v, l }, i) => (
+            <div key={l} className="flex items-baseline gap-0.5">
+              <span className="font-display font-black text-xl sm:text-2xl text-white tabular-nums leading-none">
+                {String(v).padStart(2, "0")}
+              </span>
+              <span className="text-[9px] text-white/30 uppercase tracking-wider">{l}</span>
+              {i < units.length - 1 && <span className="text-white/20 font-black text-lg ml-0.5">:</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Animated number counter ─────────────────────────────────────────────────
 function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
@@ -415,6 +469,9 @@ export default function Home() {
   const [totalManagers, setTotalManagers] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   
+  // Fixtures / deadline
+  const [fixturesData, setFixturesData] = useState<any>(null);
+
   // Accordion state
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
 
@@ -436,6 +493,13 @@ export default function Home() {
       }
     }
     fetchOnChainData();
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/fixtures")
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setFixturesData(d); })
+      .catch(() => {});
   }, []);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
@@ -611,6 +675,14 @@ export default function Home() {
                 )}
               </p>
             </div>
+            {fixturesData?.gameweek?.deadlineTime && (
+              <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
+                <CountdownTimer
+                  targetTime={fixturesData.gameweek.deadlineTime}
+                  gwId={fixturesData.gameweek.id}
+                />
+              </div>
+            )}
           </motion.div>
 
           {/* CTAs */}
@@ -746,12 +818,10 @@ export default function Home() {
             }
           />
 
-        {/* STEP 2: Cinematic Full-Width */}
-        <div id="step-2" className="mt-8 md:mt-16 w-full max-w-[1600px] mx-auto relative z-10 flex flex-col items-center">
-          {/* Glowing background behind step 2 */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.08)_0%,transparent_50%)] pointer-events-none" />
-          
-          <div className="w-full max-w-4xl mx-auto px-4 text-center mb-6 sm:mb-10 relative z-10">
+        {/* STEP 2: Матчі туру */}
+        <div id="step-2" className="mt-8 md:mt-16 w-full max-w-[1400px] mx-auto relative z-10 flex flex-col items-center px-4 sm:px-6 lg:px-8">
+          {/* Heading */}
+          <div className="w-full max-w-4xl mx-auto text-center mb-8 sm:mb-12">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -759,31 +829,109 @@ export default function Home() {
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]"></span>
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
                 <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00F0FF] uppercase">
-                  Крок 2: Живі дані
+                  Крок 2: Матчі туру
                 </span>
               </div>
-              <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight">
-                Ваші гравці. <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight">
+                {fixturesData?.gameweek?.name ?? "Розклад матчів"}
               </h3>
-              <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
-                Отримуй очки щоразу, коли твої гравці забивають, асистують або зберігають ворота сухими.
+              <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-xl mx-auto leading-relaxed">
+                Обери своїх гравців до початку туру — після дедлайну внести зміни вже не вийде.
               </p>
             </motion.div>
           </div>
-          
-          <div className="w-full px-2 sm:px-4 lg:px-8 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <LiveDataCarousel />
-            </motion.div>
-          </div>
+
+          {/* Fixture grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full"
+          >
+            {!fixturesData ? (
+              /* Loading skeleton */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="h-[90px] rounded-2xl bg-white/[0.03] border border-white/5 animate-pulse" />
+                ))}
+              </div>
+            ) : fixturesData.fixtures?.length === 0 ? (
+              <p className="text-white/30 text-center py-8">Матчі ще не визначені</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {fixturesData.fixtures.map((f: any) => {
+                  const ko = new Date(f.kickoffTime);
+                  const dateStr = ko.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+                  const timeStr = ko.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+                  const hasScore = f.scoreH !== null && f.scoreA !== null;
+
+                  return (
+                    <div
+                      key={f.id}
+                      className="group relative bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] hover:border-[#00F0FF]/20 rounded-2xl px-3 py-3 flex flex-col items-center gap-2 transition-all duration-300"
+                    >
+                      {/* Date / time */}
+                      <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-white/30">
+                        <span>{dateStr}</span>
+                        <span className="text-white/15">•</span>
+                        <span className="text-[#00F0FF]/60">{timeStr}</span>
+                      </div>
+
+                      {/* Teams row */}
+                      <div className="flex items-center justify-between w-full gap-1">
+                        {/* Home */}
+                        <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                          <img
+                            src={f.teamH.badge}
+                            alt={f.teamH.shortName}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
+                          />
+                          <span className="text-[9px] font-black text-white/70 uppercase tracking-wider truncate w-full text-center">
+                            {f.teamH.shortName}
+                          </span>
+                        </div>
+
+                        {/* Score / vs */}
+                        <div className="flex flex-col items-center shrink-0 w-10">
+                          {hasScore ? (
+                            <span className="font-display font-black text-base text-white leading-none">
+                              {f.scoreH}<span className="text-white/20 mx-0.5">-</span>{f.scoreA}
+                            </span>
+                          ) : (
+                            <span className="text-white/20 font-bold text-xs">vs</span>
+                          )}
+                        </div>
+
+                        {/* Away */}
+                        <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                          <img
+                            src={f.teamA.badge}
+                            alt={f.teamA.shortName}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
+                          />
+                          <span className="text-[9px] font-black text-white/70 uppercase tracking-wider truncate w-full text-center">
+                            {f.teamA.shortName}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Finished badge */}
+                      {f.finished && (
+                        <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
+                          Завершено
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
         </div>
 
         {/* ═══════════════════ STEP 3: REWARDS (SORARE STYLE) ═══════════════════ */}
