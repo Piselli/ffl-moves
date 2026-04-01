@@ -22,7 +22,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
       <table className="w-full">
         <thead>
           <tr className="border-b border-white/[0.06]">
-            {["#", "Менеджер", "Очки", "Приз"].map((h) => (
+            {(["#", "Менеджер", "Очки"] as const).map((h) => (
               <th
                 key={h}
                 className={cn(
@@ -33,6 +33,38 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                 {h}
               </th>
             ))}
+            {/* Prize column with distribution tooltip */}
+            <th className="py-3 px-4 text-right">
+              <div className="inline-flex items-center gap-1.5 justify-end group/prize relative">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Приз</span>
+                <div className="w-3.5 h-3.5 rounded-full border border-white/20 flex items-center justify-center cursor-default">
+                  <span className="text-[8px] text-white/30 leading-none font-bold">?</span>
+                </div>
+                {/* Tooltip */}
+                <div className="absolute right-0 top-full mt-2 hidden group-hover/prize:block z-50 w-44">
+                  <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Розподіл фонду</p>
+                    <div className="space-y-1">
+                      {[
+                        { rank: "1", medal: "🥇", share: "30%", color: "text-[#FFD700]" },
+                        { rank: "2", medal: "🥈", share: "20%", color: "text-[#E2E8F0]" },
+                        { rank: "3", medal: "🥉", share: "15%", color: "text-[#F59E0B]" },
+                        { rank: "4–5",  medal: null, share: "8% / 7%", color: "text-white/50" },
+                        { rank: "6–8",  medal: null, share: "6% / 5% / 4%", color: "text-white/40" },
+                        { rank: "9–10", medal: null, share: "3% / 2%", color: "text-white/30" },
+                      ].map((p) => (
+                        <div key={p.rank} className="flex items-center justify-between gap-2">
+                          <span className="text-white/30 text-[10px]">
+                            {p.medal ? p.medal : `#${p.rank}`}
+                          </span>
+                          <span className={cn("text-[11px] font-bold tabular-nums", p.color)}>{p.share}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/[0.04]">
