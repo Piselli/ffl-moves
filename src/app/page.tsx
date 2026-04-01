@@ -910,7 +910,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════ SECTION C: SCORING BY POSITION ════════════════════ */}
-      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-20 overflow-hidden">
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-14 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05)_0%,transparent_65%)] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
@@ -921,17 +921,17 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
-            className="mb-12"
+            className="mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
               Правила Гри
             </div>
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
-              <h2 className="text-5xl md:text-6xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-2">
+              <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
                 Система Очок
               </h2>
-              <p className="text-white/40 text-base max-w-sm leading-relaxed">
+              <p className="text-white/40 text-sm max-w-sm leading-relaxed">
                 Кожна позиція має свою роль і свій потенціал. Обирай гравців стратегічно.
               </p>
             </div>
@@ -952,9 +952,9 @@ export default function Home() {
                 <div className="h-0.5 w-full" style={{ backgroundColor: card.color, opacity: 0.7 }} />
 
                 {/* Player header */}
-                <div className="relative flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.05]">
-                  <div className="absolute top-0 left-0 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ backgroundColor: card.color }} />
-                  <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-white/10 relative z-10" style={{ backgroundColor: `${card.color}18` }}>
+                <div className="relative flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/[0.05]">
+                  <div className="absolute top-0 left-0 w-20 h-20 rounded-full blur-3xl opacity-15 pointer-events-none" style={{ backgroundColor: card.color }} />
+                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/10 relative z-10" style={{ backgroundColor: `${card.color}18` }}>
                     <img
                       src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${card.img}`}
                       alt={card.player}
@@ -963,19 +963,19 @@ export default function Home() {
                     />
                   </div>
                   <div className="relative z-10 min-w-0">
-                    <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest mb-1 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
+                    <div className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
                       {card.pos}
                     </div>
-                    <p className="text-sm font-bold text-white truncate leading-tight">{card.player}</p>
+                    <p className="text-xs font-bold text-white truncate leading-tight">{card.player}</p>
                   </div>
                 </div>
 
                 {/* Scoring rows — position-specific only */}
-                <div className="flex-1 px-4 py-3">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-2 px-1">Специфіка позиції</p>
-                  <ul className="space-y-1">
+                <div className="flex-1 px-4 py-2.5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">Специфіка позиції</p>
+                  <ul className="space-y-0.5">
                     {card.gains.map((g) => (
-                      <li key={g.label} className="flex items-center justify-between px-1 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors">
+                      <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
                         <span className="text-xs text-white/50">{g.label}</span>
                         <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400' : 'text-[#00e676]'}`}>{g.pts}</span>
                       </li>
@@ -983,8 +983,8 @@ export default function Home() {
                   </ul>
                 </div>
 
-                {/* Footer: max potential (positive only) */}
-                <div className="px-5 py-3 border-t border-white/[0.04]">
+                {/* Footer */}
+                <div className="px-4 py-2.5 border-t border-white/[0.04]">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-white/20 uppercase tracking-widest">Макс. за тур</span>
                     <span className={`text-sm font-display font-black tabular-nums ${card.colorClass}`}>
@@ -1005,17 +1005,17 @@ export default function Home() {
             className="grid grid-cols-1 sm:grid-cols-2 gap-5"
           >
             {/* Bonuses — all positions */}
-            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-sm">⭐</div>
+              <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-xs">⭐</div>
                 <div>
                   <p className="text-xs font-black text-white uppercase tracking-wider">Загальні бонуси</p>
                   <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
                 </div>
               </div>
-              <ul className="px-5 py-3 grid grid-cols-2 gap-x-6 gap-y-1">
+              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
                 {UNIVERSAL_BONUSES.map((b) => (
-                  <li key={b.label} className="flex items-center justify-between py-1.5 border-b border-white/[0.03]">
+                  <li key={b.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
                     <span className="text-xs text-white/50">{b.label}</span>
                     <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
                   </li>
@@ -1025,16 +1025,16 @@ export default function Home() {
 
             {/* Penalties — all positions */}
             <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-sm">🟥</div>
+              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-xs">🟥</div>
                 <div>
                   <p className="text-xs font-black text-white uppercase tracking-wider">Штрафи</p>
                   <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
                 </div>
               </div>
-              <ul className="px-5 py-3 grid grid-cols-2 gap-x-6 gap-y-1">
+              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
                 {UNIVERSAL_PENALTIES.map((p) => (
-                  <li key={p.label} className="flex items-center justify-between py-1.5 border-b border-white/[0.03]">
+                  <li key={p.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
                     <span className="text-xs text-white/50">{p.label}</span>
                     <span className="text-sm font-display font-black tabular-nums text-rose-400">{p.pts}</span>
                   </li>
