@@ -412,14 +412,14 @@ export default function GameweekPage() {
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">
-            Gameweek {currentGameweek?.id} Squad
+            Gameweek {currentGameweek?.id} · Вибір складу
           </h1>
           <p className="text-muted-foreground">
-            Select 11 starters + 3 subs. Max 3 players per club.
+            Обери 11 гравців. Максимум 3 з однієї команди.
           </p>
         </div>
         <div className="glass-card px-6 py-4 rounded-xl">
-          <p className="text-sm text-muted-foreground">Entry Fee</p>
+          <p className="text-sm text-muted-foreground">Вартість реєстрації</p>
           <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
             {config ? formatMOVE(config.entryFee) : "-"} MOVE
           </p>

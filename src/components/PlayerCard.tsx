@@ -39,16 +39,16 @@ function StatusDot({ status, chance }: { status?: string; chance?: number | null
 
 /** Form badge — avg pts last 5 GWs */
 function FormBadge({ form }: { form?: number }) {
-  if (form === undefined || form === null || isNaN(form)) return null;
+  if (!form || isNaN(form)) return null;
   const color =
-    form >= 7 ? "text-emerald-400 border-emerald-500/40 bg-emerald-500/10" :
-    form >= 5 ? "text-[#00F0FF] border-[#00F0FF]/30 bg-[#00F0FF]/10" :
-    form >= 3 ? "text-amber-400 border-amber-500/40 bg-amber-500/10" :
-                "text-white/30 border-white/10 bg-white/5";
+    form >= 7 ? "text-emerald-400 border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_8px_rgba(52,211,153,0.2)]" :
+    form >= 5 ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/15 shadow-[0_0_8px_rgba(0,240,255,0.15)]" :
+    form >= 3 ? "text-amber-400 border-amber-500/50 bg-amber-500/15" :
+                "text-white/40 border-white/15 bg-white/5";
   return (
-    <div className={cn("flex flex-col items-center px-2 py-1 rounded-lg border shrink-0", color)}>
-      <span className="text-[8px] font-bold uppercase tracking-wider leading-none opacity-70">Форма</span>
-      <span className="font-display font-black text-sm leading-none mt-0.5">{form.toFixed(1)}</span>
+    <div className={cn("flex items-center gap-1 px-2 py-1 rounded-lg border shrink-0", color)}>
+      <span className="text-[9px] font-bold text-current opacity-60 leading-none">ф</span>
+      <span className="font-display font-black text-sm leading-none tabular-nums">{form.toFixed(1)}</span>
     </div>
   );
 }

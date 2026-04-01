@@ -49,7 +49,7 @@ export async function GET() {
         chanceOfPlaying: el.chance_of_playing_next_round,
         news: el.news || "",
         totalPoints: el.total_points,
-        form: parseFloat(el.form),
+        form: parseFloat(el.form) || 0,
         selectedByPercent: parseFloat(el.selected_by_percent),
       }));
 
