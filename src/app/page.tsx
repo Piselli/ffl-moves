@@ -243,6 +243,92 @@ function PlayerCutout({
   );
 }
 
+// ─── Live Scoring Feed ────────────────────────────────────────────────────────
+const LIVE_EVENTS = [
+  { player: "E. Haaland",  action: "Гол!",           pts: "+5",  color: "#00e676", img: "p223094.png", pos: "НАП" },
+  { player: "W. Saliba",   action: "Суха пара",       pts: "+4",  color: "#00bcd4", img: "p462424.png", pos: "ЗАХ" },
+  { player: "P. Foden",    action: "Асист",           pts: "+3",  color: "#00F0FF", img: "p209244.png", pos: "ПЗ"  },
+  { player: "C. Palmer",   action: "Гравець матчу",   pts: "+3",  color: "#FFD700", img: "p244851.png", pos: "ПЗ"  },
+  { player: "B. Saka",     action: "Вихід 60+ хв",   pts: "+2",  color: "#8B5CF6", img: "p223340.png", pos: "НАП" },
+  { player: "J. Pickford", action: "3 Сейви",         pts: "+1",  color: "#00bcd4", img: "p111234.png", pos: "ВР"  },
+  { player: "B. Saka",     action: "Гол!",            pts: "+5",  color: "#00e676", img: "p223340.png", pos: "НАП" },
+  { player: "Gabriel M.",  action: "Суха пара",       pts: "+4",  color: "#00bcd4", img: "p226597.png", pos: "ЗАХ" },
+  { player: "E. Haaland",  action: "Жовта картка",   pts: "−1",  color: "#ef4444", img: "p223094.png", pos: "НАП" },
+  { player: "O. Watkins",  action: "Гол + Асист",    pts: "+8",  color: "#00e676", img: "p178301.png", pos: "НАП" },
+];
+
+function LiveScoringFeed() {
+  const [visibleEvents, setVisibleEvents] = useState(LIVE_EVENTS.slice(0, 5));
+  const [total, setTotal] = useState(LIVE_EVENTS.slice(0, 5).reduce((s, e) => s + parseInt(e.pts), 0));
+  const feedIdxRef = useRef(5);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const idx = feedIdxRef.current % LIVE_EVENTS.length;
+      const newEvent = LIVE_EVENTS[idx];
+      setVisibleEvents((evs) => [newEvent, ...evs.slice(0, 4)]);
+      setTotal((t) => t + parseInt(newEvent.pts));
+      feedIdxRef.current += 1;
+    }, 2200);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="bg-[#111214]/80 border border-white/[0.07] rounded-2xl overflow-hidden h-full flex flex-col">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Живий рахунок</span>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-xl font-display font-black text-[#00e676] tabular-nums">{total > 0 ? `+${total}` : total}</span>
+          <span className="text-[9px] text-white/30 uppercase tracking-wider">балів</span>
+        </div>
+      </div>
+
+      {/* Events */}
+      <div className="flex-1 flex flex-col divide-y divide-white/[0.03] overflow-hidden">
+        <AnimatePresence mode="popLayout">
+          {visibleEvents.map((ev, i) => (
+            <motion.div
+              key={`${ev.player}-${ev.action}-${i}`}
+              initial={{ opacity: 0, y: -24, scale: 0.97 }}
+              animate={{ opacity: 1 - i * 0.18, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-3 px-5 py-3.5"
+            >
+              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5">
+                <img
+                  src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${ev.img}`}
+                  alt={ev.player}
+                  className="w-full h-full object-cover object-top scale-110"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate leading-tight">{ev.player}</p>
+                <p className="text-[11px] text-white/40 truncate">{ev.action}</p>
+              </div>
+              <div
+                className="px-2.5 py-1 rounded-lg text-sm font-display font-black tabular-nums shrink-0"
+                style={{ color: ev.color, backgroundColor: `${ev.color}18`, border: `1px solid ${ev.color}35` }}
+              >
+                {ev.pts}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <div className="px-5 py-3 border-t border-white/[0.04]">
+        <p className="text-[9px] text-white/20 uppercase tracking-widest text-center">Дані АПЛ · Оновлення в реальному часі</p>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── Live Data Carousel (Swipeable) ──────────────────────────────────────────
@@ -877,134 +963,135 @@ export default function Home() {
 
       {/* ═══════════════════ SECTION C: INTERACTIVE SCORING ENGINE ══════════════ */}
       <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 py-20 overflow-hidden">
-        {/* Ambient glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05)_0%,transparent_70%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.06)_0%,transparent_65%)] pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-12 md:gap-12">
-          
-          {/* Header Left (Sticky) */}
-          <div className="md:w-2/5">
-            <div className="sticky top-32">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
-                Правила Гри
-              </div>
-              <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mt-4 mb-6">
+        <div className="max-w-7xl mx-auto">
+
+          {/* Section header — same style as other sections */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+            className="mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+              Правила Гри
+            </div>
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+              <h2 className="text-5xl md:text-6xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
                 Система Очок
               </h2>
-              <p className="text-white/50 text-base leading-relaxed">
-                Дізнайтесь, як ваші футболісти здобувають або втрачають переможні бали в режимі реального часу.
+              <p className="text-white/40 text-base leading-relaxed max-w-sm">
+                Як ваші футболісти здобувають або втрачають бали в режимі реального часу.
               </p>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Elegant Dark Card Scoring Grid Right */}
-          <div className="md:w-3/5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-              
-              {/* Attack Column */}
-              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
-                <div className="p-6 border-b border-white/[0.04]">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                      <span className="text-xl">⚽️</span>
-                    </div>
+          {/* Main layout: live feed left + scoring cards right */}
+          <div className="flex flex-col lg:flex-row gap-8">
+
+            {/* LEFT: Live scoring events feed */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="lg:w-[340px] shrink-0"
+            >
+              <LiveScoringFeed />
+            </motion.div>
+
+            {/* RIGHT: 2×2 scoring cards */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="flex-1"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+
+                {/* Attack */}
+                <div className="bg-[#111214]/80 border border-white/[0.07] rounded-2xl overflow-hidden hover:border-[#00e676]/20 transition-colors group">
+                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#00e676]/10 border border-[#00e676]/20 flex items-center justify-center text-base">⚽️</div>
                     <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Атака</h3>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Голи та результативні передачі</p>
+                      <h3 className="text-xs font-black text-white uppercase tracking-wider">Атака</h3>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest">Голи та результативні передачі</p>
                     </div>
                   </div>
-                </div>
-                <div className="p-4 px-6">
-                  <ul className="space-y-3.5">
+                  <ul className="px-5 py-4 space-y-3">
                     {attackRules.map((r) => (
-                      <li key={r.label} className="flex justify-between items-center text-sm">
-                        <span className="text-white/60">{r.label}</span>
-                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      <li key={r.label} className="flex justify-between items-center">
+                        <span className="text-sm text-white/50">{r.label}</span>
+                        <span className={`font-display font-black text-base tabular-nums ${r.color}`}>{r.pts}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
 
-              {/* Defense Column */}
-              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
-                <div className="p-6 border-b border-white/[0.04]">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                      <span className="text-xl">🛡️</span>
-                    </div>
+                {/* Defense */}
+                <div className="bg-[#111214]/80 border border-white/[0.07] rounded-2xl overflow-hidden hover:border-[#00bcd4]/20 transition-colors group">
+                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#00bcd4]/10 border border-[#00bcd4]/20 flex items-center justify-center text-base">🛡️</div>
                     <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Захист</h3>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Сухі матчі та сейви воротаря</p>
+                      <h3 className="text-xs font-black text-white uppercase tracking-wider">Захист</h3>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest">Сухі матчі та сейви воротаря</p>
                     </div>
                   </div>
-                </div>
-                <div className="p-4 px-6">
-                  <ul className="space-y-3.5">
+                  <ul className="px-5 py-4 space-y-3">
                     {defenseRules.map((r) => (
-                      <li key={r.label} className="flex justify-between items-center text-sm">
-                        <span className="text-white/60">{r.label}</span>
-                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      <li key={r.label} className="flex justify-between items-center">
+                        <span className="text-sm text-white/50">{r.label}</span>
+                        <span className={`font-display font-black text-base tabular-nums ${r.color}`}>{r.pts}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
 
-              {/* Penalty Column */}
-              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
-                <div className="p-6 border-b border-white/[0.04]">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <span className="text-xl">🟥</span>
-                    </div>
+                {/* Penalties */}
+                <div className="bg-[#111214]/80 border border-white/[0.07] rounded-2xl overflow-hidden hover:border-red-500/20 transition-colors group">
+                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-base">🟥</div>
                     <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Штрафи</h3>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Помилки, пропущені голи, картки</p>
+                      <h3 className="text-xs font-black text-white uppercase tracking-wider">Штрафи</h3>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest">Помилки, картки, автоголи</p>
                     </div>
                   </div>
-                </div>
-                <div className="p-4 px-6">
-                  <ul className="space-y-3.5">
+                  <ul className="px-5 py-4 space-y-3">
                     {penaltyRules.map((r) => (
-                      <li key={r.label} className="flex justify-between items-center text-sm">
-                        <span className="text-white/60">{r.label}</span>
-                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      <li key={r.label} className="flex justify-between items-center">
+                        <span className="text-sm text-white/50">{r.label}</span>
+                        <span className={`font-display font-black text-base tabular-nums ${r.color}`}>{r.pts}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
 
-              {/* Base & Bonus Column */}
-              <div className="bg-[#141517] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
-                <div className="p-6 border-b border-white/[0.04]">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20">
-                      <span className="text-xl">🏆</span>
-                    </div>
+                {/* Bonuses */}
+                <div className="bg-[#111214]/80 border border-white/[0.07] rounded-2xl overflow-hidden hover:border-[#8B5CF6]/20 transition-colors group">
+                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center text-base">🏆</div>
                     <div>
-                      <h3 className="text-sm font-bold text-[#8B5CF6] uppercase tracking-wider mb-1">Активи та Бонуси</h3>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">Ігровий час та спеціальні нагороди</p>
+                      <h3 className="text-xs font-black text-[#8B5CF6] uppercase tracking-wider">Активи та Бонуси</h3>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest">Ігровий час та нагороди</p>
                     </div>
                   </div>
-                </div>
-                <div className="p-4 px-6">
-                  <ul className="space-y-3.5">
+                  <ul className="px-5 py-4 space-y-3">
                     {baseRules.map((r) => (
-                      <li key={r.label} className="flex justify-between items-center text-sm">
-                        <span className="text-white/60">{r.label}</span>
-                        <span className={`font-black tracking-wide ${r.color}`}>{r.pts}</span>
+                      <li key={r.label} className="flex justify-between items-center">
+                        <span className="text-sm text-white/50">{r.label}</span>
+                        <span className={`font-display font-black text-base tabular-nums ${r.color}`}>{r.pts}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
 
-            </div>
+              </div>
+            </motion.div>
           </div>
-          
         </div>
       </section>
 
