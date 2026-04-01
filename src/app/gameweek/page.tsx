@@ -84,15 +84,22 @@ export default function GameweekPage() {
 
   // Fallback: load team from chain when localStorage is empty but players list is ready
   useEffect(() => {
-    if (!alreadyRegistered || registeredTeam || !players.length || !account?.address || !config) return;
+    const hasValidTeam = (registeredTeam?.starters?.length ?? 0) > 0;
+    if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
 
     async function loadFromChain() {
       const key = `ffl_team_gw${config.currentGameweek}_${account!.address.toString()}`;
       const saved = localStorage.getItem(key);
       if (saved) {
-        try { setRegisteredTeam(JSON.parse(saved)); } catch {}
-        return;
+        try {
+          const parsed = JSON.parse(saved);
+          if ((parsed?.starters?.length ?? 0) > 0) {
+            setRegisteredTeam(parsed);
+            return;
+          }
+        } catch {}
       }
+
       const chainTeam = await getUserTeam(account!.address.toString(), config.currentGameweek);
       if (!chainTeam || !chainTeam.playerIds.length) return;
 

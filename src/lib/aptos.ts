@@ -184,7 +184,7 @@ export async function getTeamResult(owner: string, gameweekId: number) {
   }
 }
 
-export async function getUserTeam(owner: string, gameweekId: number): Promise<{ playerIds: number[], positions: number[], captainId: number } | null> {
+export async function getUserTeam(owner: string, gameweekId: number): Promise<{ playerIds: number[], captainId: number } | null> {
   try {
     const result = await aptos.view({
       payload: {
@@ -193,12 +193,15 @@ export async function getUserTeam(owner: string, gameweekId: number): Promise<{ 
         functionArguments: [owner, gameweekId.toString()],
       },
     });
+    // result[0] = player_ids (array of u64 as strings)
+    // result[1] = player_positions (vector<u8> returned as hex string — skip, use positions from players API)
+    // result[2] = captain_id (u64 as string)
     return {
       playerIds: (result[0] as string[]).map(Number),
-      positions: (result[1] as string[]).map(Number),
       captainId: Number(result[2]),
     };
   } catch (e) {
+    console.error("getUserTeam error:", e);
     return null;
   }
 }
