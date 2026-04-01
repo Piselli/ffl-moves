@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getTeamResult, getUserTeam } from "@/lib/aptos";
+import { getConfig, getTeamResult, getUserTeam, getGameweekTeams } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
@@ -97,6 +97,7 @@ export default function MyResultPage() {
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
+    const addr: string = address;
 
     async function load() {
       setLoading(true);
@@ -107,15 +108,16 @@ export default function MyResultPage() {
         if (!config) throw new Error("Не вдалось завантажити конфіг");
         const currentGwId: number = config.currentGameweek;
         setGwId(currentGwId);
-        setTotalParticipants(config.totalManagers ?? 0);
+        const teams = await getGameweekTeams(currentGwId);
+        setTotalParticipants(teams.length);
 
         // 2. Get result
-        const teamResult = await getTeamResult(address, currentGwId);
+        const teamResult = await getTeamResult(addr, currentGwId);
         if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
-        setResult({ ...teamResult, owner: address });
+        setResult({ ...teamResult, owner: addr });
 
         // 3. Get team player IDs
-        const userTeam = await getUserTeam(address, currentGwId);
+        const userTeam = await getUserTeam(addr, currentGwId);
         if (!userTeam) throw new Error("Склад не знайдено");
 
         // 4. Load players and map by id

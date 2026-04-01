@@ -11,6 +11,7 @@ import { formatMOVE, cn } from "@/lib/utils";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
+type MobileTab = "pitch" | "players";
 
 export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
@@ -28,6 +29,7 @@ export default function GameweekPage() {
   const [playersLoading, setPlayersLoading] = useState(true);
   const [gameweekStats, setGameweekStats] = useState<Record<string, any>>({});
   const [teamResult, setTeamResult] = useState<any>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("players");
 
   // Fetch live FPL players
   useEffect(() => {
@@ -417,66 +419,81 @@ export default function GameweekPage() {
     );
   }
 
+  const starterCount = starters.filter(Boolean).length;
+  const submitBtn = (extraClass = "") => (
+    <button
+      onClick={handleSubmitTeam}
+      disabled={!isTeamComplete || isSubmitting}
+      className={cn(
+        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-all duration-200",
+        isTeamComplete && !isSubmitting
+          ? "bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,196,106,0.25)]"
+          : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed",
+        extraClass
+      )}
+    >
+      {isSubmitting ? "Реєстрація..." : isTeamComplete
+        ? `Підтвердити склад · ${formatMOVE(config?.entryFee || 0)} MOVE`
+        : "Обери всіх 11 гравців"}
+    </button>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-28 pb-8">
-      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            Gameweek {currentGameweek?.id} · Вибір складу
-          </h1>
-          <p className="text-muted-foreground">
-            Обери 11 гравців. Максимум 3 з однієї команди.
-          </p>
+    <div className="bg-[#0D0F12] min-h-screen">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 pt-28">
+        {/* Desktop header */}
+        <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              Gameweek {currentGameweek?.id} · Вибір складу
+            </h1>
+            <p className="text-white/40 text-sm">Обери 11 гравців. Максимум 3 з однієї команди.</p>
+          </div>
+          <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Вартість реєстрації</p>
+            <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent">
+              {config ? formatMOVE(config.entryFee) : "—"} MOVE
+            </p>
+          </div>
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Вартість реєстрації</p>
-          <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent">
-            {config ? formatMOVE(config.entryFee) : "—"} MOVE
-          </p>
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
+              GW{currentGameweek?.id} · Вибір складу
+            </h1>
+            <p className="text-white/30 text-xs mt-0.5">Максимум 3 з однієї команди</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Внесок</p>
+            <p className="text-base font-display font-black text-[#00C46A]">
+              {config ? formatMOVE(config.entryFee) : "—"} MOVE
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8 lg:items-start">
-        {/* Formation View */}
-        <div className="flex flex-col">
-          <FormationGrid
-            starters={starters}
-            onPlayerClick={handleSlotClick}
-          />
-
-          <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 flex items-center justify-between">
-            <span className={cn(
-              "flex items-center gap-2 text-sm font-semibold",
-              starters.filter(Boolean).length === 11 ? "text-emerald-400" : "text-white/40"
-            )}>
+      {/* ── Desktop layout (2 columns) ────────────────────────────────────── */}
+      <div className="hidden lg:block max-w-7xl mx-auto px-4 pb-8">
+        <div className="grid lg:grid-cols-2 gap-8 lg:items-start">
+          {/* Formation */}
+          <div className="flex flex-col">
+            <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
+            <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
               <span className={cn(
-                "w-2 h-2 rounded-full",
-                starters.filter(Boolean).length === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20"
-              )} />
-              {starters.filter(Boolean).length}/11 основних
-            </span>
+                "flex items-center gap-2 text-sm font-semibold",
+                starterCount === 11 ? "text-emerald-400" : "text-white/40"
+              )}>
+                <span className={cn("w-2 h-2 rounded-full", starterCount === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
+                {starterCount}/11 основних
+              </span>
+            </div>
+            {submitBtn("mt-3 text-lg")}
           </div>
 
-          <button
-            onClick={handleSubmitTeam}
-            disabled={!isTeamComplete || isSubmitting}
-            className={cn(
-              "mt-3 w-full py-4 rounded-2xl font-display font-black text-lg uppercase tracking-wide transition-all duration-200",
-              isTeamComplete && !isSubmitting
-                ? "bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 hover:scale-[1.01] shadow-[0_0_30px_rgba(0,196,106,0.25)]"
-                : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed"
-            )}
-          >
-            {isSubmitting
-              ? "Реєстрація..."
-              : isTeamComplete
-              ? `Підтвердити склад · ${formatMOVE(config?.entryFee || 0)} MOVE`
-              : "Обери всіх 11 гравців"}
-          </button>
-        </div>
-
-        {/* Player List */}
-        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)', position: 'sticky', top: '88px' }}>
+          {/* Player List */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)', position: 'sticky', top: '88px' }}>
           <div className="mb-4 space-y-3">
             {/* Search */}
             <div className="relative">
@@ -563,14 +580,8 @@ export default function GameweekPage() {
               filteredPlayers.map((player) => {
                 const isSelected = selectedPlayers.has(player.id);
                 const canSelect = canSelectPlayer(player);
-
                 return (
-                  <div
-                    key={player.id}
-                    className={cn(
-                      !isSelected && !canSelect && "opacity-50"
-                    )}
-                  >
+                  <div key={player.id} className={cn(!isSelected && !canSelect && "opacity-50")}>
                     <PlayerCard
                       player={player}
                       selected={isSelected}
@@ -582,7 +593,167 @@ export default function GameweekPage() {
             )}
           </div>
         </div>
+        </div>{/* end desktop grid */}
+      </div>{/* end desktop layout */}
+
+      {/* ── Mobile layout ─────────────────────────────────────────────────── */}
+      <div className="lg:hidden px-3 pb-28">
+
+        {/* Pitch tab */}
+        {mobileTab === "pitch" && (
+          <div className="flex flex-col gap-3">
+            <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
+              <span className={cn("flex items-center gap-2 text-sm font-semibold", starterCount === 11 ? "text-emerald-400" : "text-white/40")}>
+                <span className={cn("w-2 h-2 rounded-full", starterCount === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
+                {starterCount}/11 основних
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Players tab */}
+        {mobileTab === "players" && (
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3 flex flex-col" style={{ minHeight: 'calc(100vh - 240px)' }}>
+            {/* Filters */}
+            <div className="mb-3 space-y-2">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Пошук гравця..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] text-sm transition-colors"
+                />
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => setPositionFilter(pos)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all",
+                      positionFilter === pos
+                        ? "bg-[#00C46A]/15 text-[#00C46A] border border-[#00C46A]/30"
+                        : "bg-white/[0.04] border border-white/[0.08] text-white/50"
+                    )}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18M3 14h12M3 18h8" />
+                </svg>
+                <select
+                  value={teamFilter}
+                  onChange={(e) => setTeamFilter(e.target.value)}
+                  className="w-full pl-8 pr-7 py-2 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50"
+                >
+                  <option value="">Всі команди</option>
+                  {uniqueTeams.map((team) => <option key={team} value={team}>{team}</option>)}
+                </select>
+                <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
+                <div className="flex items-center justify-between text-xs text-white/40">
+                  <span>{filteredPlayers.length} гравців</span>
+                  <button onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }} className="text-[#00C46A]/70 font-semibold">
+                    Скинути
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Player list */}
+            <div className="flex-1 space-y-1.5 overflow-y-auto">
+              {playersLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] animate-pulse flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.08] shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-white/[0.08] rounded w-28" />
+                      <div className="h-2 bg-white/[0.05] rounded w-16" />
+                    </div>
+                  </div>
+                ))
+              ) : filteredPlayers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-white/30">
+                  <p className="text-sm font-semibold">Гравців не знайдено</p>
+                </div>
+              ) : (
+                filteredPlayers.map((player) => {
+                  const isSelected = selectedPlayers.has(player.id);
+                  const canSelect = canSelectPlayer(player);
+                  return (
+                    <div key={player.id} className={cn(!isSelected && !canSelect && "opacity-50")}>
+                      <PlayerCard
+                        player={player}
+                        selected={isSelected}
+                        onClick={() => { handlePlayerSelect(player); }}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ── Mobile bottom bar ─────────────────────────────────────────────── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0D0F12]/95 backdrop-blur-xl border-t border-white/[0.08] px-3 py-3 safe-area-bottom">
+        {isTeamComplete ? (
+          submitBtn("text-sm py-3")
+        ) : (
+          <div className="flex items-center gap-2">
+            {/* Pitch tab */}
+            <button
+              onClick={() => setMobileTab("pitch")}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
+                mobileTab === "pitch" ? "bg-[#00C46A]/10 text-[#00C46A]" : "text-white/30 hover:text-white/60"
+              )}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" />
+                <path strokeLinecap="round" d="M3 12h18M12 3v18" />
+              </svg>
+              <span className="text-[10px] font-bold uppercase tracking-wide">Поле</span>
+            </button>
+
+            {/* Progress pill */}
+            <div className={cn(
+              "px-4 py-2 rounded-xl border text-center shrink-0",
+              starterCount === 11 ? "border-emerald-500/30 bg-emerald-500/10" : "border-white/[0.08] bg-white/[0.03]"
+            )}>
+              <span className={cn("text-sm font-display font-black tabular-nums", starterCount === 11 ? "text-emerald-400" : "text-white/50")}>
+                {starterCount}/11
+              </span>
+            </div>
+
+            {/* Players tab */}
+            <button
+              onClick={() => setMobileTab("players")}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
+                mobileTab === "players" ? "bg-[#00C46A]/10 text-[#00C46A]" : "text-white/30 hover:text-white/60"
+              )}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-[10px] font-bold uppercase tracking-wide">Гравці</span>
+            </button>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
