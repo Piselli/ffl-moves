@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { getConfig, getGameweek, getTeamResult, getGameweekTeams, moduleFunction } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
@@ -209,11 +210,19 @@ export default function LeaderboardPage() {
               </div>
               <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">Мій результат · GW {selectedGameweek}</h2>
             </div>
-            {userResult.rank > 0 && userResult.rank <= 10 && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                У призах 🎉
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {userResult.rank > 0 && userResult.rank <= 10 && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                  У призах 🎉
+                </span>
+              )}
+              <Link
+                href="/my-result"
+                className="text-[10px] font-bold uppercase tracking-wider text-[#00C46A]/70 hover:text-[#00C46A] border border-[#00C46A]/20 hover:border-[#00C46A]/40 px-3 py-1 rounded-full transition-colors"
+              >
+                Детальніше →
+              </Link>
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
             {[
