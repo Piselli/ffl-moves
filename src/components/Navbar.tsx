@@ -121,12 +121,15 @@ export function Navbar() {
           })}
           {/* Таланти — coming soon, non-clickable */}
           <div className="relative flex flex-col items-center px-4 py-2 rounded-lg cursor-not-allowed select-none">
-            <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
-              Таланти
-            </span>
-            <span className="mt-0.5 text-[8px] font-bold tracking-widest uppercase text-white/20">
-              незабаром
-            </span>
+            <div className="relative">
+              <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
+                Таланти
+              </span>
+              <span className="absolute -top-2 -right-7 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
+                soon
+              </span>
+            </div>
+            <span className="mt-0.5 w-1 h-1 rounded-full bg-transparent" />
           </div>
         </div>
 

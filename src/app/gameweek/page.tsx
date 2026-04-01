@@ -376,35 +376,6 @@ export default function GameweekPage() {
           </div>
         </div>
 
-        {/* Bench */}
-        {benchToShow.length > 0 && (
-          <div className="glass-card rounded-2xl p-6">
-            <h2 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">Запасні</h2>
-            <div className="space-y-1">
-              {benchToShow.map((player) => {
-                const points = calculatePlayerPoints(player);
-                return (
-                  <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors opacity-70">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
-                      {player.position}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{player.webName || player.name}</p>
-                      <p className="text-white/40 text-[10px]">{player.team}</p>
-                    </div>
-                    {currentGameweek?.status === "resolved" && (
-                      <div className="text-right">
-                        <span className="text-xs text-white/40 font-medium">
-                          ({points} pts)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
