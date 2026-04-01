@@ -149,7 +149,7 @@ export default function TitlesPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
@@ -165,7 +165,7 @@ export default function TitlesPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
           <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading...</p>
@@ -175,7 +175,7 @@ export default function TitlesPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium mb-6">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

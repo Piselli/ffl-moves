@@ -310,7 +310,7 @@ export default function AdminPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -326,7 +326,7 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
           <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading...</p>
@@ -337,7 +337,7 @@ export default function AdminPage() {
 
   if (!isAdmin && !isOracle) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,7 +358,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
         <p className="text-muted-foreground">

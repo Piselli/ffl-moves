@@ -593,7 +593,7 @@ export default function Home() {
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
-                  <Counter to={prizePool} suffix=" MOVE" />
+                  <Counter to={prizePool} suffix=" MOVE" decimals={1} />
                 ) : (
                   <span className="text-white/20">N/A</span>
                 )}

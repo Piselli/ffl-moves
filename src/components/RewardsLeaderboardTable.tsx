@@ -19,6 +19,8 @@ const PRIZE_TIERS = [
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 function formatMOVE(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
+  if (n < 1 && n > 0) return n.toFixed(2);
+  if (!Number.isInteger(n)) return n.toFixed(2);
   return n.toLocaleString("en-US");
 }
 
@@ -81,7 +83,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
       type,
       icon,
       colorClass,
-      moveAmount: Math.round((pool * tier.pct) / 100)
+      moveAmount: (pool * tier.pct) / 100
     };
   });
 
