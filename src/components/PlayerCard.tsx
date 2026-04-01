@@ -37,7 +37,7 @@ function StatusDot({ status, chance }: { status?: string; chance?: number | null
   );
 }
 
-/** Form badge — avg pts last 5 GWs */
+/** Form badge — avg pts per match last 4 GWs */
 function FormBadge({ form }: { form?: number }) {
   if (!form || isNaN(form)) return null;
   const color =
@@ -46,9 +46,36 @@ function FormBadge({ form }: { form?: number }) {
     form >= 3 ? "text-amber-400 border-amber-500/50 bg-amber-500/15" :
                 "text-white/40 border-white/15 bg-white/5";
   return (
-    <div className={cn("flex items-center gap-1 px-2 py-1 rounded-lg border shrink-0", color)}>
-      <span className="text-[9px] font-bold text-current opacity-60 leading-none">ф</span>
-      <span className="font-display font-black text-sm leading-none tabular-nums">{form.toFixed(1)}</span>
+    <div className="relative group/form shrink-0">
+      <div className={cn("flex flex-col items-center px-2 py-1 rounded-lg border cursor-default", color)}>
+        <span className="text-[8px] font-bold uppercase tracking-wider leading-none opacity-60">форма</span>
+        <span className="font-display font-black text-sm leading-none tabular-nums mt-0.5">{form.toFixed(1)}</span>
+      </div>
+      {/* Tooltip */}
+      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/form:block z-50 pointer-events-none w-52">
+        <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl">
+          <p className="text-white text-xs font-bold mb-1">Форма гравця</p>
+          <p className="text-white/50 text-[11px] leading-relaxed">
+            Середнє очок за матч у 4 останніх турах. Реальні дані FPL {new Date().getFullYear()}/{String(new Date().getFullYear() + 1).slice(2)}.
+          </p>
+          <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-3 gap-1 text-center">
+            <div>
+              <p className="text-emerald-400 text-[10px] font-black">≥ 7.0</p>
+              <p className="text-white/30 text-[9px]">гарячий</p>
+            </div>
+            <div>
+              <p className="text-[#00F0FF] text-[10px] font-black">≥ 5.0</p>
+              <p className="text-white/30 text-[9px]">добра</p>
+            </div>
+            <div>
+              <p className="text-amber-400 text-[10px] font-black">≥ 3.0</p>
+              <p className="text-white/30 text-[9px]">середня</p>
+            </div>
+          </div>
+        </div>
+        {/* Arrow */}
+        <div className="absolute top-full right-4 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-[#1a1d26]" />
+      </div>
     </div>
   );
 }
