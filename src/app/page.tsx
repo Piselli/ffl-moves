@@ -244,28 +244,19 @@ function PlayerCutout({
 }
 
 // ─── Position Scoring Cards ───────────────────────────────────────────────────
+// Position-specific scoring only (universal bonuses/penalties shown separately below)
 const POSITION_CARDS = [
   {
     pos: "ВР", posEn: "GK",
     player: "Jordan Pickford", img: "p111234.png",
     color: "#F59E0B", colorClass: "text-amber-400", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/25",
     gains: [
-      { label: "Гол",                  pts: "+10" },
-      { label: "Відбитий пенальті",    pts: "+5"  },
-      { label: "Суха пара",            pts: "+4"  },
-      { label: "Асист",                pts: "+3"  },
-      { label: "Гравець матчу",        pts: "+3"  },
-      { label: "Хет-трик",             pts: "+3"  },
-      { label: "Вихід 60+ хв",         pts: "+2"  },
-      { label: "Кожні 3 сейви",        pts: "+1"  },
-      { label: "Вихід 1–59 хв",        pts: "+1"  },
-    ],
-    penalties: [
-      { label: "Жовта картка",         pts: "−1" },
-      { label: "Пропущений гол (×2)",  pts: "−1" },
-      { label: "Незабитий пенальті",   pts: "−2" },
-      { label: "Автогол",              pts: "−2" },
-      { label: "Червона картка",       pts: "−3" },
+      { label: "Гол",                 pts: "+10" },
+      { label: "Відбитий пенальті",   pts: "+5"  },
+      { label: "Суха пара",           pts: "+4"  },
+      { label: "Асист",               pts: "+3"  },
+      { label: "Кожні 3 сейви",       pts: "+1"  },
+      { label: "Пропущений гол (×2)", pts: "−1", negative: true },
     ],
   },
   {
@@ -273,20 +264,10 @@ const POSITION_CARDS = [
     player: "William Saliba", img: "p462424.png",
     color: "#3B82F6", colorClass: "text-blue-400", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25",
     gains: [
-      { label: "Гол",                  pts: "+6"  },
-      { label: "Суха пара",            pts: "+4"  },
-      { label: "Асист",                pts: "+3"  },
-      { label: "Гравець матчу",        pts: "+3"  },
-      { label: "Хет-трик",             pts: "+3"  },
-      { label: "Вихід 60+ хв",         pts: "+2"  },
-      { label: "Вихід 1–59 хв",        pts: "+1"  },
-    ],
-    penalties: [
-      { label: "Жовта картка",         pts: "−1" },
-      { label: "Пропущений гол (×2)",  pts: "−1" },
-      { label: "Незабитий пенальті",   pts: "−2" },
-      { label: "Автогол",              pts: "−2" },
-      { label: "Червона картка",       pts: "−3" },
+      { label: "Гол",                 pts: "+6" },
+      { label: "Суха пара",           pts: "+4" },
+      { label: "Асист",               pts: "+3" },
+      { label: "Пропущений гол (×2)", pts: "−1", negative: true },
     ],
   },
   {
@@ -294,19 +275,9 @@ const POSITION_CARDS = [
     player: "Cole Palmer", img: "p244851.png",
     color: "#10B981", colorClass: "text-emerald-400", bgClass: "bg-emerald-500/10", borderClass: "border-emerald-500/25",
     gains: [
-      { label: "Гол",                  pts: "+5"  },
-      { label: "Асист",                pts: "+3"  },
-      { label: "Гравець матчу",        pts: "+3"  },
-      { label: "Хет-трик",             pts: "+3"  },
-      { label: "Вихід 60+ хв",         pts: "+2"  },
-      { label: "Суха пара",            pts: "+1"  },
-      { label: "Вихід 1–59 хв",        pts: "+1"  },
-    ],
-    penalties: [
-      { label: "Жовта картка",         pts: "−1" },
-      { label: "Незабитий пенальті",   pts: "−2" },
-      { label: "Автогол",              pts: "−2" },
-      { label: "Червона картка",       pts: "−3" },
+      { label: "Гол",       pts: "+5" },
+      { label: "Асист",     pts: "+3" },
+      { label: "Суха пара", pts: "+1" },
     ],
   },
   {
@@ -314,20 +285,24 @@ const POSITION_CARDS = [
     player: "Erling Haaland", img: "p223094.png",
     color: "#F43F5E", colorClass: "text-rose-400", bgClass: "bg-rose-500/10", borderClass: "border-rose-500/25",
     gains: [
-      { label: "Гол",                  pts: "+5"  },
-      { label: "Асист",                pts: "+3"  },
-      { label: "Гравець матчу",        pts: "+3"  },
-      { label: "Хет-трик",             pts: "+3"  },
-      { label: "Вихід 60+ хв",         pts: "+2"  },
-      { label: "Вихід 1–59 хв",        pts: "+1"  },
-    ],
-    penalties: [
-      { label: "Жовта картка",         pts: "−1" },
-      { label: "Незабитий пенальті",   pts: "−2" },
-      { label: "Автогол",              pts: "−2" },
-      { label: "Червона картка",       pts: "−3" },
+      { label: "Гол",   pts: "+5" },
+      { label: "Асист", pts: "+3" },
     ],
   },
+];
+
+const UNIVERSAL_BONUSES = [
+  { label: "Гравець матчу (BPS)", pts: "+3", color: "text-[#FFD700]" },
+  { label: "Хет-трик",           pts: "+3", color: "text-[#FFD700]" },
+  { label: "Вихід 60+ хв",       pts: "+2", color: "text-[#00e676]" },
+  { label: "Вихід 1–59 хв",      pts: "+1", color: "text-[#00e676]" },
+];
+
+const UNIVERSAL_PENALTIES = [
+  { label: "Червона картка",      pts: "−3" },
+  { label: "Автогол",             pts: "−2" },
+  { label: "Незабитий пенальті",  pts: "−2" },
+  { label: "Жовта картка",        pts: "−1" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -963,7 +938,7 @@ export default function Home() {
           </motion.div>
 
           {/* 4 Position Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-5">
             {POSITION_CARDS.map((card, i) => (
               <motion.div
                 key={card.posEn}
@@ -974,13 +949,11 @@ export default function Home() {
                 className="relative bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden flex flex-col group hover:border-white/[0.12] transition-colors duration-300"
               >
                 {/* Top color accent */}
-                <div className="h-0.5 w-full" style={{ backgroundColor: card.color, opacity: 0.6 }} />
+                <div className="h-0.5 w-full" style={{ backgroundColor: card.color, opacity: 0.7 }} />
 
                 {/* Player header */}
-                <div className={`relative flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.05]`}>
-                  {/* Subtle glow behind photo */}
+                <div className="relative flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.05]">
                   <div className="absolute top-0 left-0 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ backgroundColor: card.color }} />
-
                   <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-white/10 relative z-10" style={{ backgroundColor: `${card.color}18` }}>
                     <img
                       src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${card.img}`}
@@ -989,7 +962,6 @@ export default function Home() {
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   </div>
-
                   <div className="relative z-10 min-w-0">
                     <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest mb-1 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
                       {card.pos}
@@ -998,43 +970,78 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Scoring rows */}
-                <div className="flex-1 px-4 pt-3 pb-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-2 px-1">Нараховується</p>
-                  <ul className="space-y-1 mb-3">
-                    {card.gains.map((g) => (
-                      <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
-                        <span className="text-xs text-white/50">{g.label}</span>
-                        <span className="text-sm font-display font-black tabular-nums text-[#00e676]">{g.pts}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="h-px bg-white/[0.05] mb-2" />
-
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-2 px-1">Штрафи</p>
+                {/* Scoring rows — position-specific only */}
+                <div className="flex-1 px-4 py-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-2 px-1">Специфіка позиції</p>
                   <ul className="space-y-1">
-                    {card.penalties.map((p) => (
-                      <li key={p.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
-                        <span className="text-xs text-white/40">{p.label}</span>
-                        <span className="text-sm font-display font-black tabular-nums text-rose-400">{p.pts}</span>
+                    {card.gains.map((g) => (
+                      <li key={g.label} className="flex items-center justify-between px-1 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors">
+                        <span className="text-xs text-white/50">{g.label}</span>
+                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400' : 'text-[#00e676]'}`}>{g.pts}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {/* Footer: max potential */}
+                {/* Footer: max potential (positive only) */}
                 <div className="px-5 py-3 border-t border-white/[0.04]">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-white/20 uppercase tracking-widest">Макс. за тур</span>
                     <span className={`text-sm font-display font-black tabular-nums ${card.colorClass}`}>
-                      {card.gains.reduce((s, g) => s + parseInt(g.pts), 0)} балів
+                      {card.gains.filter(g => !('negative' in g && g.negative)).reduce((s, g) => s + parseInt(g.pts), 0)} балів
                     </span>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
+
+          {/* Universal rules row: Bonuses + Penalties */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+          >
+            {/* Bonuses — all positions */}
+            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-sm">⭐</div>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">Загальні бонуси</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
+                </div>
+              </div>
+              <ul className="px-5 py-3 grid grid-cols-2 gap-x-6 gap-y-1">
+                {UNIVERSAL_BONUSES.map((b) => (
+                  <li key={b.label} className="flex items-center justify-between py-1.5 border-b border-white/[0.03]">
+                    <span className="text-xs text-white/50">{b.label}</span>
+                    <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Penalties — all positions */}
+            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-sm">🟥</div>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">Штрафи</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
+                </div>
+              </div>
+              <ul className="px-5 py-3 grid grid-cols-2 gap-x-6 gap-y-1">
+                {UNIVERSAL_PENALTIES.map((p) => (
+                  <li key={p.label} className="flex items-center justify-between py-1.5 border-b border-white/[0.03]">
+                    <span className="text-xs text-white/50">{p.label}</span>
+                    <span className="text-sm font-display font-black tabular-nums text-rose-400">{p.pts}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
 
         </div>
       </section>
