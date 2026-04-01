@@ -25,12 +25,13 @@ export async function GET() {
     }
 
     // Build team map: id → { name, shortName, badge }
+    // Use t.code (permanent club code) not t.id (seasonal 1-20) for correct badge URLs
     const teamMap: Record<number, { name: string; shortName: string; badge: string }> = {};
     for (const t of data.teams) {
       teamMap[t.id] = {
         name: t.name,
         shortName: t.short_name,
-        badge: `${BADGE_BASE}${t.id}.png`,
+        badge: `${BADGE_BASE}${t.code}.png`,
       };
     }
 
