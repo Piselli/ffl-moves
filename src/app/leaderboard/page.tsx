@@ -147,7 +147,21 @@ export default function LeaderboardPage() {
             <p className="text-3xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent tabular-nums">
               {formatMOVE(currentGameweek.prizePool)}
             </p>
-            <p className="text-white/30 text-xs mt-0.5">MOVE</p>
+            <p className="text-white/30 text-xs mt-0.5 mb-3">MOVE</p>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {[
+                { label: "🥇", share: "30%", color: "text-[#FFD700]" },
+                { label: "🥈", share: "20%", color: "text-white/50" },
+                { label: "🥉", share: "15%", color: "text-[#F59E0B]" },
+              ].map((p) => (
+                <div key={p.label} className="flex items-center gap-1">
+                  <span className="text-xs leading-none">{p.label}</span>
+                  <span className={cn("text-[11px] font-bold tabular-nums", p.color)}>{p.share}</span>
+                </div>
+              ))}
+              <span className="text-white/15 text-xs">·</span>
+              <span className="text-white/25 text-[10px]">топ-10 у призах</span>
+            </div>
           </div>
 
           {/* Entries */}
