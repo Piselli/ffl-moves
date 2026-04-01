@@ -9,6 +9,7 @@ import { shortenAddress } from "@/lib/utils";
 const navLinks = [
   { href: "/gameweek", label: "Склад" },
   { href: "/leaderboard", label: "Лідерборд" },
+  { href: "/fixtures", label: "Матчі" },
 ];
 
 export function Navbar() {

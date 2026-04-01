@@ -11,6 +11,28 @@ const POSITION_MAP: Record<number, "GK" | "DEF" | "MID" | "FWD"> = {
   4: "FWD",
 };
 
+// Our scoring system
+const GOAL_PTS: Record<string, number> = { GK: 10, DEF: 6, MID: 5, FWD: 4 };
+const CS_PTS:   Record<string, number> = { GK: 6,  DEF: 6, MID: 1, FWD: 0 };
+
+function calcOurForm(el: any, position: string): number {
+  const starts = el.starts || 0;
+  if (starts === 0) return 0;
+
+  let pts = 0;
+  pts += (el.goals_scored      || 0) * (GOAL_PTS[position] ?? 4);
+  pts += (el.assists            || 0) * 3;
+  pts += (el.clean_sheets       || 0) * (CS_PTS[position]  ?? 0);
+  pts += (el.saves              || 0) * 1;   // GK +1 per save
+  pts += (el.yellow_cards       || 0) * -1;
+  pts += (el.red_cards          || 0) * -3;
+  pts += (el.own_goals          || 0) * -2;
+  pts += (el.penalties_missed   || 0) * -2;
+  pts += starts * 2;                          // 90+ min full game = +2
+
+  return parseFloat((pts / starts).toFixed(2));
+}
+
 export const revalidate = 3600; // cache for 1 hour
 
 export async function GET() {
@@ -44,12 +66,12 @@ export async function GET() {
         teamId: el.team,
         position: POSITION_MAP[el.element_type] || "MID",
         positionId: el.element_type - 1,
-        photo: `${PHOTO_BASE}${el.code}.jpg`,
+        photo: `${PHOTO_BASE}${el.code}.png`,
         status: el.status, // 'a' = available, 'd' = doubtful, 'i' = injured
         chanceOfPlaying: el.chance_of_playing_next_round,
         news: el.news || "",
         totalPoints: el.total_points,
-        form: parseFloat(el.form) || 0,
+        form: calcOurForm(el, POSITION_MAP[el.element_type] || "MID"),
         selectedByPercent: parseFloat(el.selected_by_percent),
       }));
 

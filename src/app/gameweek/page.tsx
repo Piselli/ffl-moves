@@ -134,13 +134,23 @@ export default function GameweekPage() {
     return teams.sort((a, b) => a.localeCompare(b));
   }, [players]);
 
+  const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+
   const filteredPlayers = useMemo(() => {
-    return players.filter((p) => {
-      if (positionFilter !== "ALL" && p.position !== positionFilter) return false;
-      if (teamFilter && p.team !== teamFilter) return false;
-      if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      return true;
-    });
+    return players
+      .filter((p) => {
+        if (positionFilter !== "ALL" && p.position !== positionFilter) return false;
+        if (teamFilter && p.team !== teamFilter) return false;
+        if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            !p.webName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Group by team first, then by position order within team
+        const teamCmp = a.team.localeCompare(b.team);
+        if (teamCmp !== 0) return teamCmp;
+        return (POSITION_ORDER[a.position] ?? 4) - (POSITION_ORDER[b.position] ?? 4);
+      });
   }, [players, positionFilter, teamFilter, searchQuery]);
 
   const canSelectPlayer = (player: Player): boolean => {

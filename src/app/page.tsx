@@ -249,7 +249,7 @@ const POSITION_CARDS = [
   {
     pos: "ВР", posEn: "GK",
     player: "Jordan Pickford", img: "p111234.png",
-    color: "#F59E0B", colorClass: "text-amber-400", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/25",
+    color: "#F43F5E", colorClass: "text-rose-400", bgClass: "bg-rose-500/15", borderClass: "border-rose-500/40",
     gains: [
       { label: "Гол",                 pts: "+10" },
       { label: "Відбитий пенальті",   pts: "+5"  },
@@ -262,7 +262,7 @@ const POSITION_CARDS = [
   {
     pos: "ЗАХ", posEn: "DEF",
     player: "William Saliba", img: "p462424.png",
-    color: "#3B82F6", colorClass: "text-blue-400", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25",
+    color: "#F59E0B", colorClass: "text-amber-400", bgClass: "bg-amber-500/15", borderClass: "border-amber-500/40",
     gains: [
       { label: "Гол",                 pts: "+6" },
       { label: "Суха пара",           pts: "+4" },
@@ -273,7 +273,7 @@ const POSITION_CARDS = [
   {
     pos: "ПЗ", posEn: "MID",
     player: "Cole Palmer", img: "p244851.png",
-    color: "#10B981", colorClass: "text-emerald-400", bgClass: "bg-emerald-500/10", borderClass: "border-emerald-500/25",
+    color: "#3B82F6", colorClass: "text-blue-400", bgClass: "bg-blue-500/15", borderClass: "border-blue-500/40",
     gains: [
       { label: "Гол",       pts: "+5" },
       { label: "Асист",     pts: "+3" },
@@ -283,7 +283,7 @@ const POSITION_CARDS = [
   {
     pos: "НАП", posEn: "FWD",
     player: "Erling Haaland", img: "p223094.png",
-    color: "#F43F5E", colorClass: "text-rose-400", bgClass: "bg-rose-500/10", borderClass: "border-rose-500/25",
+    color: "#10B981", colorClass: "text-emerald-400", bgClass: "bg-emerald-500/15", borderClass: "border-emerald-500/40",
     gains: [
       { label: "Гол",   pts: "+5" },
       { label: "Асист", pts: "+3" },
@@ -959,7 +959,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="relative z-10 min-w-0">
-                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 bg-white/[0.06] border border-white/[0.10] text-white/50">
+                    <div className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
                       {card.pos}
                     </div>
                     <p className="text-xs font-bold text-white truncate leading-tight">{card.player}</p>
@@ -1000,25 +1000,6 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="grid grid-cols-1 sm:grid-cols-2 gap-5"
           >
-            {/* Bonuses — all positions */}
-              <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-xs">⭐</div>
-                <div>
-                  <p className="text-xs font-black text-white uppercase tracking-wider">Загальні бонуси</p>
-                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
-                </div>
-              </div>
-              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
-                {UNIVERSAL_BONUSES.map((b) => (
-                  <li key={b.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
-                    <span className="text-xs text-white/50">{b.label}</span>
-                    <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* Penalties — all positions */}
             <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
@@ -1037,12 +1018,32 @@ export default function Home() {
                 ))}
               </ul>
             </div>
+
+            {/* Bonuses — all positions */}
+            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-xs">⭐</div>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">Загальні бонуси</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
+                </div>
+              </div>
+              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
+                {UNIVERSAL_BONUSES.map((b) => (
+                  <li key={b.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
+                    <span className="text-xs text-white/50">{b.label}</span>
+                    <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </motion.div>
 
         </div>
       </section>
 
-      {/* ═══════════════════ SECTION D: TALENTS TEASER ══════════════════════════ */}
+
+      {/* ═══════════════════ SECTION E: TALENTS TEASER ══════════════════════════ */}
       <section className="px-6 sm:px-10 lg:px-16 pt-2 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

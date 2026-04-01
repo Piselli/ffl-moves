@@ -10,18 +10,26 @@ interface PlayerCardProps {
   compact?: boolean;
 }
 
-const positionGradients = {
-  GK: "from-amber-500 to-orange-600",
-  DEF: "from-blue-500 to-indigo-600",
-  MID: "from-emerald-500 to-teal-600",
-  FWD: "from-rose-500 to-red-600",
+const positionAvatarBorder = {
+  GK:  "border-rose-400/40",
+  DEF: "border-amber-400/40",
+  MID: "border-blue-400/40",
+  FWD: "border-emerald-400/40",
 };
 
+const positionTextColor = {
+  GK:  "text-rose-400",
+  DEF: "text-amber-400",
+  MID: "text-blue-400",
+  FWD: "text-emerald-400",
+};
+
+// kept for compact border + fallback text
 const positionBadgeColors = {
-  GK: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  DEF: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  MID: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  FWD: "bg-rose-500/20 text-rose-400 border-rose-500/30",
+  GK:  "bg-rose-500/20    text-rose-400    border-rose-500/40",
+  DEF: "bg-amber-500/20   text-amber-400   border-amber-500/40",
+  MID: "bg-blue-500/20    text-blue-400    border-blue-500/40",
+  FWD: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
 };
 
 /** Availability dot */
@@ -51,7 +59,7 @@ function FormBadge({ form }: { form?: number }) {
         <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl">
           <p className="text-white text-xs font-bold mb-1">Форма гравця</p>
           <p className="text-white/50 text-[11px] leading-relaxed mb-2">
-            Середній бал за останні 4 тури поточного сезону АПЛ
+            Середнє очок за гру в нашій системі нарахування (сезон 2025/26)
           </p>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
@@ -86,36 +94,45 @@ export function PlayerCard({
 }: PlayerCardProps) {
   const photoUrl = player.photo || player.imageUrl;
 
+  const positionBorderCompact: Record<string, string> = {
+    GK:  "border-rose-400/60",
+    DEF: "border-amber-400/60",
+    MID: "border-blue-400/60",
+    FWD: "border-emerald-400/60",
+  };
+
   if (compact) {
     return (
       <div
         onClick={onClick}
         className={cn(
-          "p-2 rounded-xl cursor-pointer transition-all flex flex-col items-center gap-1 border",
-          selected
-            ? "bg-[#00C46A]/10 border-[#00C46A]/30 shadow-[0_0_10px_rgba(0,196,106,0.1)]"
-            : "bg-white/[0.05] border-white/10 hover:bg-white/[0.08]"
+          "w-full h-full p-1.5 rounded-xl cursor-pointer transition-all flex flex-col items-center justify-between border-2 bg-black/50 backdrop-blur-sm shadow-lg",
+          positionBorderCompact[player.position]
         )}
       >
-        <div
-          className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br shadow-lg overflow-hidden",
-            positionGradients[player.position]
-          )}
-        >
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-black/40 flex items-center justify-center text-xs font-bold shrink-0 relative">
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={photoUrl}
               alt={player.name}
               className="w-full h-full object-cover object-top"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                img.style.display = "none";
+                const fallback = img.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "flex";
+              }}
             />
-          ) : (
-            player.position
-          )}
+          ) : null}
+          <span
+            className={cn("text-[11px] font-black items-center justify-center", positionBadgeColors[player.position].split(" ")[1])}
+            style={{ display: photoUrl ? "none" : "flex" }}
+          >
+            {player.position}
+          </span>
         </div>
-        <span className="text-[10px] font-semibold text-center truncate w-full text-white/80">
+        <span className="text-[10px] font-bold text-center truncate w-full text-white/90 px-0.5 leading-tight">
           {player.webName || player.name.split(" ").pop()}
         </span>
       </div>
@@ -126,18 +143,18 @@ export function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        "group p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border",
+        "group p-3 rounded-2xl cursor-pointer transition-all duration-200 border",
         selected
           ? "border-[#00C46A]/30 bg-[#00C46A]/[0.05] shadow-[0_0_15px_rgba(0,196,106,0.08)]"
           : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12]"
       )}
     >
       <div className="flex items-center gap-3">
-        {/* Avatar */}
+        {/* Avatar — colored border, dark bg, photo or position fallback */}
         <div
           className={cn(
-            "w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-lg overflow-hidden shrink-0 border border-white/10",
-            positionGradients[player.position]
+            "w-11 h-11 rounded-xl overflow-hidden shrink-0 border-2 bg-white/[0.05] flex items-center justify-center relative",
+            positionAvatarBorder[player.position]
           )}
         >
           {photoUrl ? (
@@ -146,31 +163,40 @@ export function PlayerCard({
               src={photoUrl}
               alt={player.name}
               className="w-full h-full object-cover object-top"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                img.style.display = "none";
+                const fallback = img.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "flex";
+              }}
             />
-          ) : (
-            player.position
-          )}
+          ) : null}
+          <span
+            className={cn("text-xs font-black items-center justify-center", positionTextColor[player.position])}
+            style={{ display: photoUrl ? "none" : "flex" }}
+          >
+            {player.position}
+          </span>
         </div>
 
-        {/* Info */}
+        {/* Info: name + team + position label */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="font-semibold text-white truncate text-sm">
+            <p className="font-semibold text-white truncate text-sm leading-tight">
               {player.webName || player.name}
             </p>
             <StatusDot status={player.status} chance={player.chanceOfPlaying} />
           </div>
-          <p className="text-xs text-white/40">{player.team}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-xs text-white/40 truncate">{player.team}</p>
+            <span className={cn("text-[10px] font-bold uppercase tracking-wide shrink-0", positionTextColor[player.position])}>
+              {player.position}
+            </span>
+          </div>
         </div>
 
-        {/* Right: position + form */}
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <div className={cn("px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border", positionBadgeColors[player.position])}>
-            {player.position}
-          </div>
-          <FormBadge form={player.form} />
-        </div>
+        {/* Right: only form badge */}
+        <FormBadge form={player.form} />
       </div>
     </div>
   );

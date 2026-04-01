@@ -36,10 +36,10 @@ export function FormationGrid({
       : "FWD";
 
     const positionColors: Record<string, string> = {
-      GK: "border-amber-500/40 text-amber-400",
-      DEF: "border-blue-500/40 text-blue-400",
-      MID: "border-emerald-500/40 text-emerald-400",
-      FWD: "border-rose-500/40 text-rose-400",
+      GK:  "border-rose-500/40    text-rose-400",
+      DEF: "border-amber-500/40   text-amber-400",
+      MID: "border-blue-500/40    text-blue-400",
+      FWD: "border-emerald-500/40 text-emerald-400",
     };
 
     if (!player) {
@@ -63,7 +63,7 @@ export function FormationGrid({
       <div
         key={`slot-${isBench ? "bench" : "start"}-${index}`}
         onClick={() => onPlayerClick?.(index, isBench)}
-        className="cursor-pointer transition-all hover:scale-105"
+        className="w-20 h-24 transition-all hover:scale-105"
       >
         <PlayerCard
           player={player}
