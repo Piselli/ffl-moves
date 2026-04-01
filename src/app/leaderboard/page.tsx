@@ -225,26 +225,43 @@ export default function LeaderboardPage() {
       )}
 
       {/* Prize Distribution Info */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3.5 mb-8 flex items-center gap-3 flex-wrap">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-white/25 shrink-0 mr-1">Призи</span>
-        {[
-          { rank: "1", label: "🥇", share: "30%", color: "text-[#FFD700]" },
-          { rank: "2", label: "🥈", share: "20%", color: "text-[#E2E8F0]" },
-          { rank: "3", label: "🥉", share: "15%", color: "text-[#F59E0B]" },
-          { rank: "4", label: "4", share: "8%", color: "text-white/60" },
-          { rank: "5", label: "5", share: "7%", color: "text-white/60" },
-          { rank: "6", label: "6", share: "6%", color: "text-white/50" },
-          { rank: "7", label: "7", share: "5%", color: "text-white/50" },
-          { rank: "8", label: "8", share: "4%", color: "text-white/40" },
-          { rank: "9", label: "9", share: "3%", color: "text-white/40" },
-          { rank: "10", label: "10", share: "2%", color: "text-white/30" },
-        ].map((p, i) => (
-          <div key={p.rank} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-white/10 text-xs">·</span>}
-            <span className={cn("text-sm font-bold", p.color)}>{p.label}</span>
-            <span className="text-xs text-white/30">{p.share}</span>
-          </div>
-        ))}
+      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-8">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-4">Розподіл призового фонду</p>
+
+        {/* Top 3 */}
+        <div className="flex gap-2 mb-3">
+          {[
+            { rank: 1, medal: "🥇", share: "30%", bg: "bg-[#FFD700]/[0.07] border-[#FFD700]/20", text: "text-[#FFD700]" },
+            { rank: 2, medal: "🥈", share: "20%", bg: "bg-white/[0.04] border-white/[0.10]", text: "text-[#E2E8F0]" },
+            { rank: 3, medal: "🥉", share: "15%", bg: "bg-[#F59E0B]/[0.07] border-[#F59E0B]/20", text: "text-[#F59E0B]" },
+          ].map((p) => (
+            <div key={p.rank} className={cn("flex-1 flex items-center gap-3 rounded-xl px-4 py-3 border", p.bg)}>
+              <span className="text-2xl leading-none">{p.medal}</span>
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-wider">Місце {p.rank}</p>
+                <p className={cn("text-xl font-display font-black leading-tight", p.text)}>{p.share}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Places 4–10 */}
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { rank: 4, share: "8%" },
+            { rank: 5, share: "7%" },
+            { rank: 6, share: "6%" },
+            { rank: 7, share: "5%" },
+            { rank: 8, share: "4%" },
+            { rank: 9, share: "3%" },
+            { rank: 10, share: "2%" },
+          ].map((p) => (
+            <div key={p.rank} className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5">
+              <span className="text-white/25 text-[10px] font-bold">#{p.rank}</span>
+              <span className="text-white/50 text-xs font-bold">{p.share}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Leaderboard Table */}
