@@ -37,6 +37,22 @@ function StatusDot({ status, chance }: { status?: string; chance?: number | null
   );
 }
 
+/** Form badge — avg pts last 5 GWs */
+function FormBadge({ form }: { form?: number }) {
+  if (form === undefined || form === null || isNaN(form)) return null;
+  const color =
+    form >= 7 ? "text-emerald-400 border-emerald-500/40 bg-emerald-500/10" :
+    form >= 5 ? "text-[#00F0FF] border-[#00F0FF]/30 bg-[#00F0FF]/10" :
+    form >= 3 ? "text-amber-400 border-amber-500/40 bg-amber-500/10" :
+                "text-white/30 border-white/10 bg-white/5";
+  return (
+    <div className={cn("flex flex-col items-center px-2 py-1 rounded-lg border shrink-0", color)}>
+      <span className="text-[8px] font-bold uppercase tracking-wider leading-none opacity-70">Форма</span>
+      <span className="font-display font-black text-sm leading-none mt-0.5">{form.toFixed(1)}</span>
+    </div>
+  );
+}
+
 /** Compact version shown inside the pitch formation */
 export function PlayerCard({
   player,
@@ -129,14 +145,18 @@ export function PlayerCard({
           <p className="text-sm text-muted-foreground">{player.team}</p>
         </div>
 
-        {/* Position badge (no price) */}
-        <div
-          className={cn(
-            "px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border",
-            positionBadgeColors[player.position]
-          )}
-        >
-          {player.position}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          {/* Position badge */}
+          <div
+            className={cn(
+              "px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border",
+              positionBadgeColors[player.position]
+            )}
+          >
+            {player.position}
+          </div>
+          {/* Form */}
+          <FormBadge form={player.form} />
         </div>
       </div>
 
