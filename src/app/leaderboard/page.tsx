@@ -119,80 +119,83 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Gameweek Summary */}
+      {/* Gameweek Summary — compact single row */}
       {currentGameweek ? (
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-4 mb-8 flex items-center gap-6 flex-wrap">
+
           {/* Status */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Статус</p>
-            <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide border",
-              currentGameweek.status === "open" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
-              currentGameweek.status === "closed" && "bg-amber-500/10 text-amber-400 border-amber-500/25",
-              currentGameweek.status === "resolved" && "bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/25"
+          <div className="flex items-center gap-2.5">
+            <span className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              currentGameweek.status === "open" && "bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]",
+              currentGameweek.status === "closed" && "bg-amber-400",
+              currentGameweek.status === "resolved" && "bg-[#00F0FF]"
+            )} />
+            <span className={cn(
+              "text-sm font-bold uppercase tracking-wide",
+              currentGameweek.status === "open" && "text-emerald-400",
+              currentGameweek.status === "closed" && "text-amber-400",
+              currentGameweek.status === "resolved" && "text-[#00F0FF]"
             )}>
-              <span className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                currentGameweek.status === "open" && "bg-emerald-400 animate-pulse",
-                currentGameweek.status === "closed" && "bg-amber-400",
-                currentGameweek.status === "resolved" && "bg-[#00F0FF]"
-              )} />
               {currentGameweek.status === "open" ? "Відкрито" : currentGameweek.status === "closed" ? "Закрито" : "Завершено"}
-            </div>
+            </span>
           </div>
 
+          <div className="w-px h-5 bg-white/[0.08]" />
+
           {/* Prize Pool */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Призовий фонд</p>
-            <p className="text-3xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent tabular-nums">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Фонд</span>
+            <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00F0FF] bg-clip-text text-transparent tabular-nums">
               {formatMOVE(currentGameweek.prizePool)}
-            </p>
-            <p className="text-white/30 text-xs mt-0.5">MOVE</p>
-            {/* Distribution hint */}
-            <div className="relative group/dist inline-block mt-3">
-              <span className="text-[10px] text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2">
-                розподіл призів
-              </span>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dist:block z-50 w-48 pointer-events-none">
-                <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2.5">Топ-10 отримують</p>
-                  <div className="space-y-1.5">
-                    {[
-                      { rank: "1", icon: "🥇", share: "30%", color: "text-[#FFD700]" },
-                      { rank: "2", icon: "🥈", share: "20%", color: "text-white/70" },
-                      { rank: "3", icon: "🥉", share: "15%", color: "text-[#F59E0B]" },
-                      { rank: "4", icon: null, share: "8%",  color: "text-white/40" },
-                      { rank: "5", icon: null, share: "7%",  color: "text-white/40" },
-                      { rank: "6", icon: null, share: "6%",  color: "text-white/35" },
-                      { rank: "7", icon: null, share: "5%",  color: "text-white/35" },
-                      { rank: "8", icon: null, share: "4%",  color: "text-white/30" },
-                      { rank: "9", icon: null, share: "3%",  color: "text-white/30" },
-                      { rank: "10", icon: null, share: "2%", color: "text-white/25" },
-                    ].map((p) => (
-                      <div key={p.rank} className="flex items-center justify-between">
-                        <span className="text-white/30 text-[11px]">
-                          {p.icon ? p.icon : `#${p.rank}`}
-                        </span>
-                        <span className={cn("text-xs font-bold tabular-nums", p.color)}>{p.share}</span>
-                      </div>
-                    ))}
-                  </div>
+            </span>
+            <span className="text-white/30 text-xs">MOVE</span>
+          </div>
+
+          <div className="w-px h-5 bg-white/[0.08]" />
+
+          {/* Entries */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Учасників</span>
+            <span className="text-xl font-display font-black text-white tabular-nums">
+              {currentGameweek.totalEntries}
+            </span>
+          </div>
+
+          {/* Distribution tooltip — pushed to the right */}
+          <div className="ml-auto relative group/dist">
+            <span className="text-[10px] text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2 whitespace-nowrap">
+              розподіл призів
+            </span>
+            <div className="absolute top-full right-0 mt-2 hidden group-hover/dist:block z-50 w-44 pointer-events-none">
+              <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Топ-10 отримують</p>
+                <div className="space-y-1">
+                  {[
+                    { rank: "1",  icon: "🥇", share: "30%", color: "text-[#FFD700]" },
+                    { rank: "2",  icon: "🥈", share: "20%", color: "text-white/60" },
+                    { rank: "3",  icon: "🥉", share: "15%", color: "text-[#F59E0B]" },
+                    { rank: "4",  icon: null,  share: "8%",  color: "text-white/40" },
+                    { rank: "5",  icon: null,  share: "7%",  color: "text-white/40" },
+                    { rank: "6",  icon: null,  share: "6%",  color: "text-white/35" },
+                    { rank: "7",  icon: null,  share: "5%",  color: "text-white/35" },
+                    { rank: "8",  icon: null,  share: "4%",  color: "text-white/30" },
+                    { rank: "9",  icon: null,  share: "3%",  color: "text-white/30" },
+                    { rank: "10", icon: null,  share: "2%",  color: "text-white/25" },
+                  ].map((p) => (
+                    <div key={p.rank} className="flex items-center justify-between">
+                      <span className="text-white/30 text-[11px]">{p.icon ?? `#${p.rank}`}</span>
+                      <span className={cn("text-xs font-bold tabular-nums", p.color)}>{p.share}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="w-2 h-2 bg-[#1a1d26] border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
               </div>
             </div>
           </div>
 
-          {/* Entries */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Учасників</p>
-            <p className="text-3xl font-display font-black text-white tabular-nums">
-              {currentGameweek.totalEntries}
-            </p>
-          </div>
         </div>
       ) : (
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 text-center mb-8">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center mb-8">
           <p className="text-white/30 text-sm">Немає даних для Gameweek {selectedGameweek}</p>
         </div>
       )}
