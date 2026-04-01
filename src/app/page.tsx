@@ -927,14 +927,12 @@ export default function Home() {
               <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
               Правила Гри
             </div>
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-2">
-              <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
-                Система Очок
-              </h2>
-              <p className="text-white/40 text-sm max-w-sm leading-relaxed">
-                Кожна позиція має свою роль і свій потенціал. Обирай гравців стратегічно.
-              </p>
-            </div>
+            <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-2">
+              Система Очок
+            </h2>
+            <p className="text-white/40 text-sm leading-relaxed">
+              Кожна позиція має свою роль і свій потенціал. Обирай гравців стратегічно.
+            </p>
           </motion.div>
 
           {/* 4 Position Cards */}
