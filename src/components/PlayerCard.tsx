@@ -52,14 +52,31 @@ function FormBadge({ form }: { form?: number }) {
         <span className="font-display font-black text-sm leading-none tabular-nums mt-0.5">{form.toFixed(1)}</span>
       </div>
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/form:block z-50 pointer-events-none w-44">
+      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/form:block z-50 pointer-events-none w-52">
         <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl">
-          <p className="text-white text-xs font-bold mb-0.5">Форма гравця</p>
-          <p className="text-white/50 text-[11px] leading-relaxed">
-            Середній бал за останні 5 турів
+          <p className="text-white text-xs font-bold mb-1">Форма гравця</p>
+          <p className="text-white/50 text-[11px] leading-relaxed mb-2">
+            Середній бал за останні 4 тури поточного сезону АПЛ
           </p>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-emerald-400 text-[10px] font-black">≥ 7.0</span>
+              <span className="text-white/40 text-[10px]">гравець у топ-формі</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[#00F0FF] text-[10px] font-black">≥ 5.0</span>
+              <span className="text-white/40 text-[10px]">стабільно набирає</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-amber-400 text-[10px] font-black">≥ 3.0</span>
+              <span className="text-white/40 text-[10px]">непостійний</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/30 text-[10px] font-black">&lt; 3.0</span>
+              <span className="text-white/40 text-[10px]">погана форма</span>
+            </div>
+          </div>
         </div>
-        {/* Arrow */}
         <div className="absolute top-full right-4 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-[#1a1d26]" />
       </div>
     </div>
