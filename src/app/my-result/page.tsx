@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getTeamResult, getUserTeam, getGameweekTeams } from "@/lib/aptos";
+import { getConfig, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
@@ -27,25 +27,73 @@ const positionBorder: Record<string, string> = {
 
 const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
-function PlayerResultCard({ player, isCaptain }: { player: Player; isCaptain: boolean }) {
+function calcPoints(player: Player, stats: any): number {
+  if (!stats) return 0;
+  let pts = 0;
+  const mins    = Number(stats.minutes_played ?? stats.minutesPlayed ?? 0);
+  const goals   = Number(stats.goals ?? 0);
+  const assists = Number(stats.assists ?? 0);
+  const cs      = stats.clean_sheet ?? stats.cleanSheet ?? false;
+  const saves   = Number(stats.saves ?? 0);
+  const penSaved  = Number(stats.penalties_saved ?? stats.penaltiesSaved ?? 0);
+  const penMissed = Number(stats.penalties_missed ?? stats.penaltiesMissed ?? 0);
+  const og       = Number(stats.own_goals ?? stats.ownGoals ?? 0);
+  const yc       = Number(stats.yellow_cards ?? stats.yellowCards ?? 0);
+  const rc       = Number(stats.red_cards ?? stats.redCards ?? 0);
+
+  if (mins > 0) { pts += 1; if (mins >= 60) pts += 1; }
+  if (goals > 0) {
+    const gPts = player.positionId === 3 ? 4 : player.positionId === 2 ? 5 : 6;
+    pts += goals * gPts;
+  }
+  pts += assists * 3;
+  if (cs && mins >= 60 && player.positionId <= 1) pts += 4;
+  if (player.positionId === 0) pts += Math.floor(saves / 3);
+  pts += penSaved * 5;
+  pts -= penMissed * 2;
+  pts -= og * 2;
+  pts -= yc;
+  pts -= rc * 3;
+  return Math.max(0, pts);
+}
+
+function PlayerResultCard({
+  player,
+  stats,
+}: {
+  player: Player;
+  stats: any;
+}) {
+  const pts = calcPoints(player, stats);
+  const hasStats = !!stats;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "relative flex flex-col items-center gap-1.5 p-2 rounded-2xl border bg-white/[0.03] hover:bg-white/[0.05] transition-colors",
+        "relative flex flex-col items-center gap-1 p-2 rounded-2xl border bg-white/[0.03] hover:bg-white/[0.05] transition-colors",
         positionBorder[player.position]
       )}
     >
-      {/* Captain badge */}
-      {isCaptain && (
-        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#00C46A] text-black text-[9px] font-black flex items-center justify-center shadow-lg shadow-[#00C46A]/30 z-10">
-          C
+      {/* Points badge — top-right */}
+      {hasStats && (
+        <span className={cn(
+          "absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full text-[10px] font-black flex items-center justify-center shadow-lg z-10 tabular-nums",
+          pts >= 7 ? "bg-[#00C46A] text-black" :
+          pts >= 4 ? "bg-amber-400 text-black" :
+          pts > 0  ? "bg-white/20 text-white" :
+                     "bg-white/10 text-white/40"
+        )}>
+          {pts}
         </span>
       )}
 
       {/* Photo */}
-      <div className={cn("w-14 h-14 rounded-xl overflow-hidden border-2 bg-white/[0.05] flex items-center justify-center shrink-0", positionBorder[player.position])}>
+      <div className={cn(
+        "w-14 h-14 rounded-xl overflow-hidden border-2 bg-white/[0.05] flex items-center justify-center shrink-0",
+        positionBorder[player.position]
+      )}>
         {player.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -73,7 +121,28 @@ function PlayerResultCard({ player, isCaptain }: { player: Player; isCaptain: bo
         {player.webName || player.name.split(" ").slice(-1)[0]}
       </p>
 
-      {/* Position */}
+      {/* Stats breakdown (if available) */}
+      {hasStats && (
+        <div className="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 px-0.5">
+          {Number(stats.goals ?? 0) > 0 && (
+            <span className="text-[9px] text-[#00C46A] font-bold">⚽ {stats.goals}</span>
+          )}
+          {Number(stats.assists ?? 0) > 0 && (
+            <span className="text-[9px] text-blue-400 font-bold">🅰 {stats.assists}</span>
+          )}
+          {(stats.clean_sheet ?? stats.cleanSheet) && (
+            <span className="text-[9px] text-amber-400 font-bold">🧱</span>
+          )}
+          {Number(stats.yellow_cards ?? stats.yellowCards ?? 0) > 0 && (
+            <span className="text-[9px] text-yellow-400 font-bold">🟨</span>
+          )}
+          {Number(stats.red_cards ?? stats.redCards ?? 0) > 0 && (
+            <span className="text-[9px] text-rose-400 font-bold">🟥</span>
+          )}
+        </div>
+      )}
+
+      {/* Position label */}
       <span className={cn("text-[9px] font-bold uppercase tracking-wide", positionColor[player.position])}>
         {player.position}
       </span>
@@ -92,8 +161,7 @@ export default function MyResultPage() {
   const [result, setResult] = useState<(TeamResult & { owner: string }) | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [gwStats, setGwStats] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
@@ -103,25 +171,31 @@ export default function MyResultPage() {
       setLoading(true);
       setError(null);
       try {
-        // 1. Get current gameweek id
         const config = await getConfig();
         if (!config) throw new Error("Не вдалось завантажити конфіг");
         const currentGwId: number = config.currentGameweek;
         setGwId(currentGwId);
-        const teams = await getGameweekTeams(currentGwId);
+
+        const [teams, teamResult, userTeam, playersRes] = await Promise.all([
+          getGameweekTeams(currentGwId),
+          getTeamResult(addr, currentGwId),
+          getUserTeam(addr, currentGwId),
+          fetch("/api/players"),
+        ]);
+
         setTotalParticipants(teams.length);
 
-        // 2. Get result
-        const teamResult = await getTeamResult(addr, currentGwId);
+        // Fetch per-player stats using the actual player IDs from the team
+        if (userTeam?.playerIds?.length) {
+          const stats = await getGameweekStats(currentGwId, userTeam.playerIds);
+          setGwStats(stats);
+        }
+
         if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
         setResult({ ...teamResult, owner: addr });
 
-        // 3. Get team player IDs
-        const userTeam = await getUserTeam(addr, currentGwId);
         if (!userTeam) throw new Error("Склад не знайдено");
 
-        // 4. Load players and map by id
-        const playersRes = await fetch("/api/players");
         if (!playersRes.ok) throw new Error("Не вдалось завантажити гравців");
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
@@ -130,7 +204,6 @@ export default function MyResultPage() {
           .map((id) => playerMap.get(id))
           .filter(Boolean) as Player[];
 
-        // Sort by position order
         squad.sort((a, b) => (POSITION_ORDER[a.position] ?? 4) - (POSITION_ORDER[b.position] ?? 4));
         setPlayers(squad);
       } catch (e: any) {
@@ -142,21 +215,7 @@ export default function MyResultPage() {
     load();
   }, [connected, address]);
 
-  const handleShare = async () => {
-    const text = result
-      ? `🏆 GW${gwId} результат у FPLMove!\n📍 Місце: #${result.rank}\n⚡ Очки: ${result.finalPoints}\n${result.prizeAmount > 0 ? `💰 Приз: ${formatMOVE(result.prizeAmount)} MOVE\n` : ""}🔗 ffl-moves.vercel.app`
-      : "FPLMove — Fantasy Football на блокчейні!";
-
-    if (navigator.share) {
-      await navigator.share({ text });
-    } else {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // ── Not connected ───────────────────────────────────────────────────────────
+  // ── Not connected ──────────────────────────────────────────────────────────
   if (!connected) {
     return (
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white">
@@ -169,7 +228,7 @@ export default function MyResultPage() {
     );
   }
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center">
@@ -181,7 +240,7 @@ export default function MyResultPage() {
     );
   }
 
-  // ── Error ───────────────────────────────────────────────────────────────────
+  // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white px-6">
@@ -199,6 +258,7 @@ export default function MyResultPage() {
 
   const displayName = myNickname ?? (address ? address.slice(0, 6) + "…" + address.slice(-4) : "");
   const isTop3 = result && result.rank >= 1 && result.rank <= 3;
+  const hasStats = Object.keys(gwStats).length > 0;
 
   return (
     <div className="bg-[#0D0F12] min-h-screen text-white">
@@ -215,142 +275,138 @@ export default function MyResultPage() {
           Лідерборд
         </Link>
 
-        {/* ── Shareable card ────────────────────────────────────────────────── */}
-        <div ref={cardRef}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
-          >
-            {/* Top glow for top-3 */}
-            {isTop3 && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#00C46A]/10 blur-[60px] pointer-events-none" />
-            )}
+        {/* ── Card ────────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
+        >
+          {isTop3 && (
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#00C46A]/10 blur-[60px] pointer-events-none" />
+          )}
 
-            {/* Header */}
-            <div className="relative px-6 pt-7 pb-5 border-b border-white/[0.06]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  {/* GW badge */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#00C46A] text-[10px] font-bold uppercase tracking-widest mb-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
-                    Gameweek {gwId}
-                  </div>
-                  <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-none">
-                    {displayName}
-                  </h1>
-                  <p className="text-white/30 text-xs mt-1 font-mono">
-                    {address?.slice(0, 6)}…{address?.slice(-4)}
-                  </p>
+          {/* Header */}
+          <div className="relative px-6 pt-7 pb-5 border-b border-white/[0.06]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#00C46A] text-[10px] font-bold uppercase tracking-widest mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
+                  Gameweek {gwId}
                 </div>
-
-                {/* Rank badge */}
-                {result && result.rank > 0 && (
-                  <div className={cn(
-                    "shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl border text-center",
-                    result.rank === 1 ? "bg-[#FFD700]/10 border-[#FFD700]/30 shadow-[0_0_20px_rgba(255,215,0,0.15)]" :
-                    result.rank === 2 ? "bg-white/[0.06] border-white/20" :
-                    result.rank === 3 ? "bg-amber-500/10 border-amber-500/30" :
-                    "bg-white/[0.04] border-white/[0.08]"
-                  )}>
-                    <span className="text-xl leading-none">{rankMedal[result.rank] ?? ""}</span>
-                    <span className={cn(
-                      "text-lg font-display font-black tabular-nums leading-none mt-0.5",
-                      result.rank === 1 ? "text-[#FFD700]" : result.rank === 2 ? "text-white" : result.rank === 3 ? "text-amber-400" : "text-white/70"
-                    )}>
-                      #{result.rank}
-                    </span>
-                  </div>
-                )}
+                <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-none">
+                  {displayName}
+                </h1>
+                <p className="text-white/30 text-xs mt-1 font-mono">
+                  {address?.slice(0, 6)}…{address?.slice(-4)}
+                </p>
               </div>
 
-              {/* Stats row */}
-              {result && (
-                <div className="grid grid-cols-3 gap-3 mt-5">
+              {result && result.rank > 0 && (
+                <div className={cn(
+                  "shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl border text-center",
+                  result.rank === 1 ? "bg-[#FFD700]/10 border-[#FFD700]/30 shadow-[0_0_20px_rgba(255,215,0,0.15)]" :
+                  result.rank === 2 ? "bg-white/[0.06] border-white/20" :
+                  result.rank === 3 ? "bg-amber-500/10 border-amber-500/30" :
+                  "bg-white/[0.04] border-white/[0.08]"
+                )}>
+                  <span className="text-xl leading-none">{rankMedal[result.rank] ?? ""}</span>
+                  <span className={cn(
+                    "text-lg font-display font-black tabular-nums leading-none mt-0.5",
+                    result.rank === 1 ? "text-[#FFD700]" : result.rank === 2 ? "text-white" : result.rank === 3 ? "text-amber-400" : "text-white/70"
+                  )}>
+                    #{result.rank}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Stats row */}
+            {result && (
+              <div className="grid grid-cols-3 gap-3 mt-5">
+                {[
+                  { label: "Очки", value: String(result.finalPoints), accent: false },
+                  {
+                    label: "Приз",
+                    value: result.prizeAmount > 0 ? `${formatMOVE(result.prizeAmount)} MOVE` : "—",
+                    accent: result.prizeAmount > 0,
+                  },
+                  {
+                    label: "Учасників",
+                    value: totalParticipants > 0 ? String(totalParticipants) : "—",
+                    accent: false,
+                  },
+                ].map(({ label, value, accent }) => (
+                  <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
+                    <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00C46A]" : "text-white")}>
+                      {value}
+                    </p>
+                    <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Players grid */}
+          {players.length > 0 && (
+            <div className="px-6 py-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-bold">Склад туру</p>
+                {!hasStats && (
+                  <p className="text-[10px] text-white/20 italic">Статистику ще не підведено</p>
+                )}
+              </div>
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+                {players.map((p) => (
+                  <PlayerResultCard
+                    key={p.id}
+                    player={p}
+                    stats={gwStats[p.id] ?? gwStats[p.id.toString()] ?? null}
+                  />
+                ))}
+              </div>
+
+              {/* Points legend */}
+              {hasStats && (
+                <div className="mt-4 flex items-center gap-3 flex-wrap">
+                  <span className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Очки:</span>
                   {[
-                    { label: "Очки", value: String(result.finalPoints), accent: false },
-                    {
-                      label: "Приз",
-                      value: result.prizeAmount > 0 ? `${formatMOVE(result.prizeAmount)} MOVE` : "—",
-                      accent: result.prizeAmount > 0,
-                    },
-                    {
-                      label: "Учасників",
-                      value: totalParticipants > 0 ? String(totalParticipants) : "—",
-                      accent: false,
-                    },
-                  ].map(({ label, value, accent }) => (
-                    <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
-                      <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00C46A]" : "text-white")}>
-                        {value}
-                      </p>
-                      <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
+                    { color: "bg-[#00C46A]", label: "7+" },
+                    { color: "bg-amber-400", label: "4–6" },
+                    { color: "bg-white/20", label: "1–3" },
+                  ].map(({ color, label }) => (
+                    <div key={label} className="flex items-center gap-1">
+                      <span className={cn("w-3.5 h-3.5 rounded-full text-[8px] font-black flex items-center justify-center text-black", color)} />
+                      <span className="text-[9px] text-white/30">{label}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Players grid */}
-            {players.length > 0 && (
-              <div className="px-6 py-5">
-                <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-bold mb-4">Склад туру</p>
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
-                  {players.map((p) => (
-                    <PlayerResultCard
-                      key={p.id}
-                      player={p}
-                      isCaptain={false}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
+            <span className="text-xs font-display font-black text-white/20 uppercase tracking-widest">
+              FPL<span className="text-[#00C46A]/40">MOVE</span>
+            </span>
+            <span className="text-[10px] text-white/15">ffl-moves.vercel.app</span>
+          </div>
+        </motion.div>
 
-            {/* Footer brand */}
-            <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
-              <span className="text-xs font-display font-black text-white/20 uppercase tracking-widest">
-                FPL<span className="text-[#00C46A]/40">MOVE</span>
-              </span>
-              <span className="text-[10px] text-white/15">ffl-moves.vercel.app</span>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Share / CTA */}
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mt-5 flex flex-col sm:flex-row gap-3"
+          className="mt-5"
         >
-          <button
-            onClick={handleShare}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#00C46A] text-black font-display font-black uppercase tracking-wider text-sm hover:brightness-110 hover:scale-[1.01] transition-all shadow-[0_0_20px_rgba(0,196,106,0.25)]"
-          >
-            {copied ? (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Скопійовано!
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Поділитись результатом
-              </>
-            )}
-          </button>
-
           <Link
             href="/gameweek"
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/[0.10] text-white/60 font-display font-bold uppercase tracking-wider text-sm hover:border-white/[0.20] hover:text-white/80 transition-all"
+            className="flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/[0.10] text-white/60 font-display font-bold uppercase tracking-wider text-sm hover:border-white/[0.20] hover:text-white/80 transition-all"
           >
-            Наступний тур →
+            Зібрати склад на наступний тур →
           </Link>
         </motion.div>
 

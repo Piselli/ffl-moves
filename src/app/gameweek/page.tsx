@@ -70,13 +70,15 @@ export default function GameweekPage() {
           }
 
           // Fetch stats if resolved
-          if (gwData?.status === "resolved") {
-            const stats = await getGameweekStats(configData.currentGameweek);
-            setGameweekStats(stats);
-            
-            if (account?.address) {
-              const res = await getTeamResult(account.address.toString(), configData.currentGameweek);
-              setTeamResult(res);
+          if (gwData?.status === "resolved" && account?.address) {
+            const [chainTeam, res] = await Promise.all([
+              getUserTeam(account.address.toString(), configData.currentGameweek),
+              getTeamResult(account.address.toString(), configData.currentGameweek),
+            ]);
+            setTeamResult(res);
+            if (chainTeam?.playerIds?.length) {
+              const stats = await getGameweekStats(configData.currentGameweek, chainTeam.playerIds);
+              setGameweekStats(stats);
             }
           }
         }

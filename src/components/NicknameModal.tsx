@@ -95,7 +95,7 @@ export function NicknameModal({
               value={value}
               onChange={(e) => { setValue(e.target.value.slice(0, 20)); setError(""); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-              placeholder="Наприклад: Горошко"
+              placeholder="Введи нікнейм"
               maxLength={20}
               className={cn(
                 "w-full px-4 py-3 rounded-xl bg-white/[0.05] border text-sm text-white placeholder-white/20 outline-none transition-all font-medium",

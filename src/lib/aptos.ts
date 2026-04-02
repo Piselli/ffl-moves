@@ -222,42 +222,43 @@ export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
   }
 }
 
-export async function getGameweekStats(gameweekId: number) {
+export async function getPlayerStats(gameweekId: number, playerId: number) {
   try {
     const result = await aptos.view({
       payload: {
-        function: moduleFunction("get_gameweek_stats"),
+        function: moduleFunction("get_player_stats"),
         typeArguments: [],
-        functionArguments: [gameweekId.toString()],
+        functionArguments: [gameweekId.toString(), playerId.toString()],
       },
     });
-    
-    const stats: Record<string, any> = {};
-    
-    if (result[0]) {
-      // Aptos SimpleMap can be { data: [ { key, value }, ... ] } 
-      // OR a direct array of { key, value }
-      // OR even a direct object in some environments
-      const rawData = result[0] as any;
-      const entries = rawData.data || (Array.isArray(rawData) ? rawData : null);
-
-      if (entries && Array.isArray(entries)) {
-        entries.forEach((item: any) => {
-          if (item && item.key !== undefined && item.value !== undefined) {
-            stats[item.key.toString()] = item.value;
-          }
-        });
-      } else if (typeof rawData === "object") {
-        // Fallback for direct object mapping
-        Object.entries(rawData).forEach(([key, value]) => {
-          stats[key] = value;
-        });
-      }
-    }
-    
-    return stats;
-  } catch (e) {
-    console.error("Error fetching gameweek stats:", e);
-    return {};
+    return {
+      position:         Number(result[0]),
+      minutes_played:   Number(result[1]),
+      goals:            Number(result[2]),
+      assists:          Number(result[3]),
+      clean_sheet:      result[4] as boolean,
+      saves:            Number(result[5]),
+      penalties_saved:  Number(result[6]),
+      penalties_missed: Number(result[7]),
+      own_goals:        Number(result[8]),
+      yellow_cards:     Number(result[9]),
+      red_cards:        Number(result[10]),
+      rating:           Number(result[11]),
+    };
+  } catch {
+    return null;
   }
+}
+
+export async function getGameweekStats(gameweekId: number, playerIds: number[]): Promise<Record<number, any>> {
+  const results = await Promise.allSettled(
+    playerIds.map((id) => getPlayerStats(gameweekId, id))
+  );
+  const stats: Record<number, any> = {};
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled" && r.value) {
+      stats[playerIds[i]] = r.value;
+    }
+  });
+  return stats;
 }
