@@ -313,7 +313,7 @@ const CAROUSEL_MATCHES = [
     league: "Premier League",
     time: "74:12",
     statusText: "LIVE",
-    halfText: "2nd Half",
+    halfText: "2-й тайм",
     scoreH: 2,
     scoreA: 1,
     teamH: { name: "MANCHESTER CITY", short: "MNC", badge: "https://resources.premierleague.com/premierleague/badges/t43.png", color: "#87CEEB" },
@@ -321,15 +321,15 @@ const CAROUSEL_MATCHES = [
     stadium: "Etihad Stadium",
     matchday: 26,
     events: [
-      { player: "E. Haaland", action: "Goal!", pts: "+5", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-      { player: "P. Foden", action: "Assist", pts: "+3", color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-      { player: "B. Saka", action: "Yellow Card", pts: "-1", color: "#F87171", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
+      { player: "E. Haaland", action: "Гол!", pts: "+5", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+      { player: "P. Foden", action: "Асист", pts: "+3", color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+      { player: "B. Saka", action: "Жовта картка", pts: "-1", color: "#F87171", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
     ]
   },
   {
     league: "Premier League",
     time: "FT",
-    statusText: "FINISHED",
+    statusText: "ЗАВЕРШЕНО",
     halfText: "",
     scoreH: 1,
     scoreA: 3,
@@ -338,16 +338,16 @@ const CAROUSEL_MATCHES = [
     stadium: "Hotspur Stadium",
     matchday: 26,
     events: [
-      { player: "C. Palmer", action: "2 Goals", pts: "+10", color: "#00C46A", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
-      { player: "P. Porro", action: "Clean Tackle", pts: "+1", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-      { player: "S. Heung-Min", action: "Goal!", pts: "+4", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
+      { player: "C. Palmer", action: "2 Голи", pts: "+10", color: "#00C46A", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
+      { player: "P. Porro", action: "Відбір", pts: "+1", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+      { player: "S. Heung-Min", action: "Гол!", pts: "+4", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
     ]
   },
   {
     league: "Premier League",
     time: "24:00",
     statusText: "LIVE",
-    halfText: "1st Half",
+    halfText: "1-й тайм",
     scoreH: 0,
     scoreA: 0,
     teamH: { name: "EVERTON", short: "EVE", badge: "https://resources.premierleague.com/premierleague/badges/t11.png", color: "#003399" },
@@ -355,25 +355,25 @@ const CAROUSEL_MATCHES = [
     stadium: "Goodison Park",
     matchday: 26,
     events: [
-      { player: "J. Pickford", action: "3 Saves", pts: "+2", color: "#00C46A", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-      { player: "T. Alex-Arnold", action: "Key Pass", pts: "+1", color: "#00C46A", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
-      { player: "J. Branthwaite", action: "Clean Sheet HT", pts: "+2", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
+      { player: "J. Pickford", action: "3 Сейви", pts: "+2", color: "#00C46A", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+      { player: "T. Alex-Arnold", action: "Ключ. пас", pts: "+1", color: "#00C46A", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
+      { player: "J. Branthwaite", action: "Суха пара", pts: "+2", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
     ]
   }
 ];
 
 const ALL_PLAYERS = [
-  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Saves"}, {icon: "🛡", text: "Clean Sheet"}], pts: "+7 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Clean Tackle"}, {icon: "⏱", text: "90+ Mins"}], pts: "+6 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
-  { player: "W. Saliba", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "⏱", text: "90+ Mins"}], pts: "+8 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
-  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Clean Sheet"}, {icon: "🟨", text: "Yellow Card"}], pts: "+6 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
-  { player: "P. Porro", stats: [{icon: "👟", text: "Assist"}, {icon: "🛡", text: "Clean Tackle"}], pts: "+9 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⏱", text: "90+ Mins"}], pts: "+11 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
-  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "🌟", text: "MOTM"}], pts: "+12 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
-  { player: "P. Foden", stats: [{icon: "👟", text: "Assist"}, {icon: "⚡️", text: "Key Pass"}], pts: "+8 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Goal"}, {icon: "👟", text: "Assist"}], pts: "+15 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
-  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Goals"}, {icon: "⏱", text: "90+ Mins"}], pts: "+18 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-  { player: "B. Saka", stats: [{icon: "⚽️", text: "Goal"}, {icon: "⚡️", text: "Key pass"}], pts: "+14 PTS", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Сейви"}, {icon: "🛡", text: "Суха пара"}], pts: "+7 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Відбір"}, {icon: "⏱", text: "90+ хв"}], pts: "+6 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", stats: [{icon: "🛡", text: "Суха пара"}, {icon: "⏱", text: "90+ хв"}], pts: "+8 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Суха пара"}, {icon: "🟨", text: "Жовта картка"}], pts: "+6 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", stats: [{icon: "👟", text: "Асист"}, {icon: "🛡", text: "Відбір"}], pts: "+9 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Гол"}, {icon: "⏱", text: "90+ хв"}], pts: "+11 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Голи"}, {icon: "🌟", text: "ГМ"}], pts: "+12 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", stats: [{icon: "👟", text: "Асист"}, {icon: "⚡️", text: "Ключ. пас"}], pts: "+8 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Гол"}, {icon: "👟", text: "Асист"}], pts: "+15 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Голи"}, {icon: "⏱", text: "90+ хв"}], pts: "+18 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", stats: [{icon: "⚽️", text: "Гол"}, {icon: "⚡️", text: "Ключ. пас"}], pts: "+14 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
 ];
 
 function LiveDataCarousel() {
@@ -869,7 +869,7 @@ export default function Home() {
                   Крок 2: Живі дані
                 </span>
               </div>
-              <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight">
+              <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight uppercase">
                 Ваші гравці. <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
               </h3>
@@ -1073,7 +1073,7 @@ export default function Home() {
                 <div key={m} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center opacity-50">
                   <span className="text-base font-display font-black text-white/60">{m}</span>
                   <p className="text-[8px] text-white/20 uppercase tracking-widest mt-0.5">
-                    {["Common", "Rare", "Epic"][i]}
+                    {["Звичайний", "Рідкісний", "Епічний"][i]}
                   </p>
                 </div>
               ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { TreasureChest } from "@/components/TreasureChest";
 
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
 const PRIZE_TIERS = [
@@ -88,15 +89,15 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 lg:gap-16 pb-2 items-center">
+    <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 lg:gap-16 pb-2 items-end">
       
-      {/* ══════════ LEFT COLUMN: TITLES & HORIZONTAL CHEST ══════════ */}
+      {/* ══════════ LEFT COLUMN: TITLES & CHEST ══════════ */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left relative"
+        className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left"
       >
 
         {/* Top Header Block */}
@@ -112,28 +113,14 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
             РОЗДІЛИ <br className="hidden lg:block" /> ПРИЗОВИЙ ПУЛ
           </h3>
 
-          <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-8">
+          <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-4">
             Топ-10 найкращих менеджерів туру розділять цей пул. Знання АПЛ конвертуються в реальні активи безпосередньо на твій гаманець.
           </p>
         </div>
 
-        {/* Visual Chest Container (Horizontal Rectangle, aligned exactly under the text) */}
-        <div className="relative z-10 w-full max-w-[340px] md:max-w-[420px] h-[200px] md:h-[240px] flex items-center justify-center">
-          <motion.div 
-            animate={{ y: [-6, 6, -6] }} 
-            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-            className="relative w-full h-full"
-          >
-            {/* Ambient Background Glow for the Chest */}
-            <div className="absolute inset-0 bg-[#00C46A]/[0.07] blur-[60px] rounded-full scale-75 -z-10" />
-            
-            <div className="absolute inset-0 flex flex-col items-center justify-center border border-white/5 bg-gradient-to-b from-white/[0.05] to-transparent rounded-[32px] shadow-2xl backdrop-blur-sm group hover:border-[#00C46A]/30 transition-colors duration-500">
-              <span className="text-[80px] mb-2 group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl">💎</span>
-              <span className="text-[10px] md:text-xs uppercase font-bold text-[#00C46A]/50 tracking-[0.3em] text-center px-4 group-hover:text-white transition-colors">
-                [ 3D Скриня (Горизонтальна) ]
-              </span>
-            </div>
-          </motion.div>
+        {/* Treasure Chest */}
+        <div className="relative z-10 w-full">
+          <TreasureChest />
         </div>
 
       </motion.div>

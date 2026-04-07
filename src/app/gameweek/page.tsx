@@ -317,8 +317,8 @@ export default function GameweekPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center max-w-md w-full">
-          <div className="w-16 h-16 rounded-2xl bg-[#00C46A]/10 border border-[#00C46A]/20 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-[#00C46A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
@@ -347,9 +347,9 @@ export default function GameweekPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">Gameweek {currentGameweek?.id}</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">Тур {currentGameweek?.id}</span>
             </div>
-            <h1 className="text-3xl font-bold text-white">Твій зареєстрований склад</h1>
+            <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">Твій зареєстрований склад</h1>
           </div>
           <a
             href="/leaderboard"
@@ -414,7 +414,7 @@ export default function GameweekPage() {
           <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">Тур недоступний</h1>
           <p className="text-white/40 text-sm leading-relaxed">
             Зараз немає відкритого ігрового тижня.
-            {currentGameweek && ` Gameweek ${currentGameweek.id} — ${currentGameweek.status}.`}
+            {currentGameweek && ` Тур ${currentGameweek.id} — ${currentGameweek.status === "closed" ? "закрито" : currentGameweek.status === "resolved" ? "завершено" : currentGameweek.status}.`}
           </p>
         </div>
       </div>
@@ -447,8 +447,8 @@ export default function GameweekPage() {
         {/* Desktop header */}
         <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">
-              Gameweek {currentGameweek?.id} · Вибір складу
+            <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">
+              Тур {currentGameweek?.id} · Вибір складу
             </h1>
             <p className="text-white/40 text-sm">Обери 11 гравців. Максимум 3 з однієї команди.</p>
           </div>
@@ -463,7 +463,7 @@ export default function GameweekPage() {
         <div className="lg:hidden flex items-center justify-between mb-4">
           <div>
             <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
-              GW{currentGameweek?.id} · Вибір складу
+              Тур {currentGameweek?.id} · Вибір складу
             </h1>
             <p className="text-white/30 text-xs mt-0.5">Максимум 3 з однієї команди</p>
           </div>

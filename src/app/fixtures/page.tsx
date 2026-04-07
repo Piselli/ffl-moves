@@ -71,7 +71,7 @@ export default function FixturesPage() {
         >
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-medium transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-[10px] font-bold uppercase tracking-widest transition-colors mb-6"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -123,6 +123,7 @@ export default function FixturesPage() {
         {/* Loading */}
         {loading && (
           <div className="space-y-6">
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest animate-pulse">Завантажуємо матчі...</p>
             {[1, 2].map((g) => (
               <div key={g}>
                 <div className="h-3 w-32 bg-white/[0.06] rounded animate-pulse mb-3" />

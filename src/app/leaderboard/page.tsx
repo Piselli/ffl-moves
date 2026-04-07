@@ -110,7 +110,7 @@ export default function LeaderboardPage() {
           >
             {Array.from({ length: config?.currentGameweek || 1 }, (_, i) => i + 1).map((gw) => (
               <option key={gw} value={gw} className="bg-[#0D0F12]">
-                GW {gw}
+                {gw}
               </option>
             ))}
           </select>
@@ -162,8 +162,8 @@ export default function LeaderboardPage() {
 
           {/* Distribution tooltip — pushed to the right */}
           <div className="ml-auto relative group/dist">
-            <span className="text-[10px] text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2 whitespace-nowrap">
-              розподіл призів
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2 whitespace-nowrap">
+              Розподіл призів
             </span>
             <div className="absolute top-full right-0 mt-2 hidden group-hover/dist:block z-50 w-44 pointer-events-none">
               <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
@@ -194,7 +194,7 @@ export default function LeaderboardPage() {
         </div>
       ) : (
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center mb-8">
-          <p className="text-white/30 text-sm">Немає даних для Gameweek {selectedGameweek}</p>
+          <p className="text-white/30 text-sm">Немає даних для GW {selectedGameweek}</p>
         </div>
       )}
 
@@ -208,7 +208,7 @@ export default function LeaderboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">Мій результат · GW {selectedGameweek}</h2>
+              <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">Мій результат · Тур {selectedGameweek}</h2>
             </div>
             <div className="flex items-center gap-2">
               {userResult.rank > 0 && userResult.rank <= 10 && (
@@ -278,15 +278,24 @@ export default function LeaderboardPage() {
           <div className="py-10 text-center">
             <div className="text-3xl mb-3">🏆</div>
             <h3 className="text-base font-display font-black text-white uppercase tracking-tight mb-1">Результатів поки немає</h3>
-            <p className="text-white/30 text-xs">
-              Результати Gameweek {selectedGameweek} ще не опубліковані.
+            <p className="text-white/30 text-xs mb-4">
+              Результати Туру {selectedGameweek} ще не опубліковані.
             </p>
+            <a
+              href="/gameweek"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00C46A]/10 border border-[#00C46A]/20 text-[#00C46A] font-display font-bold text-xs uppercase tracking-wider hover:bg-[#00C46A]/20 hover:border-[#00C46A]/30 transition-all"
+            >
+              Зареєструй свій склад
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
           </div>
         )}
       </div>
 
       <p className="text-center text-white/20 text-xs mt-6">
-        Реальні on-chain результати · Gameweek {selectedGameweek} · Movement
+        Реальні on-chain результати · Тур {selectedGameweek} · Movement
       </p>
     </div>
   );
