@@ -121,7 +121,7 @@ export function Sidebar() {
                   <p className="text-sm font-display font-bold uppercase tracking-wider text-white">Select Wallet</p>
                 </div>
                 <div className="p-2 max-h-48 overflow-y-auto">
-                  {(wallets?.filter(w => w.readyState === "Installed") || []).map((wallet) => (
+                  {(wallets?.filter(w => w.readyState === "Installed" && w.name === "Nightly") || []).map((wallet) => (
                     <button
                       key={wallet.name}
                       onClick={() => handleConnectWallet(wallet.name)}

@@ -278,12 +278,20 @@ export default function GameweekPage() {
     setIsSubmitting(true);
     try {
       const playerIds = starters.map((p) => p!.id.toString());
-      const playerPositions = starters.map((p) => p!.positionId.toString());
+      const playerPositions = starters.map((p) => p!.positionId.toString());  // string for wallet adapter
       const playerClubs = starters.map((p) => p!.teamId.toString());
       // Captain is required by the contract — auto-assign first starter (hidden from UI for now)
       const captainId = starters[0]!.id.toString();
 
-      await signAndSubmitTransaction({
+      console.log("=== REGISTER TEAM TX ARGS ===");
+      console.log("gameweek:", currentGameweek.id.toString());
+      console.log("playerIds:", JSON.stringify(playerIds));
+      console.log("playerPositions:", JSON.stringify(playerPositions));
+      console.log("playerClubs:", JSON.stringify(playerClubs));
+      console.log("captainId:", captainId);
+      console.log("function:", moduleFunction("register_team"));
+
+      const txResult = await signAndSubmitTransaction({
         data: {
           function: moduleFunction("register_team"),
           typeArguments: [],
@@ -297,6 +305,27 @@ export default function GameweekPage() {
         },
       });
 
+      console.log("=== TX RESULT ===", JSON.stringify(txResult, null, 2));
+
+      // Wait for transaction confirmation on-chain
+      const txHash = (txResult as any)?.hash || (txResult as any)?.output?.transactionHash;
+      if (txHash) {
+        console.log("TX hash:", txHash);
+        // Poll for confirmation (up to ~15 seconds)
+        let confirmed = false;
+        for (let i = 0; i < 10; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const onChainCheck = await hasRegisteredTeam(account.address.toString(), currentGameweek.id);
+          if (onChainCheck) {
+            confirmed = true;
+            break;
+          }
+        }
+        if (!confirmed) {
+          alert("Транзакція надіслана, але ще не підтверджена. Оновіть сторінку через кілька секунд.");
+        }
+      }
+
       // Save the team snapshot for display (in memory + localStorage)
       const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: [] };
       setRegisteredTeam(teamSnapshot);
@@ -306,8 +335,21 @@ export default function GameweekPage() {
       }
       setAlreadyRegistered(true);
     } catch (error: any) {
-      console.error("Failed to register team:", error);
-      alert(`Failed to register team: ${error.message || "Unknown error"}`);
+      console.error("=== REGISTRATION ERROR ===");
+      console.error("Error type:", typeof error);
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
+      console.error("Error code:", error?.code);
+      console.error("Error data:", error?.data);
+      console.error("Full error JSON:", JSON.stringify(error, Object.getOwnPropertyNames(error || {}), 2));
+      
+      // Clean, user-friendly error message
+      const msg = error?.message || error?.toString?.() || "Unknown error";
+      if (msg.includes("User rejected") || msg.includes("cancelled") || msg.includes("Rejected")) {
+        // User cancelled — no alert needed
+      } else {
+        alert(`Помилка реєстрації: ${msg}`);
+      }
     } finally {
       setIsSubmitting(false);
     }

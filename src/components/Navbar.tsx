@@ -63,7 +63,7 @@ export function Navbar() {
     }
   };
 
-  const availableWallets = wallets?.filter((w) => w.readyState === "Installed") || [];
+  const availableWallets = wallets?.filter((w) => w.readyState === "Installed" && w.name === "Nightly") || [];
 
   const logoEl = (
     <Link href="/" className="flex items-center gap-2.5 group shrink-0">
