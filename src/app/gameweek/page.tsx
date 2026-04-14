@@ -6,7 +6,7 @@ import { FormationGrid } from "@/components/FormationGrid";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
-import { moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
+import { aptos, moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -14,7 +14,7 @@ type TeamFilter = string;
 type MobileTab = "pitch" | "players";
 
 export default function GameweekPage() {
-  const { connected, account, signAndSubmitTransaction } = useWallet();
+  const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
@@ -277,26 +277,26 @@ export default function GameweekPage() {
 
     setIsSubmitting(true);
     try {
-      const playerIds = starters.map((p) => p!.id.toString());
-      const playerPositions = starters.map((p) => p!.positionId.toString());  // string for wallet adapter
-      const playerClubs = starters.map((p) => p!.teamId.toString());
-      // Captain is required by the contract — auto-assign first starter (hidden from UI for now)
-      const captainId = starters[0]!.id.toString();
+      const playerIds = starters.map((p) => p!.id);
+      const playerPositions = starters.map((p) => p!.positionId);
+      const playerClubs = starters.map((p) => p!.teamId);
+      const captainId = starters[0]!.id;
 
-      console.log("=== REGISTER TEAM TX ARGS ===");
-      console.log("gameweek:", currentGameweek.id.toString());
-      console.log("playerIds:", JSON.stringify(playerIds));
-      console.log("playerPositions:", JSON.stringify(playerPositions));
-      console.log("playerClubs:", JSON.stringify(playerClubs));
-      console.log("captainId:", captainId);
-      console.log("function:", moduleFunction("register_team"));
+      console.log("=== REGISTER TEAM TX ===");
+      console.log("gameweek:", currentGameweek.id);
+      console.log("playerIds:", playerIds);
+      console.log("positions:", playerPositions);
+      console.log("clubs:", playerClubs);
+      console.log("captain:", captainId);
 
-      const txResult = await signAndSubmitTransaction({
+      // Build the transaction via our SDK client (correct ABI lookup via Movement testnet)
+      const transaction = await aptos.transaction.build.simple({
+        sender: account.address.toString(),
         data: {
           function: moduleFunction("register_team"),
           typeArguments: [],
           functionArguments: [
-            currentGameweek.id.toString(),
+            currentGameweek.id,
             playerIds,
             playerPositions,
             playerClubs,
@@ -305,26 +305,23 @@ export default function GameweekPage() {
         },
       });
 
-      console.log("=== TX RESULT ===", JSON.stringify(txResult, null, 2));
+      // Sign via the wallet extension
+      const signResult = await signTransaction({ transactionOrPayload: transaction });
 
-      // Wait for transaction confirmation on-chain
-      const txHash = (txResult as any)?.hash || (txResult as any)?.output?.transactionHash;
-      if (txHash) {
-        console.log("TX hash:", txHash);
-        // Poll for confirmation (up to ~15 seconds)
-        let confirmed = false;
-        for (let i = 0; i < 10; i++) {
-          await new Promise(r => setTimeout(r, 1500));
-          const onChainCheck = await hasRegisteredTeam(account.address.toString(), currentGameweek.id);
-          if (onChainCheck) {
-            confirmed = true;
-            break;
-          }
-        }
-        if (!confirmed) {
-          alert("Транзакція надіслана, але ще не підтверджена. Оновіть сторінку через кілька секунд.");
-        }
-      }
+      // Submit through our SDK client (directly to Movement testnet)
+      const pending = await aptos.transaction.submit.simple({
+        transaction,
+        senderAuthenticator: signResult.authenticator,
+      });
+
+      console.log("TX submitted, hash:", pending.hash);
+
+      // Wait for on-chain confirmation
+      const confirmed = await aptos.waitForTransaction({
+        transactionHash: pending.hash,
+        options: { timeoutSecs: 30, checkSuccess: true },
+      });
+      console.log("TX confirmed:", confirmed.success, confirmed.vm_status);
 
       // Save the team snapshot for display (in memory + localStorage)
       const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: [] };
