@@ -1,23 +1,44 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
-/* ── Floating particles around chest ────────────────────────────────────── */
-const PARTICLES = Array.from({ length: 10 }, (_, i) => ({
-  id: i,
-  size: 2 + Math.random() * 2.5,
-  x: 20 + Math.random() * 60,
-  delay: Math.random() * 5,
-  duration: 4 + Math.random() * 3,
-  opacity: 0.2 + Math.random() * 0.35,
-}));
+type Particle = {
+  id: number;
+  size: number;
+  x: number;
+  delay: number;
+  duration: number;
+  opacity: number;
+  /** Stable Y keyframes (must not use Math.random during render — SSR/hydration). */
+  yKeyframes: [number, number, number];
+};
+
+/* ── Floating particles: built only on client after mount ───────────────── */
+function buildParticles(): Particle[] {
+  return Array.from({ length: 10 }, (_, i) => ({
+    id: i,
+    size: 2 + Math.random() * 2.5,
+    x: 20 + Math.random() * 60,
+    delay: Math.random() * 5,
+    duration: 4 + Math.random() * 3,
+    opacity: 0.2 + Math.random() * 0.35,
+    yKeyframes: [0, -(50 + Math.random() * 70), -(110 + Math.random() * 50)],
+  }));
+}
 
 export function TreasureChest() {
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    setParticles(buildParticles());
+  }, []);
+
   return (
     <div className="relative w-full flex items-end justify-center select-none py-4">
 
       {/* ── Floating particles ───────────────────────────────────────── */}
-      {PARTICLES.map((p) => (
+      {particles.map((p) => (
         <motion.div
           key={p.id}
           className="absolute rounded-full pointer-events-none"
@@ -30,7 +51,7 @@ export function TreasureChest() {
             boxShadow: `0 0 ${p.size * 2}px rgba(0,196,106,${p.opacity * 0.4})`,
           }}
           animate={{
-            y: [0, -(50 + Math.random() * 70), -(110 + Math.random() * 50)],
+            y: p.yKeyframes,
             opacity: [0, p.opacity, 0],
             scale: [0.4, 1, 0.2],
           }}
