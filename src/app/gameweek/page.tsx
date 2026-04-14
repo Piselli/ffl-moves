@@ -17,6 +17,7 @@ export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
+  const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +114,7 @@ export default function GameweekPage() {
         .filter(Boolean) as Player[];
 
       if (teamPlayers.length > 0) {
-        const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: [] };
+        const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
         setRegisteredTeam(teamSnapshot);
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
@@ -122,16 +123,16 @@ export default function GameweekPage() {
   }, [alreadyRegistered, registeredTeam, players, account?.address, config]);
 
   const selectedPlayers = useMemo(() => {
-    return new Set(starters.filter(Boolean).map((p) => p!.id));
-  }, [starters]);
+    return new Set([...starters, ...bench].filter(Boolean).map((p) => p!.id));
+  }, [starters, bench]);
 
   const clubCounts = useMemo(() => {
     const counts: Record<number, number> = {};
-    starters.forEach((p) => {
+    [...starters, ...bench].forEach((p) => {
       if (p) counts[p.teamId] = (counts[p.teamId] || 0) + 1;
     });
     return counts;
-  }, [starters]);
+  }, [starters, bench]);
 
   const uniqueTeams = useMemo(() => {
     const teams = Array.from(new Set(players.map((p) => p.team))).filter(Boolean);
@@ -164,8 +165,6 @@ export default function GameweekPage() {
   };
 
   const getNextAvailableSlot = (position: string): { index: number; isBench: boolean } | null => {
-    const posId = POSITIONS[position as keyof typeof POSITIONS];
-
     // Check starters first
     if (position === "GK" && !starters[0]) return { index: 0, isBench: false };
     if (position === "DEF") {
@@ -182,6 +181,11 @@ export default function GameweekPage() {
       for (let i = 8; i <= 10; i++) {
         if (!starters[i]) return { index: i, isBench: false };
       }
+    }
+
+    // Then check bench (any position)
+    for (let i = 0; i < FORMATION.BENCH; i++) {
+      if (!bench[i]) return { index: i, isBench: true };
     }
 
     return null;
@@ -245,6 +249,13 @@ export default function GameweekPage() {
         const newStarters = [...starters];
         newStarters[starterIdx] = null;
         setStarters(newStarters);
+        return;
+      }
+      const benchIdx = bench.findIndex((p) => p?.id === player.id);
+      if (benchIdx !== -1) {
+        const newBench = [...bench];
+        newBench[benchIdx] = null;
+        setBench(newBench);
       }
       return;
     }
@@ -254,14 +265,24 @@ export default function GameweekPage() {
     const slot = getNextAvailableSlot(player.position);
     if (!slot) return;
 
-    const newStarters = [...starters];
-    newStarters[slot.index] = player;
-    setStarters(newStarters);
+    if (slot.isBench) {
+      const newBench = [...bench];
+      newBench[slot.index] = player;
+      setBench(newBench);
+    } else {
+      const newStarters = [...starters];
+      newStarters[slot.index] = player;
+      setStarters(newStarters);
+    }
   };
 
 
   const handleSlotClick = (index: number, isBench: boolean) => {
-    if (!isBench && starters[index]) {
+    if (isBench && bench[index]) {
+      const newBench = [...bench];
+      newBench[index] = null;
+      setBench(newBench);
+    } else if (!isBench && starters[index]) {
       const newStarters = [...starters];
       newStarters[index] = null;
       setStarters(newStarters);
@@ -269,17 +290,18 @@ export default function GameweekPage() {
   };
 
   const isTeamComplete = useMemo(() => {
-    return starters.every((p) => p !== null);
-  }, [starters]);
+    return starters.every((p) => p !== null) && bench.every((p) => p !== null);
+  }, [starters, bench]);
 
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
 
     setIsSubmitting(true);
     try {
-      const playerIds = starters.map((p) => p!.id);
-      const playerPositions = starters.map((p) => p!.positionId);
-      const playerClubs = starters.map((p) => p!.teamId);
+      const allPlayers = [...starters, ...bench] as Player[];
+      const playerIds = allPlayers.map((p) => p.id);
+      const playerPositions = allPlayers.map((p) => p.positionId);
+      const playerClubs = allPlayers.map((p) => p.teamId);
       const captainId = starters[0]!.id;
 
       console.log("=== REGISTER TEAM TX ===");
@@ -324,7 +346,7 @@ export default function GameweekPage() {
       console.log("TX confirmed:", confirmed.success, confirmed.vm_status);
 
       // Save the team snapshot for display (in memory + localStorage)
-      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: [] };
+      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };
       setRegisteredTeam(teamSnapshot);
       if (account?.address && currentGameweek?.id) {
         const key = `ffl_team_gw${currentGameweek.id}_${account.address.toString()}`;
@@ -437,6 +459,26 @@ export default function GameweekPage() {
           </div>
         </div>
 
+        {/* Bench */}
+        {benchToShow.length > 0 && (
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
+            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Запасні</h2>
+            <div className="space-y-1">
+              {benchToShow.map((player) => (
+                <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
+                    {player.position}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{player.webName || player.name}</p>
+                    <p className="text-white/40 text-[10px]">{player.team}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -461,6 +503,8 @@ export default function GameweekPage() {
   }
 
   const starterCount = starters.filter(Boolean).length;
+  const benchCount = bench.filter(Boolean).length;
+  const totalCount = starterCount + benchCount;
   const submitBtn = (extraClass = "") => (
     <button
       onClick={handleSubmitTeam}
@@ -475,7 +519,7 @@ export default function GameweekPage() {
     >
       {isSubmitting ? "Реєстрація..." : isTeamComplete
         ? `Підтвердити склад · ${formatMOVE(config?.entryFee || 0)} MOVE`
-        : "Обери всіх 11 гравців"}
+        : `Обери ${FORMATION.TOTAL} гравців (${totalCount}/${FORMATION.TOTAL})`}
     </button>
   );
 
@@ -521,13 +565,42 @@ export default function GameweekPage() {
           {/* Formation */}
           <div className="flex flex-col">
             <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
-            <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
+
+            {/* Bench */}
+            <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Запасні ({benchCount}/{FORMATION.BENCH})</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {bench.map((player, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSlotClick(idx, true)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-left",
+                      player
+                        ? "bg-white/[0.05] border-white/[0.12] hover:border-rose-400/40"
+                        : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
+                    )}
+                  >
+                    {player ? (
+                      <>
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-white/10 text-white/50 shrink-0">{player.position}</span>
+                        <span className="text-xs font-medium text-white truncate">{player.webName || player.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs">Запасний {idx + 1}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
               <span className={cn(
                 "flex items-center gap-2 text-sm font-semibold",
-                starterCount === 11 ? "text-emerald-400" : "text-white/40"
+                isTeamComplete ? "text-emerald-400" : "text-white/40"
               )}>
-                <span className={cn("w-2 h-2 rounded-full", starterCount === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {starterCount}/11 основних
+                <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
+                {totalCount}/{FORMATION.TOTAL} гравців ({starterCount} основних + {benchCount} запасних)
               </span>
             </div>
             {submitBtn("mt-3 text-lg")}
@@ -644,10 +717,37 @@ export default function GameweekPage() {
         {mobileTab === "pitch" && (
           <div className="flex flex-col gap-3">
             <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
+            {/* Bench */}
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Запасні ({benchCount}/{FORMATION.BENCH})</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {bench.map((player, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { handleSlotClick(idx, true); if (player) setMobileTab("players"); }}
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all text-left",
+                      player
+                        ? "bg-white/[0.05] border-white/[0.12]"
+                        : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
+                    )}
+                  >
+                    {player ? (
+                      <>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-white/10 text-white/50 shrink-0">{player.position}</span>
+                        <span className="text-[11px] font-medium text-white truncate">{player.webName || player.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-[11px]">Запасний {idx + 1}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
-              <span className={cn("flex items-center gap-2 text-sm font-semibold", starterCount === 11 ? "text-emerald-400" : "text-white/40")}>
-                <span className={cn("w-2 h-2 rounded-full", starterCount === 11 ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {starterCount}/11 основних
+              <span className={cn("flex items-center gap-2 text-sm font-semibold", isTeamComplete ? "text-emerald-400" : "text-white/40")}>
+                <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
+                {totalCount}/{FORMATION.TOTAL} гравців
               </span>
             </div>
           </div>
@@ -771,10 +871,10 @@ export default function GameweekPage() {
             {/* Progress pill */}
             <div className={cn(
               "px-4 py-2 rounded-xl border text-center shrink-0",
-              starterCount === 11 ? "border-emerald-500/30 bg-emerald-500/10" : "border-white/[0.08] bg-white/[0.03]"
+              isTeamComplete ? "border-emerald-500/30 bg-emerald-500/10" : "border-white/[0.08] bg-white/[0.03]"
             )}>
-              <span className={cn("text-sm font-display font-black tabular-nums", starterCount === 11 ? "text-emerald-400" : "text-white/50")}>
-                {starterCount}/11
+              <span className={cn("text-sm font-display font-black tabular-nums", isTeamComplete ? "text-emerald-400" : "text-white/50")}>
+                {totalCount}/{FORMATION.TOTAL}
               </span>
             </div>
 
