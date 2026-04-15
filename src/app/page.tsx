@@ -627,7 +627,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[85vh] flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-[72px] pb-16">
+      <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[120px] pb-16">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
