@@ -627,7 +627,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[110px] pb-20">
+      <section className="relative min-h-screen flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-[80px] pb-20">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
@@ -647,7 +647,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,196,106,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl pt-3 flex flex-col gap-10">
+        <div className="relative z-10 w-full max-w-2xl flex flex-col gap-10">
 
           {/* Text Group */}
           <div className="flex flex-col gap-5">
