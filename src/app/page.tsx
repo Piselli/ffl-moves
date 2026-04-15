@@ -658,11 +658,11 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className="text-6xl sm:text-7xl font-display font-black uppercase leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40 pb-2"
             >
-              Керуй.
+              Розбираєшся в АПЛ
               <br />
-              <span className="text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]">Перемагай.</span>
+              <span className="text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]">краще за інших?</span>
               <br />
-              Заробляй.
+              Час на цьому заробити.
             </motion.h1>
 
             {/* Subheadline */}
@@ -672,7 +672,9 @@ export default function Home() {
               transition={{ duration: 0.7, delay: 0.25 }}
               className="text-lg text-white/50 leading-relaxed max-w-xl"
             >
-              Вибери найкращих гравців АПЛ, зафіксуй склад на блокчейні та конвертуй свої тактичні знання в реальні крипто-нагороди.
+              Аналізуй форму гравців і розклад туру.<br />
+              Збери 11 стартовиків і 3 запасних.<br />
+              Чим точніший твій вибір, тим більше MOVE на гаманець.
             </motion.p>
           </div>
 
@@ -771,9 +773,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto space-y-24">
           
           <AnimatedStep
-            subheader="Крок 1: Твоя тактика"
-            title="Збирай свій склад"
-            desc="У тебе є можливість зібрати 11 найкращих гравців з Англійської Прем'єр-ліги. Зроби трансфери, обери капітана та розстав пріоритети на полі. Твоє рішення безповоротно фіксується смарт-контрактом."
+            subheader="01 — Твій склад, твоя тактика"
+            title="Весь склад АПЛ — твій вибір"
+            desc="Аналізуй форму, дивись розклад і збирай склад з будь-яких гравців Англійської Прем'єр-ліги. 11 стартовиків і 3 запасних — твоє тактичне рішення на тур."
             visual={
               <div 
                 className="relative w-full max-w-4xl mx-auto h-[450px] sm:h-[650px] flex items-center justify-center mt-10 mb-20 md:mb-0"
@@ -866,7 +868,7 @@ export default function Home() {
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
                 <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A] shadow-[0_0_8px_#00C46A]"></span>
                 <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00C46A] uppercase">
-                  Крок 2: Живі дані
+                  02 — Очки в реальному часі
                 </span>
               </div>
               <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight uppercase">
@@ -874,7 +876,7 @@ export default function Home() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
               </h3>
               <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
-                Отримуй очки щоразу, коли твої гравці забивають, асистують або зберігають ворота сухими.
+                Статистика надходить з офіційних джерел АПЛ. Кожна дія твоїх гравців на полі — твої очки.
               </p>
             </motion.div>
           </div>
@@ -924,13 +926,13 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
-              Правила Гри
+              Правила нарахування
             </div>
             <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-2">
-              Система Очок
+              Чим більше дій — тим більше очок
             </h2>
             <p className="text-white/40 text-sm leading-relaxed">
-              Кожна позиція має свою роль і свій потенціал. Обирай гравців стратегічно.
+              Голи, асисти, сейви, суха пара, вихід на поле — все враховується. Кожна позиція має свою вагу.
             </p>
           </motion.div>
 

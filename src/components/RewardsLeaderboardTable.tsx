@@ -114,7 +114,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           </h3>
 
           <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-4">
-            Топ-10 найкращих менеджерів туру розділять цей пул. Знання АПЛ конвертуються в реальні активи безпосередньо на твій гаманець.
+            Топ-10 менеджерів туру ділять призовий пул. Закінчився тур — MOVE токени надходять на гаманець автоматично.
           </p>
         </div>
 
