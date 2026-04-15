@@ -656,11 +656,11 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-              className="text-6xl sm:text-7xl font-display font-black uppercase leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40 pb-2"
+              className="text-4xl sm:text-5xl lg:text-6xl font-display font-black uppercase leading-[1.15] tracking-tight text-white pb-2"
             >
               Розбираєшся в АПЛ
               <br />
-              <span className="text-white/20 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]">краще за інших?</span>
+              <span className="text-[#00C46A]">краще за інших?</span>
               <br />
               Час на цьому заробити.
             </motion.h1>
@@ -872,7 +872,7 @@ export default function Home() {
                 </span>
               </div>
               <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight uppercase">
-                Ваші гравці. <br className="hidden md:block" />
+                Твої гравці. <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
               </h3>
               <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
@@ -970,7 +970,7 @@ export default function Home() {
 
                 {/* Scoring rows — position-specific only */}
                 <div className="flex-1 px-4 py-2.5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">Специфіка позиції</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">Бали за позицією</p>
                   <ul className="space-y-0.5">
                     {card.gains.map((g) => (
                       <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
@@ -1065,7 +1065,7 @@ export default function Home() {
                 Таланти
               </h2>
               <p className="text-white/35 text-sm leading-relaxed max-w-xl">
-                Розблокуй унікальні <span className="text-white/55 font-semibold">Таланти</span> які множать фінальні очки на +5%, +10% або +15% при виконанні умов. Стратегічний вибір може вирішити все в боротьбі за перше місце.
+                Розблокуй унікальні <span className="text-white/55 font-semibold">Таланти</span>, які множать фінальні очки гравця на +5%, +10% або +15%. Один правильний вибір може перекинути весь лідерборд.
               </p>
             </div>
 

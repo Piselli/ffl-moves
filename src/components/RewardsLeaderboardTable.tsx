@@ -105,7 +105,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3">
             <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A]" />
             <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#00C46A] uppercase">
-              КРОК 3: ПЕРЕМАГАЙ
+              03 — ПЕРЕМАГАЙ
             </span>
           </div>
 
