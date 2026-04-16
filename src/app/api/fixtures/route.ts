@@ -6,19 +6,30 @@ const BADGE_BASE = "https://resources.premierleague.com/premierleague/badges/70/
 
 export const revalidate = 300; // 5 minutes
 
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  Referer: "https://fantasy.premierleague.com/",
+  Origin: "https://fantasy.premierleague.com",
+};
+
 export async function GET() {
   try {
     const res = await fetch(FPL_URL, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: BROWSER_HEADERS,
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`FPL API ${res.status}`);
+    if (!res.ok) throw new Error(`FPL bootstrap API ${res.status}`);
     const data = await res.json();
 
-    // Prefer next event, fall back to current
+    // Prefer next event, fall back to current, then last finished
     const targetEvent =
       data.events.find((e: any) => e.is_next) ||
-      data.events.find((e: any) => e.is_current);
+      data.events.find((e: any) => e.is_current) ||
+      data.events.filter((e: any) => e.finished).slice(-1)[0];
 
     if (!targetEvent) {
       return NextResponse.json({ error: "No upcoming gameweek found" }, { status: 404 });
@@ -37,10 +48,10 @@ export async function GET() {
 
     // Fetch fixtures for target event
     const fixturesRes = await fetch(`${FPL_FIXTURES_URL}?event=${targetEvent.id}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: BROWSER_HEADERS,
       cache: "no-store",
     });
-    if (!fixturesRes.ok) throw new Error(`Fixtures API ${fixturesRes.status}`);
+    if (!fixturesRes.ok) throw new Error(`FPL fixtures API ${fixturesRes.status}`);
     const fixtures = await fixturesRes.json();
 
     const formattedFixtures = fixtures
@@ -69,7 +80,10 @@ export async function GET() {
       fixtures: formattedFixtures,
     });
   } catch (e) {
-    console.error("Fixtures API error:", e);
-    return NextResponse.json({ error: "Failed to fetch fixtures" }, { status: 500 });
+    console.error("Fixtures API error:", e instanceof Error ? e.message : e);
+    return NextResponse.json(
+      { error: "Failed to fetch fixtures", detail: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    );
   }
 }
