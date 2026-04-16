@@ -542,7 +542,21 @@ export default function Home() {
       try {
         const cfg = await getConfig();
         if (cfg?.currentGameweek) {
-          const gw = await getGameweek(cfg.currentGameweek);
+          let targetGwId = cfg.currentGameweek;
+          let gw = await getGameweek(targetGwId);
+
+          // If the chain's currentGameweek is closed/resolved, scan for a newer open GW
+          if (gw && gw.status !== "open") {
+            for (let i = targetGwId + 1; i <= targetGwId + 10; i++) {
+              const newerGw = await getGameweek(i);
+              if (!newerGw) break;
+              if (newerGw.status === "open") {
+                gw = newerGw;
+                break;
+              }
+            }
+          }
+
           if (gw) {
             setPrizePool(octasToMOVE(gw.prizePool));
             setTotalManagers(gw.totalEntries);

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
+import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
@@ -173,7 +173,18 @@ export default function MyResultPage() {
       try {
         const config = await getConfig();
         if (!config) throw new Error("Не вдалось завантажити конфіг");
-        const currentGwId: number = config.currentGameweek;
+        let currentGwId: number = config.currentGameweek;
+
+        // Scan for the latest open/resolved GW if chain's currentGameweek is stale
+        const baseGw = await getGameweek(currentGwId);
+        if (baseGw && baseGw.status !== "open") {
+          for (let i = currentGwId + 1; i <= currentGwId + 10; i++) {
+            const newerGw = await getGameweek(i);
+            if (!newerGw) break;
+            currentGwId = i;
+            if (newerGw.status === "open") break;
+          }
+        }
         setGwId(currentGwId);
 
         const [teams, teamResult, userTeam, playersRes] = await Promise.all([

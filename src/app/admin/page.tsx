@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
 import { cn } from "@/lib/utils";
-import { fetchGameweekStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
 export default function AdminPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
@@ -21,6 +21,7 @@ export default function AdminPage() {
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
 
   // API states
+  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
   const [apiKey, setApiKey] = useState("");
   const [fetchGameweek, setFetchGameweek] = useState("");
   const [isFetchingApi, setIsFetchingApi] = useState(false);
@@ -77,21 +78,24 @@ export default function AdminPage() {
   };
 
   const handleFetchFromApi = async () => {
-    if (!apiKey || !fetchGameweek) return;
+    if (!fetchGameweek) return;
+    if (dataSource === "api-sports" && !apiKey) return;
 
     setIsFetchingApi(true);
     setFetchError("");
     setFetchedFixtures([]);
 
     try {
-      const result: GameweekStatsResult = await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
+      const result: GameweekStatsResult =
+        dataSource === "fpl"
+          ? await fetchGameweekStatsFPL(parseInt(fetchGameweek))
+          : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
       }
 
       if (result.players.length > 0) {
-        // Format for the contract submission
         const formattedStats = {
           gameweekId: result.gameweekId,
           players: result.players,
@@ -100,8 +104,9 @@ export default function AdminPage() {
         setFetchedFixtures(result.fixtures);
       }
 
-      // Update API status
-      await handleCheckApiStatus();
+      if (dataSource === "api-sports") {
+        await handleCheckApiStatus();
+      }
     } catch (error: any) {
       setFetchError(error.message || "Failed to fetch stats");
     } finally {
@@ -530,48 +535,91 @@ export default function AdminPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">Fetch Stats from API</h2>
+              <h2 className="text-xl font-bold text-white">Fetch Stats</h2>
             </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Fetch real match stats from API-Sports. Get your API key from{" "}
-              <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
-                api-football.com
-              </a>
-            </p>
+
+            {/* Data Source Toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setDataSource("fpl")}
+                className={cn(
+                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                  dataSource === "fpl"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/10"
+                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
+                )}
+              >
+                <span className="block font-bold">FPL Official</span>
+                <span className="block text-[10px] mt-0.5 opacity-70">Free &middot; No key &middot; 2025/26</span>
+              </button>
+              <button
+                onClick={() => setDataSource("api-sports")}
+                className={cn(
+                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                  dataSource === "api-sports"
+                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-lg shadow-cyan-500/10"
+                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
+                )}
+              >
+                <span className="block font-bold">API-Sports</span>
+                <span className="block text-[10px] mt-0.5 opacity-70">100 req/day &middot; Needs key</span>
+              </button>
+            </div>
+
+            {dataSource === "fpl" && (
+              <p className="text-muted-foreground text-sm mb-4">
+                Uses the official Fantasy Premier League Live API. Always current season, unlimited requests, no API key needed.
+                <br />
+                <span className="text-xs text-muted-foreground/60">
+                  Provides: goals, assists, saves, clean sheets, cards, penalties, own goals, BPS. Does not include tackles/interceptions/dribbles.
+                </span>
+              </p>
+            )}
+
+            {dataSource === "api-sports" && (
+              <p className="text-muted-foreground text-sm mb-4">
+                Fetch from API-Sports (100 req/day free). Get your key from{" "}
+                <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                  api-football.com
+                </a>
+              </p>
+            )}
 
             <div className="space-y-4">
-              {/* API Key Input */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">API Key</label>
-                <div className="flex gap-3">
-                  <input
-                    type="password"
-                    placeholder="Enter your API-Sports key"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border font-mono text-sm"
-                  />
-                  <button
-                    onClick={handleCheckApiStatus}
-                    disabled={!apiKey}
-                    className="px-4 py-3 bg-cyan-500/20 text-cyan-400 rounded-xl hover:bg-cyan-500/30 transition-colors disabled:opacity-50 border border-cyan-500/30"
-                  >
-                    Check
-                  </button>
-                </div>
-                {apiStatus && (
-                  <div className="mt-2 space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      API Requests: {apiStatus.used} / {apiStatus.limit} today ({apiStatus.remaining} remaining)
-                    </p>
-                    {apiWarning && (
-                      <p className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30">
-                        {apiWarning}
-                      </p>
-                    )}
+              {/* API Key Input — only for API-Sports */}
+              {dataSource === "api-sports" && (
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">API Key</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="password"
+                      placeholder="Enter your API-Sports key"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border font-mono text-sm"
+                    />
+                    <button
+                      onClick={handleCheckApiStatus}
+                      disabled={!apiKey}
+                      className="px-4 py-3 bg-cyan-500/20 text-cyan-400 rounded-xl hover:bg-cyan-500/30 transition-colors disabled:opacity-50 border border-cyan-500/30"
+                    >
+                      Check
+                    </button>
                   </div>
-                )}
-              </div>
+                  {apiStatus && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        API Requests: {apiStatus.used} / {apiStatus.limit} today ({apiStatus.remaining} remaining)
+                      </p>
+                      {apiWarning && (
+                        <p className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30">
+                          {apiWarning}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Gameweek Input */}
               <div>
@@ -586,8 +634,13 @@ export default function AdminPage() {
                   />
                   <button
                     onClick={handleFetchFromApi}
-                    disabled={!apiKey || !fetchGameweek || isFetchingApi}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-medium hover:from-cyan-400 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/25 disabled:opacity-50"
+                    disabled={(dataSource === "api-sports" && !apiKey) || !fetchGameweek || isFetchingApi}
+                    className={cn(
+                      "px-6 py-3 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
+                      dataSource === "fpl"
+                        ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 shadow-emerald-500/25"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25"
+                    )}
                   >
                     {isFetchingApi ? (
                       <span className="flex items-center gap-2">
@@ -595,7 +648,7 @@ export default function AdminPage() {
                         Fetching...
                       </span>
                     ) : (
-                      "Fetch Stats"
+                      dataSource === "fpl" ? "Fetch from FPL" : "Fetch from API-Sports"
                     )}
                   </button>
                 </div>

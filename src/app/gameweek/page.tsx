@@ -52,16 +52,31 @@ export default function GameweekPage() {
       setConfig(configData);
 
       if (configData?.currentGameweek) {
-        const gwData = await getGameweek(configData.currentGameweek);
+        let targetGwId = configData.currentGameweek;
+        let gwData = await getGameweek(targetGwId);
+
+        // If the chain's currentGameweek is closed/resolved, scan for a newer open GW.
+        // This handles the case where create_gameweek doesn't update config.current_gameweek.
+        if (gwData && gwData.status !== "open") {
+          for (let i = targetGwId + 1; i <= targetGwId + 10; i++) {
+            const newerGw = await getGameweek(i);
+            if (!newerGw) break;
+            if (newerGw.status === "open") {
+              targetGwId = i;
+              gwData = newerGw;
+              break;
+            }
+          }
+        }
+
         setCurrentGameweek(gwData);
 
         if (account?.address) {
-          const registered = await hasRegisteredTeam(account.address.toString(), configData.currentGameweek);
+          const registered = await hasRegisteredTeam(account.address.toString(), targetGwId);
           setAlreadyRegistered(registered);
 
-          // Try to restore saved team from localStorage
           if (registered) {
-            const key = `ffl_team_gw${configData.currentGameweek}_${account.address.toString()}`;
+            const key = `ffl_team_gw${targetGwId}_${account.address.toString()}`;
             const saved = localStorage.getItem(key);
             if (saved) {
               try {
@@ -70,15 +85,14 @@ export default function GameweekPage() {
             }
           }
 
-          // Fetch stats if resolved
           if (gwData?.status === "resolved" && account?.address) {
             const [chainTeam, res] = await Promise.all([
-              getUserTeam(account.address.toString(), configData.currentGameweek),
-              getTeamResult(account.address.toString(), configData.currentGameweek),
+              getUserTeam(account.address.toString(), targetGwId),
+              getTeamResult(account.address.toString(), targetGwId),
             ]);
             setTeamResult(res);
             if (chainTeam?.playerIds?.length) {
-              const stats = await getGameweekStats(configData.currentGameweek, chainTeam.playerIds);
+              const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
               setGameweekStats(stats);
             }
           }
@@ -94,7 +108,8 @@ export default function GameweekPage() {
     if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
 
     async function loadFromChain() {
-      const key = `ffl_team_gw${config.currentGameweek}_${account!.address.toString()}`;
+      const gwId = currentGameweek?.id ?? config.currentGameweek;
+      const key = `ffl_team_gw${gwId}_${account!.address.toString()}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         try {
@@ -106,7 +121,7 @@ export default function GameweekPage() {
         } catch {}
       }
 
-      const chainTeam = await getUserTeam(account!.address.toString(), config.currentGameweek);
+      const chainTeam = await getUserTeam(account!.address.toString(), gwId);
       if (!chainTeam || !chainTeam.playerIds.length) return;
 
       const teamPlayers = chainTeam.playerIds
@@ -120,7 +135,7 @@ export default function GameweekPage() {
       }
     }
     loadFromChain();
-  }, [alreadyRegistered, registeredTeam, players, account?.address, config]);
+  }, [alreadyRegistered, registeredTeam, players, account?.address, config, currentGameweek]);
 
   const selectedPlayers = useMemo(() => {
     return new Set([...starters, ...bench].filter(Boolean).map((p) => p!.id));

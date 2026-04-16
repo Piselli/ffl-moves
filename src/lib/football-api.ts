@@ -5,7 +5,7 @@
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const EPL_LEAGUE_ID = 39;
-const SEASON = 2024;
+const SEASON = 2025; // 2025/2026 EPL season
 
 // Player data from our local JSON (we'll load this)
 let playerMappings: Map<number, { id: number; position: string }> | null = null;
@@ -225,6 +225,35 @@ export async function fetchGameweekStats(
   }
 
   return result;
+}
+
+/**
+ * Fetch gameweek stats from the official FPL Live API (free, no key needed).
+ * Proxied through /api/fpl-live to bypass CORS.
+ * Covers: goals, assists, saves, clean sheets, cards, penalties, own goals, BPS.
+ * Does NOT provide: tackles, interceptions, dribbles (set to 0).
+ */
+export async function fetchGameweekStatsFPL(
+  gameweekNumber: number,
+): Promise<GameweekStatsResult> {
+  try {
+    const res = await fetch(`/api/fpl-live?gw=${gameweekNumber}`);
+    const data = await res.json();
+
+    return {
+      gameweekId: data.gameweekId ?? gameweekNumber,
+      players: data.players ?? [],
+      fixtures: data.fixtures ?? [],
+      errors: data.errors ?? [],
+    };
+  } catch (error) {
+    return {
+      gameweekId: gameweekNumber,
+      players: [],
+      fixtures: [],
+      errors: [`Failed to fetch FPL stats: ${error}`],
+    };
+  }
 }
 
 export async function checkApiStatus(apiKey: string): Promise<{

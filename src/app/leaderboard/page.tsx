@@ -25,10 +25,22 @@ export default function LeaderboardPage() {
         setConfig(configData);
 
         if (configData) {
-          // If no gameweek selected yet, default to current
-          const targetGwId = selectedGameweek || configData.currentGameweek;
-          if (selectedGameweek === 0 && configData.currentGameweek > 0) {
-            setSelectedGameweek(configData.currentGameweek);
+          // Find the latest open GW (chain's currentGameweek may lag behind)
+          let latestGwId = configData.currentGameweek;
+          if (latestGwId > 0) {
+            const baseGw = await getGameweek(latestGwId);
+            if (baseGw && baseGw.status !== "open") {
+              for (let i = latestGwId + 1; i <= latestGwId + 10; i++) {
+                const newerGw = await getGameweek(i);
+                if (!newerGw) break;
+                if (newerGw.status === "open") { latestGwId = i; break; }
+              }
+            }
+          }
+
+          const targetGwId = selectedGameweek || latestGwId;
+          if (selectedGameweek === 0 && latestGwId > 0) {
+            setSelectedGameweek(latestGwId);
           }
 
           if (targetGwId > 0) {
