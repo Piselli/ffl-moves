@@ -17,55 +17,65 @@ export default function LeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(false);
 
+  // Load config & resolve initial gameweek (runs once)
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
+    async function loadConfig() {
       try {
         const configData = await getConfig();
         setConfig(configData);
 
-        if (configData) {
-          // Find the latest open GW (chain's currentGameweek may lag behind)
-          let latestGwId = configData.currentGameweek;
-          if (latestGwId > 0) {
-            const baseGw = await getGameweek(latestGwId);
-            if (baseGw && baseGw.status !== "open") {
-              for (let i = latestGwId + 1; i <= latestGwId + 10; i++) {
-                const newerGw = await getGameweek(i);
-                if (!newerGw) break;
-                if (newerGw.status === "open") { latestGwId = i; break; }
-              }
+        if (configData && configData.currentGameweek > 0) {
+          let targetGw = configData.currentGameweek;
+
+          const baseGw = await getGameweek(targetGw);
+          if (baseGw && baseGw.status !== "open") {
+            for (let i = targetGw + 1; i <= targetGw + 10; i++) {
+              const newerGw = await getGameweek(i);
+              if (!newerGw) break;
+              if (newerGw.status === "open") { targetGw = i; break; }
             }
           }
 
-          const targetGwId = selectedGameweek || latestGwId;
-          if (selectedGameweek === 0 && latestGwId > 0) {
-            setSelectedGameweek(latestGwId);
-          }
-
-          if (targetGwId > 0) {
-            const gwData = await getGameweek(targetGwId);
-            setCurrentGameweek(gwData);
-
-            // Fetch team results for the selected gameweek
-            const addresses = await getGameweekTeams(targetGwId);
-            const results = await Promise.all(
-              addresses.map((addr) => getTeamResult(addr, targetGwId))
-            );
-
-            // Filter out nulls and sort by rank
-            const validResults = results.filter((r): r is TeamResult => r !== null);
-            validResults.sort((a, b) => a.rank - b.rank);
-            setLeaderboardData(validResults);
-          }
+          setSelectedGameweek(targetGw);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error("Error fetching leaderboard data:", error);
+        console.error("Error loading config:", error);
+        setIsLoading(false);
+      }
+    }
+    loadConfig();
+  }, []);
+
+  // Fetch gameweek data when selection changes
+  useEffect(() => {
+    if (selectedGameweek === 0) return;
+
+    async function fetchGameweekData() {
+      setIsLoading(true);
+      try {
+        const gwData = await getGameweek(selectedGameweek);
+        setCurrentGameweek(gwData);
+
+        if (gwData && gwData.status === "resolved") {
+          const addresses = await getGameweekTeams(selectedGameweek);
+          const results = await Promise.all(
+            addresses.map((addr) => getTeamResult(addr, selectedGameweek))
+          );
+          const validResults = results.filter((r): r is TeamResult => r !== null);
+          validResults.sort((a, b) => a.rank - b.rank);
+          setLeaderboardData(validResults);
+        } else {
+          setLeaderboardData([]);
+        }
+      } catch (error) {
+        console.error("Error fetching gameweek data:", error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchData();
+    fetchGameweekData();
   }, [selectedGameweek]);
 
   const handleClaimPrize = async (gameweekId: number) => {

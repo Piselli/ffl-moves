@@ -8,6 +8,7 @@ import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, g
 import { formatMOVE, cn } from "@/lib/utils";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
+import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 
 const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
 
@@ -90,30 +91,21 @@ function PlayerResultCard({
       )}
 
       {/* Photo */}
-      <div className={cn(
-        "w-14 h-14 rounded-xl overflow-hidden border-2 bg-white/[0.05] flex items-center justify-center shrink-0",
-        positionBorder[player.position]
-      )}>
-        {player.photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={player.photo}
-            alt={player.name}
-            className="w-full h-full object-cover object-top"
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.style.display = "none";
-              const fb = img.nextElementSibling as HTMLElement;
-              if (fb) fb.style.display = "flex";
-            }}
-          />
-        ) : null}
-        <span
-          className={cn("text-xs font-black items-center justify-center", positionColor[player.position])}
-          style={{ display: player.photo ? "none" : "flex" }}
-        >
-          {player.position}
-        </span>
+      <div
+        className={cn(
+          "w-14 h-14 rounded-xl overflow-hidden border-2 bg-white/[0.05] shrink-0",
+          positionBorder[player.position]
+        )}
+      >
+        <FplPhotoAvatar
+          fplPhotoCode={player.fplPhotoCode}
+          photoUrl={player.photo}
+          alt={player.name}
+          size={56}
+          positionFallback={player.position}
+          positionFallbackClassName={cn("text-xs font-black", positionColor[player.position])}
+          className="rounded-xl"
+        />
       </div>
 
       {/* Name */}

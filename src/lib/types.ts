@@ -9,8 +9,11 @@ export interface Player {
   positionId: number;
   price?: number;          // kept for backward-compat, no longer shown in UI
   photo?: string;          // FPL photo URL
+  /** FPL `elements[].code` — used with local photo sprite atlas */
+  fplPhotoCode?: number;
   imageUrl?: string;       // legacy field
-  status?: string;         // 'a' = available, 'd' = doubtful, 'i' = injured
+  /** FPL: a=available, d=doubtful, i=injured, s=suspended */
+  status?: string;
   chanceOfPlaying?: number | null;
   news?: string;
   totalPoints?: number;

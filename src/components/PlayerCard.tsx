@@ -2,6 +2,7 @@
 
 import { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 
 interface PlayerCardProps {
   player: Player;
@@ -32,12 +33,85 @@ const positionBadgeColors = {
   FWD: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
 };
 
-/** Availability dot */
-function StatusDot({ status, chance }: { status?: string; chance?: number | null }) {
+/** FPL availability — icons match official meanings: injury, suspension, doubtful */
+function PlayerAvailabilityIcon({
+  status,
+  chance,
+  news,
+}: {
+  status?: string;
+  chance?: number | null;
+  news?: string;
+}) {
   if (!status || status === "a") return null;
-  const color =
-    status === "i" ? "bg-red-500" : chance === 0 ? "bg-red-500" : "bg-amber-400";
-  return <span className={cn("w-2 h-2 rounded-full shrink-0", color)} />;
+
+  const pct =
+    chance != null && !Number.isNaN(Number(chance)) ? `${Number(chance)}%` : null;
+  const newsTrim = news?.trim();
+
+  if (status === "i") {
+    const title = newsTrim || "Травма / пропуск туру";
+    return (
+      <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
+        <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-rose-400" aria-hidden>
+          <rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor" opacity="0.18" />
+          <path
+            fill="currentColor"
+            d="M7 4.25h2v2.75H11.75v1.5H9v2.75H7V8.5H4.25V7H7V4.25z"
+          />
+        </svg>
+      </span>
+    );
+  }
+
+  if (status === "s") {
+    const title = newsTrim || "Дискваліфікація (червона картка / відбуття матчів)";
+    return (
+      <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
+        <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" aria-hidden>
+          <rect x="3.5" y="2" width="9" height="12" rx="1.2" fill="#ef4444" />
+          <rect x="4.5" y="3.5" width="7" height="1.5" rx="0.3" fill="rgba(0,0,0,0.2)" />
+        </svg>
+      </span>
+    );
+  }
+
+  if (status === "d") {
+    const severe = chance === 0;
+    const title =
+      newsTrim ||
+      (pct != null
+        ? `Під питанням — шанс зіграти: ${pct}`
+        : "Під питанням (ймовірність участі не відома)");
+    const cls = severe ? "text-rose-400" : "text-amber-400";
+    return (
+      <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
+        <svg viewBox="0 0 16 16" className={cn("w-3.5 h-3.5", cls)} aria-hidden>
+          <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.25" />
+          <text
+            x="8"
+            y="11"
+            textAnchor="middle"
+            fontSize="9"
+            fill="currentColor"
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontWeight="700"
+          >
+            ?
+          </text>
+        </svg>
+      </span>
+    );
+  }
+
+  const title = newsTrim || `Статус: ${status}${pct ? ` (${pct})` : ""}`;
+  return (
+    <span
+      title={title}
+      className="inline-flex h-2 w-2 shrink-0 rounded-full bg-white/35"
+      aria-label={title}
+    />
+  );
 }
 
 /** Form badge — avg pts per match last 4 GWs */
@@ -93,6 +167,7 @@ export function PlayerCard({
   compact = false,
 }: PlayerCardProps) {
   const photoUrl = player.photo || player.imageUrl;
+  const fplCode = player.fplPhotoCode;
 
   const positionBorderCompact: Record<string, string> = {
     GK:  "border-rose-400/60",
@@ -110,27 +185,19 @@ export function PlayerCard({
           positionBorderCompact[player.position]
         )}
       >
-        <div className="w-12 h-12 rounded-lg overflow-hidden bg-black/40 flex items-center justify-center text-xs font-bold shrink-0 relative">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt={player.name}
-              className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                img.style.display = "none";
-                const fallback = img.nextElementSibling as HTMLElement;
-                if (fallback) fallback.style.display = "flex";
-              }}
-            />
-          ) : null}
-          <span
-            className={cn("text-[11px] font-black items-center justify-center", positionBadgeColors[player.position].split(" ")[1])}
-            style={{ display: photoUrl ? "none" : "flex" }}
-          >
-            {player.position}
-          </span>
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-black/40 shrink-0 relative">
+          <FplPhotoAvatar
+            fplPhotoCode={fplCode}
+            photoUrl={photoUrl}
+            alt={player.name}
+            size={48}
+            positionFallback={player.position}
+            positionFallbackClassName={cn(
+              "text-[11px] font-black",
+              positionBadgeColors[player.position].split(" ")[1]
+            )}
+            className="rounded-lg"
+          />
         </div>
         <span className="text-[10px] font-bold text-center truncate w-full text-white/90 px-0.5 leading-tight">
           {player.webName || player.name.split(" ").pop()}
@@ -153,30 +220,19 @@ export function PlayerCard({
         {/* Avatar — colored border, dark bg, photo or position fallback */}
         <div
           className={cn(
-            "w-11 h-11 rounded-xl overflow-hidden shrink-0 border-2 bg-white/[0.05] flex items-center justify-center relative",
+            "w-11 h-11 rounded-xl overflow-hidden shrink-0 border-2 bg-white/[0.05] relative",
             positionAvatarBorder[player.position]
           )}
         >
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt={player.name}
-              className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                img.style.display = "none";
-                const fallback = img.nextElementSibling as HTMLElement;
-                if (fallback) fallback.style.display = "flex";
-              }}
-            />
-          ) : null}
-          <span
-            className={cn("text-xs font-black items-center justify-center", positionTextColor[player.position])}
-            style={{ display: photoUrl ? "none" : "flex" }}
-          >
-            {player.position}
-          </span>
+          <FplPhotoAvatar
+            fplPhotoCode={fplCode}
+            photoUrl={photoUrl}
+            alt={player.name}
+            size={44}
+            positionFallback={player.position}
+            positionFallbackClassName={cn("text-xs font-black", positionTextColor[player.position])}
+            className="rounded-xl"
+          />
         </div>
 
         {/* Info: name + team + position label */}
@@ -185,7 +241,11 @@ export function PlayerCard({
             <p className="font-semibold text-white truncate text-sm leading-tight">
               {player.webName || player.name}
             </p>
-            <StatusDot status={player.status} chance={player.chanceOfPlaying} />
+            <PlayerAvailabilityIcon
+              status={player.status}
+              chance={player.chanceOfPlaying}
+              news={player.news}
+            />
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <p className="text-xs text-white/40 truncate">{player.team}</p>

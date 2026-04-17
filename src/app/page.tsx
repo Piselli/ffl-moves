@@ -7,6 +7,8 @@ import Link from "next/link";
 import { getConfig, getGameweek } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
+import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 
 // ─── Countdown Timer ──────────────────────────────────────────────────────────
 function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number }) {
@@ -222,15 +224,18 @@ function PlayerCutout({
           {pts}
         </div>
       </div>
-      {/* Player image */}
-      <div className="relative w-20 h-24 sm:w-24 sm:h-28">
-        <img
-          src={imgUrl}
+      {/* Player image — sprite atlas when built */}
+      <div className="relative w-20 h-24 sm:w-24 sm:h-28 flex items-center justify-center">
+        <FplPhotoAvatar
+          fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(imgUrl) ?? undefined}
+          photoUrl={
+            imgUrl.startsWith("http")
+              ? imgUrl
+              : `https://resources.premierleague.com/premierleague/photos/players/250x250/${imgUrl}`
+          }
           alt={name}
-          className="w-full h-full object-contain drop-shadow-2xl"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
+          size={96}
+          className="rounded-xl shadow-2xl"
         />
       </div>
       {/* Name + position */}
@@ -485,7 +490,17 @@ function LiveDataCarousel() {
                    {/* Background Glow */}
                    <div className="absolute top-0 right-0 w-32 h-32 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-40" style={{ backgroundColor: ev.color }} />
                    
-                   <img src={ev.image} className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 bg-[#0A0D14] object-cover object-top shrink-0 transition-transform duration-300 group-hover:scale-110 mb-2" style={{ borderColor: ev.color, boxShadow: `0 0 15px ${ev.color}4D` }} alt={ev.player} />
+                   <div
+                     className="rounded-full border-2 bg-[#0A0D14] shrink-0 overflow-hidden mb-2 transition-transform duration-300 group-hover:scale-110"
+                     style={{ borderColor: ev.color, boxShadow: `0 0 15px ${ev.color}4D` }}
+                   >
+                     <FplPhotoAvatar
+                       photoUrl={ev.image}
+                       alt={ev.player}
+                       size={64}
+                       className="rounded-full"
+                     />
+                   </div>
                    
                    <span className="text-white font-black text-base sm:text-lg tracking-wide truncate text-center w-full mb-2">{ev.player}</span>
                    
@@ -844,13 +859,16 @@ export default function Home() {
                           {/* HOVER WRAPPER: Both card and nameplate scale and move up together */}
                           <div className="flex flex-col items-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-4">
                             {/* Player Card */}
-                            <div className="relative w-14 h-20 sm:w-16 sm:h-22 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/60 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] transition-colors duration-300 group-hover:border-white/30">
-                              <img 
-                                src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${p.imgUrl}`}
-                                alt={p.name} 
-                                className="object-contain w-[140%] h-[140%] drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] translate-y-2 pointer-events-none" 
-                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'; }}
-                              />
+                            <div className="relative w-14 h-20 sm:w-16 sm:h-22 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/60 border border-white/10 rounded-xl flex items-end justify-center overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] transition-colors duration-300 group-hover:border-white/30">
+                              <div className="scale-[1.35] translate-y-2 pointer-events-none drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                                <FplPhotoAvatar
+                                  fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(p.imgUrl) ?? undefined}
+                                  photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${p.imgUrl}`}
+                                  alt={p.name}
+                                  size={72}
+                                  className="rounded-lg"
+                                />
+                              </div>
                               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
                             </div>
                             
@@ -967,11 +985,12 @@ export default function Home() {
                 {/* Player header */}
                 <div className="relative flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/[0.05]">
                   <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/[0.08] bg-white/[0.04] relative z-10">
-                    <img
-                      src={`https://resources.premierleague.com/premierleague/photos/players/110x140/${card.img}`}
+                    <FplPhotoAvatar
+                      fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(card.img) ?? undefined}
+                      photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${card.img}`}
                       alt={card.player}
-                      className="w-full h-full object-cover object-top scale-110"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      size={44}
+                      className="scale-110 rounded-xl"
                     />
                   </div>
                   <div className="relative z-10 min-w-0">

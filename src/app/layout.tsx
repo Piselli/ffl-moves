@@ -19,6 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preload" href="/sprites/fpl-players.webp" as="image" type="image/webp" />
+      </head>
       <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <WalletProvider>
           <div className="min-h-screen bg-[#0D0F12] text-white">

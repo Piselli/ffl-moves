@@ -75,7 +75,8 @@ export async function GET() {
         position: POSITION_MAP[el.element_type] || "MID",
         positionId: el.element_type - 1,
         photo: `${PHOTO_BASE}${el.code}.png`,
-        status: el.status, // 'a' = available, 'd' = doubtful, 'i' = injured
+        fplPhotoCode: el.code,
+        status: el.status, // a, d, i, s (FPL)
         chanceOfPlaying: el.chance_of_playing_next_round,
         news: el.news || "",
         totalPoints: el.total_points,
