@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
 import { cn } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+
+function normAddr(a: string | undefined | null): string {
+  return (a ?? "").toLowerCase();
+}
 
 export default function AdminPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
@@ -30,29 +34,34 @@ export default function AdminPage() {
   const [fetchedFixtures, setFetchedFixtures] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState("");
 
-  useEffect(() => {
-    async function fetchData() {
+  const loadChainConfig = useCallback(async () => {
+    setIsLoading(true);
+    try {
       const configData = await getConfig();
       setConfig(configData);
-
+      setCurrentGameweek(null);
       if (configData?.currentGameweek) {
         try {
           const gwData = await getGameweek(configData.currentGameweek);
           setCurrentGameweek(gwData);
-        } catch (e) {
+        } catch {
           console.log("No active gameweek found on chain yet (likely initialized to 0).");
         }
       }
+    } finally {
       setIsLoading(false);
     }
-    fetchData();
-
-    // Load API key from localStorage
-    const savedApiKey = localStorage.getItem("fantasy_epl_api_key");
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
   }, []);
+
+  useEffect(() => {
+    void loadChainConfig();
+    try {
+      const savedApiKey = localStorage.getItem("fantasy_epl_api_key");
+      if (savedApiKey) setApiKey(savedApiKey);
+    } catch {
+      /* private mode etc. */
+    }
+  }, [loadChainConfig]);
 
   // Save API key to localStorage when it changes
   useEffect(() => {
@@ -114,8 +123,13 @@ export default function AdminPage() {
     }
   };
 
-  const isAdmin = config?.admins?.includes(account?.address?.toString() || "");
-  const isOracle = config?.oracle === account?.address?.toString();
+  const walletAddr = normAddr(account?.address?.toString());
+  const isAdmin = Boolean(
+    walletAddr && config?.admins?.some((a: string) => normAddr(a) === walletAddr)
+  );
+  const isOracle = Boolean(
+    walletAddr && config?.oracle && normAddr(config.oracle) === walletAddr
+  );
 
   const handleCreateGameweek = async () => {
     if (!connected || !newGameweekId) return;
@@ -335,6 +349,28 @@ export default function AdminPage() {
         <div className="glass-card rounded-2xl p-12">
           <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
+        <div className="glass-card rounded-2xl p-12">
+          <h1 className="text-2xl font-bold text-white mb-3">Не вдалося завантажити контракт</h1>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Запит{" "}
+            <code className="text-emerald-400/90 text-xs px-1 py-0.5 rounded bg-white/5">get_config</code>
+            {" "}до Movement не відповів (мережа, RPC або контракт недоступні). Без цих даних адмінка не може перевірити права доступу.
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadChainConfig()}
+            className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold text-sm hover:bg-emerald-500/30 transition-colors"
+          >
+            Спробувати знову
+          </button>
         </div>
       </div>
     );

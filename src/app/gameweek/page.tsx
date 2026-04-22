@@ -377,10 +377,24 @@ export default function GameweekPage() {
       console.error("Error data:", error?.data);
       console.error("Full error JSON:", JSON.stringify(error, Object.getOwnPropertyNames(error || {}), 2));
       
-      // Clean, user-friendly error message
-      const msg = error?.message || error?.toString?.() || "Unknown error";
-      if (msg.includes("User rejected") || msg.includes("cancelled") || msg.includes("Rejected")) {
-        // User cancelled — no alert needed
+      // Clean, user-friendly error message (wallet vendors vary: "User rejected" vs "User has rejected the request", casing, EIP-1193 code 4001)
+      const msg = String(error?.message || error?.toString?.() || "Unknown error");
+      const msgLower = msg.toLowerCase();
+      const code = error?.code;
+      const isUserRejection =
+        code === 4001 ||
+        msgLower.includes("user rejected") ||
+        msgLower.includes("user has rejected") ||
+        msgLower.includes("rejected the request") ||
+        msgLower.includes("user denied") ||
+        msgLower.includes("denied transaction") ||
+        msgLower.includes("denied message") ||
+        msgLower.includes("request rejected") ||
+        msgLower.includes("cancelled") ||
+        msgLower.includes("canceled");
+
+      if (isUserRejection) {
+        // User dismissed the wallet prompt — no error alert
       } else {
         alert(`Помилка реєстрації: ${msg}`);
       }
