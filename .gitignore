@@ -26,6 +26,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# Move packages — compiler output (regenerate: movement move compile --dev)
+move/**/build/
+
 # Movement CLI — never commit keys (see Movement docs)
 .movement/
 

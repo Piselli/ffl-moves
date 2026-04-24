@@ -272,6 +272,17 @@ export default function AdminPage() {
       const interceptions = stats.players.map((p: any) => toU64Stat(p.interceptions));
       const successfulDribbles = stats.players.map((p: any) => toU64Stat(p.successfulDribbles));
       const freeKickGoals = stats.players.map((p: any) => toU64Stat(p.freeKickGoals));
+      const goalsConceded = stats.players.map((p: any) =>
+        toU64Stat(p.goalsConceded ?? p.goals_conceded),
+      );
+      const fplBonus = stats.players.map((p: any) => {
+        const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
+        return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
+      });
+      const fplCleanSheet = stats.players.map((p: any) => {
+        const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
+        return Boolean(v === true || v === 1 || v === "1");
+      });
 
       const transaction = await aptos.transaction.build.simple({
         sender: account.address.toString(),
@@ -297,6 +308,9 @@ export default function AdminPage() {
             interceptions,
             successfulDribbles,
             freeKickGoals,
+            goalsConceded,
+            fplBonus,
+            fplCleanSheet,
           ],
         },
       });
@@ -787,7 +801,10 @@ export default function AdminPage() {
       "tackles": 1,
       "interceptions": 0,
       "successfulDribbles": 3,
-      "freeKickGoals": 0
+      "freeKickGoals": 0,
+      "goalsConceded": 0,
+      "bonus": 0,
+      "fplCleanSheets": 0
     }
   ]
 }`}

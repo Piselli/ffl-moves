@@ -5,7 +5,7 @@ export const NETWORK = Network.CUSTOM;
 
 const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
 const DEFAULT_MODULE_ADDRESS =
-  "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb";
+  "0xc9f5444ab989c2a7ef73b1eab58b66947c4c5788e25d997d649c7d6ddfbeb5a1";
 
 function envStr(key: string, fallback: string): string {
   if (typeof process !== "undefined" && process.env[key]) {

@@ -1,12 +1,16 @@
 [package]
-name = "OnchainScoring"
-version = "1.0.0"
+name = "fantasy_epl"
+version = "1.1.0"
+authors = []
 
-# Replace with your publishing address; "_" = any for compile-only.
 [addresses]
-onchain_scoring = "0xcafe"
+fantasy_epl_addr = "_"
 
-[dependencies.AptosFramework]
-git = "https://github.com/aptos-labs/aptos-framework.git"
-rev = "mainnet"
-subdir = "aptos-framework"
+[dev-addresses]
+fantasy_epl_addr = "0xCAFE"
+
+[dependencies]
+# "l1-migration" branch was removed. Pin to Movement CLI 7.4.0–matching framework (movementlabs fork).
+AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core.git", rev = "movement-cli-v7.4.0", subdir = "aptos-move/framework/aptos-framework" }
+
+[dev-dependencies]

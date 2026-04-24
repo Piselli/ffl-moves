@@ -34,13 +34,19 @@ if [[ ! -f "$DEST/Move.toml" ]]; then
   echo "Попередження: у $DEST немає Move.toml — перевір, що копіюєш корінь Move-пакета."
 fi
 
+# move-by-examples PR #1 still pins AptosFramework rev "l1-migration" (branch removed upstream).
+if [[ -f "$DEST/Move.toml" ]] && grep -q 'rev = "l1-migration"' "$DEST/Move.toml" 2>/dev/null; then
+  echo "→ Патч Move.toml: l1-migration → movement-cli-v7.4.0 (Movement CLI 7.4.x)"
+  perl -i -pe 's/rev = "l1-migration"/rev = "movement-cli-v7.4.0"/' "$DEST/Move.toml"
+fi
+
 if command -v movement >/dev/null 2>&1; then
-  echo "→ movement move compile …"
-  (cd "$DEST" && movement move compile)
+  echo "→ movement move compile --dev …"
+  (cd "$DEST" && movement move compile --dev)
   echo "Готово: compile пройшов."
 elif command -v aptos >/dev/null 2>&1; then
-  echo "→ aptos move compile …"
-  (cd "$DEST" && aptos move compile)
+  echo "→ aptos move compile --dev …"
+  (cd "$DEST" && aptos move compile --dev)
   echo "Готово: compile пройшов."
 else
   echo "Не знайдено movement ні aptos у PATH — пропускаю compile."
