@@ -46,7 +46,8 @@
 У терміналі:
 
   cd /Users/piselli/Desktop/ffl-moves/move/fantasy-epl-contract
-  aptos move compile
+  movement move compile
+  (або aptos move compile; CLI: https://docs.movementnetwork.xyz/devs/movementcli )
 
 Якщо є помилки — їх треба виправити у своєму оригінальному репо або
 скопійованих файлах, доки compile не пройде. Це не обов’язково для
@@ -67,9 +68,9 @@
 ──────────────────────────────────────────────────────────────────
 КРОК 5. Мейннет (коли ончейн уже виправлений)
 ──────────────────────────────────────────────────────────────────
-1) Задеплой оновлений модуль на Movement MAINNET (звичайно через
-   aptos move publish …) — це робиться З ТВОГО ГАМАНЦЯ, без передачі
-   ключів у чат.
+1) Задеплой оновлений модуль на Movement MAINNET (movement move publish
+   або aptos move publish — див. Movement CLI docs) — З ТВОГО ГАМАНЦЯ,
+   без передачі ключів у чат.
 
 2) У корені ffl-moves створи файл .env.local (не коміть у git, якщо
    не хочеш світити адреси) з рядками з офіційної доки Movement:

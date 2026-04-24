@@ -26,6 +26,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# Movement CLI — never commit keys (see Movement docs)
+.movement/
+
 # vercel
 .vercel
 

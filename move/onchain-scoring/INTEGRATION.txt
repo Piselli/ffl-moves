@@ -22,7 +22,8 @@
    опублікувати цей пакет і `use` з fantasy_epl (залежить від політики адреси).
 
 Перевірка локально:
-  cd move/onchain-scoring && aptos move test
+  cd move/onchain-scoring && movement move test
+  (або aptos move test — див. https://docs.movementnetwork.xyz/devs/movementcli )
 
 Після деплою оновіть .env.local: NEXT_PUBLIC_MODULE_ADDRESS (і за потреби
 NEXT_PUBLIC_MOVEMENT_RPC_URL для mainnet). Див. .env.example та

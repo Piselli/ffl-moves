@@ -34,13 +34,18 @@ if [[ ! -f "$DEST/Move.toml" ]]; then
   echo "Попередження: у $DEST немає Move.toml — перевір, що копіюєш корінь Move-пакета."
 fi
 
-if command -v aptos >/dev/null 2>&1; then
+if command -v movement >/dev/null 2>&1; then
+  echo "→ movement move compile …"
+  (cd "$DEST" && movement move compile)
+  echo "Готово: compile пройшов."
+elif command -v aptos >/dev/null 2>&1; then
   echo "→ aptos move compile …"
   (cd "$DEST" && aptos move compile)
   echo "Готово: compile пройшов."
 else
-  echo "aptos CLI не знайдено у PATH — пропускаю compile. Встанови Aptos CLI і виконай:"
-  echo "  cd \"$DEST\" && aptos move compile"
+  echo "Не знайдено movement ні aptos у PATH — пропускаю compile."
+  echo "  Movement: https://docs.movementnetwork.xyz/devs/movementcli"
+  echo "  cd \"$DEST\" && movement move compile   # або aptos move compile"
 fi
 
 echo ""

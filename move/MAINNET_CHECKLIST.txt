@@ -33,3 +33,16 @@ View: get_config, is_admin_address, get_gameweek, get_user_title, get_user_guild
 [ ] npm run build && прогін на staging з mainnet.
 [ ] Перевірити Nightly (або інший гаманець) на Movement mainnet chain id.
 [ ] Реальні MOVE / комісії — окремий аудит лімітів і адмінів.
+
+Movement CLI (офіційно для Movement)
+======================================
+Документація: https://docs.movementnetwork.xyz/devs/movementcli
+
+Встановлення (macOS / Linux x86_64): brew tap moveindustries/movement
+  && brew install movement — далі команди як у Aptos CLI, але префікс
+  «movement» замість «aptos» (наприклад movement move compile,
+  movement move publish). На Windows у доках рекомендують Aptos CLI —
+  ті самі підкоманди.
+
+У цьому репо npm run move:compile / move:test використовують movement,
+якщо він у PATH, інакше aptos.
