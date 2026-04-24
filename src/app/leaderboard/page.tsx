@@ -4,9 +4,15 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
-import { getConfig, getGameweek, getTeamResult, getGameweekTeams, moduleFunction } from "@/lib/aptos";
+import { getConfig, getGameweek, getTeamResult, getGameweekTeams, getUserTeam, getGameweekStats, moduleFunction } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
-import { TeamResult } from "@/lib/types";
+import { TeamResult, type Player } from "@/lib/types";
+import {
+  calculateFantasyPoints,
+  mergeFplAuxIntoStats,
+  auxMapFromFplLivePlayers,
+  type FplLivePlayerRow,
+} from "@/lib/scoring";
 
 export default function LeaderboardPage() {
   const { account, connected, signAndSubmitTransaction } = useWallet();
@@ -65,7 +71,46 @@ export default function LeaderboardPage() {
           );
           const validResults = results.filter((r): r is TeamResult => r !== null);
           validResults.sort((a, b) => a.rank - b.rank);
-          setLeaderboardData(validResults);
+
+          let fplPlayers: FplLivePlayerRow[] | undefined;
+          try {
+            const fr = await fetch(`/api/fpl-live?gw=${selectedGameweek}`);
+            if (fr.ok) {
+              const fj = await fr.json();
+              fplPlayers = fj.players;
+            }
+          } catch {
+            /* ignore */
+          }
+          const auxM = auxMapFromFplLivePlayers(fplPlayers);
+          const playersJson: Player[] = await fetch("/api/players").then((r) => r.json());
+          const byId = new Map<number, Player>(playersJson.map((p) => [p.id, p]));
+
+          const enriched: TeamResult[] = await Promise.all(
+            validResults.map(async (r) => {
+              let displayPoints = r.finalPoints;
+              try {
+                const team = await getUserTeam(r.owner, selectedGameweek);
+                const pids = team?.playerIds;
+                if (team && pids && pids.length >= 11) {
+                  const statsMap = (await getGameweekStats(selectedGameweek, pids)) as Record<string, unknown>;
+                  let sum = 0;
+                  for (const pid of pids.slice(0, 11)) {
+                    const pl = byId.get(pid);
+                    const raw = statsMap[String(pid)] ?? statsMap[pid];
+                    if (!pl || !raw) continue;
+                    const merged = mergeFplAuxIntoStats(raw as Record<string, unknown>, auxM.get(pid));
+                    sum += calculateFantasyPoints(pl, merged);
+                  }
+                  displayPoints = sum;
+                }
+              } catch (e) {
+                console.error("leaderboard rules total", r.owner, e);
+              }
+              return { ...r, displayPoints };
+            }),
+          );
+          setLeaderboardData(enriched);
         } else {
           setLeaderboardData([]);
         }
@@ -253,15 +298,26 @@ export default function LeaderboardPage() {
                 value: userResult.rank > 0 ? `#${userResult.rank}` : "—",
                 className: userResult.rank === 1 ? "text-[#FFD700]" : userResult.rank === 2 ? "text-[#E2E8F0]" : userResult.rank === 3 ? "text-[#F59E0B]" : "text-white"
               },
-              { label: "Очки", value: String(userResult.finalPoints), className: "text-white" },
+              {
+                label: "Очки",
+                value: String(userResult.displayPoints ?? userResult.finalPoints),
+                className: "text-white",
+                sub:
+                  userResult.displayPoints !== undefined && userResult.displayPoints !== userResult.finalPoints ? (
+                    <span className="block text-[9px] text-white/35 font-medium normal-case tracking-normal mt-1 leading-tight">
+                      у контракті {userResult.finalPoints}
+                    </span>
+                  ) : null,
+              },
               {
                 label: "Приз (MOVE)",
                 value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—",
                 className: "text-emerald-400"
               },
-            ].map(({ label, value, className }) => (
+            ].map(({ label, value, className, sub }) => (
               <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
                 <p className={cn("text-2xl font-display font-black tabular-nums", className)}>{value}</p>
+                {sub}
                 <p className="text-[10px] text-white/30 uppercase tracking-wider mt-0.5">{label}</p>
               </div>
             ))}
@@ -300,9 +356,18 @@ export default function LeaderboardPage() {
           <div className="py-10 text-center">
             <div className="text-3xl mb-3">🏆</div>
             <h3 className="text-base font-display font-black text-white uppercase tracking-tight mb-1">Результатів поки немає</h3>
-            <p className="text-white/30 text-xs mb-4">
-              Результати Туру {selectedGameweek} ще не опубліковані.
-            </p>
+            {currentGameweek?.status === "closed" ? (
+              <p className="text-white/40 text-xs max-w-md mx-auto mb-4 leading-relaxed">
+                Тур {selectedGameweek} на ланцюгу в статусі «Закрито»: склади зафіксовано, статистику можна вже відправити в контракт.
+                Таблиця лідерборду з’явиться після останнього кроку в адмінці — кнопка{" "}
+                <span className="text-amber-400/90 font-semibold">Calculate &amp; Publish</span>{" "}
+                (транзакція обчислення та публікації). До цього on-chain статус туру не «Завершено».
+              </p>
+            ) : (
+              <p className="text-white/30 text-xs mb-4">
+                Результати Туру {selectedGameweek} ще не опубліковані.
+              </p>
+            )}
             <a
               href="/gameweek"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00C46A]/10 border border-[#00C46A]/20 text-[#00C46A] font-display font-bold text-xs uppercase tracking-wider hover:bg-[#00C46A]/20 hover:border-[#00C46A]/30 transition-all"

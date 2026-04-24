@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
+import { calculateFantasyPoints, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
@@ -29,33 +30,7 @@ const positionBorder: Record<string, string> = {
 const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function calcPoints(player: Player, stats: any): number {
-  if (!stats) return 0;
-  let pts = 0;
-  const mins    = Number(stats.minutes_played ?? stats.minutesPlayed ?? 0);
-  const goals   = Number(stats.goals ?? 0);
-  const assists = Number(stats.assists ?? 0);
-  const cs      = stats.clean_sheet ?? stats.cleanSheet ?? false;
-  const saves   = Number(stats.saves ?? 0);
-  const penSaved  = Number(stats.penalties_saved ?? stats.penaltiesSaved ?? 0);
-  const penMissed = Number(stats.penalties_missed ?? stats.penaltiesMissed ?? 0);
-  const og       = Number(stats.own_goals ?? stats.ownGoals ?? 0);
-  const yc       = Number(stats.yellow_cards ?? stats.yellowCards ?? 0);
-  const rc       = Number(stats.red_cards ?? stats.redCards ?? 0);
-
-  if (mins > 0) { pts += 1; if (mins >= 60) pts += 1; }
-  if (goals > 0) {
-    const gPts = player.positionId === 3 ? 4 : player.positionId === 2 ? 5 : 6;
-    pts += goals * gPts;
-  }
-  pts += assists * 3;
-  if (cs && mins >= 60 && player.positionId <= 1) pts += 4;
-  if (player.positionId === 0) pts += Math.floor(saves / 3);
-  pts += penSaved * 5;
-  pts -= penMissed * 2;
-  pts -= og * 2;
-  pts -= yc;
-  pts -= rc * 3;
-  return Math.max(0, pts);
+  return calculateFantasyPoints(player, stats as Record<string, unknown>);
 }
 
 function PlayerResultCard({
@@ -154,6 +129,8 @@ export default function MyResultPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [gwStats, setGwStats] = useState<Record<string, any>>({});
+  const [starterIds, setStarterIds] = useState<number[]>([]);
+  const [playerById, setPlayerById] = useState<Map<number, Player>>(new Map());
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
@@ -191,7 +168,15 @@ export default function MyResultPage() {
         // Fetch per-player stats using the actual player IDs from the team
         if (userTeam?.playerIds?.length) {
           const stats = await getGameweekStats(currentGwId, userTeam.playerIds);
-          setGwStats(stats);
+          let merged: Record<string, any> = stats;
+          try {
+            const fpl = await fetch(`/api/fpl-live?gw=${currentGwId}`).then((r) => (r.ok ? r.json() : null));
+            if (fpl?.players) merged = enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players) as Record<string, any>;
+          } catch {
+            /* keep chain-only */
+          }
+          setGwStats(merged);
+          setStarterIds(userTeam.playerIds.slice(0, 11));
         }
 
         if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
@@ -202,6 +187,7 @@ export default function MyResultPage() {
         if (!playersRes.ok) throw new Error("Не вдалось завантажити гравців");
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
+        setPlayerById(playerMap);
 
         const squad = userTeam.playerIds
           .map((id) => playerMap.get(id))
@@ -217,6 +203,17 @@ export default function MyResultPage() {
     }
     load();
   }, [connected, address]);
+
+  const rulesTeamTotal = useMemo(() => {
+    if (starterIds.length === 0) return null;
+    let sum = 0;
+    for (const id of starterIds) {
+      const p = playerById.get(id);
+      const st = gwStats[id] ?? gwStats[String(id)];
+      if (p && st) sum += calculateFantasyPoints(p, st as Record<string, unknown>);
+    }
+    return sum;
+  }, [starterIds, playerById, gwStats]);
 
   // ── Not connected ──────────────────────────────────────────────────────────
   if (!connected) {
@@ -328,7 +325,17 @@ export default function MyResultPage() {
             {result && (
               <div className="grid grid-cols-3 gap-3 mt-5">
                 {[
-                  { label: "Очки", value: String(result.finalPoints), accent: false },
+                  {
+                    label: "Очки",
+                    value: String(rulesTeamTotal !== null ? rulesTeamTotal : result.finalPoints),
+                    accent: false,
+                    sub:
+                      rulesTeamTotal !== null && rulesTeamTotal !== result.finalPoints ? (
+                        <span className="block text-[9px] text-white/30 normal-case tracking-normal mt-1">
+                          у контракті було {result.finalPoints}
+                        </span>
+                      ) : null,
+                  },
                   {
                     label: "Приз",
                     value: result.prizeAmount > 0 ? `${formatMOVE(result.prizeAmount)} MOVE` : "—",
@@ -339,11 +346,12 @@ export default function MyResultPage() {
                     value: totalParticipants > 0 ? String(totalParticipants) : "—",
                     accent: false,
                   },
-                ].map(({ label, value, accent }) => (
+                ].map(({ label, value, accent, sub }) => (
                   <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
                     <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00C46A]" : "text-white")}>
                       {value}
                     </p>
+                    {sub}
                     <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
                   </div>
                 ))}

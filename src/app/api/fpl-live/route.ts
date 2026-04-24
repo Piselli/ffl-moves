@@ -79,6 +79,11 @@ export async function GET(request: Request) {
 
     if (completedFixtures.length === 0) {
       errors.push(`No completed fixtures found for Gameweek ${gwNum}`);
+    } else if (completedFixtures.length > 10) {
+      errors.push(
+        `FPL returned ${completedFixtures.length} finished fixtures for GW${gwNum} (e.g. blanks + rearranged games). ` +
+          `That is normal in the official API — all still count in FPL for this gameweek. Submit Stats uses player live data, not fixture count.`,
+      );
     }
 
     // Map FPL live stats → OraclePlayerStats format
@@ -97,7 +102,7 @@ export async function GET(request: Request) {
         minutesPlayed: s.minutes ?? 0,
         goals: s.goals_scored ?? 0,
         assists: s.assists ?? 0,
-        // FPL gives clean_sheets to GK/DEF/MID; our system only counts GK & DEF
+        // Oracle / chain: only GK+DEF store clean sheet for submit_player_stats
         cleanSheet: (s.clean_sheets ?? 0) > 0 && mapping.positionId <= 1,
         saves: s.saves ?? 0,
         penaltiesSaved: s.penalties_saved ?? 0,
@@ -105,9 +110,12 @@ export async function GET(request: Request) {
         ownGoals: s.own_goals ?? 0,
         yellowCards: s.yellow_cards ?? 0,
         redCards: s.red_cards ?? 0,
-        // BPS (Bonus Point System) — ranges 0-100+, comparable to API-Sports rating×10
-        rating: s.bps ?? 0,
-        // FPL doesn't provide these; zero is safe — not used in calculatePlayerPoints
+        // BPS can be negative in FPL live; Move oracle uses u64 — clamp.
+        rating: Math.max(0, Number(s.bps ?? 0) || 0),
+        // UI scoring (merge with chain stats) — not all are on-chain yet
+        bonus: Math.max(0, Math.min(3, Number(s.bonus ?? 0) || 0)),
+        goalsConceded: Math.max(0, Number(s.goals_conceded ?? 0) || 0),
+        fplCleanSheets: (s.clean_sheets ?? 0) > 0 ? 1 : 0,
         tackles: 0,
         interceptions: 0,
         successfulDribbles: 0,

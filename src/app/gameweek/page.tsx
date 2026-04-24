@@ -8,6 +8,7 @@ import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import { aptos, moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
+import { calculateFantasyPoints, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -93,7 +94,15 @@ export default function GameweekPage() {
             setTeamResult(res);
             if (chainTeam?.playerIds?.length) {
               const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
-              setGameweekStats(stats);
+              try {
+                const fpl = await fetch(`/api/fpl-live?gw=${targetGwId}`).then((r) => (r.ok ? r.json() : null));
+                const merged = fpl?.players
+                  ? enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players)
+                  : stats;
+                setGameweekStats(merged);
+              } catch {
+                setGameweekStats(stats);
+              }
             }
           }
         }
@@ -207,54 +216,8 @@ export default function GameweekPage() {
   };
 
   const calculatePlayerPoints = (player: Player) => {
-    // Try both number and string keys
     const stats = gameweekStats[player.id] || gameweekStats[player.id.toString()];
-    if (!stats) return 0;
-
-    let points = 0;
-    
-    // Safely handle both snake_case (from Move) and potentially camelCase
-    const mins = Number(stats.minutes_played ?? stats.minutesPlayed ?? 0);
-    const goals = Number(stats.goals ?? 0);
-    const assists = Number(stats.assists ?? 0);
-    const cleanSheet = stats.clean_sheet ?? stats.cleanSheet ?? false;
-    const saves = Number(stats.saves ?? 0);
-    const penaltiesSaved = Number(stats.penalties_saved ?? stats.penaltiesSaved ?? 0);
-    const penaltiesMissed = Number(stats.penalties_missed ?? stats.penaltiesMissed ?? 0);
-    const ownGoals = Number(stats.own_goals ?? stats.ownGoals ?? 0);
-    const yellowCards = Number(stats.yellow_cards ?? stats.yellowCards ?? 0);
-    const redCards = Number(stats.red_cards ?? stats.redCards ?? 0);
-
-    if (mins > 0) {
-      points += 1;
-      if (mins >= 60) points += 1;
-    }
-
-    if (goals > 0) {
-      const posId = player.positionId;
-      const goalPoints = posId === 3 ? 4 : posId === 2 ? 5 : 6;
-      points += goals * goalPoints;
-    }
-
-    points += assists * 3;
-
-    if (cleanSheet && mins >= 60 && (player.positionId === 0 || player.positionId === 1)) {
-      points += 4;
-    }
-
-    if (player.positionId === 0) {
-      points += Math.floor(saves / 3);
-    }
-
-    points += penaltiesSaved * 5;
-
-    let deductions = 0;
-    deductions += penaltiesMissed * 2;
-    deductions += ownGoals * 2;
-    deductions += yellowCards;
-    deductions += redCards * 3;
-
-    return Math.max(0, points - deductions);
+    return calculateFantasyPoints(player, stats as Record<string, unknown>);
   };
 
   const handlePlayerSelect = (player: Player) => {

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
-import { cn } from "@/lib/utils";
+import { aptos, moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
+import { cn, formatTxError, toU64Stat } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
 function normAddr(a: string | undefined | null): string {
@@ -11,7 +11,7 @@ function normAddr(a: string | undefined | null): string {
 }
 
 export default function AdminPage() {
-  const { connected, account, signAndSubmitTransaction } = useWallet();
+  const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
 
   const [config, setConfig] = useState<any>(null);
   const [currentGameweek, setCurrentGameweek] = useState<any>(null);
@@ -150,7 +150,7 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to create gameweek:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -174,8 +174,7 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
-      const msg = error?.message || error?.toString() || JSON.stringify(error) || "Unknown error";
-      alert(`Failed: ${msg}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +200,7 @@ export default function AdminPage() {
       setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to reopen gameweek:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -225,14 +224,14 @@ export default function AdminPage() {
       setNewPrizePoolPct("");
     } catch (error: any) {
       console.error("Failed to update percentage:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSubmitStats = async () => {
-    if (!connected || !statsJson) return;
+    if (!connected || !account || !statsJson) return;
 
     setIsSubmitting(true);
     try {
@@ -244,31 +243,43 @@ export default function AdminPage() {
         throw new Error("Invalid stats format. Need { gameweekId, players: [...] }");
       }
 
-      // Extract arrays
-      const playerIds = stats.players.map((p: any) => p.playerId.toString());
-      const positions = stats.players.map((p: any) => p.position.toString());
-      const minutesPlayed = stats.players.map((p: any) => p.minutesPlayed.toString());
-      const goals = stats.players.map((p: any) => p.goals.toString());
-      const assists = stats.players.map((p: any) => p.assists.toString());
-      const cleanSheets = stats.players.map((p: any) => p.cleanSheet);
-      const saves = stats.players.map((p: any) => p.saves.toString());
-      const penaltiesSaved = stats.players.map((p: any) => p.penaltiesSaved.toString());
-      const penaltiesMissed = stats.players.map((p: any) => p.penaltiesMissed.toString());
-      const ownGoals = stats.players.map((p: any) => p.ownGoals.toString());
-      const yellowCards = stats.players.map((p: any) => p.yellowCards.toString());
-      const redCards = stats.players.map((p: any) => p.redCards.toString());
-      const ratings = stats.players.map((p: any) => p.rating.toString());
-      const tackles = stats.players.map((p: any) => p.tackles.toString());
-      const interceptions = stats.players.map((p: any) => p.interceptions.toString());
-      const successfulDribbles = stats.players.map((p: any) => p.successfulDribbles.toString());
-      const freeKickGoals = stats.players.map((p: any) => p.freeKickGoals.toString());
+      const n = stats.players.length;
+      if (n === 0) throw new Error("No players in JSON");
 
-      await signAndSubmitTransaction({
+      // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
+      const playerIds = stats.players.map((p: any) => {
+        const id = toU64Stat(p.playerId);
+        if (id < 1) throw new Error(`Invalid playerId: ${p.playerId}`);
+        return id;
+      });
+      const positions = stats.players.map((p: any) => {
+        const pos = toU64Stat(p.position);
+        if (pos > 3) throw new Error(`Invalid position (0–3): ${p.position}`);
+        return pos;
+      });
+      const minutesPlayed = stats.players.map((p: any) => toU64Stat(p.minutesPlayed));
+      const goals = stats.players.map((p: any) => toU64Stat(p.goals));
+      const assists = stats.players.map((p: any) => toU64Stat(p.assists));
+      const cleanSheets = stats.players.map((p: any) => Boolean(p.cleanSheet));
+      const saves = stats.players.map((p: any) => toU64Stat(p.saves));
+      const penaltiesSaved = stats.players.map((p: any) => toU64Stat(p.penaltiesSaved));
+      const penaltiesMissed = stats.players.map((p: any) => toU64Stat(p.penaltiesMissed));
+      const ownGoals = stats.players.map((p: any) => toU64Stat(p.ownGoals));
+      const yellowCards = stats.players.map((p: any) => toU64Stat(p.yellowCards));
+      const redCards = stats.players.map((p: any) => toU64Stat(p.redCards));
+      const ratings = stats.players.map((p: any) => toU64Stat(p.rating));
+      const tackles = stats.players.map((p: any) => toU64Stat(p.tackles));
+      const interceptions = stats.players.map((p: any) => toU64Stat(p.interceptions));
+      const successfulDribbles = stats.players.map((p: any) => toU64Stat(p.successfulDribbles));
+      const freeKickGoals = stats.players.map((p: any) => toU64Stat(p.freeKickGoals));
+
+      const transaction = await aptos.transaction.build.simple({
+        sender: account.address.toString(),
         data: {
           function: moduleFunction("submit_player_stats"),
           typeArguments: [],
           functionArguments: [
-            stats.gameweekId.toString(),
+            Number(stats.gameweekId),
             playerIds,
             positions,
             minutesPlayed,
@@ -289,39 +300,59 @@ export default function AdminPage() {
           ],
         },
       });
+
+      const signResult = await signTransaction({ transactionOrPayload: transaction });
+      const pending = await aptos.transaction.submit.simple({
+        transaction,
+        senderAuthenticator: signResult.authenticator,
+      });
+      await aptos.waitForTransaction({
+        transactionHash: pending.hash,
+        options: { timeoutSecs: 90, checkSuccess: true },
+      });
       alert("Stats submitted successfully!");
     } catch (error: any) {
       console.error("Failed to submit stats:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleCalculateResults = async () => {
-    if (!connected || !resultsGameweekId) return;
+    if (!connected || !account || !resultsGameweekId) return;
 
     setIsSubmitting(true);
     try {
-      // For demo, use empty arrays for title/guild triggers
-      // In production, oracle would determine these off-chain
-      await signAndSubmitTransaction({
+      const gw = Number(resultsGameweekId);
+      const transaction = await aptos.transaction.build.simple({
+        sender: account.address.toString(),
         data: {
           function: moduleFunction("calculate_results"),
           typeArguments: [],
           functionArguments: [
-            resultsGameweekId,
-            [], // title_triggered_owners
-            [], // guild_triggered_owners
-            ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], // prize_ranks
-            ["30", "20", "15", "8", "7", "6", "5", "4", "3", "2"], // prize_percentages
+            gw,
+            [],
+            [],
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [30, 20, 15, 8, 7, 6, 5, 4, 3, 2],
           ],
         },
+      });
+
+      const signResult = await signTransaction({ transactionOrPayload: transaction });
+      const pending = await aptos.transaction.submit.simple({
+        transaction,
+        senderAuthenticator: signResult.authenticator,
+      });
+      await aptos.waitForTransaction({
+        transactionHash: pending.hash,
+        options: { timeoutSecs: 90, checkSuccess: true },
       });
       alert(`Results calculated for GW ${resultsGameweekId}!`);
     } catch (error: any) {
       console.error("Failed to calculate results:", error);
-      alert(`Failed: ${error.message || "Unknown error"}`);
+      alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -703,6 +734,13 @@ export default function AdminPage() {
                   <p className="text-sm text-emerald-400 font-medium mb-2">
                     Fetched {fetchedFixtures.length} fixtures:
                   </p>
+                  {fetchedFixtures.length > 10 && (
+                    <p className="text-xs text-amber-400/90 mb-2 leading-relaxed">
+                      Official FPL often tags more than 10 matches to one gameweek (blanks, rearranged fixtures). All
+                      listed here have <code className="text-amber-300/90">event</code> = this GW in the API. Submit
+                      Stats is driven by per-player live minutes/points, not by how many rows you see above.
+                    </p>
+                  )}
                   <div className="text-xs text-muted-foreground space-y-1">
                     {fetchedFixtures.map((f, i) => (
                       <p key={i}>{f}</p>

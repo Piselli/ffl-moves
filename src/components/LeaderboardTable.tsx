@@ -125,14 +125,19 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                   </div>
                 </td>
 
-                {/* Points */}
-                <td className="py-4 px-4 text-right">
+                {/* displayPoints = rules from site + FPL aux; finalPoints = on-chain after calculate_results */}
+                <td className="py-4 px-4 text-right align-top">
                   <span className={cn(
                     "font-display font-black text-xl tabular-nums",
                     rColor || (isUser ? "text-[#00C46A]" : "text-white")
                   )}>
-                    {result.finalPoints}
+                    {result.displayPoints ?? result.finalPoints}
                   </span>
+                  {result.displayPoints !== undefined && result.displayPoints !== result.finalPoints && (
+                    <span className="block text-[9px] text-white/25 font-medium tabular-nums leading-tight mt-0.5">
+                      у контракті {result.finalPoints}
+                    </span>
+                  )}
                 </td>
 
                 {/* Prize */}
