@@ -1,14 +1,37 @@
 import { Network } from "@aptos-labs/ts-sdk";
 
-// Network configuration - Movement Testnet
+/** Movement uses CUSTOM + explicit fullnode in Aptos TS SDK. */
 export const NETWORK = Network.CUSTOM;
-export const MOVEMENT_TESTNET_URL = "https://testnet.movementnetwork.xyz/v1";
 
-// Contract address
-export const MODULE_ADDRESS = "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb"; // The user's exclusive new M1 contract
+const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
+const DEFAULT_MODULE_ADDRESS =
+  "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb";
 
-// Module name
-export const MODULE_NAME = "fantasy_epl";
+function envStr(key: string, fallback: string): string {
+  if (typeof process !== "undefined" && process.env[key]) {
+    const v = process.env[key]!.trim();
+    if (v.length > 0) return v;
+  }
+  return fallback;
+}
+
+/**
+ * Movement fullnode REST base (v1). For mainnet set e.g.
+ * NEXT_PUBLIC_MOVEMENT_RPC_URL=https://mainnet.movementnetwork.xyz/v1
+ * (confirm URL in official Movement docs — endpoint may change).
+ */
+export const MOVEMENT_RPC_URL = envStr(
+  "NEXT_PUBLIC_MOVEMENT_RPC_URL",
+  envStr("NEXT_PUBLIC_APTOS_API", DEFAULT_MOVEMENT_RPC),
+);
+
+/** @deprecated use MOVEMENT_RPC_URL — kept for older imports */
+export const MOVEMENT_TESTNET_URL = MOVEMENT_RPC_URL;
+
+/** Published package account (module lives at MODULE_NAME under this address). */
+export const MODULE_ADDRESS = envStr("NEXT_PUBLIC_MODULE_ADDRESS", DEFAULT_MODULE_ADDRESS);
+
+export const MODULE_NAME = envStr("NEXT_PUBLIC_MODULE_NAME", "fantasy_epl");
 
 // Entry fee in MOVE (for display)
 export const ENTRY_FEE_MOVE = 1;

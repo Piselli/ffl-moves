@@ -1,0 +1,35 @@
+Що вже зроблено в репозиторії ffl-moves
+======================================
+- Формула очок на сайті = src/lib/scoring.ts (+ злиття FPL у /api/fpl-live).
+- Еталонна Move-функція = move/onchain-scoring/sources/scoring.move
+  (npm run move:test).
+- Перемикач мережі/адреси контракту = .env (див. .env.example):
+  NEXT_PUBLIC_MOVEMENT_RPC_URL, NEXT_PUBLIC_MODULE_ADDRESS, NEXT_PUBLIC_MODULE_NAME.
+
+Що НЕ можна зробити тільки з цього репо (потрібні ви або репо контракту)
+================================================================
+1) Повний модуль fantasy_epl (init, сховище, призи, адмін, оракул) — тут немає
+   вихідних .move файлів; є лише посилання на задеплоєний модуль з фронту.
+2) Деплой на Movement mainnet + підпис транзакцій — лише з вашим гаманцем
+   і ключами; агент їх не отримує.
+3) Узгодження finalPoints з UI — потрібно внести логіку з scoring.move у ваш
+   calculate_results і розширити submit_player_stats (bonus, goals_conceded,
+   fpl_clean_sheet для ПЗ). Деталі: move/onchain-scoring/INTEGRATION.txt.
+
+Поверхня контракту, яку очікує фронт (перевірте після деплою)
+============================================================
+Entry: register_team, buy_title, reroll_title, buy_guild, reroll_guild,
+       create_gameweek, close_gameweek, reopen_gameweek, set_prize_pool_percent,
+       submit_player_stats, calculate_results, claim_prize.
+
+View: get_config, is_admin_address, get_gameweek, get_user_title, get_user_guild,
+      has_title, has_guild, has_registered_team, get_team_result, get_user_team,
+      get_gameweek_teams, get_player_stats.
+
+Чекліст перед мейннетом
+======================
+[ ] Оновити Move (підрахунок + нові поля статистики), задеплоїти, перевірити view.
+[ ] Скопіювати .env.example → .env.local з MAINNET RPC і новою MODULE_ADDRESS.
+[ ] npm run build && прогін на staging з mainnet.
+[ ] Перевірити Nightly (або інший гаманець) на Movement mainnet chain id.
+[ ] Реальні MOVE / комісії — окремий аудит лімітів і адмінів.

@@ -8,6 +8,8 @@
     "dev:lan": "WATCHPACK_POLLING=1 next dev -H 0.0.0.0 -p 3000",
     "build:atlas": "node scripts/build-fpl-photo-atlas.mjs",
     "fpl:gw": "node scripts/fpl-oracle-gw.mjs",
+    "move:compile": "cd move/onchain-scoring && aptos move compile",
+    "move:test": "cd move/onchain-scoring && aptos move test",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

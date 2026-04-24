@@ -1,9 +1,9 @@
 import { Aptos, AptosConfig } from "@aptos-labs/ts-sdk";
-import { NETWORK, MODULE_ADDRESS, MODULE_NAME, MOVEMENT_TESTNET_URL } from "./constants";
+import { NETWORK, MODULE_ADDRESS, MODULE_NAME, MOVEMENT_RPC_URL } from "./constants";
 
 const config = new AptosConfig({
   network: NETWORK,
-  fullnode: MOVEMENT_TESTNET_URL,
+  fullnode: MOVEMENT_RPC_URL,
 });
 export const aptos = new Aptos(config);
 
