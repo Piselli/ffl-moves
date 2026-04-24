@@ -1,0 +1,12 @@
+[package]
+name = "OnchainScoring"
+version = "1.0.0"
+
+# Replace with your publishing address; "_" = any for compile-only.
+[addresses]
+onchain_scoring = "0xcafe"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
