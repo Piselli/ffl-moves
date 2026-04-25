@@ -9,31 +9,35 @@ const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
 const DEFAULT_MODULE_ADDRESS =
   "0xc9f5444ab989c2a7ef73b1eab58b66947c4c5788e25d997d649c7d6ddfbeb5a1";
 
-function envStr(key: string, fallback: string): string {
-  if (typeof process !== "undefined" && process.env[key]) {
-    const v = process.env[key]!.trim();
-    if (v.length > 0) return v;
-  }
-  return fallback;
+/** Trims; returns undefined if missing/blank (so ?? fallback works). */
+function publicEnv(s: string | undefined): string | undefined {
+  if (s == null) return undefined;
+  const t = s.trim();
+  return t.length > 0 ? t : undefined;
 }
 
 /**
  * Movement fullnode REST base (must end with /v1 for these defaults).
  * Docs: https://docs.movementnetwork.xyz/devs/networkEndpoints
  * Testnet chain ID 250; Mainnet chain ID 126 (SDK uses Network.CUSTOM + this URL).
+ *
+ * IMPORTANT: use only direct `process.env.NEXT_PUBLIC_*` reads (no `process.env[key]`).
+ * Otherwise the client bundle cannot inline values from `.env.local` / next.config and
+ * SSR briefly shows correct env while hydration falls back to defaults (flicker).
  */
-export const MOVEMENT_RPC_URL = envStr(
-  "NEXT_PUBLIC_MOVEMENT_RPC_URL",
-  envStr("NEXT_PUBLIC_APTOS_API", DEFAULT_MOVEMENT_RPC),
-);
+export const MOVEMENT_RPC_URL =
+  publicEnv(process.env.NEXT_PUBLIC_MOVEMENT_RPC_URL) ??
+  publicEnv(process.env.NEXT_PUBLIC_APTOS_API) ??
+  DEFAULT_MOVEMENT_RPC;
 
 /** @deprecated use MOVEMENT_RPC_URL — kept for older imports */
 export const MOVEMENT_TESTNET_URL = MOVEMENT_RPC_URL;
 
 /** Published package account (module lives at MODULE_NAME under this address). */
-export const MODULE_ADDRESS = envStr("NEXT_PUBLIC_MODULE_ADDRESS", DEFAULT_MODULE_ADDRESS);
+export const MODULE_ADDRESS =
+  publicEnv(process.env.NEXT_PUBLIC_MODULE_ADDRESS) ?? DEFAULT_MODULE_ADDRESS;
 
-export const MODULE_NAME = envStr("NEXT_PUBLIC_MODULE_NAME", "fantasy_epl");
+export const MODULE_NAME = publicEnv(process.env.NEXT_PUBLIC_MODULE_NAME) ?? "fantasy_epl";
 
 // Entry fee in MOVE (for display)
 export const ENTRY_FEE_MOVE = 1;
