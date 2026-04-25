@@ -49,7 +49,7 @@ function publicEnvFromEnvLocal() {
 const nextConfig = {
   reactStrictMode: true,
   env: publicEnvFromEnvLocal(),
-  webpack: (config, { dev }) => {
+  webpack: (config, { dev, webpack: webpackApi }) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     // macOS часто дає EMFILE на нативному watch — polling зменшує кількість file descriptors
     if (dev) {
@@ -58,6 +58,15 @@ const nextConfig = {
         aggregateTimeout: 300,
         ignored: ["**/node_modules/**", "**/.git/**"],
       };
+    }
+    // Next can still inline shell `process.env` for NEXT_PUBLIC_*; force file values last.
+    const fromFile = publicEnvFromEnvLocal();
+    if (Object.keys(fromFile).length > 0) {
+      const defs = {};
+      for (const [k, v] of Object.entries(fromFile)) {
+        defs[`process.env.${k}`] = JSON.stringify(v);
+      }
+      config.plugins.push(new webpackApi.DefinePlugin(defs));
     }
     return config;
   },
