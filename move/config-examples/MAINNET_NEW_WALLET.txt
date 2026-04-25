@@ -1,0 +1,56 @@
+Mainnet: профіль «mainnet» з ІНШИМ гаманцем (0xf598… / testnet2)
+================================================================
+
+ВАЖЛИВО
+-------
+• Приватний ключ НЕ надсилай у чат і не коміть у git.
+• Файл .movement/ уже в .gitignore — ключі тільки локально.
+
+Ти хочеш акаунт: 0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47
+(це той самий ключ, що був у профілі testnet2 — якщо так, скопіюй private_key і
+public_key зі свого старого backup / з локального .movement/config.yaml з
+іншої машини, НЕ з чату.)
+
+Покроково
+---------
+1) Відкрий у редакторі файл:
+     /Users/piselli/Desktop/ffl-moves/.movement/config.yaml
+
+2) Знайди секцію верхнього рівня:
+     profiles:
+
+3) Додай НОВИЙ профіль, скопіювавши блок з файлу в цьому репо:
+     move/config-examples/mainnet-profile.SNIPPET.yaml
+
+4) У цьому блоці заміни ТІЛЬКИ два плейсхолдери:
+     private_key: "ed25519-priv-0x...."   ← твій приватний ключ
+     public_key: "ed25519-pub-0x...."    ← відповідний публічний ключ
+
+   Рядок account: вже заповнений під 0xf598… (без 0x) — не міняй, якщо це
+   дійсно той акаунт.
+
+5) Збережи файл.
+
+6) Перевір у терміналі (з будь-якої папки):
+     movement config show-profiles
+   або:
+     movement account list --profile mainnet
+   (якщо така команда є в твоїй версії CLI — інакше просто спробуй publish нижче)
+
+7) Поповни цей акаунт MAINNET MOVE для gas (кран testnet тут не працює).
+
+8) Publish (підстав свій профіль і адресу пакета = адреса акаунта з ключем):
+     cd /Users/piselli/Desktop/ffl-moves/move/fantasy-epl-contract
+     movement move publish \
+       --named-addresses fantasy_epl_addr=0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47 \
+       --profile mainnet
+
+Якщо public_key не знаєш — його зазвичай можна взяти з того ж backup, що й
+приватний, або з експорту гаманця; Movement YAML очікує обидва поля, як у
+твоїх testnet-профілях.
+
+Автоскрипт npm run setup:movement-mainnet-profile
+---------------------------------------------------
+Він КЛОНУЄ testnet3. Для гаманця 0xf598… його НЕ використовуй.
+Можна зробити копію скрипта під testnet2 — але простіше вставити блок з
+mainnet-profile.SNIPPET.yaml вручну (один раз).

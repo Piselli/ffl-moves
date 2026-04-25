@@ -1,104 +1,78 @@
-Інструкція: що зробити тобі, щоб можна було доробити ончейн-логіку
-================================================================
+Інструкція: репозиторій ffl-moves і перехід на mainnet
+======================================================
 
-Коротко: мені потрібен ВИХІДНИЙ КОД контракту Move (файли .move), яким
-ти користуєшся для fantasy_epl на Movement. У репозиторії ffl-moves
-цього коду немає — тільки фронт і зразок формули в move/onchain-scoring/.
+Стан репо
+---------
+• Фронт Next.js у корені; контракт fantasy_epl — у **move/fantasy-epl-contract/**
+  (sources/fantasy_epl.move + Move.toml).
+• Формула очок на сайті: **src/lib/scoring.ts** (узгоджено з Move; є
+  calculateFantasyPointsWithRating для рейтинг-бонусів як у контракті).
+• Довідковий пакет формули без гри: **move/onchain-scoring/** (npm не
+  деплоїть його на ланцюг — основний пакет для publish — fantasy-epl-contract).
 
-НІКОЛИ не надсилай приватні ключі / seed-фразу. Достатньо публічної
-адреси модуля (вона вже є у фронті в .env).
-
-──────────────────────────────────────────────────────────────────
-КРОК 1. Знайти, де лежить контракт
-──────────────────────────────────────────────────────────────────
-Це може бути:
-  • окремий Git-репозиторій (наприклад fantasy-epl-contract),
-  • папка на комп’ютері з Aptos Move проєктом (Move.toml + sources/*.move),
-  • або код у когось із розробників / у Notion / у архіві.
-
-Тобі треба знайти папку, де є хоча б:
-  Move.toml
-  sources/…*.move
-і де в коді є модуль fantasy_epl (або як він у тебе названий).
+НІКОЛИ не надсилай приватні ключі / seed у чат або в git. У .gitignore є
+.movement/ та .env.local.
 
 ──────────────────────────────────────────────────────────────────
-КРОК 2. Скопіювати контракт У ЦЕЙ проєкт (ffl-moves)
+Testnet: збірка й тести
 ──────────────────────────────────────────────────────────────────
-Зручний варіант — створити підпапку й покласти туди весь Move-пакет:
-
-  ffl-moves/move/fantasy-epl-contract/
-    Move.toml
-    sources/
-      fantasy_epl.move   (і всі інші .move, які імпортуються)
-
-Як скопіювати:
-  • через Finder: скопіюй всю папку проєкту Move всередину ffl-moves/move/
-    і перейменуй на fantasy-epl-contract;
-  • або через термінал (приклад, підстав свій шлях):
-
-    cp -R /шлях/до/твого/move/проєкту  /Users/piselli/Desktop/ffl-moves/move/fantasy-epl-contract
-
-Важливо: щоб були ВСІ файли, без яких проєкт не компілюється.
-
-──────────────────────────────────────────────────────────────────
-КРОК 3. Перевірити, що воно збирається (у тебе локально)
-──────────────────────────────────────────────────────────────────
-У терміналі:
-
   cd /Users/piselli/Desktop/ffl-moves/move/fantasy-epl-contract
-  movement move compile
-  (або aptos move compile; CLI: https://docs.movementnetwork.xyz/devs/movementcli )
+  movement move compile --dev
+  movement move test --dev
 
-Якщо є помилки — їх треба виправити у своєму оригінальному репо або
-скопійованих файлах, доки compile не пройде. Це не обов’язково для
-мене, але сильно прискорить роботу.
+У корені фронту:
+  npm install
+  npm run build
 
-──────────────────────────────────────────────────────────────────
-КРОК 4. Закомітити й показати агенту / розробнику
-──────────────────────────────────────────────────────────────────
-  cd /Users/piselli/Desktop/ffl-moves
-  git add move/fantasy-epl-contract
-  git commit -m "Add fantasy_epl Move sources for on-chain scoring alignment"
-  git push   (якщо використовуєш GitHub/GitLab)
+Документація Movement:
+  • CLI:              https://docs.movementnetwork.xyz/devs/movementcli
+  • Network / RPC:    https://docs.movementnetwork.xyz/devs/networkEndpoints
+  • Testnet RPC:      https://testnet.movementnetwork.xyz/v1   (Chain ID 250)
+  • Mainnet RPC:      https://mainnet.movementnetwork.xyz/v1   (Chain ID 126)
 
-У чаті напиши одне речення на кшталт:
-  «Додав сорси контракту в move/fantasy-epl-contract — зроби ончейн
-   як у src/lib/scoring.ts».
+Профіль CLI «mainnet»
+---------------------
+• Якщо той САМ ключ, що testnet3 — автоматично:
+    npm run setup:movement-mainnet-profile
 
-──────────────────────────────────────────────────────────────────
-КРОК 5. Мейннет (коли ончейн уже виправлений)
-──────────────────────────────────────────────────────────────────
-1) Задеплой оновлений модуль на Movement MAINNET (movement move publish
-   або aptos move publish — див. Movement CLI docs) — З ТВОГО ГАМАНЦЯ,
-   без передачі ключів у чат.
-
-2) У корені ffl-moves створи файл .env.local (не коміть у git, якщо
-   не хочеш світити адреси) з рядками з офіційної доки Movement:
-
-   NEXT_PUBLIC_MOVEMENT_RPC_URL=<mainnet RPC з документації>
-   NEXT_PUBLIC_MODULE_ADDRESS=<адреса після publish на mainnet>
-   NEXT_PUBLIC_MODULE_NAME=fantasy_epl
-
-3) Перезбери фронт:
-
-   npm run build
-
-Детальніше: move/MAINNET_CHECKLIST.txt та .env.example
+• Якщо ІНШИЙ гаманець (наприклад 0xf598… як testnet2) — вручну блок YAML:
+    move/config-examples/mainnet-profile.SNIPPET.yaml
+    покроково: move/config-examples/MAINNET_NEW_WALLET.txt
 
 ──────────────────────────────────────────────────────────────────
-Якщо НЕМАЄ окремого репо — що можна зробити замість
+Mainnet: порядок дій
 ──────────────────────────────────────────────────────────────────
-  • Експорт .move файлів з IDE / з архіву .zip — розпакуй у
-    move/fantasy-epl-contract як у кроці 2.
-  • Якщо контракт писав не ти — попроси того, хто деплоїв, надіслати
-    тобі папку sources + Move.toml.
+1) Зібрати й прогнати тести (див. вище).
+
+2) Створи **mainnet**-профіль у Movement CLI; задеплой пакет:
+     movement move publish …
+   (named-addresses: fantasy_epl_addr = адреса акаунта пакета після publish)
+
+3) Скопіюй **.env.example** → **.env.local** і вистав **mainnet**:
+     NEXT_PUBLIC_MOVEMENT_RPC_URL=https://mainnet.movementnetwork.xyz/v1
+     NEXT_PUBLIC_MODULE_ADDRESS=<адреса пакета після publish>
+     NEXT_PUBLIC_MODULE_NAME=fantasy_epl
+   (Партнерські RPC — у розділі Network Endpoints, якщо потрібен резерв.)
+
+4) Локально:
+     npm run preflight:mainnet
+     npm run build
+
+5) **Vercel** — ті самі NEXT_PUBLIC_* для Production → **Redeploy**.
+
+Детальний чекліст: **move/MAINNET_CHECKLIST.txt**
 
 ──────────────────────────────────────────────────────────────────
-Що я зможу зробити ПІСЛЯ того, як файли з’являться у ffl-moves
+Копіювання чужого Move-пакета в репо (якщо треба)
 ──────────────────────────────────────────────────────────────────
-  • Вшити логіку з move/onchain-scoring/sources/scoring.move у
-    calculate_results / submit_player_stats.
-  • Додати поля bonus, goals_conceded, fpl_clean_sheet у збереження.
-  • Підправити фронт під зміни ABI, якщо щось зміниться у view.
-  • НЕ можу: натиснути publish замість тебе і не повинен бачити
-    твої приватні ключі.
+  bash scripts/copy-move-contract.sh /шлях/до/зовнішнього/Move/проєкту
+
+Скрипт кладе код у move/fantasy-epl-contract/ і пробує compile.
+
+──────────────────────────────────────────────────────────────────
+Що агент / розробник не може зробити замість тебе
+──────────────────────────────────────────────────────────────────
+• Підписати publish або init твоїм гаманцем.
+• Зберігати твої ключі.
+
+Після оновлення сорсу в репо: commit + push, щоб CI / рев’ю бачили зміни.

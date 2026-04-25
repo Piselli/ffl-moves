@@ -1,0 +1,18 @@
+# Скопіюй блок нижче в ~/.movement/config.yaml або
+# /Users/piselli/Desktop/ffl-moves/.movement/config.yaml
+# під існуючим ключем `profiles:` (з відступом 2 пробіли перед "mainnet:").
+#
+# Заміни лише два рядки з PLACEHOLDER — це твій ПРИВАТНИЙ і ПУБЛІЧНИЙ ключ
+# (формат як у профілю testnet2 у твоєму config: ed25519-priv-0x… / ed25519-pub-0x…).
+#
+# Адреса акаунта вже підставлена БЕЗ префікса 0x (як у Movement CLI YAML).
+# Повна адреса з 0x: 0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47
+#
+# RPC: https://docs.movementnetwork.xyz/devs/networkEndpoints
+
+  mainnet:
+    network: Mainnet
+    private_key: "<PASTE ed25519-priv-0x...>"
+    public_key: "<PASTE ed25519-pub-0x...>"
+    account: f598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47
+    rest_url: "https://mainnet.movementnetwork.xyz/v1"

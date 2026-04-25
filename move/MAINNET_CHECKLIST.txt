@@ -1,48 +1,48 @@
-Що вже зроблено в репозиторії ffl-moves
-======================================
-- Формула очок на сайті = src/lib/scoring.ts (+ злиття FPL у /api/fpl-live).
-- Еталонна Move-функція = move/onchain-scoring/sources/scoring.move
-  (npm run move:test).
-- Перемикач мережі/адреси контракту = .env (див. .env.example):
-  NEXT_PUBLIC_MOVEMENT_RPC_URL, NEXT_PUBLIC_MODULE_ADDRESS, NEXT_PUBLIC_MODULE_NAME.
+Mainnet cutover — чекліст (ffl-moves)
+====================================
 
-Що НЕ можна зробити тільки з цього репо (потрібні ви)
-======================================================
-1) Деплой на Movement mainnet + підпис транзакцій — лише з вашим гаманцем
-   і ключами; агент їх не отримує.
-2) Модуль fantasy_epl — вихідні в `move/fantasy-epl-contract/sources/`; після
-   змін обов’язково `movement move publish` на mainnet-адресу й оновлення
-   NEXT_PUBLIC_* на Vercel.
-3) Ончейн finalPoints ще включає title/guild мультиплікатори; відображувана
-   сума «за правилами» у лідерборді = base + rating (див. scoring.ts).
+Офіційні джерела Movement
+-------------------------
+• Movement CLI: https://docs.movementnetwork.xyz/devs/movementcli
+• Network Endpoints (RPC, Chain ID, explorers): https://docs.movementnetwork.xyz/devs/networkEndpoints
+• Mainnet: Chain ID **126**, primary RPC **https://mainnet.movementnetwork.xyz/v1**
+• Testnet: Chain ID **250**, RPC **https://testnet.movementnetwork.xyz/v1**
+• Статус мережі: https://status.movementnetwork.xyz/
 
-Поверхня контракту, яку очікує фронт (перевірте після деплою)
-============================================================
-Entry: register_team, buy_title, reroll_title, buy_guild, reroll_guild,
-       create_gameweek, close_gameweek, reopen_gameweek, set_prize_pool_percent,
-       submit_player_stats, calculate_results, claim_prize.
+Код і збірка
+------------
+[ ] cd move/fantasy-epl-contract && movement move compile --dev
+[ ] movement move test --dev   (усі тести PASS)
+[ ] npm run build               (у корені репо)
 
-View: get_config, is_admin_address, get_gameweek, get_user_title, get_user_guild,
-      has_title, has_guild, has_registered_team, get_team_result, get_user_team,
-      get_gameweek_teams, get_player_stats.
+Перевірка змінних (локально + Vercel)
+--------------------------------------
+[ ] npm run preflight:mainnet   (заповнений .env.local з MAINNET значеннями)
+[ ] NEXT_PUBLIC_MOVEMENT_RPC_URL = **https://mainnet.movementnetwork.xyz/v1** (або партнерський RPC з Network Endpoints)
+[ ] NEXT_PUBLIC_MODULE_ADDRESS = адреса пакета **після** publish на mainnet
+[ ] NEXT_PUBLIC_MODULE_NAME = fantasy_epl
+[ ] У Vercel (Production) ті самі змінні → **Redeploy** після зміни env
 
-Чекліст перед мейннетом
-======================
-[ ] Оновити Move (підрахунок + нові поля статистики), задеплоїти, перевірити view.
-[ ] Скопіювати .env.example → .env.local з MAINNET RPC і новою MODULE_ADDRESS.
-[ ] npm run build && прогін на staging з mainnet.
-[ ] Перевірити Nightly (або інший гаманець) на Movement mainnet chain id.
-[ ] Реальні MOVE / комісії — окремий аудит лімітів і адмінів.
+Публікація контракту
+--------------------
+[ ] Профіль CLI **mainnet**: `npm run setup:movement-mainnet-profile` (клон testnet3 + RPC mainnet) або вручну — див. move/ІНСТРУКЦІЯ_ДЛЯ_ТЕБЕ.txt
+[ ] movement move publish з move/fantasy-epl-contract і named-addresses
+    fantasy_epl_addr=<опублікована адреса пакета>
+[ ] Один раз: initialize (якщо новий пакет) — deployer; перевір get_config view
 
-Movement CLI (офіційно для Movement)
-======================================
-Документація: https://docs.movementnetwork.xyz/devs/movementcli
+Операційка
+----------
+[ ] Admin і Oracle адреси — окремі ключі / мультисиг за потреби
+[ ] Резервний RPC URL на випадок недоступності primary
+[ ] Ліміти entry_fee / prize_pool_percent перевірені перед анонсом
 
-Встановлення (macOS / Linux x86_64): brew tap moveindustries/movement
-  && brew install movement — далі команди як у Aptos CLI, але префікс
-  «movement» замість «aptos» (наприклад movement move compile,
-  movement move publish). На Windows у доках рекомендують Aptos CLI —
-  ті самі підкоманди.
+Продукт і право
+---------------
+[ ] Відображувані очки: base+rating у UI; on-chain finalPoints ще з title/guild — зрозуміло користувачам або змінити копію
+[ ] FPL / офіційні дані: умови використання API та юридичні обмеження для публічного продакшену
+[ ] За потреби зовнішній аудит Move перед великими обсягами MOVE
 
-У цьому репо npm run move:compile / move:test використовують movement,
-якщо він у PATH, інакше aptos.
+npm-скрипти в цьому репо:
+  npm run move:compile  — fantasy_epl пакет
+  npm run move:test
+  npm run preflight:mainnet

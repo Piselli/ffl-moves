@@ -287,7 +287,7 @@ export default function GameweekPage() {
       console.log("positions:", playerPositions);
       console.log("clubs:", playerClubs);
 
-      // Build the transaction via our SDK client (correct ABI lookup via Movement testnet)
+      // Build the transaction via Aptos SDK (fullnode from NEXT_PUBLIC_MOVEMENT_RPC_URL)
       const transaction = await aptos.transaction.build.simple({
         sender: account.address.toString(),
         data: {
@@ -305,7 +305,7 @@ export default function GameweekPage() {
       // Sign via the wallet extension
       const signResult = await signTransaction({ transactionOrPayload: transaction });
 
-      // Submit through our SDK client (directly to Movement testnet)
+      // Submit through Aptos SDK to the configured fullnode
       const pending = await aptos.transaction.submit.simple({
         transaction,
         senderAuthenticator: signResult.authenticator,

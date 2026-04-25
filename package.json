@@ -8,8 +8,10 @@
     "dev:lan": "WATCHPACK_POLLING=1 next dev -H 0.0.0.0 -p 3000",
     "build:atlas": "node scripts/build-fpl-photo-atlas.mjs",
     "fpl:gw": "node scripts/fpl-oracle-gw.mjs",
-    "move:compile": "bash -lc 'cd move/onchain-scoring && (command -v movement >/dev/null 2>&1 && movement move compile || aptos move compile)'",
-    "move:test": "bash -lc 'cd move/onchain-scoring && (command -v movement >/dev/null 2>&1 && movement move test || aptos move test)'",
+    "move:compile": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move compile --dev || aptos move compile --dev)'",
+    "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",
+    "preflight:mainnet": "node scripts/preflight-mainnet.mjs",
+    "setup:movement-mainnet-profile": "bash scripts/setup-movement-mainnet-profile.sh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
