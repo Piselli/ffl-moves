@@ -85,6 +85,43 @@ export function calculateFantasyPoints(player: ScoringPlayer, stats: Record<stri
   return Math.max(0, pts - ded);
 }
 
+/**
+ * Move stores `rating` as tenths (9.0 → 90, 7.5 → 75). JSON may use decimals 0–10.
+ */
+export function ratingScaledTenths(stats: Record<string, unknown> | null | undefined): number {
+  if (!stats) return 0;
+  const raw = num(stats.rating ?? stats.ratingScaled);
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  if (raw < 20) return Math.round(raw * 10);
+  return Math.floor(raw);
+}
+
+/** Same thresholds as Move `calculate_player_points` rating_add / rating_sub. */
+export function ratingTierAdjustment(stats: Record<string, unknown> | null | undefined): {
+  add: number;
+  sub: number;
+} {
+  if (!stats) return { add: 0, sub: 0 };
+  const mins = num(stats.minutes_played ?? stats.minutesPlayed);
+  const r = ratingScaledTenths(stats);
+  let add = 0;
+  if (r >= 90) add = 3;
+  else if (r >= 80) add = 2;
+  else if (r >= 75) add = 1;
+  const sub = mins > 0 && r < 60 ? 1 : 0;
+  return { add, sub };
+}
+
+/** Rules base points + rating tiers (matches Move per-player base+rating before team multipliers). */
+export function calculateFantasyPointsWithRating(
+  player: ScoringPlayer,
+  stats: Record<string, unknown> | null | undefined,
+): number {
+  const base = calculateFantasyPoints(player, stats);
+  const { add, sub } = ratingTierAdjustment(stats);
+  return Math.max(0, base + add - sub);
+}
+
 /** Merge FPL live aux fields (from /api/fpl-live players[]) into chain-shaped stats. */
 export function mergeFplAuxIntoStats(
   chainStats: Record<string, unknown> | null | undefined,

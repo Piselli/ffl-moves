@@ -30,6 +30,9 @@ module fantasy_epl_addr::fantasy_epl {
     const EPRIZE_ALREADY_CLAIMED: u64 = 16;
     const EGAMEWEEK_NOT_RESOLVED: u64 = 17;
     const EINVALID_GAMEWEEK: u64 = 18;
+    const EINVALID_PRIZE_POOL_PERCENT: u64 = 19;
+    /// reopen_gameweek: gameweek must be closed or resolved (not already open)
+    const EGAMEWEEK_NOT_REOPENABLE: u64 = 20;
 
     // ============ Constants ============
     // Gameweek status
@@ -104,7 +107,6 @@ module fantasy_epl_addr::fantasy_epl {
         player_positions: vector<u8>,
         // Club ID for each player (for max 3 per club check)
         player_clubs: vector<u64>,
-        captain_id: u64,
         created_at: u64,
     }
 
@@ -195,7 +197,6 @@ module fantasy_epl_addr::fantasy_epl {
         owner: address,
         gameweek_id: u64,
         player_ids: vector<u64>,
-        captain_id: u64,
         entry_fee_paid: u64,
     }
 
@@ -219,6 +220,11 @@ module fantasy_epl_addr::fantasy_epl {
         gameweek_id: u64,
         total_entries: u64,
         prize_pool: u64,
+    }
+
+    #[event]
+    struct GameweekReopened has drop, store {
+        gameweek_id: u64,
     }
 
     #[event]
@@ -327,6 +333,43 @@ module fantasy_epl_addr::fantasy_epl {
         });
     }
 
+    /// Re-open a gameweek for corrections: removes oracle stats + published results, sets status OPEN.
+    /// Registered teams and prize pool entries are kept. Admin only.
+    public entry fun reopen_gameweek(
+        sender: &signer,
+        gameweek_id: u64,
+    ) acquires Config, GameweekRegistry, PlayerStatsRegistry, ResultsRegistry {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+
+        let registry = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.gameweeks, gameweek_id), EINVALID_GAMEWEEK);
+        let gameweek = table::borrow_mut(&mut registry.gameweeks, gameweek_id);
+
+        assert!(
+            gameweek.status == STATUS_CLOSED || gameweek.status == STATUS_RESOLVED,
+            EGAMEWEEK_NOT_REOPENABLE,
+        );
+
+        let results_registry = borrow_global_mut<ResultsRegistry>(@fantasy_epl_addr);
+        if (table::contains(&results_registry.results, gameweek_id)) {
+            table::remove(&mut results_registry.results, gameweek_id);
+        };
+
+        let stats_registry = borrow_global_mut<PlayerStatsRegistry>(@fantasy_epl_addr);
+        if (table::contains(&stats_registry.stats, gameweek_id)) {
+            table::remove(&mut stats_registry.stats, gameweek_id);
+        };
+
+        gameweek.status = STATUS_OPEN;
+
+        event::emit(GameweekReopened {
+            gameweek_id,
+        });
+    }
+
     /// Update oracle address (admin only)
     public entry fun set_oracle(
         sender: &signer,
@@ -353,6 +396,19 @@ module fantasy_epl_addr::fantasy_epl {
         config.entry_fee = entry_fee;
         config.title_fee = title_fee;
         config.guild_fee = guild_fee;
+    }
+
+    /// Update share of entry fees that goes to the prize pool (admin only). `new_percent` is 0–100.
+    public entry fun set_prize_pool_percent(
+        sender: &signer,
+        new_percent: u64,
+    ) acquires Config {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global_mut<Config>(@fantasy_epl_addr);
+
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(new_percent <= 100, EINVALID_PRIZE_POOL_PERCENT);
+        config.prize_pool_percent = new_percent;
     }
 
     /// Add a new admin (admin only)
@@ -400,7 +456,6 @@ module fantasy_epl_addr::fantasy_epl {
         player_ids: vector<u64>,
         player_positions: vector<u8>,
         player_clubs: vector<u64>,
-        captain_id: u64,
     ) acquires Config, GameweekRegistry, UserTeams {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
@@ -439,7 +494,6 @@ module fantasy_epl_addr::fantasy_epl {
             player_ids,
             player_positions,
             player_clubs,
-            captain_id,
             created_at: timestamp::now_seconds(),
         };
 
@@ -458,7 +512,6 @@ module fantasy_epl_addr::fantasy_epl {
             owner: sender_addr,
             gameweek_id,
             player_ids,
-            captain_id,
             entry_fee_paid: fee,
         });
     }
@@ -976,17 +1029,9 @@ module fantasy_epl_addr::fantasy_epl {
                     };
                 } else {
                     let (base, rating_add, rating_sub) = calculate_player_points(player_stats, position);
-
-                    // Double points for captain
-                    if (player_id == team.captain_id) {
-                        total_base = total_base + base * 2;
-                        total_rating_add = total_rating_add + rating_add * 2;
-                        total_rating_sub = total_rating_sub + rating_sub * 2;
-                    } else {
-                        total_base = total_base + base;
-                        total_rating_add = total_rating_add + rating_add;
-                        total_rating_sub = total_rating_sub + rating_sub;
-                    };
+                    total_base = total_base + base;
+                    total_rating_add = total_rating_add + rating_add;
+                    total_rating_sub = total_rating_sub + rating_sub;
                 };
             };
 
@@ -1158,10 +1203,10 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[view]
-    public fun get_user_team(owner: address, gameweek_id: u64): (vector<u64>, vector<u8>, u64) acquires UserTeams {
+    public fun get_user_team(owner: address, gameweek_id: u64): (vector<u64>, vector<u8>) acquires UserTeams {
         let user_teams = borrow_global<UserTeams>(owner);
         let team = table::borrow(&user_teams.teams, gameweek_id);
-        (team.player_ids, team.player_positions, team.captain_id)
+        (team.player_ids, team.player_positions)
     }
 
     #[view]
@@ -1447,7 +1492,7 @@ module fantasy_epl_addr::fantasy_epl {
         let (player_ids, positions, clubs) = create_test_team_data();
 
         // Register team
-        register_team(user1, 1, player_ids, positions, clubs, 9); // Captain is player 9
+        register_team(user1, 1, player_ids, positions, clubs);
 
         // Verify team was registered
         assert!(has_registered_team(@0x123, 1), 1);
@@ -1458,10 +1503,9 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(prize_pool == 50000000, 3); // 50% of 1 APT entry fee
 
         // Verify user's team data
-        let (ids, pos, captain) = get_user_team(@0x123, 1);
+        let (ids, pos) = get_user_team(@0x123, 1);
         assert!(vector::length(&ids) == 14, 4);
         assert!(vector::length(&pos) == 14, 5);
-        assert!(captain == 9, 6);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -1475,7 +1519,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         // Try to register - should fail
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -1490,7 +1534,7 @@ module fantasy_epl_addr::fantasy_epl {
         let positions = vector[0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 2, 3];
         let clubs = vector[1, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]; // 4 from club 1 - invalid!
 
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -1505,7 +1549,7 @@ module fantasy_epl_addr::fantasy_epl {
         let positions = vector[0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 1, 2, 3]; // 5 DEF - invalid!
         let clubs = vector[1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7];
 
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -1576,6 +1620,92 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
+    fun test_reopen_gameweek(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer,
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry {
+        setup_test(aptos_framework, admin, user1, user2);
+
+        create_gameweek(admin, 1);
+        let (player_ids, positions, clubs) = create_test_team_data();
+        register_team(user1, 1, player_ids, positions, clubs);
+        close_gameweek(admin, 1);
+
+        submit_player_stats(
+            admin, 1,
+            vector[1],
+            vector[0],
+            vector[90],
+            vector[0],
+            vector[0],
+            vector[true],
+            vector[3],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[75],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[false],
+        );
+
+        assert!(player_stats_exist(1, 1), 1);
+
+        reopen_gameweek(admin, 1);
+
+        let (_, status, _, _) = get_gameweek(1);
+        assert!(status == STATUS_OPEN, 2);
+        assert!(!player_stats_exist(1, 1), 3);
+
+        close_gameweek(admin, 1);
+        submit_player_stats(
+            admin, 1,
+            vector[1],
+            vector[0],
+            vector[90],
+            vector[0],
+            vector[0],
+            vector[true],
+            vector[4],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[76],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[0],
+            vector[false],
+        );
+        assert!(player_stats_exist(1, 1), 4);
+    }
+
+    #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
+    #[expected_failure(abort_code = EGAMEWEEK_NOT_REOPENABLE)]
+    fun test_reopen_gameweek_fails_when_open(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer,
+    ) acquires Config, GameweekRegistry, PlayerStatsRegistry, ResultsRegistry {
+        setup_test(aptos_framework, admin, user1, user2);
+        create_gameweek(admin, 1);
+        reopen_gameweek(admin, 1);
+    }
+
+    #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     fun test_submit_player_stats(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, PlayerStatsRegistry {
         setup_test(aptos_framework, admin, user1, user2);
 
@@ -1629,11 +1759,11 @@ module fantasy_epl_addr::fantasy_epl {
 
         // 2. Users register teams
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
 
         // User2 registers with slightly different team
         let player_ids2 = vector[1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 9, 12, 13, 14];
-        register_team(user2, 1, player_ids2, positions, clubs, 10);
+        register_team(user2, 1, player_ids2, positions, clubs);
 
         // 3. Users buy titles
         buy_title(user1, 1);
@@ -1679,9 +1809,7 @@ module fantasy_epl_addr::fantasy_epl {
             vector[false, false, false, false, false, false, false, false, false, false, false, false, false, false],
         );
 
-        // 6. Calculate results
-        // User1's captain is player 9 (2 goals, rating 9.1 -> +3 bonus, doubled for captain)
-        // User2's captain is player 10 (1 goal, rating 8.0 -> +2 bonus, doubled)
+        // 6. Calculate results (no captain — XI points summed equally)
         calculate_results(
             admin, 1,
             vector[], // No title triggers for simplicity
@@ -1698,7 +1826,6 @@ module fantasy_epl_addr::fantasy_epl {
         let (_, _, _, _, _, _, _, _, rank1, prize1, claimed1) = get_team_result(@0x123, 1);
         let (_, _, _, _, _, _, _, _, rank2, prize2, claimed2) = get_team_result(@0x456, 1);
 
-        // User1 should have higher score (captain scored more)
         assert!(!claimed1 && !claimed2, 4);
         assert!(rank1 == 1 || rank2 == 1, 5); // Someone is rank 1
         assert!(prize1 > 0 || prize2 > 0, 6); // Someone has prize
@@ -1716,7 +1843,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Setup a complete gameweek
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
         close_gameweek(admin, 1);
 
         // Submit minimal stats
@@ -1773,7 +1900,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs, 9);
+        register_team(user1, 1, player_ids, positions, clubs);
         close_gameweek(admin, 1);
 
         submit_player_stats(

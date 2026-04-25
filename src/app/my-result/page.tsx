@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
-import { calculateFantasyPoints, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
@@ -30,7 +30,7 @@ const positionBorder: Record<string, string> = {
 const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function calcPoints(player: Player, stats: any): number {
-  return calculateFantasyPoints(player, stats as Record<string, unknown>);
+  return calculateFantasyPointsWithRating(player, stats as Record<string, unknown>);
 }
 
 function PlayerResultCard({
@@ -210,7 +210,7 @@ export default function MyResultPage() {
     for (const id of starterIds) {
       const p = playerById.get(id);
       const st = gwStats[id] ?? gwStats[String(id)];
-      if (p && st) sum += calculateFantasyPoints(p, st as Record<string, unknown>);
+      if (p && st) sum += calculateFantasyPointsWithRating(p, st as Record<string, unknown>);
     }
     return sum;
   }, [starterIds, playerById, gwStats]);

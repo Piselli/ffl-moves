@@ -8,7 +8,7 @@ import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import { aptos, moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
-import { calculateFantasyPoints, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -217,7 +217,7 @@ export default function GameweekPage() {
 
   const calculatePlayerPoints = (player: Player) => {
     const stats = gameweekStats[player.id] || gameweekStats[player.id.toString()];
-    return calculateFantasyPoints(player, stats as Record<string, unknown>);
+    return calculateFantasyPointsWithRating(player, stats as Record<string, unknown>);
   };
 
   const handlePlayerSelect = (player: Player) => {
@@ -280,14 +280,12 @@ export default function GameweekPage() {
       const playerIds = allPlayers.map((p) => p.id);
       const playerPositions = allPlayers.map((p) => p.positionId);
       const playerClubs = allPlayers.map((p) => p.teamId);
-      const captainId = starters[0]!.id;
 
       console.log("=== REGISTER TEAM TX ===");
       console.log("gameweek:", currentGameweek.id);
       console.log("playerIds:", playerIds);
       console.log("positions:", playerPositions);
       console.log("clubs:", playerClubs);
-      console.log("captain:", captainId);
 
       // Build the transaction via our SDK client (correct ABI lookup via Movement testnet)
       const transaction = await aptos.transaction.build.simple({
@@ -300,7 +298,6 @@ export default function GameweekPage() {
             playerIds,
             playerPositions,
             playerClubs,
-            captainId,
           ],
         },
       });

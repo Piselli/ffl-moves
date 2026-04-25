@@ -23,13 +23,11 @@ export interface Player {
 
 export interface SelectedPlayer extends Player {
   isStarter: boolean;
-  isCaptain: boolean;
 }
 
 export interface Team {
   starters: (Player | null)[];  // 11 players in formation order
   bench: (Player | null)[];     // 3 substitutes
-  captain: Player | null;
 }
 
 export interface Gameweek {

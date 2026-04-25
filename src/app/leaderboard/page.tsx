@@ -8,7 +8,7 @@ import { getConfig, getGameweek, getTeamResult, getGameweekTeams, getUserTeam, g
 import { formatMOVE, cn } from "@/lib/utils";
 import { TeamResult, type Player } from "@/lib/types";
 import {
-  calculateFantasyPoints,
+  calculateFantasyPointsWithRating,
   mergeFplAuxIntoStats,
   auxMapFromFplLivePlayers,
   type FplLivePlayerRow,
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
                     const raw = statsMap[String(pid)] ?? statsMap[pid];
                     if (!pl || !raw) continue;
                     const merged = mergeFplAuxIntoStats(raw as Record<string, unknown>, auxM.get(pid));
-                    sum += calculateFantasyPoints(pl, merged);
+                    sum += calculateFantasyPointsWithRating(pl, merged);
                   }
                   displayPoints = sum;
                 }
