@@ -11,6 +11,7 @@
     "move:compile": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move compile --dev || aptos move compile --dev)'",
     "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",
     "preflight:mainnet": "node scripts/preflight-mainnet.mjs",
+    "verify:chain": "node scripts/verify-chain.mjs",
     "setup:movement-mainnet-profile": "bash scripts/setup-movement-mainnet-profile.sh",
     "build": "next build",
     "start": "next start",
