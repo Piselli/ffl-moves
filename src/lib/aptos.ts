@@ -52,7 +52,27 @@ export async function isAdmin(address: string) {
   }
 }
 
-export async function getGameweek(gameweekId: number) {
+/** Normalize Move u8 / u64 returned from view (number, bigint, decimal string, 0x hex). */
+function viewNum(v: unknown): number {
+  if (typeof v === "bigint") return Number(v);
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (t.startsWith("0x") || t.startsWith("0X")) return parseInt(t, 16);
+    const n = Number(t);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  return NaN;
+}
+
+export type GameweekSummary = {
+  id: number;
+  status: "open" | "closed" | "resolved";
+  prizePool: number;
+  totalEntries: number;
+};
+
+export async function getGameweek(gameweekId: number): Promise<GameweekSummary | null> {
   try {
     const result = await aptos.view({
       payload: {
@@ -61,16 +81,50 @@ export async function getGameweek(gameweekId: number) {
         functionArguments: [gameweekId.toString()],
       },
     });
+    const st = viewNum(result[1]);
+    const status: GameweekSummary["status"] =
+      st === 0 ? "open" : st === 1 ? "closed" : "resolved";
     return {
-      id: Number(result[0]),
-      status: Number(result[1]) === 0 ? "open" : Number(result[1]) === 1 ? "closed" : "resolved",
-      prizePool: Number(result[2]),
-      totalEntries: Number(result[3]),
+      id: viewNum(result[0]),
+      status,
+      prizePool: viewNum(result[2]),
+      totalEntries: viewNum(result[3]),
     };
   } catch (e) {
     console.error("Failed to get gameweek:", e);
     return null;
   }
+}
+
+/**
+ * Resolves the gameweek players should use for registration (first OPEN week).
+ * Uses `config.current_gameweek` as a hint, then scans forward/backward so we
+ * still find an open week if the pointer lags, a view fails once, or `current_gameweek` is 0.
+ */
+export async function findOpenGameweekFromChain(
+  configData: Awaited<ReturnType<typeof getConfig>>,
+): Promise<GameweekSummary | null> {
+  if (!configData) return null;
+  const c = Number(configData.currentGameweek);
+  if (!Number.isFinite(c) || c < 0) return null;
+
+  if (c === 0) {
+    for (let i = 1; i <= 80; i++) {
+      const g = await getGameweek(i);
+      if (g?.status === "open") return g;
+    }
+    return null;
+  }
+
+  for (let i = c; i <= c + 60; i++) {
+    const g = await getGameweek(i);
+    if (g?.status === "open") return g;
+  }
+  for (let i = c - 1; i >= 1; i--) {
+    const g = await getGameweek(i);
+    if (g?.status === "open") return g;
+  }
+  return null;
 }
 
 export async function getUserTitle(owner: string) {

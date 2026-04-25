@@ -4,7 +4,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getConfig, getGameweek } from "@/lib/aptos";
+import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
@@ -556,26 +556,10 @@ export default function Home() {
     async function fetchOnChainData() {
       try {
         const cfg = await getConfig();
-        if (cfg?.currentGameweek) {
-          let targetGwId = cfg.currentGameweek;
-          let gw = await getGameweek(targetGwId);
-
-          // If the chain's currentGameweek is closed/resolved, scan for a newer open GW
-          if (gw && gw.status !== "open") {
-            for (let i = targetGwId + 1; i <= targetGwId + 10; i++) {
-              const newerGw = await getGameweek(i);
-              if (!newerGw) break;
-              if (newerGw.status === "open") {
-                gw = newerGw;
-                break;
-              }
-            }
-          }
-
-          if (gw) {
-            setPrizePool(octasToMOVE(gw.prizePool));
-            setTotalManagers(gw.totalEntries);
-          }
+        const gw = await findOpenGameweekFromChain(cfg);
+        if (gw) {
+          setPrizePool(octasToMOVE(gw.prizePool));
+          setTotalManagers(gw.totalEntries);
         }
       } catch (e) {
         console.error("Failed to fetch on-chain data:", e);

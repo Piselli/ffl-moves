@@ -6,7 +6,16 @@ import { FormationGrid } from "@/components/FormationGrid";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
-import { aptos, moduleFunction, getConfig, getGameweek, hasRegisteredTeam, getGameweekStats, getTeamResult, getUserTeam } from "@/lib/aptos";
+import {
+  aptos,
+  moduleFunction,
+  getConfig,
+  findOpenGameweekFromChain,
+  hasRegisteredTeam,
+  getGameweekStats,
+  getTeamResult,
+  getUserTeam,
+} from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 
@@ -52,57 +61,43 @@ export default function GameweekPage() {
       const configData = await getConfig();
       setConfig(configData);
 
-      if (configData?.currentGameweek) {
-        let targetGwId = configData.currentGameweek;
-        let gwData = await getGameweek(targetGwId);
+      const gwData = await findOpenGameweekFromChain(configData);
+      setCurrentGameweek(gwData);
 
-        // If the chain's currentGameweek is closed/resolved, scan for a newer open GW.
-        // This handles the case where create_gameweek doesn't update config.current_gameweek.
-        if (gwData && gwData.status !== "open") {
-          for (let i = targetGwId + 1; i <= targetGwId + 10; i++) {
-            const newerGw = await getGameweek(i);
-            if (!newerGw) break;
-            if (newerGw.status === "open") {
-              targetGwId = i;
-              gwData = newerGw;
-              break;
-            }
+      if (!gwData) return;
+
+      const targetGwId = gwData.id;
+
+      if (account?.address) {
+        const registered = await hasRegisteredTeam(account.address.toString(), targetGwId);
+        setAlreadyRegistered(registered);
+
+        if (registered) {
+          const key = `ffl_team_gw${targetGwId}_${account.address.toString()}`;
+          const saved = localStorage.getItem(key);
+          if (saved) {
+            try {
+              setRegisteredTeam(JSON.parse(saved));
+            } catch {}
           }
         }
 
-        setCurrentGameweek(gwData);
-
-        if (account?.address) {
-          const registered = await hasRegisteredTeam(account.address.toString(), targetGwId);
-          setAlreadyRegistered(registered);
-
-          if (registered) {
-            const key = `ffl_team_gw${targetGwId}_${account.address.toString()}`;
-            const saved = localStorage.getItem(key);
-            if (saved) {
-              try {
-                setRegisteredTeam(JSON.parse(saved));
-              } catch {}
-            }
-          }
-
-          if (gwData?.status === "resolved" && account?.address) {
-            const [chainTeam, res] = await Promise.all([
-              getUserTeam(account.address.toString(), targetGwId),
-              getTeamResult(account.address.toString(), targetGwId),
-            ]);
-            setTeamResult(res);
-            if (chainTeam?.playerIds?.length) {
-              const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
-              try {
-                const fpl = await fetch(`/api/fpl-live?gw=${targetGwId}`).then((r) => (r.ok ? r.json() : null));
-                const merged = fpl?.players
-                  ? enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players)
-                  : stats;
-                setGameweekStats(merged);
-              } catch {
-                setGameweekStats(stats);
-              }
+        if (gwData.status === "resolved") {
+          const [chainTeam, res] = await Promise.all([
+            getUserTeam(account.address.toString(), targetGwId),
+            getTeamResult(account.address.toString(), targetGwId),
+          ]);
+          setTeamResult(res);
+          if (chainTeam?.playerIds?.length) {
+            const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
+            try {
+              const fpl = await fetch(`/api/fpl-live?gw=${targetGwId}`).then((r) => (r.ok ? r.json() : null));
+              const merged = fpl?.players
+                ? enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players)
+                : stats;
+              setGameweekStats(merged);
+            } catch {
+              setGameweekStats(stats);
             }
           }
         }

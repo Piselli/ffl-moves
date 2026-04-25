@@ -4,7 +4,16 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
-import { getConfig, getGameweek, getTeamResult, getGameweekTeams, getUserTeam, getGameweekStats, moduleFunction } from "@/lib/aptos";
+import {
+  getConfig,
+  getGameweek,
+  findOpenGameweekFromChain,
+  getTeamResult,
+  getGameweekTeams,
+  getUserTeam,
+  getGameweekStats,
+  moduleFunction,
+} from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { TeamResult, type Player } from "@/lib/types";
 import {
@@ -30,19 +39,9 @@ export default function LeaderboardPage() {
         const configData = await getConfig();
         setConfig(configData);
 
-        if (configData && configData.currentGameweek > 0) {
-          let targetGw = configData.currentGameweek;
-
-          const baseGw = await getGameweek(targetGw);
-          if (baseGw && baseGw.status !== "open") {
-            for (let i = targetGw + 1; i <= targetGw + 10; i++) {
-              const newerGw = await getGameweek(i);
-              if (!newerGw) break;
-              if (newerGw.status === "open") { targetGw = i; break; }
-            }
-          }
-
-          setSelectedGameweek(targetGw);
+        const openGw = await findOpenGameweekFromChain(configData);
+        if (openGw) {
+          setSelectedGameweek(openGw.id);
         } else {
           setIsLoading(false);
         }
