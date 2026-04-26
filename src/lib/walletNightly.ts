@@ -1,3 +1,10 @@
+/** Official Nightly downloads (extension, mobile, Safari). */
+export const NIGHTLY_DOWNLOAD_URL = "https://nightly.app/";
+
+/** Movement Network: install Nightly, MOVE, bridge, ecosystem onboarding. */
+export const MOVEMENT_WALLET_WELCOME_GUIDE_URL =
+  "https://www.movementnetwork.xyz/guides/welcome";
+
 /**
  * Desktop: Nightly extension injects → readyState "Installed".
  * Mobile Safari/Chrome: no injection → adapter lists Nightly in `notDetectedWallets`;

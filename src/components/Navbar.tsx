@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
 import { nightlyConnectRows } from "@/lib/walletNightly";
+import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { useNickname } from "@/hooks/useNickname";
 import { NicknameModal } from "./NicknameModal";
 
@@ -21,11 +22,15 @@ export function Navbar() {
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [connectHint, setConnectHint] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const connectedRef = useRef(false);
+  const connectHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
 
   const address = account?.address?.toString() ?? null;
   const { getNickname, setNickname, hasNickname, myNickname } = useNickname(address);
+  connectedRef.current = connected;
 
   // Auto-open nickname modal on first connection
   useEffect(() => {
@@ -38,6 +43,16 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (connectHintTimerRef.current) {
+        clearTimeout(connectHintTimerRef.current);
+        connectHintTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -55,12 +70,37 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!connected) return;
+    if (connectHintTimerRef.current) {
+      clearTimeout(connectHintTimerRef.current);
+      connectHintTimerRef.current = null;
+    }
+    setConnectHint(null);
+    setShowWalletList(false);
+  }, [connected]);
+
   const handleConnectWallet = async (walletName: string) => {
+    setConnectHint(null);
+    if (connectHintTimerRef.current) {
+      clearTimeout(connectHintTimerRef.current);
+      connectHintTimerRef.current = null;
+    }
     try {
       await connect(walletName as any);
-      setShowWalletList(false);
+      connectHintTimerRef.current = setTimeout(() => {
+        connectHintTimerRef.current = null;
+        if (!connectedRef.current) {
+          setConnectHint(
+            "Схоже, Nightly не відкрився або не встановлено. Завантаж розширення чи застосунок, або відкрий цей сайт у вбудованому браузері Nightly — потім натисни «Підключити» знову.",
+          );
+        }
+      }, 2200);
     } catch (e) {
       console.error("Failed to connect:", e);
+      setConnectHint(
+        "Не вдалося підключити гаманець. Перевір, чи встановлено Nightly, або скористайся посиланнями нижче.",
+      );
     }
   };
 
@@ -191,7 +231,14 @@ export function Navbar() {
               {/* Connect button */}
               <button
                 id="wallet-connect-btn"
-                onClick={() => setShowWalletList(!showWalletList)}
+                onClick={() => {
+                  setConnectHint(null);
+                  if (connectHintTimerRef.current) {
+                    clearTimeout(connectHintTimerRef.current);
+                    connectHintTimerRef.current = null;
+                  }
+                  setShowWalletList(!showWalletList);
+                }}
                 className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none"
               >
                 Підключити гаманець
@@ -206,7 +253,12 @@ export function Navbar() {
                     </p>
                     <p className="text-xs text-white/40 mt-1">Сумісний з Movement Network</p>
                   </div>
-                  <div className="p-2 max-h-64 overflow-y-auto">
+                  <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
+                    {connectHint ? (
+                      <div className="px-3 py-3 mb-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{connectHint}</p>
+                      </div>
+                    ) : null}
                     {nightlyRows.length > 0 ? (
                       <>
                         {nightlyRows.map((row) => (
@@ -232,30 +284,35 @@ export function Navbar() {
                           </button>
                         ))}
                         {nightlyRows.some((r) => r.mode === "app") && (
-                          <p className="px-4 py-2 text-[11px] text-white/45 leading-relaxed border-t border-white/[0.06] mt-1">
-                            Якщо не відкриється застосунок: у Nightly зайди в{" "}
-                            <span className="text-white/70">Browser</span> / dApp і встав туди адресу сайту — у звичайному Safari гаманець не
-                            під&apos;єднується.
-                          </p>
+                          <>
+                            <p className="px-4 py-2 text-[11px] text-white/45 leading-relaxed border-t border-white/[0.06] mt-1">
+                              Якщо не відкриється застосунок: у Nightly зайди в{" "}
+                              <span className="text-white/70">Browser</span> / dApp і встав туди адресу сайту — у звичайному Safari гаманець не
+                              під&apos;єднується.
+                            </p>
+                            <div className="px-3 pb-2">
+                              <WalletOnboardingLinks locale="uk" />
+                            </div>
+                          </>
                         )}
                       </>
                     ) : (
-                      <div className="p-6 text-center">
+                      <div className="p-4 text-center">
                         <span className="text-3xl block mb-3">🔌</span>
                         <p className="text-sm font-bold text-white mb-1">Гаманців не знайдено</p>
-                        <p className="text-xs text-white/40 leading-relaxed mb-3">
+                        <p className="text-xs text-white/40 leading-relaxed mb-4 text-left">
                           У звичайному Safari/Chrome на телефоні гаманець у сторінку не вбудовується. Відкрий застосунок{" "}
                           <span className="text-white/60">Nightly</span> → розділ <span className="text-white/60">Browser</span> (або dApps) і
                           встав туди адресу цього сайту.
                         </p>
-                        <p className="text-xs text-white/40 leading-relaxed">
-                          Встановити:{" "}
-                          <a href="https://nightly.app" target="_blank" rel="noreferrer" className="text-[#00C46A] hover:underline">
-                            nightly.app
-                          </a>
-                        </p>
+                        <WalletOnboardingLinks locale="uk" />
                       </div>
                     )}
+                    {connectHint && nightlyRows.length > 0 && !nightlyRows.some((r) => r.mode === "app") ? (
+                      <div className="px-3 pb-2 pt-2 border-t border-white/[0.06]">
+                        <WalletOnboardingLinks locale="uk" />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )}
