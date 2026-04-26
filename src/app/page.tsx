@@ -2,7 +2,7 @@
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
@@ -26,81 +26,32 @@ import {
   RATING_SUB_POINTS,
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
-import { resolveFplDeadlineRaw, formatFplDeadlineUk, deadlineRawToUtcMs } from "@/lib/fpl-deadline";
 
-// ─── Countdown to a single instant (hero strip — compact digits) ───────────────
-/** Uses `deadlineRawToUtcMs` — same instant as `formatFplDeadlineUk` under this card. */
-function CountdownToInstant({
-  deadlineRaw,
-  expiredLabel = "Дедлайн пройшов",
-}: {
-  deadlineRaw: string | number;
-  expiredLabel?: string;
-}) {
-  const endMs = useMemo(() => deadlineRawToUtcMs(deadlineRaw), [deadlineRaw]);
-  const [tick, setTick] = useState(0);
+// ─── Hero deadline (restored pre–stats-copy logic: FPL `deadline_time` string only, d : г : хв) ───
+function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: number }) {
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number } | null>(null);
+  const [expired, setExpired] = useState(false);
+
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const { expired, timeLeft } = useMemo(() => {
-    if (!Number.isFinite(endMs)) {
-      return { expired: false, timeLeft: null as { d: number; h: number; m: number; s: number } | null };
-    }
-    const diff = endMs - Date.now();
-    if (diff <= 0) {
-      return { expired: true, timeLeft: { d: 0, h: 0, m: 0, s: 0 } };
-    }
-    return {
-      expired: false,
-      timeLeft: {
+    function update() {
+      const diff = new Date(targetTime).getTime() - Date.now();
+      if (diff <= 0) {
+        setExpired(true);
+        setTimeLeft({ d: 0, h: 0, m: 0 });
+        return;
+      }
+      setExpired(false);
+      setTimeLeft({
         d: Math.floor(diff / 86400000),
         h: Math.floor((diff % 86400000) / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
-      },
-    };
-  }, [endMs, tick]);
+      });
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [targetTime]);
 
-  if (!Number.isFinite(endMs)) {
-    return <span className="text-white/30 text-[10px] sm:text-xs">—</span>;
-  }
-
-  if (!timeLeft) return <span className="text-white/20 animate-pulse text-lg">—</span>;
-
-  const units = [
-    { v: timeLeft.d, l: "д" },
-    { v: timeLeft.h, l: "г" },
-    { v: timeLeft.m, l: "хв" },
-    { v: timeLeft.s, l: "с" },
-  ];
-
-  if (expired) {
-    return <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">{expiredLabel}</span>;
-  }
-
-  return (
-    <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 overflow-hidden sm:gap-x-1.5">
-      {units.map(({ v, l }, i) => (
-        <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
-          <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
-            {String(v).padStart(2, "0")}
-          </span>
-          <span className="text-[6px] text-white/30 uppercase tracking-tighter sm:text-[9px] sm:tracking-wider shrink-0">
-            {l}
-          </span>
-          {i < units.length - 1 && (
-            <span className="ml-px shrink-0 text-[10px] font-black leading-none text-white/20 sm:ml-0.5 sm:text-lg">:</span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** FPL squad deadline — same instant + same calendar line as «Дедлайн реєстрації» on `/fixtures`. */
-function DeadlineHeroBlock({ deadlineRaw, gwId }: { deadlineRaw: string | number; gwId: number }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
       <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
@@ -109,10 +60,33 @@ function DeadlineHeroBlock({ deadlineRaw, gwId }: { deadlineRaw: string | number
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <CountdownToInstant deadlineRaw={deadlineRaw} expiredLabel="Дедлайн пройшов" />
-      <p className="mt-1 max-w-full truncate text-[7px] font-medium leading-tight text-white/35 sm:text-[9px]">
-        {formatFplDeadlineUk(deadlineRaw)}
-      </p>
+      {!timeLeft ? (
+        <span className="text-white/20 animate-pulse text-lg">—</span>
+      ) : expired ? (
+        <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Дедлайн пройшов</span>
+      ) : (
+        <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 overflow-hidden sm:gap-x-1.5">
+          {(
+            [
+              { v: timeLeft.d, l: "д" },
+              { v: timeLeft.h, l: "г" },
+              { v: timeLeft.m, l: "хв" },
+            ] as const
+          ).map(({ v, l }, i, arr) => (
+            <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
+              <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
+                {String(v).padStart(2, "0")}
+              </span>
+              <span className="text-[6px] text-white/30 uppercase tracking-tighter sm:text-[9px] sm:tracking-wider shrink-0">
+                {l}
+              </span>
+              {i < arr.length - 1 && (
+                <span className="ml-px shrink-0 text-[10px] font-black leading-none text-white/20 sm:ml-0.5 sm:text-lg">:</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -706,8 +680,6 @@ export default function Home() {
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
-  const heroDeadlineRaw = useMemo(() => resolveFplDeadlineRaw(fixturesData?.gameweek), [fixturesData]);
-
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
     // GK - В воротарській
@@ -830,13 +802,14 @@ export default function Home() {
                 )}
               </p>
             </div>
-            {fixturesData?.gameweek?.id != null &&
-              heroDeadlineRaw != null &&
-              heroDeadlineRaw !== "" && (
-                <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                  <DeadlineHeroBlock deadlineRaw={heroDeadlineRaw} gwId={Number(fixturesData.gameweek.id)} />
-                </div>
-              )}
+            {fixturesData?.gameweek?.deadlineTime && (
+              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+                <HeroDeadlinePlaque
+                  targetTime={fixturesData.gameweek.deadlineTime}
+                  gwId={Number(fixturesData.gameweek.id)}
+                />
+              </div>
+            )}
           </motion.div>
 
           {/* CTAs */}
