@@ -23,6 +23,8 @@ export default function AdminPage() {
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
+  const [vaultWithdrawRecipient, setVaultWithdrawRecipient] = useState("");
+  const [vaultWithdrawMove, setVaultWithdrawMove] = useState("");
 
   // API states
   const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
@@ -224,6 +226,45 @@ export default function AdminPage() {
       setNewPrizePoolPct("");
     } catch (error: any) {
       console.error("Failed to update percentage:", error);
+      alert(`Failed: ${formatTxError(error)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleWithdrawPrizeVault = async () => {
+    if (!connected || !account) return;
+    const recipient = (vaultWithdrawRecipient || account.address.toString()).trim();
+    const moveStr = vaultWithdrawMove.trim();
+    if (!recipient || !moveStr) {
+      alert("Enter amount in MOVE and optionally a recipient address.");
+      return;
+    }
+    const octas = Math.round(parseFloat(moveStr) * 100_000_000);
+    if (!Number.isFinite(octas) || octas <= 0) {
+      alert("Invalid amount.");
+      return;
+    }
+    if (
+      !confirm(
+        `Withdraw ${moveStr} MOVE (${octas} octas) from prize vault to:\n${recipient}\n\nLeave enough in the vault for unresolved prize claims, or claims will fail.`,
+      )
+    ) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_withdraw_prize_vault"),
+          typeArguments: [],
+          functionArguments: [recipient, octas.toString()],
+        },
+      });
+      alert("Withdrawal submitted.");
+      setVaultWithdrawMove("");
+    } catch (error: any) {
+      console.error("Failed to withdraw from prize vault:", error);
       alert(`Failed: ${formatTxError(error)}`);
     } finally {
       setIsSubmitting(false);
@@ -548,7 +589,9 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Adjust Prize Pool (%)</h2>
-                <p className="text-sm text-muted-foreground mt-1">Change what percentage of entry fees goes to the prize pool vs platform.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  On-chain: this percent of each <strong>entry fee</strong> is sent to the prize vault; the rest goes to the module publisher address (your deployer wallet). Title/guild fees still go to the vault in full.
+                </p>
               </div>
             </div>
             <div className="flex gap-4 mt-4">
@@ -566,6 +609,54 @@ export default function AdminPage() {
               >
                 {isSubmitting ? "..." : "Update %"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Prize vault withdrawal — requires upgraded module on chain */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6 border border-amber-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Prize vault withdrawal</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  After you publish a package upgrade that includes <code className="text-xs text-amber-200/90">admin_withdraw_prize_vault</code>, use this to move MOVE from the resource-account vault to any address (e.g. recover funds swept there by mistake). Do not drain below what winners still need to claim.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">Recipient address (empty = connected wallet)</label>
+                <input
+                  type="text"
+                  placeholder={account?.address?.toString() ?? "0x…"}
+                  value={vaultWithdrawRecipient}
+                  onChange={(e) => setVaultWithdrawRecipient(e.target.value)}
+                  className="w-full px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border font-mono text-sm"
+                />
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                <input
+                  type="text"
+                  placeholder="Amount in MOVE (e.g. 150)"
+                  value={vaultWithdrawMove}
+                  onChange={(e) => setVaultWithdrawMove(e.target.value)}
+                  className="flex-1 min-w-[160px] px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={handleWithdrawPrizeVault}
+                  disabled={isSubmitting || !vaultWithdrawMove.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:from-amber-400 hover:to-orange-500 transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? "…" : "Withdraw from vault"}
+                </button>
+              </div>
             </div>
           </div>
         )}

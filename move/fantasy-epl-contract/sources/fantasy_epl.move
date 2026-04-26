@@ -38,8 +38,8 @@ module fantasy_epl_addr::fantasy_epl {
     const ENOT_TREASURY_ACCOUNT: u64 = 21;
     const ETREASURY_AUTH_ALREADY_REGISTERED: u64 = 22;
     const ETREASURY_AUTH_NOT_REGISTERED: u64 = 23;
-    /// Left on `@fantasy_epl_addr` when sweeping into prize vault (gas buffer).
-    const TREASURY_SWEEP_RESERVE_OCTAS: u64 = 100_000_000;
+    const EZERO_VAULT_WITHDRAW: u64 = 24;
+    const EINSUFFICIENT_VAULT_BALANCE: u64 = 25;
 
     // ============ Constants ============
     // Gameweek status
@@ -86,7 +86,7 @@ module fantasy_epl_addr::fantasy_epl {
         entry_fee: u64,           // In octas (1 APT = 10^8 octas)
         title_fee: u64,
         guild_fee: u64,
-        prize_pool_percent: u64,  // Percentage of fees going to prize pool (e.g., 50 = 50%)
+        prize_pool_percent: u64,  // Percentage of entry fee to prize vault (e.g., 80 = 80%)
         current_gameweek: u64,
     }
 
@@ -248,12 +248,19 @@ module fantasy_epl_addr::fantasy_epl {
         rank: u64,
     }
 
+    #[event]
+    struct PrizeVaultWithdrawn has drop, store {
+        admin: address,
+        recipient: address,
+        amount: u64,
+    }
+
     /// Signer capability for the prize vault (resource account). `claim_prize` pays from this vault.
     struct TreasuryAuth has key {
         cap: account::SignerCapability,
     }
 
-    /// Entry fees / title / guild fees go here: vault after `register_treasury_for_claims`, else `@fantasy_epl_addr`.
+    /// Title / guild fees (and entry fee prize leg when treasury exists): vault after `register_treasury_for_claims`, else `@fantasy_epl_addr`.
     fun fee_recipient_addr(): address acquires TreasuryAuth {
         if (!exists<TreasuryAuth>(@fantasy_epl_addr)) {
             @fantasy_epl_addr
@@ -277,7 +284,7 @@ module fantasy_epl_addr::fantasy_epl {
             entry_fee: 100000000,  // 1 APT default
             title_fee: 50000000,   // 0.5 APT
             guild_fee: 50000000,   // 0.5 APT
-            prize_pool_percent: 50,
+            prize_pool_percent: 80,
             current_gameweek: 0,
         });
 
@@ -294,8 +301,9 @@ module fantasy_epl_addr::fantasy_epl {
         });
     }
 
-    /// One-time: create prize vault (resource account), store signer cap, sweep MOVE into vault for claims.
+    /// One-time: create prize vault (resource account) and store signer cap for `claim_prize`.
     /// Caller must be `@fantasy_epl_addr` (module / treasury address).
+    /// Does not move the publisher balance: fund the vault via entry fees (prize leg) or `admin_withdraw_prize_vault` in reverse only for recovery workflows.
     public entry fun register_treasury_for_claims(sender: &signer) {
         let addr = signer::address_of(sender);
         assert!(addr == @fantasy_epl_addr, ENOT_TREASURY_ACCOUNT);
@@ -307,12 +315,6 @@ module fantasy_epl_addr::fantasy_epl {
             coin::register<AptosCoin>(&vault_signer);
         };
         move_to(sender, TreasuryAuth { cap });
-
-        // Move existing treasury balance into the vault (leave reserve for gas on publisher).
-        let bal = coin::balance<AptosCoin>(addr);
-        if (bal > TREASURY_SWEEP_RESERVE_OCTAS) {
-            coin::transfer<AptosCoin>(sender, vault_addr, bal - TREASURY_SWEEP_RESERVE_OCTAS);
-        };
     }
 
     // ============ Admin Functions ============
@@ -490,6 +492,34 @@ module fantasy_epl_addr::fantasy_epl {
         };
     }
 
+    /// Withdraw MOVE from the prize vault to any address. Admin only.
+    /// Does not enforce prize liabilities: leave enough for `claim_prize` or claims will fail.
+    public entry fun admin_withdraw_prize_vault(
+        sender: &signer,
+        recipient: address,
+        amount: u64,
+    ) acquires Config, TreasuryAuth {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+        assert!(amount > 0, EZERO_VAULT_WITHDRAW);
+
+        let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
+        let vault_addr = account::get_signer_capability_address(&auth.cap);
+        let bal = coin::balance<AptosCoin>(vault_addr);
+        assert!(bal >= amount, EINSUFFICIENT_VAULT_BALANCE);
+
+        let treasury = account::create_signer_with_capability(&auth.cap);
+        coin::transfer<AptosCoin>(&treasury, recipient, amount);
+
+        event::emit(PrizeVaultWithdrawn {
+            admin: sender_addr,
+            recipient,
+            amount,
+        });
+    }
+
     // ============ User Functions ============
 
     /// Register a team for a gameweek
@@ -520,11 +550,22 @@ module fantasy_epl_addr::fantasy_epl {
         // Validate max 3 per club
         validate_club_limit(&player_clubs);
 
-        // Pay entry fee
+        // Pay entry fee: prize leg -> prize vault (when registered), house leg -> module publisher.
         let fee = config.entry_fee;
-        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), fee);
+        let prize_leg = (fee * config.prize_pool_percent) / 100;
+        let house_leg = fee - prize_leg;
+        if (exists<TreasuryAuth>(@fantasy_epl_addr)) {
+            if (prize_leg > 0) {
+                coin::transfer<AptosCoin>(sender, fee_recipient_addr(), prize_leg);
+            };
+            if (house_leg > 0) {
+                coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, house_leg);
+            };
+        } else {
+            coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, fee);
+        };
 
-        // Update prize pool
+        // Update prize pool (same accounting as before: share of full entry fee)
         let prize_contribution = (fee * config.prize_pool_percent) / 100;
         gameweek.prize_pool = gameweek.prize_pool + prize_contribution;
         gameweek.total_entries = gameweek.total_entries + 1;
@@ -1494,7 +1535,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(entry_fee == 100000000, 4); // 1 APT
         assert!(title_fee == 50000000, 5);  // 0.5 APT
         assert!(guild_fee == 50000000, 6);  // 0.5 APT
-        assert!(prize_percent == 50, 7);
+        assert!(prize_percent == 80, 7);
         assert!(current_gw == 0, 8);
     }
 
@@ -1545,7 +1586,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Verify gameweek updated
         let (_, _, prize_pool, total_entries) = get_gameweek(1);
         assert!(total_entries == 1, 2);
-        assert!(prize_pool == 50000000, 3); // 50% of 1 APT entry fee
+        assert!(prize_pool == 80000000, 3); // 80% of 1 APT entry fee
 
         // Verify user's team data
         let (ids, pos) = get_user_team(@0x123, 1);
@@ -1821,7 +1862,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Verify prize pool
         let (_, _, prize_pool, total_entries) = get_gameweek(1);
         assert!(total_entries == 2, 1);
-        assert!(prize_pool == 100000000, 2); // 2 entries * 50% of 1 APT
+        assert!(prize_pool == 160000000, 2); // 2 entries * 80% of 1 APT
 
         // 5. Submit player stats
         // Player 9 scored 2 goals, player 10 scored 1
