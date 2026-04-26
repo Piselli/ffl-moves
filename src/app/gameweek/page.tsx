@@ -18,6 +18,7 @@ import {
 } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -128,9 +129,11 @@ export default function GameweekPage() {
       const chainTeam = await getUserTeam(account!.address.toString(), gwId);
       if (!chainTeam || !chainTeam.playerIds.length) return;
 
-      const teamPlayers = chainTeam.playerIds
-        .map((id) => players.find((p) => p.id === id))
-        .filter(Boolean) as Player[];
+      const catalog = new Map(players.map((p) => [p.id, p]));
+      const teamPlayers = squadPlayersFromChain(
+        { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
+        catalog,
+      );
 
       if (teamPlayers.length > 0) {
         const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };

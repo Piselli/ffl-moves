@@ -7,11 +7,10 @@ import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { Player, TeamResult } from "@/lib/types";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
-
-const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
 
 const positionColor: Record<string, string> = {
   GK:  "text-rose-400",
@@ -185,11 +184,12 @@ export default function MyResultPage() {
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
 
-        const squad = userTeam.playerIds
-          .map((id) => playerMap.get(id))
-          .filter(Boolean) as Player[];
-
-        squad.sort((a, b) => (POSITION_ORDER[a.position] ?? 4) - (POSITION_ORDER[b.position] ?? 4));
+        // Same order as on-chain register_team (11 starters + bench). Do not drop ids missing from
+        // /api/players (injured / loaned / not can_select) — that caused “wrong” short squads.
+        const squad = squadPlayersFromChain(
+          { playerIds: userTeam.playerIds, playerPositions: userTeam.playerPositions },
+          playerMap,
+        );
         setPlayers(squad);
       } catch (e: any) {
         setError(e.message ?? "Щось пішло не так");
@@ -346,6 +346,11 @@ export default function MyResultPage() {
                   <p className="text-[10px] text-white/20 italic">Статистику ще не підведено</p>
                 )}
               </div>
+              {players.some((p) => p.team === "Немає в каталозі") && (
+                <p className="text-[10px] text-amber-400/90 leading-snug mb-3">
+                  Деякі слоти показані як FPL #id: гравець тимчасово не в каталозі сайту (травма / оренда / не can_select), але id збігається з тим, що в контракті.
+                </p>
+              )}
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
                 {players.map((p) => (
                   <PlayerResultCard

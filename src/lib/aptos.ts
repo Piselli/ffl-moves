@@ -238,7 +238,10 @@ export async function getTeamResult(owner: string, gameweekId: number) {
   }
 }
 
-export async function getUserTeam(owner: string, gameweekId: number): Promise<{ playerIds: number[] } | null> {
+export async function getUserTeam(
+  owner: string,
+  gameweekId: number,
+): Promise<{ playerIds: number[]; playerPositions: number[] } | null> {
   try {
     const result = await aptos.view({
       payload: {
@@ -247,10 +250,15 @@ export async function getUserTeam(owner: string, gameweekId: number): Promise<{ 
         functionArguments: [owner, gameweekId.toString()],
       },
     });
-    // result[0] = player_ids; result[1] = player_positions (may be hex in some clients — unused here)
-    return {
-      playerIds: (result[0] as string[]).map(Number),
-    };
+    const rawIds = result[0] as unknown[];
+    const rawPos = (result[1] as unknown[]) ?? [];
+    const playerIds = rawIds.map((x) => viewNum(x)).filter((n) => Number.isFinite(n));
+    // Keep index-aligned with player_ids (do not filter positions — would shift slots).
+    const playerPositions = playerIds.map((_, i) => {
+      const v = viewNum(rawPos[i]);
+      return Number.isFinite(v) && v >= 0 && v <= 3 ? v : 2;
+    });
+    return { playerIds, playerPositions };
   } catch (e) {
     console.error("getUserTeam error:", e);
     return null;
