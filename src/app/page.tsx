@@ -724,6 +724,22 @@ export default function Home() {
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
+  /** Prefer API `heroNextRound` (is_next or GW+1) so countdown is not a mid-week straggler of the current GW */
+  const heroKickoffBlock = useMemo(() => {
+    const d = fixturesData;
+    if (!d) return null;
+    const hr = d.heroNextRound as { gwId: number; fixtures: { kickoffTime: string }[] } | undefined;
+    if (hr?.fixtures?.length) {
+      return { fixtures: hr.fixtures, gwId: hr.gwId };
+    }
+    const f = d.fixtures;
+    const id = d.gameweek?.id;
+    if (Array.isArray(f) && f.length > 0 && id != null) {
+      return { fixtures: f as { kickoffTime: string }[], gwId: Number(id) };
+    }
+    return null;
+  }, [fixturesData]);
+
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
     // GK - В воротарській
@@ -846,13 +862,11 @@ export default function Home() {
                 )}
               </p>
             </div>
-            {fixturesData?.gameweek?.id != null &&
-              Array.isArray(fixturesData.fixtures) &&
-              fixturesData.fixtures.length > 0 && (
-                <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                  <TourKickoffHeroBlock fixtures={fixturesData.fixtures} gwId={Number(fixturesData.gameweek.id)} />
-                </div>
-              )}
+            {heroKickoffBlock && (
+              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+                <TourKickoffHeroBlock fixtures={heroKickoffBlock.fixtures} gwId={heroKickoffBlock.gwId} />
+              </div>
+            )}
           </motion.div>
 
           {/* CTAs */}
