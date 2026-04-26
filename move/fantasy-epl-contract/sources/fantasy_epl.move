@@ -260,7 +260,7 @@ module fantasy_epl_addr::fantasy_epl {
         cap: account::SignerCapability,
     }
 
-    /// Title / guild fees (and entry fee prize leg when treasury exists): vault after `register_treasury_for_claims`, else `@fantasy_epl_addr`.
+    /// Prize vault address for the entry-fee **prize leg** only (after `register_treasury_for_claims`). Title/guild fees go to `@fantasy_epl_addr` directly.
     fun fee_recipient_addr(): address acquires TreasuryAuth {
         if (!exists<TreasuryAuth>(@fantasy_epl_addr)) {
             @fantasy_epl_addr
@@ -604,15 +604,15 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun buy_title(
         sender: &signer,
         season: u64,
-    ) acquires Config, TreasuryAuth {
+    ) acquires Config {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         // Check doesn't already have title
         assert!(!exists<UserTitle>(sender_addr), EALREADY_HAS_TITLE);
 
-        // Pay fee
-        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.title_fee);
+        // Pay fee (operator / publisher — not prize vault)
+        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.title_fee);
 
         // Generate random title and multiplier
         let (title_type, multiplier) = generate_random_title(sender_addr, option::none());
@@ -634,15 +634,14 @@ module fantasy_epl_addr::fantasy_epl {
     /// Reroll title (guaranteed different)
     public entry fun reroll_title(
         sender: &signer,
-    ) acquires Config, UserTitle, TreasuryAuth {
+    ) acquires Config, UserTitle {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         // Must have existing title
         assert!(exists<UserTitle>(sender_addr), ENO_TITLE_TO_REROLL);
 
-        // Pay fee
-        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.title_fee);
+        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.title_fee);
 
         let user_title = borrow_global_mut<UserTitle>(sender_addr);
         let old_title = user_title.title_type;
@@ -665,13 +664,13 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun buy_guild(
         sender: &signer,
         season: u64,
-    ) acquires Config, TreasuryAuth {
+    ) acquires Config {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         assert!(!exists<UserGuild>(sender_addr), EALREADY_HAS_GUILD);
 
-        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.guild_fee);
+        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.guild_fee);
 
         let multiplier = generate_random_multiplier(sender_addr, 1);
 
@@ -690,13 +689,13 @@ module fantasy_epl_addr::fantasy_epl {
     /// Reroll guild multiplier
     public entry fun reroll_guild(
         sender: &signer,
-    ) acquires Config, UserGuild, TreasuryAuth {
+    ) acquires Config, UserGuild {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         assert!(exists<UserGuild>(sender_addr), ENO_GUILD_TO_REROLL);
 
-        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.guild_fee);
+        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.guild_fee);
 
         let user_guild = borrow_global_mut<UserGuild>(sender_addr);
         user_guild.multiplier = generate_random_multiplier(sender_addr, 2);
@@ -1639,7 +1638,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, TreasuryAuth {
+    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
         setup_test(aptos_framework, admin, user1, user2);
 
         // User buys title
@@ -1656,7 +1655,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EALREADY_HAS_TITLE)]
-    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, TreasuryAuth {
+    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -1664,7 +1663,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, TreasuryAuth {
+    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -1682,7 +1681,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild, TreasuryAuth {
+    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_guild(user1, 1);

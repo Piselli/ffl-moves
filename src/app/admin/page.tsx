@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { aptos, moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
+import { MOVEMENT_RPC_URL } from "@/lib/constants";
 import { cn, formatTxError, toU64Stat } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
@@ -548,6 +549,19 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-6">
+        {MOVEMENT_RPC_URL.toLowerCase().includes("testnet") && (
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100 text-sm leading-relaxed">
+            <strong className="text-amber-200">Підключено до testnet RPC.</strong> Якщо модуль опублікований на{" "}
+            <strong>mainnet</strong>, додай у <code className="rounded bg-black/30 px-1 text-xs">.env.local</code>{" "}
+            <code className="rounded bg-black/30 px-1 text-xs break-all">
+              NEXT_PUBLIC_MOVEMENT_RPC_URL=https://mainnet.movementnetwork.xyz/v1
+            </code>
+            , збережи файл і повністю перезапусти <code className="rounded bg-black/30 px-1 text-xs">npm run dev</code>.
+            Інакше SDK тягне ABI з testnet (там стара версія пакета без{" "}
+            <code className="rounded bg-black/30 px-1 text-xs">admin_withdraw_prize_vault</code>) — звідси помилка «Could not find entry function ABI».
+          </div>
+        )}
+
         {/* Create Gameweek (Admin) */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6">
@@ -590,7 +604,7 @@ export default function AdminPage() {
               <div>
                 <h2 className="text-xl font-bold text-white">Adjust Prize Pool (%)</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  On-chain: this percent of each <strong>entry fee</strong> is sent to the prize vault; the rest goes to the module publisher address (your deployer wallet). Title/guild fees still go to the vault in full.
+                  On-chain: this percent of each <strong>entry fee</strong> is sent to the prize vault; the rest goes to the module publisher address (your deployer wallet). Title and guild fees go to the same publisher address in full (not the prize vault).
                 </p>
               </div>
             </div>
