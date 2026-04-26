@@ -26,10 +26,10 @@ import {
   RATING_SUB_POINTS,
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
-import { resolveFplDeadlineRaw, formatFplDeadlineUk } from "@/lib/fpl-deadline";
+import { resolveFplDeadlineRaw, formatFplDeadlineUk, deadlineRawToUtcMs } from "@/lib/fpl-deadline";
 
 // ─── Countdown to a single instant (hero strip — compact digits) ───────────────
-/** Same `deadlineRaw` resolution as `/fixtures` (epoch ms if finite, else FPL `deadline_time` string). */
+/** Uses `deadlineRawToUtcMs` — same instant as `formatFplDeadlineUk` under this card. */
 function CountdownToInstant({
   deadlineRaw,
   expiredLabel = "Дедлайн пройшов",
@@ -37,36 +37,31 @@ function CountdownToInstant({
   deadlineRaw: string | number;
   expiredLabel?: string;
 }) {
-  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
-  const [expired, setExpired] = useState(false);
-
-  const endMs = useMemo(() => {
-    if (typeof deadlineRaw === "number" && Number.isFinite(deadlineRaw)) return deadlineRaw;
-    const t = new Date(deadlineRaw as string).getTime();
-    return Number.isFinite(t) ? t : NaN;
-  }, [deadlineRaw]);
-
+  const endMs = useMemo(() => deadlineRawToUtcMs(deadlineRaw), [deadlineRaw]);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    function update() {
-      if (!Number.isFinite(endMs)) return;
-      const diff = endMs - Date.now();
-      if (diff <= 0) {
-        setExpired(true);
-        setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
-        return;
-      }
-      setExpired(false);
-      setTimeLeft({
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const { expired, timeLeft } = useMemo(() => {
+    if (!Number.isFinite(endMs)) {
+      return { expired: false, timeLeft: null as { d: number; h: number; m: number; s: number } | null };
+    }
+    const diff = endMs - Date.now();
+    if (diff <= 0) {
+      return { expired: true, timeLeft: { d: 0, h: 0, m: 0, s: 0 } };
+    }
+    return {
+      expired: false,
+      timeLeft: {
         d: Math.floor(diff / 86400000),
         h: Math.floor((diff % 86400000) / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
         s: Math.floor((diff % 60000) / 1000),
-      });
-    }
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [endMs]);
+      },
+    };
+  }, [endMs, tick]);
 
   if (!Number.isFinite(endMs)) {
     return <span className="text-white/30 text-[10px] sm:text-xs">—</span>;
