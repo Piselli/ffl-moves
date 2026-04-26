@@ -3,6 +3,7 @@
 import { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 
 interface PlayerCardProps {
   player: Player;
@@ -191,6 +192,8 @@ export function PlayerCard({
             photoUrl={photoUrl}
             alt={player.name}
             size={48}
+            teamName={player.team}
+            initials={initialsFromDisplayName(player.webName || player.name)}
             positionFallback={player.position}
             positionFallbackClassName={cn(
               "text-[11px] font-black",
@@ -229,6 +232,8 @@ export function PlayerCard({
             photoUrl={photoUrl}
             alt={player.name}
             size={44}
+            teamName={player.team}
+            initials={initialsFromDisplayName(player.webName || player.name)}
             positionFallback={player.position}
             positionFallbackClassName={cn("text-xs font-black", positionTextColor[player.position])}
             className="rounded-xl"

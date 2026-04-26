@@ -9,6 +9,7 @@ import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
+import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import {
   ASSIST_POINTS,
   CLEAN_SHEET_POINTS,
@@ -251,6 +252,9 @@ function PlayerCutout({
           }
           alt={name}
           size={96}
+          teamName={name}
+          initials={initialsFromDisplayName(name)}
+          positionFallback={pos}
           className="rounded-xl shadow-2xl"
         />
       </div>
@@ -540,6 +544,8 @@ function LiveDataCarousel() {
                        photoUrl={ev.image}
                        alt={ev.player}
                        size={64}
+                       teamName={ev.player}
+                       initials={initialsFromDisplayName(ev.player)}
                        className="rounded-full"
                      />
                    </div>
@@ -892,6 +898,9 @@ export default function Home() {
                                   photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${p.imgUrl}`}
                                   alt={p.name}
                                   size={72}
+                                  teamName={p.name}
+                                  initials={initialsFromDisplayName(p.name)}
+                                  positionFallback={p.pos}
                                   className="rounded-lg"
                                 />
                               </div>
@@ -1016,6 +1025,9 @@ export default function Home() {
                       photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${card.img}`}
                       alt={card.player}
                       size={44}
+                      teamName={card.player}
+                      initials={initialsFromDisplayName(card.player)}
+                      positionFallback={card.posEn}
                       className="scale-110 rounded-xl"
                     />
                   </div>

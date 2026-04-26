@@ -13,6 +13,7 @@ import { Player, TeamResult } from "@/lib/types";
 import { FORMATION } from "@/lib/constants";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 
 const positionColor: Record<string, string> = {
   GK:  "text-rose-400",
@@ -78,6 +79,8 @@ function PlayerResultCard({
           photoUrl={player.photo}
           alt={player.name}
           size={56}
+          teamName={player.team}
+          initials={initialsFromDisplayName(player.webName || player.name)}
           positionFallback={player.position}
           positionFallbackClassName={cn("text-xs font-black", positionColor[player.position])}
           className="rounded-xl"
