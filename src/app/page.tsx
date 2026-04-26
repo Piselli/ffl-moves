@@ -21,6 +21,9 @@ import {
   HAT_TRICK_BONUS,
   MINUTES_POINTS,
   PENALTY_SAVE_POINTS,
+  RATING_BONUS_TIERS,
+  RATING_SUB_POINTS,
+  RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
 
 // ─── Countdown Timer ──────────────────────────────────────────────────────────
@@ -262,17 +265,29 @@ function PlayerCutout({
 }
 
 // ─── Position Scoring Cards (values from `scoring-rules.ts` = chain + `calculateFantasyPoints`) ───
-const POSITION_CARDS = [
+type CardGain = { label: string; pts: string; value?: number; negative?: true };
+
+const POSITION_CARDS: {
+  pos: string;
+  posEn: string;
+  player: string;
+  img: string;
+  color: string;
+  colorClass: string;
+  bgClass: string;
+  borderClass: string;
+  gains: CardGain[];
+}[] = [
   {
     pos: "ВР", posEn: "GK",
     player: "Jordan Pickford", img: "p111234.png",
     color: "#F43F5E", colorClass: "text-rose-400", bgClass: "bg-rose-500/15", borderClass: "border-rose-500/40",
     gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.GK}` },
-      { label: "Відбитий пенальті", pts: `+${PENALTY_SAVE_POINTS}` },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}` },
-      { label: "Асист", pts: `+${ASSIST_POINTS}` },
-      { label: `Кожні ${GK_SAVE_BATCH} сейви`, pts: `+${GK_SAVE_POINTS_PER_BATCH}` },
+      { label: "Гол", pts: `+${GOAL_POINTS.GK}`, value: GOAL_POINTS.GK },
+      { label: "Відбитий пенальті", pts: `+${PENALTY_SAVE_POINTS}`, value: PENALTY_SAVE_POINTS },
+      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+      { label: `Кожні ${GK_SAVE_BATCH} сейви`, pts: `+${GK_SAVE_POINTS_PER_BATCH}`, value: GK_SAVE_POINTS_PER_BATCH },
       { label: `Пропущений гол (×${GOALS_CONCEDED_DIVISOR})`, pts: "−1", negative: true },
     ],
   },
@@ -281,9 +296,9 @@ const POSITION_CARDS = [
     player: "William Saliba", img: "p462424.png",
     color: "#F59E0B", colorClass: "text-amber-400", bgClass: "bg-amber-500/15", borderClass: "border-amber-500/40",
     gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.DEF}` },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}` },
-      { label: "Асист", pts: `+${ASSIST_POINTS}` },
+      { label: "Гол", pts: `+${GOAL_POINTS.DEF}`, value: GOAL_POINTS.DEF },
+      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
       { label: `Пропущений гол (×${GOALS_CONCEDED_DIVISOR})`, pts: "−1", negative: true },
     ],
   },
@@ -292,9 +307,9 @@ const POSITION_CARDS = [
     player: "Cole Palmer", img: "p244851.png",
     color: "#3B82F6", colorClass: "text-blue-400", bgClass: "bg-blue-500/15", borderClass: "border-blue-500/40",
     gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.MID}` },
-      { label: "Асист", pts: `+${ASSIST_POINTS}` },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.MID}` },
+      { label: "Гол", pts: `+${GOAL_POINTS.MID}`, value: GOAL_POINTS.MID },
+      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.MID}`, value: CLEAN_SHEET_POINTS.MID },
     ],
   },
   {
@@ -302,17 +317,28 @@ const POSITION_CARDS = [
     player: "Erling Haaland", img: "p223094.png",
     color: "#10B981", colorClass: "text-emerald-400", bgClass: "bg-emerald-500/15", borderClass: "border-emerald-500/40",
     gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.FWD}` },
-      { label: "Асист", pts: `+${ASSIST_POINTS}` },
+      { label: "Гол", pts: `+${GOAL_POINTS.FWD}`, value: GOAL_POINTS.FWD },
+      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
     ],
   },
 ];
+
+function sumPositiveCardValues(gains: CardGain[]): number {
+  return gains.filter((g) => !g.negative).reduce((s, g) => s + (g.value ?? 0), 0);
+}
+
+const RATING_TIER_LABELS = RATING_BONUS_TIERS.map((tier) => ({
+  label: `Рейтинг матчу ≥ ${(tier.minTenths / 10).toFixed(1)}`,
+  pts: `+${tier.points}`,
+  color: "text-[#00C46A]" as const,
+}));
 
 const UNIVERSAL_BONUSES = [
   { label: "Гравець матчу (BPS)", pts: `+${FPL_BONUS_MAX}`, color: "text-[#00C46A]" },
   { label: "Хет-трик", pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00C46A]" },
   { label: "Вихід 60+ хв", pts: `+${MINUTES_POINTS.full}`, color: "text-[#00C46A]" },
   { label: "Вихід 1–59 хв", pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00C46A]" },
+  ...RATING_TIER_LABELS,
 ];
 
 const UNIVERSAL_PENALTIES = [
@@ -320,6 +346,10 @@ const UNIVERSAL_PENALTIES = [
   { label: "Автогол", pts: `−${DEDUCTIONS.ownGoal}` },
   { label: "Незабитий пенальті", pts: `−${DEDUCTIONS.penaltyMissed}` },
   { label: "Жовта картка", pts: `−${DEDUCTIONS.yellowCard}` },
+  {
+    label: `Низький рейтинг (<${(RATING_SUB_THRESHOLD_TENTHS / 10).toFixed(1)}, з хвилинами)`,
+    pts: `−${RATING_SUB_POINTS}`,
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -356,8 +386,8 @@ const CAROUSEL_MATCHES = [
     matchday: 26,
     events: [
       { player: "C. Palmer", action: "2 Голи", pts: "+10", color: "#00C46A", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
-      { player: "P. Porro", action: "Відбір", pts: "+1", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-      { player: "S. Heung-Min", action: "Гол!", pts: "+4", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
+      { player: "P. Porro", action: "Асист", pts: `+${ASSIST_POINTS}`, color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+      { player: "S. Heung-Min", action: "Гол!", pts: `+${GOAL_POINTS.FWD}`, color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
     ]
   },
   {
@@ -1015,7 +1045,7 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-white/20 uppercase tracking-widest">Макс. за тур</span>
                     <span className="text-sm font-display font-black tabular-nums text-[#00C46A]">
-                      {card.gains.filter(g => !('negative' in g && g.negative)).reduce((s, g) => s + parseInt(g.pts), 0)} балів
+                      {sumPositiveCardValues(card.gains)} балів
                     </span>
                   </div>
                 </div>

@@ -12,7 +12,8 @@ const POSITION_MAP: Record<number, "GK" | "DEF" | "MID" | "FWD"> = {
 };
 
 // Our scoring system
-const GOAL_PTS: Record<string, number> = { GK: 10, DEF: 6, MID: 5, FWD: 4 };
+/** Same per-goal weights as `scoring-rules.ts` / on-chain (FWD = 5, not FPL’s 4). */
+const GOAL_PTS: Record<string, number> = { GK: 10, DEF: 6, MID: 5, FWD: 5 };
 const CS_PTS:   Record<string, number> = { GK: 6,  DEF: 6, MID: 1, FWD: 0 };
 
 function calcOurForm(el: any, position: string): number {
