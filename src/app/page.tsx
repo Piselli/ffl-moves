@@ -2,7 +2,7 @@
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
@@ -27,15 +27,20 @@ import {
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
 
-// ─── Countdown Timer ──────────────────────────────────────────────────────────
-function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number }) {
+// ─── Countdown to a single instant (hero strip — compact digits) ───────────────
+function CountdownToInstant({ targetTime }: { targetTime: string }) {
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     function update() {
       const diff = new Date(targetTime).getTime() - Date.now();
-      if (diff <= 0) { setExpired(true); setTimeLeft({ d: 0, h: 0, m: 0, s: 0 }); return; }
+      if (diff <= 0) {
+        setExpired(true);
+        setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
+        return;
+      }
+      setExpired(false);
       setTimeLeft({
         d: Math.floor(diff / 86400000),
         h: Math.floor((diff % 86400000) / 3600000),
@@ -57,31 +62,77 @@ function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number
     { v: timeLeft.s, l: "с" },
   ];
 
+  if (expired) {
+    return <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Тур уже йде</span>;
+  }
+
+  return (
+    <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 overflow-hidden sm:gap-x-1.5">
+      {units.map(({ v, l }, i) => (
+        <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
+          <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
+            {String(v).padStart(2, "0")}
+          </span>
+          <span className="text-[6px] text-white/30 uppercase tracking-tighter sm:text-[9px] sm:tracking-wider shrink-0">
+            {l}
+          </span>
+          {i < units.length - 1 && (
+            <span className="ml-px shrink-0 text-[10px] font-black leading-none text-white/20 sm:ml-0.5 sm:text-lg">:</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Same source as /fixtures: next upcoming kickoff in the loaded GW, or “tour live” if all have started. */
+function TourKickoffHeroBlock({
+  fixtures,
+  gwId,
+}: {
+  fixtures: { kickoffTime: string }[];
+  gwId: number;
+}) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const targetKickoff = useMemo(() => {
+    const t = Date.now();
+    const next = fixtures.find((f) => new Date(f.kickoffTime).getTime() > t);
+    return next?.kickoffTime ?? null;
+  }, [fixtures, tick]);
+
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
-      <p className="text-[7px] sm:text-[9px] text-white/40 uppercase tracking-[0.08em] sm:tracking-[0.2em] font-bold mb-0.5 sm:mb-1 leading-tight line-clamp-2 max-w-full">
-        До дедлайну GW{gwId}
-      </p>
-      {expired ? (
-        <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Дедлайн пройшов</span>
+      <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
+        {targetKickoff ? (
+          <>
+            <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
+              До старту туру
+            </p>
+            <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
+              Тур у розпалі
+            </p>
+            <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
+          </>
+        )}
+      </div>
+      {targetKickoff ? (
+        <CountdownToInstant targetTime={targetKickoff} />
       ) : (
-        <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 sm:gap-x-1.5 overflow-hidden">
-          {units.map(({ v, l }, i) => (
-            <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
-              <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
-                {String(v).padStart(2, "0")}
-              </span>
-              <span className="text-[6px] sm:text-[9px] text-white/30 uppercase tracking-tighter sm:tracking-wider shrink-0">
-                {l}
-              </span>
-              {i < units.length - 1 && (
-                <span className="text-white/20 font-black text-[10px] sm:text-lg ml-px sm:ml-0.5 shrink-0 leading-none">
-                  :
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        <span className="text-[10px] font-bold leading-tight text-white/45 sm:text-sm">
+          Усі матчі вже почались —{" "}
+          <Link href="/fixtures" className="text-[#00C46A] underline-offset-2 hover:underline">
+            матчі
+          </Link>
+        </span>
       )}
     </div>
   );
@@ -732,7 +783,7 @@ export default function Home() {
               <br />
               <span className="text-[#00C46A]">краще за інших?</span>
               <br />
-              Час на цьому заробити.
+              Час на цьому заробити
             </motion.h1>
 
             {/* Subheadline */}
@@ -755,7 +806,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="flex w-full min-w-0 max-w-full flex-nowrap items-stretch gap-1.5 sm:gap-4"
+              className="flex w-full max-w-xl min-w-0 flex-nowrap items-stretch gap-1.5 sm:gap-4"
             >
             <div className="flex min-w-0 flex-1 basis-0 flex-col items-start rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
@@ -795,14 +846,13 @@ export default function Home() {
                 )}
               </p>
             </div>
-            {fixturesData?.gameweek?.deadlineTime && (
-              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                <CountdownTimer
-                  targetTime={fixturesData.gameweek.deadlineTime}
-                  gwId={fixturesData.gameweek.id}
-                />
-              </div>
-            )}
+            {fixturesData?.gameweek?.id != null &&
+              Array.isArray(fixturesData.fixtures) &&
+              fixturesData.fixtures.length > 0 && (
+                <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+                  <TourKickoffHeroBlock fixtures={fixturesData.fixtures} gwId={Number(fixturesData.gameweek.id)} />
+                </div>
+              )}
           </motion.div>
 
           {/* CTAs */}
