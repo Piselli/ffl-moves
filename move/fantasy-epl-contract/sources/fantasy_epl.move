@@ -1141,7 +1141,8 @@ module fantasy_epl_addr::fantasy_epl {
             else if (stats.rating >= 75) { 1 }
             else { 0 };
 
-        let rating_sub: u64 = if (stats.rating < 60 && stats.minutes_played > 0) { 1 } else { 0 };
+        // `rating` 0 = unset (e.g. FPL oracle without match rating); do not treat as “below 6.0”.
+        let rating_sub: u64 = if (stats.rating > 0 && stats.rating < 60 && stats.minutes_played > 0) { 1 } else { 0 };
 
         (points, rating_add, rating_sub)
     }

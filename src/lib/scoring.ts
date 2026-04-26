@@ -114,15 +114,20 @@ export function ratingTierAdjustment(stats: Record<string, unknown> | null | und
 } {
   if (!stats) return { add: 0, sub: 0 };
   const mins = num(stats.minutes_played ?? stats.minutesPlayed);
+  const rawRating = num(stats.rating ?? stats.ratingScaled);
+  const hasMatchRating = Number.isFinite(rawRating) && rawRating !== 0;
   const r = ratingScaledTenths(stats);
   let add = 0;
-  for (const tier of RATING_BONUS_TIERS) {
-    if (r >= tier.minTenths) {
-      add = tier.points;
-      break;
+  if (hasMatchRating) {
+    for (const tier of RATING_BONUS_TIERS) {
+      if (r >= tier.minTenths) {
+        add = tier.points;
+        break;
+      }
     }
   }
-  const sub = mins > 0 && r < RATING_SUB_THRESHOLD_TENTHS ? RATING_SUB_POINTS : 0;
+  const sub =
+    hasMatchRating && mins > 0 && r < RATING_SUB_THRESHOLD_TENTHS ? RATING_SUB_POINTS : 0;
   return { add, sub };
 }
 

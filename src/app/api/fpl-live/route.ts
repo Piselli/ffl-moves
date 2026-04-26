@@ -107,9 +107,8 @@ export async function GET(request: Request) {
         ownGoals: s.own_goals ?? 0,
         yellowCards: s.yellow_cards ?? 0,
         redCards: s.red_cards ?? 0,
-        // BPS can be negative in FPL live; Move oracle uses u64 — clamp.
-        rating: Math.max(0, Number(s.bps ?? 0) || 0),
-        // UI scoring (merge with chain stats) — not all are on-chain yet
+        // Match rating for Move/TS tiers is tenths (e.g. 75 = 7.5). FPL live does not expose that here — use neutral 60 (6.0): no +tier, no low-rating −1. Never put BPS in `rating` (wrong scale, double-counts with `bonus`).
+        rating: 60,
         bonus: Math.max(0, Math.min(3, Number(s.bonus ?? 0) || 0)),
         goalsConceded: Math.max(0, Number(s.goals_conceded ?? 0) || 0),
         fplCleanSheets: (s.clean_sheets ?? 0) > 0 ? 1 : 0,
