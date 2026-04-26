@@ -60,33 +60,17 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <p className="w-full min-w-0 truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none tracking-tight">
+      <p className="w-full truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl">
         {!timeLeft ? (
           <span className="text-white/20 animate-pulse">—</span>
         ) : expired ? (
           <span className="text-white/50">Дедлайн пройшов</span>
         ) : (
-          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline">
-            {(
-              [
-                { v: timeLeft.d, l: "д" },
-                { v: timeLeft.h, l: "г" },
-                { v: timeLeft.m, l: "хв" },
-              ] as const
-            ).map(({ v, l }, i) => (
-              <span key={l} className="inline-flex shrink-0 items-baseline">
-                {i > 0 ? (
-                  <span className="mx-0.5 font-black text-white/35 sm:mx-1" aria-hidden>
-                    :
-                  </span>
-                ) : null}
-                <span className="inline-flex items-baseline gap-px">
-                  <span>{String(v).padStart(2, "0")}</span>
-                  <span>{l}</span>
-                </span>
-              </span>
-            ))}
-          </span>
+          <>
+            {String(timeLeft.d).padStart(2, "0")}д<span className="text-white/35"> : </span>
+            {String(timeLeft.h).padStart(2, "0")}г<span className="text-white/35"> : </span>
+            {String(timeLeft.m).padStart(2, "0")}хв
+          </>
         )}
       </p>
     </div>
@@ -805,7 +789,7 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime && (
-              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+              <div className="flex min-w-0 flex-1 basis-0 flex-col items-start rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
                 <HeroDeadlinePlaque
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={Number(fixturesData.gameweek.id)}
