@@ -41,13 +41,8 @@ async function fetchAndFormatEvent(eventId: number, teamMap: TeamMap) {
     }));
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const forcedRaw = searchParams.get("eventId");
-    const forcedId =
-      forcedRaw != null && forcedRaw !== "" ? Number.parseInt(forcedRaw, 10) : Number.NaN;
-
     const res = await fetch(FPL_URL, {
       headers: BROWSER_HEADERS,
       cache: "no-store",
@@ -55,18 +50,10 @@ export async function GET(request: Request) {
     if (!res.ok) throw new Error(`FPL bootstrap API ${res.status}`);
     const data = await res.json();
 
-    let targetEvent: (typeof data.events)[0] | undefined;
-
-    if (Number.isFinite(forcedId) && forcedId >= 1 && forcedId <= 38) {
-      targetEvent = data.events.find((e: any) => Number(e.id) === forcedId);
-    }
-
-    if (!targetEvent) {
-      targetEvent =
-        data.events.find((e: any) => e.is_next) ||
-        data.events.find((e: any) => e.is_current) ||
-        data.events.filter((e: any) => e.finished).slice(-1)[0];
-    }
+    const targetEvent =
+      data.events.find((e: any) => e.is_next) ||
+      data.events.find((e: any) => e.is_current) ||
+      data.events.filter((e: any) => e.finished).slice(-1)[0];
 
     if (!targetEvent) {
       return NextResponse.json({ error: "No upcoming gameweek found" }, { status: 404 });

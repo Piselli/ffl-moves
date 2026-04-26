@@ -129,7 +129,6 @@ function DeadlineHeroBlock({
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
       <CountdownToInstant
-        key={`${gwId}-${deadlineEpochMs ?? ""}-${deadlineTime ?? ""}`}
         deadlineEpochMs={deadlineEpochMs}
         targetTime={deadlineTime ?? undefined}
         expiredLabel="Дедлайн пройшов"
@@ -677,20 +676,15 @@ export default function Home() {
     fetchOnChainData();
   }, []);
 
+  // FPL only — never tie this to on-chain `openGameweekId` (chain can lag on an old GW and break deadline + labels).
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (openGameweekId != null && openGameweekId >= 1 && openGameweekId <= 38) {
-      params.set("eventId", String(openGameweekId));
-    }
-    const q = params.toString();
-    const url = q ? `/api/fixtures?${q}` : "/api/fixtures";
-    fetch(url, { cache: "no-store" })
+    fetch("/api/fixtures", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});
-  }, [openGameweekId]);
+  }, []);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
   const steps = [
