@@ -59,21 +59,25 @@ function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number
 
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
-      <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate max-w-full">
+      <p className="text-[7px] sm:text-[9px] text-white/40 uppercase tracking-[0.08em] sm:tracking-[0.2em] font-bold mb-0.5 sm:mb-1 leading-tight line-clamp-2 max-w-full">
         До дедлайну GW{gwId}
       </p>
       {expired ? (
-        <span className="text-white/40 text-sm font-bold">Дедлайн пройшов</span>
+        <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Дедлайн пройшов</span>
       ) : (
-        <div className="flex w-full min-w-0 flex-wrap items-end gap-x-1 gap-y-1 sm:gap-x-1.5">
+        <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 sm:gap-x-1.5 overflow-hidden">
           {units.map(({ v, l }, i) => (
-            <div key={l} className="flex items-baseline gap-0.5 shrink-0">
-              <span className="font-display font-black text-base min-[360px]:text-lg sm:text-xl md:text-2xl text-white tabular-nums leading-none">
+            <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
+              <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
                 {String(v).padStart(2, "0")}
               </span>
-              <span className="text-[8px] sm:text-[9px] text-white/30 uppercase tracking-wider">{l}</span>
+              <span className="text-[6px] sm:text-[9px] text-white/30 uppercase tracking-tighter sm:tracking-wider shrink-0">
+                {l}
+              </span>
               {i < units.length - 1 && (
-                <span className="text-white/20 font-black text-sm sm:text-lg ml-0.5 shrink-0">:</span>
+                <span className="text-white/20 font-black text-[10px] sm:text-lg ml-px sm:ml-0.5 shrink-0 leading-none">
+                  :
+                </span>
               )}
             </div>
           ))}
@@ -751,18 +755,18 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-start sm:gap-4"
+              className="flex w-full min-w-0 max-w-full flex-nowrap items-stretch gap-1.5 sm:gap-4"
             >
-            <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
-              <div className="mb-1 min-w-0 w-full space-y-0.5">
-                <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold leading-tight">
+            <div className="flex min-w-0 flex-1 basis-0 flex-col items-start rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+              <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
+                <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
                   Призовий фонд цього туру
                 </p>
                 {statsGwLabel != null ? (
-                  <p className="text-[8px] text-white/25 font-bold uppercase tracking-wider">GW{statsGwLabel}</p>
+                  <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{statsGwLabel}</p>
                 ) : null}
               </div>
-              <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
+              <p className="w-full truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
@@ -772,16 +776,16 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
-              <div className="mb-1 min-w-0 w-full space-y-0.5">
-                <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold leading-tight">
+            <div className="flex min-w-0 flex-1 basis-0 flex-col items-start rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+              <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
+                <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
                   Учасників у цьому турі
                 </p>
-                <p className="text-[8px] text-white/25 font-bold uppercase tracking-wider leading-tight">
+                <p className="text-[6px] font-bold uppercase leading-tight tracking-wider text-white/25 sm:text-[8px]">
                   зареєстрованих складів
                 </p>
               </div>
-              <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
+              <p className="w-full truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : tourEntryCount !== null ? (
@@ -792,7 +796,7 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime && (
-              <div className="col-span-2 flex min-w-0 flex-col items-stretch bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20 sm:col-span-1 sm:w-auto sm:max-w-[min(100%,20rem)]">
+              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
                 <CountdownTimer
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={fixturesData.gameweek.id}
