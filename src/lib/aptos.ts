@@ -252,12 +252,17 @@ export async function getUserTeam(
     });
     const rawIds = result[0] as unknown[];
     const rawPos = (result[1] as unknown[]) ?? [];
-    const playerIds = rawIds.map((x) => viewNum(x)).filter((n) => Number.isFinite(n));
-    // Keep index-aligned with player_ids (do not filter positions — would shift slots).
-    const playerPositions = playerIds.map((_, i) => {
+    // Must stay index-aligned with on-chain vectors (14 slots: 11 + bench). Filtering
+    // ids dropped entries and paired wrong positions — squads looked short/wrong.
+    const n = rawIds.length;
+    const playerIds: number[] = new Array(n);
+    const playerPositions: number[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const id = viewNum(rawIds[i]);
+      playerIds[i] = Number.isFinite(id) ? id : 0;
       const v = viewNum(rawPos[i]);
-      return Number.isFinite(v) && v >= 0 && v <= 3 ? v : 2;
-    });
+      playerPositions[i] = Number.isFinite(v) && v >= 0 && v <= 3 ? v : 2;
+    }
     return { playerIds, playerPositions };
   } catch (e) {
     console.error("getUserTeam error:", e);

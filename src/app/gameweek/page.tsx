@@ -24,6 +24,13 @@ type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
 
+function isCompleteRegisteredSnapshot(
+  t: { starters: Player[]; bench: Player[] } | null | undefined,
+): boolean {
+  if (!t || !Array.isArray(t.starters) || !Array.isArray(t.bench)) return false;
+  return t.starters.length === 11 && t.bench.length === FORMATION.BENCH;
+}
+
 export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
 
@@ -78,8 +85,13 @@ export default function GameweekPage() {
           const saved = localStorage.getItem(key);
           if (saved) {
             try {
-              setRegisteredTeam(JSON.parse(saved));
-            } catch {}
+              const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
+              if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
+                setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
+              }
+            } catch {
+              /* ignore corrupt snapshot */
+            }
           }
         }
 
@@ -107,9 +119,9 @@ export default function GameweekPage() {
     fetchData();
   }, [account?.address]);
 
-  // Fallback: load team from chain when localStorage is empty but players list is ready
+  // Fallback: load team from chain when localStorage is empty or incomplete but players list is ready
   useEffect(() => {
-    const hasValidTeam = (registeredTeam?.starters?.length ?? 0) > 0;
+    const hasValidTeam = isCompleteRegisteredSnapshot(registeredTeam);
     if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
 
     async function loadFromChain() {
@@ -118,12 +130,14 @@ export default function GameweekPage() {
       const saved = localStorage.getItem(key);
       if (saved) {
         try {
-          const parsed = JSON.parse(saved);
-          if ((parsed?.starters?.length ?? 0) > 0) {
-            setRegisteredTeam(parsed);
+          const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
+          if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
+            setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
             return;
           }
-        } catch {}
+        } catch {
+          /* fall through to chain */
+        }
       }
 
       const chainTeam = await getUserTeam(account!.address.toString(), gwId);
@@ -135,7 +149,7 @@ export default function GameweekPage() {
         catalog,
       );
 
-      if (teamPlayers.length > 0) {
+      if (teamPlayers.length === FORMATION.TOTAL) {
         const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
         setRegisteredTeam(teamSnapshot);
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
