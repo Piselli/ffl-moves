@@ -132,13 +132,17 @@ export function Navbar() {
     </Link>
   );
 
-  // Skeleton for SSR
+  // Skeleton for SSR — mirror mobile row (menu + wallet) so layout does not jump at hydration
   if (!mounted) {
     return (
       <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0">
         <nav className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-          {logoEl}
-          <div className="px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-[10px] sm:text-xs font-semibold bg-white/5 text-white/30 shrink-0">
+          <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:hidden">
+            <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
+            <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
+          </div>
+          <div className="hidden md:flex flex-1 justify-end px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-xs font-semibold bg-white/5 text-white/30">
             Loading...
           </div>
         </nav>

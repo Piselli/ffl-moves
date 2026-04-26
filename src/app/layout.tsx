@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
@@ -11,6 +11,13 @@ const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
 export const metadata: Metadata = {
   title: "Fantasy EPL on Movement",
   description: "Fantasy football game powered by Movement Network",
+};
+
+/** Without this, some mobile browsers use a ~980px layout width and `md:` breakpoints never match “phone”. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0D0F12",
 };
 
 export default function RootLayout({
