@@ -51,15 +51,18 @@ export default function GameweekPage() {
   const [teamResult, setTeamResult] = useState<any>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("players");
 
-  // Fetch live FPL players
+  // Fetch live FPL players (FPL or /api can fail: use local JSON fallback).
   useEffect(() => {
     fetch("/api/players")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPlayers(data as Player[]);
+      .then(async (r) => {
+        const data = await r.json();
+        if (r.ok && Array.isArray(data) && data.length > 0) {
+          setPlayers(data as Player[]);
+          return;
+        }
+        throw new Error("players api unavailable or empty");
       })
       .catch(() => {
-        // Fall back to local data if API fails
         import("@/data/players.json").then((m) => setPlayers(m.default as Player[]));
       })
       .finally(() => setPlayersLoading(false));
