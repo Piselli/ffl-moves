@@ -60,33 +60,35 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      {!timeLeft ? (
-        <span className="text-white/20 animate-pulse text-lg">—</span>
-      ) : expired ? (
-        <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Дедлайн пройшов</span>
-      ) : (
-        <div className="flex w-full min-w-0 flex-nowrap items-end justify-start gap-0.5 overflow-hidden sm:gap-x-1.5">
-          {(
-            [
-              { v: timeLeft.d, l: "д" },
-              { v: timeLeft.h, l: "г" },
-              { v: timeLeft.m, l: "хв" },
-            ] as const
-          ).map(({ v, l }, i, arr) => (
-            <div key={l} className="flex min-w-0 items-baseline gap-px sm:gap-0.5">
-              <span className="font-display font-black text-[11px] min-[380px]:text-sm sm:text-xl md:text-2xl text-white tabular-nums leading-none truncate">
-                {String(v).padStart(2, "0")}
+      <p className="w-full min-w-0 truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none tracking-tight">
+        {!timeLeft ? (
+          <span className="text-white/20 animate-pulse">—</span>
+        ) : expired ? (
+          <span className="text-white/50">Дедлайн пройшов</span>
+        ) : (
+          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline">
+            {(
+              [
+                { v: timeLeft.d, l: "д" },
+                { v: timeLeft.h, l: "г" },
+                { v: timeLeft.m, l: "хв" },
+              ] as const
+            ).map(({ v, l }, i) => (
+              <span key={l} className="inline-flex shrink-0 items-baseline">
+                {i > 0 ? (
+                  <span className="mx-0.5 font-black text-white/35 sm:mx-1" aria-hidden>
+                    :
+                  </span>
+                ) : null}
+                <span className="inline-flex items-baseline gap-px">
+                  <span>{String(v).padStart(2, "0")}</span>
+                  <span>{l}</span>
+                </span>
               </span>
-              <span className="text-[6px] text-white/30 uppercase tracking-tighter sm:text-[9px] sm:tracking-wider shrink-0">
-                {l}
-              </span>
-              {i < arr.length - 1 && (
-                <span className="ml-px shrink-0 text-[10px] font-black leading-none text-white/20 sm:ml-0.5 sm:text-lg">:</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </span>
+        )}
+      </p>
     </div>
   );
 }
