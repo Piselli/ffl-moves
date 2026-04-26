@@ -591,9 +591,10 @@ export default function Home() {
 
   const { connected } = useWallet();
 
-  // Live on-chain data
+  // Live on-chain data (open gameweek only — pool + entries are for this tour, not all-time)
   const [prizePool, setPrizePool] = useState<number | null>(null);
-  const [totalManagers, setTotalManagers] = useState<number | null>(null);
+  const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
+  const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   
   // Fixtures / deadline
@@ -609,7 +610,8 @@ export default function Home() {
         const gw = await findOpenGameweekFromChain(cfg);
         if (gw) {
           setPrizePool(octasToMOVE(gw.prizePool));
-          setTotalManagers(gw.totalEntries);
+          setTourEntryCount(gw.totalEntries);
+          setOpenGameweekId(gw.id);
         }
       } catch (e) {
         console.error("Failed to fetch on-chain data:", e);
@@ -664,7 +666,8 @@ export default function Home() {
     },
   ];
 
-
+  const statsGwLabel =
+    openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
@@ -751,7 +754,14 @@ export default function Home() {
               className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-start sm:gap-4"
             >
             <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate w-full">Призовий фонд</p>
+              <div className="mb-1 min-w-0 w-full space-y-0.5">
+                <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold leading-tight">
+                  Призовий фонд цього туру
+                </p>
+                {statsGwLabel != null ? (
+                  <p className="text-[8px] text-white/25 font-bold uppercase tracking-wider">GW{statsGwLabel}</p>
+                ) : null}
+              </div>
               <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
@@ -763,12 +773,19 @@ export default function Home() {
               </p>
             </div>
             <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate w-full">Менеджерів</p>
+              <div className="mb-1 min-w-0 w-full space-y-0.5">
+                <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold leading-tight">
+                  Учасників у цьому турі
+                </p>
+                <p className="text-[8px] text-white/25 font-bold uppercase tracking-wider leading-tight">
+                  зареєстрованих складів
+                </p>
+              </div>
               <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
-                ) : totalManagers !== null ? (
-                  <Counter to={totalManagers} suffix="+" />
+                ) : tourEntryCount !== null ? (
+                  <Counter to={tourEntryCount} suffix="" decimals={0} />
                 ) : (
                   <span className="text-white/20">N/A</span>
                 )}
