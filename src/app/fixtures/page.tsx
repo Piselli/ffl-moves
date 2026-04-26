@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { resolveFplDeadlineRaw, formatFplDeadlineUk } from "@/lib/fpl-deadline";
 
 type Fixture = {
   id: number;
@@ -59,12 +60,7 @@ export default function FixturesPage() {
   const totalMatches = data?.fixtures.length ?? 0;
   const finishedCount = data?.fixtures.filter((f) => f.finished).length ?? 0;
 
-  const deadlineRaw: string | number | null =
-    data &&
-    typeof data.gameweek.deadlineEpochMs === "number" &&
-    Number.isFinite(data.gameweek.deadlineEpochMs)
-      ? data.gameweek.deadlineEpochMs
-      : data?.gameweek.deadlineTime ?? null;
+  const deadlineRaw = data ? resolveFplDeadlineRaw(data.gameweek) : null;
 
   return (
     <div className="bg-[#0D0F12] min-h-screen text-white">
@@ -103,14 +99,7 @@ export default function FixturesPage() {
             {deadlineRaw != null && deadlineRaw !== "" && (
               <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3 text-right sm:text-left shrink-0">
                 <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold mb-1">Дедлайн реєстрації</p>
-                <p className="text-base font-display font-black text-white">
-                  {new Date(deadlineRaw).toLocaleString("uk-UA", {
-                    day: "numeric",
-                    month: "long",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+                <p className="text-base font-display font-black text-white">{formatFplDeadlineUk(deadlineRaw)}</p>
               </div>
             )}
           </div>

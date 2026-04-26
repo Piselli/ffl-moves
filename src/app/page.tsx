@@ -26,6 +26,7 @@ import {
   RATING_SUB_POINTS,
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
+import { resolveFplDeadlineRaw, formatFplDeadlineUk } from "@/lib/fpl-deadline";
 
 // ─── Countdown to a single instant (hero strip — compact digits) ───────────────
 /** Same `deadlineRaw` resolution as `/fixtures` (epoch ms if finite, else FPL `deadline_time` string). */
@@ -103,7 +104,7 @@ function CountdownToInstant({
   );
 }
 
-/** FPL squad deadline — same instant as the «Дедлайн реєстрації» card on `/fixtures`. */
+/** FPL squad deadline — same instant + same calendar line as «Дедлайн реєстрації» on `/fixtures`. */
 function DeadlineHeroBlock({ deadlineRaw, gwId }: { deadlineRaw: string | number; gwId: number }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
@@ -114,6 +115,9 @@ function DeadlineHeroBlock({ deadlineRaw, gwId }: { deadlineRaw: string | number
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
       <CountdownToInstant deadlineRaw={deadlineRaw} expiredLabel="Дедлайн пройшов" />
+      <p className="mt-1 max-w-full truncate text-[7px] font-medium leading-tight text-white/35 sm:text-[9px]">
+        {formatFplDeadlineUk(deadlineRaw)}
+      </p>
     </div>
   );
 }
@@ -707,15 +711,7 @@ export default function Home() {
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
-  /** Mirrors `deadlineRaw` in `src/app/fixtures/page.tsx` — single source for hero countdown vs matches header. */
-  const heroDeadlineRaw = useMemo((): string | number | null => {
-    const gw = fixturesData?.gameweek;
-    if (!gw) return null;
-    if (typeof gw.deadlineEpochMs === "number" && Number.isFinite(gw.deadlineEpochMs)) {
-      return gw.deadlineEpochMs;
-    }
-    return gw.deadlineTime ?? null;
-  }, [fixturesData]);
+  const heroDeadlineRaw = useMemo(() => resolveFplDeadlineRaw(fixturesData?.gameweek), [fixturesData]);
 
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
