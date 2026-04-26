@@ -92,7 +92,7 @@ export function Navbar() {
         connectHintTimerRef.current = null;
         if (!connectedRef.current) {
           setConnectHint(
-            "Схоже, Nightly не відкрився або не встановлено. Завантаж розширення чи застосунок, або відкрий цей сайт у вбудованому браузері Nightly — потім натисни «Підключити» знову.",
+            "Схоже, Nightly не відкрився або не встановлено. Завантаж Nightly за посиланням нижче й спробуй підключити знову.",
           );
         }
       }, 2200);
@@ -283,27 +283,18 @@ export function Navbar() {
                             </div>
                           </button>
                         ))}
-                        {nightlyRows.some((r) => r.mode === "app") && (
-                          <>
-                            <p className="px-4 py-2 text-[11px] text-white/45 leading-relaxed border-t border-white/[0.06] mt-1">
-                              Якщо не відкриється застосунок: у Nightly зайди в{" "}
-                              <span className="text-white/70">Browser</span> / dApp і встав туди адресу сайту — у звичайному Safari гаманець не
-                              під&apos;єднується.
-                            </p>
-                            <div className="px-3 pb-2">
-                              <WalletOnboardingLinks locale="uk" />
-                            </div>
-                          </>
-                        )}
+                        {nightlyRows.some((r) => r.mode === "app") ? (
+                          <div className="px-3 pb-2 pt-2 border-t border-white/[0.06] mt-1">
+                            <WalletOnboardingLinks locale="uk" />
+                          </div>
+                        ) : null}
                       </>
                     ) : (
                       <div className="p-4 text-center">
                         <span className="text-3xl block mb-3">🔌</span>
                         <p className="text-sm font-bold text-white mb-1">Гаманців не знайдено</p>
-                        <p className="text-xs text-white/40 leading-relaxed mb-4 text-left">
-                          У звичайному Safari/Chrome на телефоні гаманець у сторінку не вбудовується. Відкрий застосунок{" "}
-                          <span className="text-white/60">Nightly</span> → розділ <span className="text-white/60">Browser</span> (або dApps) і
-                          встав туди адресу цього сайту.
+                        <p className="text-xs text-white/45 leading-relaxed mb-4">
+                          Потрібен гаманець Nightly. Після встановлення натисни «Підключити гаманець» знову.
                         </p>
                         <WalletOnboardingLinks locale="uk" />
                       </div>

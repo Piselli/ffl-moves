@@ -19,11 +19,11 @@ export function WalletOnboardingLinks({
     locale === "uk"
       ? {
           nightly: "Завантажити Nightly",
-          movement: "Як почати з Movement (Nightly, MOVE)",
+          movement: "Офіційний гайд Movement",
         }
       : {
           nightly: "Download Nightly",
-          movement: "Movement guide (Nightly, MOVE)",
+          movement: "Official Movement guide",
         };
 
   return (
@@ -40,6 +40,7 @@ export function WalletOnboardingLinks({
         href={MOVEMENT_WALLET_WELCOME_GUIDE_URL}
         target="_blank"
         rel="noopener noreferrer"
+        title={locale === "uk" ? "Nightly, MOVE, брідж — матеріали Movement" : "Nightly, MOVE, bridge — from Movement"}
         className={`${linkClass} border-white/15 bg-white/[0.04] text-white/80 hover:text-white hover:bg-white/[0.08] hover:border-white/25`}
       >
         {t.movement}

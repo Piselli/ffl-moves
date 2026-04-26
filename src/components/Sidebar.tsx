@@ -55,7 +55,7 @@ export function Sidebar() {
         connectHintTimerRef.current = null;
         if (!connectedRef.current) {
           setConnectHint(
-            "Nightly did not open or is not installed. Install the extension or app, or open this site in Nightly's in-app browser, then try Connect again.",
+            "Nightly did not open or is not installed. Download Nightly using the links below and try Connect again.",
           );
         }
       }, 2200);
@@ -194,15 +194,9 @@ export function Sidebar() {
                         </button>
                       ))}
                       {nightlyRows.some((r) => r.mode === "app") ? (
-                        <>
-                          <p className="px-2 py-2 text-[10px] text-white/45 leading-relaxed border-t border-white/10 mt-1">
-                            If the app does not open: in Nightly go to <span className="text-white/70">Browser</span> / dApp and open this site
-                            there — the wallet does not inject into mobile Safari/Chrome.
-                          </p>
-                          <div className="px-2 pb-2">
-                            <WalletOnboardingLinks locale="en" />
-                          </div>
-                        </>
+                        <div className="px-2 pb-2 pt-2 border-t border-white/10 mt-1">
+                          <WalletOnboardingLinks locale="en" />
+                        </div>
                       ) : null}
                       {connectHint && nightlyRows.length > 0 && !nightlyRows.some((r) => r.mode === "app") ? (
                         <div className="px-2 pb-2 pt-2 border-t border-white/10">
@@ -214,9 +208,8 @@ export function Sidebar() {
                     <div className="px-3 py-4 text-center">
                       <span className="text-2xl block mb-2">🔌</span>
                       <p className="text-xs font-bold text-white mb-2">No wallet detected</p>
-                      <p className="text-[10px] text-white/45 leading-relaxed mb-3 text-left">
-                        On mobile Safari/Chrome the wallet does not inject into the page. Open the <span className="text-white/65">Nightly</span>{" "}
-                        app → <span className="text-white/65">Browser</span> (or dApps) and enter this site&apos;s URL there.
+                      <p className="text-[10px] text-white/45 leading-relaxed mb-3">
+                        Nightly wallet required. After installing, click Connect Wallet again.
                       </p>
                       <WalletOnboardingLinks locale="en" />
                     </div>
