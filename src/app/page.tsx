@@ -42,7 +42,12 @@ function CountdownToInstant({
   const [expired, setExpired] = useState(false);
 
   const endMs = useMemo(() => {
-    if (typeof deadlineEpochMs === "number" && Number.isFinite(deadlineEpochMs)) return deadlineEpochMs;
+    const rawEpoch = deadlineEpochMs as unknown;
+    if (typeof rawEpoch === "number" && Number.isFinite(rawEpoch)) return rawEpoch;
+    if (typeof rawEpoch === "string" && /^\d+$/.test(rawEpoch.trim())) {
+      const n = Number(rawEpoch);
+      if (Number.isFinite(n)) return n;
+    }
     if (targetTime) return new Date(targetTime).getTime();
     return NaN;
   }, [deadlineEpochMs, targetTime]);
@@ -124,6 +129,7 @@ function DeadlineHeroBlock({
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
       <CountdownToInstant
+        key={`${gwId}-${deadlineEpochMs ?? ""}-${deadlineTime ?? ""}`}
         deadlineEpochMs={deadlineEpochMs}
         targetTime={deadlineTime ?? undefined}
         expiredLabel="Дедлайн пройшов"
@@ -672,13 +678,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/fixtures", { cache: "no-store" })
+    const params = new URLSearchParams();
+    if (openGameweekId != null && openGameweekId >= 1 && openGameweekId <= 38) {
+      params.set("eventId", String(openGameweekId));
+    }
+    const q = params.toString();
+    const url = q ? `/api/fixtures?${q}` : "/api/fixtures";
+    fetch(url, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});
-  }, []);
+  }, [openGameweekId]);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
   const steps = [
