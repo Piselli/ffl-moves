@@ -7,6 +7,7 @@ module fantasy_epl_addr::fantasy_epl {
     use aptos_framework::event;
     use aptos_framework::timestamp;
     use aptos_framework::coin;
+    use aptos_framework::account;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::table::{Self, Table};
     use aptos_std::simple_map::{Self, SimpleMap};
@@ -33,6 +34,12 @@ module fantasy_epl_addr::fantasy_epl {
     const EINVALID_PRIZE_POOL_PERCENT: u64 = 19;
     /// reopen_gameweek: gameweek must be closed or resolved (not already open)
     const EGAMEWEEK_NOT_REOPENABLE: u64 = 20;
+    /// register_treasury_for_claims: only the module resource account (@fantasy_epl_addr)
+    const ENOT_TREASURY_ACCOUNT: u64 = 21;
+    const ETREASURY_AUTH_ALREADY_REGISTERED: u64 = 22;
+    const ETREASURY_AUTH_NOT_REGISTERED: u64 = 23;
+    /// Left on `@fantasy_epl_addr` when sweeping into prize vault (gas buffer).
+    const TREASURY_SWEEP_RESERVE_OCTAS: u64 = 100_000_000;
 
     // ============ Constants ============
     // Gameweek status
@@ -241,6 +248,21 @@ module fantasy_epl_addr::fantasy_epl {
         rank: u64,
     }
 
+    /// Signer capability for the prize vault (resource account). `claim_prize` pays from this vault.
+    struct TreasuryAuth has key {
+        cap: account::SignerCapability,
+    }
+
+    /// Entry fees / title / guild fees go here: vault after `register_treasury_for_claims`, else `@fantasy_epl_addr`.
+    fun fee_recipient_addr(): address acquires TreasuryAuth {
+        if (!exists<TreasuryAuth>(@fantasy_epl_addr)) {
+            @fantasy_epl_addr
+        } else {
+            let t = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
+            account::get_signer_capability_address(&t.cap)
+        }
+    }
+
     // ============ Initialization ============
 
     fun init_module(sender: &signer) {
@@ -270,6 +292,27 @@ module fantasy_epl_addr::fantasy_epl {
         move_to(sender, ResultsRegistry {
             results: table::new(),
         });
+    }
+
+    /// One-time: create prize vault (resource account), store signer cap, sweep MOVE into vault for claims.
+    /// Caller must be `@fantasy_epl_addr` (module / treasury address).
+    public entry fun register_treasury_for_claims(sender: &signer) {
+        let addr = signer::address_of(sender);
+        assert!(addr == @fantasy_epl_addr, ENOT_TREASURY_ACCOUNT);
+        assert!(!exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_ALREADY_REGISTERED);
+
+        let (vault_signer, cap) = account::create_resource_account(sender, b"FFL_PRIZE_VAULT");
+        let vault_addr = account::get_signer_capability_address(&cap);
+        if (!coin::is_account_registered<AptosCoin>(vault_addr)) {
+            coin::register<AptosCoin>(&vault_signer);
+        };
+        move_to(sender, TreasuryAuth { cap });
+
+        // Move existing treasury balance into the vault (leave reserve for gas on publisher).
+        let bal = coin::balance<AptosCoin>(addr);
+        if (bal > TREASURY_SWEEP_RESERVE_OCTAS) {
+            coin::transfer<AptosCoin>(sender, vault_addr, bal - TREASURY_SWEEP_RESERVE_OCTAS);
+        };
     }
 
     // ============ Admin Functions ============
@@ -456,7 +499,7 @@ module fantasy_epl_addr::fantasy_epl {
         player_ids: vector<u64>,
         player_positions: vector<u8>,
         player_clubs: vector<u64>,
-    ) acquires Config, GameweekRegistry, UserTeams {
+    ) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
@@ -479,7 +522,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         // Pay entry fee
         let fee = config.entry_fee;
-        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, fee);
+        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), fee);
 
         // Update prize pool
         let prize_contribution = (fee * config.prize_pool_percent) / 100;
@@ -520,7 +563,7 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun buy_title(
         sender: &signer,
         season: u64,
-    ) acquires Config {
+    ) acquires Config, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
@@ -528,7 +571,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(!exists<UserTitle>(sender_addr), EALREADY_HAS_TITLE);
 
         // Pay fee
-        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.title_fee);
+        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.title_fee);
 
         // Generate random title and multiplier
         let (title_type, multiplier) = generate_random_title(sender_addr, option::none());
@@ -550,7 +593,7 @@ module fantasy_epl_addr::fantasy_epl {
     /// Reroll title (guaranteed different)
     public entry fun reroll_title(
         sender: &signer,
-    ) acquires Config, UserTitle {
+    ) acquires Config, UserTitle, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
@@ -558,7 +601,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(exists<UserTitle>(sender_addr), ENO_TITLE_TO_REROLL);
 
         // Pay fee
-        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.title_fee);
+        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.title_fee);
 
         let user_title = borrow_global_mut<UserTitle>(sender_addr);
         let old_title = user_title.title_type;
@@ -581,13 +624,13 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun buy_guild(
         sender: &signer,
         season: u64,
-    ) acquires Config {
+    ) acquires Config, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         assert!(!exists<UserGuild>(sender_addr), EALREADY_HAS_GUILD);
 
-        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.guild_fee);
+        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.guild_fee);
 
         let multiplier = generate_random_multiplier(sender_addr, 1);
 
@@ -606,13 +649,13 @@ module fantasy_epl_addr::fantasy_epl {
     /// Reroll guild multiplier
     public entry fun reroll_guild(
         sender: &signer,
-    ) acquires Config, UserGuild {
+    ) acquires Config, UserGuild, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
         assert!(exists<UserGuild>(sender_addr), ENO_GUILD_TO_REROLL);
 
-        coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, config.guild_fee);
+        coin::transfer<AptosCoin>(sender, fee_recipient_addr(), config.guild_fee);
 
         let user_guild = borrow_global_mut<UserGuild>(sender_addr);
         user_guild.multiplier = generate_random_multiplier(sender_addr, 2);
@@ -624,11 +667,11 @@ module fantasy_epl_addr::fantasy_epl {
         });
     }
 
-    /// Claim prize for a gameweek
+    /// Claim prize for a gameweek (transfers MOVE from contract account to caller).
     public entry fun claim_prize(
         sender: &signer,
         gameweek_id: u64,
-    ) acquires GameweekRegistry, ResultsRegistry {
+    ) acquires GameweekRegistry, ResultsRegistry, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
 
         // Check gameweek is resolved
@@ -650,8 +693,10 @@ module fantasy_epl_addr::fantasy_epl {
         let amount = result.prize_amount;
         result.claimed = true;
 
-        // Note: Prize transfer is handled off-chain by admin
-        // This function just marks the claim and emits event
+        assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+        let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
+        let treasury = account::create_signer_with_capability(&auth.cap);
+        coin::transfer<AptosCoin>(&treasury, sender_addr, amount);
 
         event::emit(PrizeClaimed {
             owner: sender_addr,
@@ -1371,9 +1416,6 @@ module fantasy_epl_addr::fantasy_epl {
     #[test_only]
     use aptos_framework::aptos_coin;
     #[test_only]
-    use aptos_framework::account;
-
-    #[test_only]
     fun setup_test(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
         // Initialize timestamp for testing
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -1405,6 +1447,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         // Initialize the module
         init_module(admin);
+        register_treasury_for_claims(admin);
     }
 
     #[test_only]
@@ -1484,7 +1527,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_register_team(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams {
+    fun test_register_team(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Create gameweek
@@ -1512,7 +1555,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EGAMEWEEK_NOT_OPEN)]
-    fun test_register_team_gameweek_closed(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams {
+    fun test_register_team_gameweek_closed(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Create and close gameweek
@@ -1526,7 +1569,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = ETOO_MANY_FROM_SAME_CLUB)]
-    fun test_register_team_too_many_same_club(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams {
+    fun test_register_team_too_many_same_club(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -1541,7 +1584,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EINVALID_POSITION_COUNT)]
-    fun test_register_team_invalid_formation(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams {
+    fun test_register_team_invalid_formation(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -1555,7 +1598,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
+    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         // User buys title
@@ -1572,7 +1615,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EALREADY_HAS_TITLE)]
-    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -1580,7 +1623,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
+    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -1598,7 +1641,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild {
+    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_guild(user1, 1);
@@ -1627,7 +1670,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer,
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -1753,7 +1796,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         // 1. Create gameweek
@@ -1839,7 +1882,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Setup a complete gameweek
@@ -1897,7 +1940,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);

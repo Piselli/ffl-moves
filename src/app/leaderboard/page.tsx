@@ -86,7 +86,7 @@ export default function LeaderboardPage() {
           functionArguments: [gameweekId.toString()],
         },
       });
-      alert("Prize claimed successfully!");
+      alert("Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).");
       setSelectedGameweek(gameweekId); // refresh
     } catch (error: any) {
       const msg = error?.message || error?.toString() || "Unknown error";
