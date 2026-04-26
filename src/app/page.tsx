@@ -28,29 +28,22 @@ import {
 } from "@/lib/scoring-rules";
 
 // ─── Countdown to a single instant (hero strip — compact digits) ───────────────
+/** Same `deadlineRaw` resolution as `/fixtures` (epoch ms if finite, else FPL `deadline_time` string). */
 function CountdownToInstant({
-  deadlineEpochMs,
-  targetTime,
+  deadlineRaw,
   expiredLabel = "Дедлайн пройшов",
 }: {
-  /** Prefer server-parsed UTC instant so the client never mis-reads the ISO string. */
-  deadlineEpochMs?: number | null;
-  targetTime?: string | null;
+  deadlineRaw: string | number;
   expiredLabel?: string;
 }) {
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
   const [expired, setExpired] = useState(false);
 
   const endMs = useMemo(() => {
-    const rawEpoch = deadlineEpochMs as unknown;
-    if (typeof rawEpoch === "number" && Number.isFinite(rawEpoch)) return rawEpoch;
-    if (typeof rawEpoch === "string" && /^\d+$/.test(rawEpoch.trim())) {
-      const n = Number(rawEpoch);
-      if (Number.isFinite(n)) return n;
-    }
-    if (targetTime) return new Date(targetTime).getTime();
-    return NaN;
-  }, [deadlineEpochMs, targetTime]);
+    if (typeof deadlineRaw === "number" && Number.isFinite(deadlineRaw)) return deadlineRaw;
+    const t = new Date(deadlineRaw as string).getTime();
+    return Number.isFinite(t) ? t : NaN;
+  }, [deadlineRaw]);
 
   useEffect(() => {
     function update() {
@@ -110,16 +103,8 @@ function CountdownToInstant({
   );
 }
 
-/** FPL official squad deadline for the same gameweek as /fixtures (bootstrap `deadline_time`). */
-function DeadlineHeroBlock({
-  deadlineTime,
-  deadlineEpochMs,
-  gwId,
-}: {
-  deadlineTime?: string | null;
-  deadlineEpochMs?: number | null;
-  gwId: number;
-}) {
+/** FPL squad deadline — same instant as the «Дедлайн реєстрації» card on `/fixtures`. */
+function DeadlineHeroBlock({ deadlineRaw, gwId }: { deadlineRaw: string | number; gwId: number }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
       <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
@@ -128,11 +113,7 @@ function DeadlineHeroBlock({
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <CountdownToInstant
-        deadlineEpochMs={deadlineEpochMs}
-        targetTime={deadlineTime ?? undefined}
-        expiredLabel="Дедлайн пройшов"
-      />
+      <CountdownToInstant deadlineRaw={deadlineRaw} expiredLabel="Дедлайн пройшов" />
     </div>
   );
 }
@@ -726,6 +707,16 @@ export default function Home() {
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
+  /** Mirrors `deadlineRaw` in `src/app/fixtures/page.tsx` — single source for hero countdown vs matches header. */
+  const heroDeadlineRaw = useMemo((): string | number | null => {
+    const gw = fixturesData?.gameweek;
+    if (!gw) return null;
+    if (typeof gw.deadlineEpochMs === "number" && Number.isFinite(gw.deadlineEpochMs)) {
+      return gw.deadlineEpochMs;
+    }
+    return gw.deadlineTime ?? null;
+  }, [fixturesData]);
+
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
     // GK - В воротарській
@@ -849,13 +840,10 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.id != null &&
-              (fixturesData.gameweek.deadlineEpochMs != null || fixturesData.gameweek.deadlineTime) && (
+              heroDeadlineRaw != null &&
+              heroDeadlineRaw !== "" && (
                 <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                  <DeadlineHeroBlock
-                    deadlineTime={fixturesData.gameweek.deadlineTime}
-                    deadlineEpochMs={fixturesData.gameweek.deadlineEpochMs}
-                    gwId={Number(fixturesData.gameweek.id)}
-                  />
+                  <DeadlineHeroBlock deadlineRaw={heroDeadlineRaw} gwId={Number(fixturesData.gameweek.id)} />
                 </div>
               )}
           </motion.div>
