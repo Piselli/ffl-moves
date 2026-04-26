@@ -37,8 +37,8 @@ async function main() {
   // Only include players that are selectable (can_select) and not on loan (status !== 'u')
   const players = data.elements
     .filter((el) => el.can_select && el.status !== "u")
-    .map((el, idx) => ({
-      id: idx + 1,
+    .map((el) => ({
+      id: el.id,
       fplId: el.id,
       name: el.known_name || `${el.first_name} ${el.second_name}`,
       webName: el.web_name,

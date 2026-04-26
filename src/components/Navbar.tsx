@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
+import { nightlyConnectRows } from "@/lib/walletNightly";
 import { useNickname } from "@/hooks/useNickname";
 import { NicknameModal } from "./NicknameModal";
 
@@ -15,7 +16,7 @@ const navLinks = [
 ];
 
 export function Navbar() {
-  const { connected, account, connect, disconnect, wallets } = useWallet();
+  const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -63,7 +64,7 @@ export function Navbar() {
     }
   };
 
-  const availableWallets = wallets?.filter((w) => w.readyState === "Installed" && w.name === "Nightly") || [];
+  const nightlyRows = nightlyConnectRows(wallets, notDetectedWallets);
 
   const logoEl = (
     <Link href="/" className="flex items-center gap-2.5 group shrink-0">
@@ -206,38 +207,52 @@ export function Navbar() {
                     <p className="text-xs text-white/40 mt-1">Сумісний з Movement Network</p>
                   </div>
                   <div className="p-2 max-h-64 overflow-y-auto">
-                    {availableWallets.length > 0 ? (
-                      availableWallets.map((wallet) => (
-                        <button
-                          key={wallet.name}
-                          onClick={() => handleConnectWallet(wallet.name)}
-                          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00C46A]/40 transition-colors flex shrink-0 items-center justify-center">
-                            {wallet.icon && (
-                              <img src={wallet.icon} alt={wallet.name} className="w-full h-full object-contain" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-display font-bold text-white group-hover:text-[#00C46A] transition-colors">
-                              {wallet.name}
-                            </p>
-                            <p className="text-xs text-[#00e676] font-bold uppercase tracking-wider mt-0.5">
-                              Встановлено
-                            </p>
-                          </div>
-                        </button>
-                      ))
+                    {nightlyRows.length > 0 ? (
+                      <>
+                        {nightlyRows.map((row) => (
+                          <button
+                            key={row.name + row.mode}
+                            type="button"
+                            onClick={() => handleConnectWallet(row.name)}
+                            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00C46A]/40 transition-colors flex shrink-0 items-center justify-center">
+                              {row.icon ? (
+                                <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
+                              ) : null}
+                            </div>
+                            <div>
+                              <p className="text-sm font-display font-bold text-white group-hover:text-[#00C46A] transition-colors">
+                                {row.name}
+                              </p>
+                              <p className="text-xs text-[#00e676] font-bold uppercase tracking-wider mt-0.5">
+                                {row.mode === "installed" ? "Встановлено" : "Відкрити в Nightly"}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                        {nightlyRows.some((r) => r.mode === "app") && (
+                          <p className="px-4 py-2 text-[11px] text-white/45 leading-relaxed border-t border-white/[0.06] mt-1">
+                            Якщо не відкриється застосунок: у Nightly зайди в{" "}
+                            <span className="text-white/70">Browser</span> / dApp і встав туди адресу сайту — у звичайному Safari гаманець не
+                            під&apos;єднується.
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <div className="p-6 text-center">
                         <span className="text-3xl block mb-3">🔌</span>
                         <p className="text-sm font-bold text-white mb-1">Гаманців не знайдено</p>
+                        <p className="text-xs text-white/40 leading-relaxed mb-3">
+                          У звичайному Safari/Chrome на телефоні гаманець у сторінку не вбудовується. Відкрий застосунок{" "}
+                          <span className="text-white/60">Nightly</span> → розділ <span className="text-white/60">Browser</span> (або dApps) і
+                          встав туди адресу цього сайту.
+                        </p>
                         <p className="text-xs text-white/40 leading-relaxed">
-                          Встанови{" "}
+                          Встановити:{" "}
                           <a href="https://nightly.app" target="_blank" rel="noreferrer" className="text-[#00C46A] hover:underline">
-                            Nightly
-                          </a>{" "}
-                          або інший гаманець Movement.
+                            nightly.app
+                          </a>
                         </p>
                       </div>
                     )}

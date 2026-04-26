@@ -57,8 +57,6 @@ export interface TeamResult {
   guildTriggered: boolean;
   guildMultiplier: number;
   finalPoints: number;
-  /** Sum of starters using site scoring + FPL live aux; when set, leaderboard shows this instead of on-chain finalPoints. */
-  displayPoints?: number;
   rank: number;
   prizeAmount: number;
   claimed: boolean;

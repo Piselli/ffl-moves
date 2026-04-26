@@ -1060,7 +1060,8 @@ module fantasy_epl_addr::fantasy_epl {
         TOTAL_SQUAD_SIZE // No valid substitute found
     }
 
-    // Returns (base_points, rating_add, rating_sub) — aligned with frontend `calculateFantasyPoints` (scoring.ts).
+    // Returns (base_points, rating_add, rating_sub).
+    // Numeric rules MUST match `src/lib/scoring-rules.ts` + `calculateFantasyPoints` / `ratingTierAdjustment` in `src/lib/scoring.ts` (same as homepage #scoring).
     fun calculate_player_points(stats: &PlayerStats, position: u8): (u64, u64, u64) {
         let points: u64 = 0;
 

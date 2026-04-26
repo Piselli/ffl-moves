@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -129,8 +129,6 @@ export default function MyResultPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [gwStats, setGwStats] = useState<Record<string, any>>({});
-  const [starterIds, setStarterIds] = useState<number[]>([]);
-  const [playerById, setPlayerById] = useState<Map<number, Player>>(new Map());
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
@@ -176,7 +174,6 @@ export default function MyResultPage() {
             /* keep chain-only */
           }
           setGwStats(merged);
-          setStarterIds(userTeam.playerIds.slice(0, 11));
         }
 
         if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
@@ -187,7 +184,6 @@ export default function MyResultPage() {
         if (!playersRes.ok) throw new Error("Не вдалось завантажити гравців");
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
-        setPlayerById(playerMap);
 
         const squad = userTeam.playerIds
           .map((id) => playerMap.get(id))
@@ -203,17 +199,6 @@ export default function MyResultPage() {
     }
     load();
   }, [connected, address]);
-
-  const rulesTeamTotal = useMemo(() => {
-    if (starterIds.length === 0) return null;
-    let sum = 0;
-    for (const id of starterIds) {
-      const p = playerById.get(id);
-      const st = gwStats[id] ?? gwStats[String(id)];
-      if (p && st) sum += calculateFantasyPointsWithRating(p, st as Record<string, unknown>);
-    }
-    return sum;
-  }, [starterIds, playerById, gwStats]);
 
   // ── Not connected ──────────────────────────────────────────────────────────
   if (!connected) {
@@ -327,14 +312,8 @@ export default function MyResultPage() {
                 {[
                   {
                     label: "Очки",
-                    value: String(rulesTeamTotal !== null ? rulesTeamTotal : result.finalPoints),
+                    value: String(result.finalPoints),
                     accent: false,
-                    sub:
-                      rulesTeamTotal !== null && rulesTeamTotal !== result.finalPoints ? (
-                        <span className="block text-[9px] text-white/30 normal-case tracking-normal mt-1">
-                          у контракті було {result.finalPoints}
-                        </span>
-                      ) : null,
                   },
                   {
                     label: "Приз",
@@ -346,12 +325,11 @@ export default function MyResultPage() {
                     value: totalParticipants > 0 ? String(totalParticipants) : "—",
                     accent: false,
                   },
-                ].map(({ label, value, accent, sub }) => (
+                ].map(({ label, value, accent }) => (
                   <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
                     <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00C46A]" : "text-white")}>
                       {value}
                     </p>
-                    {sub}
                     <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
                   </div>
                 ))}

@@ -48,9 +48,9 @@ async function main() {
   const selectableElements = bootstrap.elements.filter((el) => el.can_select && el.status !== "u");
 
   const fplIdToInternal = new Map();
-  selectableElements.forEach((el, idx) => {
+  selectableElements.forEach((el) => {
     fplIdToInternal.set(el.id, {
-      id: idx + 1,
+      id: el.id,
       positionId: el.element_type - 1,
     });
   });

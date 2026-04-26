@@ -19,9 +19,7 @@ const BROWSER_HEADERS = {
  * OraclePlayerStats format that the admin page expects.
  * No API key required — uses the official free FPL endpoints.
  *
- * Player IDs are generated with the same filter & ordering as
- * /api/players (sequential idx+1 over selectable elements),
- * so they stay consistent with what users see when picking squads.
+ * Player IDs match /api/players: official FPL `element.id` (not list index).
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -54,15 +52,14 @@ export async function GET(request: Request) {
       fixturesRes.json(),
     ]);
 
-    // Same filter + order as /api/players → keeps player IDs consistent
     const selectableElements = bootstrap.elements.filter(
       (el: any) => el.can_select && el.status !== "u",
     );
 
     const fplIdToInternal = new Map<number, { id: number; positionId: number }>();
-    selectableElements.forEach((el: any, idx: number) => {
+    selectableElements.forEach((el: any) => {
       fplIdToInternal.set(el.id, {
-        id: idx + 1,
+        id: el.id,
         positionId: el.element_type - 1, // FPL 1-4 → our 0-3
       });
     });

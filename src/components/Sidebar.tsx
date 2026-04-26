@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
+import { nightlyConnectRows } from "@/lib/walletNightly";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { connected, account, connect, disconnect, wallets } = useWallet();
+  const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
 
@@ -121,14 +122,20 @@ export function Sidebar() {
                   <p className="text-sm font-display font-bold uppercase tracking-wider text-white">Select Wallet</p>
                 </div>
                 <div className="p-2 max-h-48 overflow-y-auto">
-                  {(wallets?.filter(w => w.readyState === "Installed" && w.name === "Nightly") || []).map((wallet) => (
+                  {nightlyConnectRows(wallets, notDetectedWallets).map((row) => (
                     <button
-                      key={wallet.name}
-                      onClick={() => handleConnectWallet(wallet.name)}
+                      key={row.name + row.mode}
+                      type="button"
+                      onClick={() => handleConnectWallet(row.name)}
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left group"
                     >
-                      <img src={wallet.icon} alt={wallet.name} className="w-6 h-6 object-contain" />
-                      <p className="text-sm font-display font-bold text-white group-hover:text-fpl-cyan">{wallet.name}</p>
+                      {row.icon ? <img src={row.icon} alt={row.name} className="w-6 h-6 object-contain" /> : null}
+                      <div>
+                        <p className="text-sm font-display font-bold text-white group-hover:text-fpl-cyan">{row.name}</p>
+                        <p className="text-[10px] text-fpl-cyan/80 font-bold uppercase tracking-wider">
+                          {row.mode === "installed" ? "Installed" : "Open in Nightly app"}
+                        </p>
+                      </div>
                     </button>
                   ))}
                 </div>

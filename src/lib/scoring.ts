@@ -1,7 +1,23 @@
 /**
- * Fantasy scoring aligned with public rules (site / rules screen).
- * Stats may come from chain (snake_case) merged with FPL live aux (bonus, goals_conceded, fpl_clean_sheets).
+ * Fantasy scoring — numbers come only from `scoring-rules.ts` (same as homepage + on-chain Move).
  */
+
+import {
+  ASSIST_POINTS,
+  CLEAN_SHEET_POINTS,
+  DEDUCTIONS,
+  FPL_BONUS_MAX,
+  GK_SAVE_BATCH,
+  GK_SAVE_POINTS_PER_BATCH,
+  GOAL_POINTS,
+  GOALS_CONCEDED_DIVISOR,
+  HAT_TRICK_BONUS,
+  MINUTES_POINTS,
+  PENALTY_SAVE_POINTS,
+  RATING_BONUS_TIERS,
+  RATING_SUB_POINTS,
+  RATING_SUB_THRESHOLD_TENTHS,
+} from "./scoring-rules";
 
 export type ScoringPlayer = { positionId: number };
 
@@ -40,47 +56,42 @@ export function calculateFantasyPoints(player: ScoringPlayer, stats: Record<stri
 
   let pts = 0;
 
-  // Minutes: 1–59 +1, 60+ +2 (same as old +1 appearance +1 sixty)
-  if (mins >= 60) pts += 2;
-  else if (mins >= 1) pts += 1;
+  if (mins >= MINUTES_POINTS.minMinutesFull) pts += MINUTES_POINTS.full;
+  else if (mins >= MINUTES_POINTS.minMinutesPartial) pts += MINUTES_POINTS.partial;
 
-  // Goals by position (rules screen)
   if (goals > 0) {
     const pid = player.positionId;
-    const perGoal = pid === 0 ? 10 : pid === 1 ? 6 : 5; // MID & FWD +5 per goal
+    const perGoal =
+      pid === 0 ? GOAL_POINTS.GK : pid === 1 ? GOAL_POINTS.DEF : pid === 2 ? GOAL_POINTS.MID : GOAL_POINTS.FWD;
     pts += goals * perGoal;
   }
 
-  // Hat-trick bonus (once per player per GW)
-  if (goals >= 3) pts += 3;
+  if (goals >= 3) pts += HAT_TRICK_BONUS;
 
-  pts += assists * 3;
+  pts += assists * ASSIST_POINTS;
 
-  // Clean sheets: GK/DEF +4, MID +1 (60+); FWD no CS points in rules
-  if (mins >= 60 && hasCs) {
-    if (player.positionId <= 1) pts += 4;
-    else if (player.positionId === 2) pts += 1;
+  if (mins >= MINUTES_POINTS.minMinutesFull && hasCs) {
+    if (player.positionId <= 1) pts += CLEAN_SHEET_POINTS.GK_DEF;
+    else if (player.positionId === 2) pts += CLEAN_SHEET_POINTS.MID;
   }
 
   if (player.positionId === 0) {
-    pts += Math.floor(saves / 3);
+    pts += Math.floor(saves / GK_SAVE_BATCH) * GK_SAVE_POINTS_PER_BATCH;
   }
 
-  pts += pensSaved * 5;
+  pts += pensSaved * PENALTY_SAVE_POINTS;
 
-  // Conceded: -1 per 2 goals (GK/DEF only)
   if (player.positionId <= 1 && gc > 0) {
-    pts -= Math.floor(gc / 2);
+    pts -= Math.floor(gc / GOALS_CONCEDED_DIVISOR);
   }
 
-  // FPL match bonus (BPS tiers) 0–3
-  pts += Math.max(0, Math.min(3, Math.floor(bonus)));
+  pts += Math.max(0, Math.min(FPL_BONUS_MAX, Math.floor(bonus)));
 
   let ded = 0;
-  ded += pensMissed * 2;
-  ded += ownG * 2;
-  ded += yc;
-  ded += rc * 3;
+  ded += pensMissed * DEDUCTIONS.penaltyMissed;
+  ded += ownG * DEDUCTIONS.ownGoal;
+  ded += yc * DEDUCTIONS.yellowCard;
+  ded += rc * DEDUCTIONS.redCardMultiplier;
 
   return Math.max(0, pts - ded);
 }
@@ -105,10 +116,13 @@ export function ratingTierAdjustment(stats: Record<string, unknown> | null | und
   const mins = num(stats.minutes_played ?? stats.minutesPlayed);
   const r = ratingScaledTenths(stats);
   let add = 0;
-  if (r >= 90) add = 3;
-  else if (r >= 80) add = 2;
-  else if (r >= 75) add = 1;
-  const sub = mins > 0 && r < 60 ? 1 : 0;
+  for (const tier of RATING_BONUS_TIERS) {
+    if (r >= tier.minTenths) {
+      add = tier.points;
+      break;
+    }
+  }
+  const sub = mins > 0 && r < RATING_SUB_THRESHOLD_TENTHS ? RATING_SUB_POINTS : 0;
   return { add, sub };
 }
 

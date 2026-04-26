@@ -63,10 +63,12 @@ export async function GET() {
     }
 
     // Filter players: must be selectable and not loaned out
+    // Use official FPL element id as `id` everywhere (on-chain register_team, stats, display).
+    // Never use filtered-array index — it drifts from FPL ids and breaks name ↔ chain mapping.
     const players = data.elements
       .filter((el: any) => el.can_select && el.status !== "u")
-      .map((el: any, idx: number) => ({
-        id: idx + 1,
+      .map((el: any) => ({
+        id: el.id,
         fplId: el.id,
         name: el.known_name || `${el.first_name} ${el.second_name}`,
         webName: el.web_name,

@@ -10,18 +10,10 @@ import {
   findOpenGameweekFromChain,
   getTeamResult,
   getGameweekTeams,
-  getUserTeam,
-  getGameweekStats,
   moduleFunction,
 } from "@/lib/aptos";
 import { formatMOVE, cn } from "@/lib/utils";
-import { TeamResult, type Player } from "@/lib/types";
-import {
-  calculateFantasyPointsWithRating,
-  mergeFplAuxIntoStats,
-  auxMapFromFplLivePlayers,
-  type FplLivePlayerRow,
-} from "@/lib/scoring";
+import { TeamResult } from "@/lib/types";
 
 export default function LeaderboardPage() {
   const { account, connected, signAndSubmitTransaction } = useWallet();
@@ -70,46 +62,7 @@ export default function LeaderboardPage() {
           );
           const validResults = results.filter((r): r is TeamResult => r !== null);
           validResults.sort((a, b) => a.rank - b.rank);
-
-          let fplPlayers: FplLivePlayerRow[] | undefined;
-          try {
-            const fr = await fetch(`/api/fpl-live?gw=${selectedGameweek}`);
-            if (fr.ok) {
-              const fj = await fr.json();
-              fplPlayers = fj.players;
-            }
-          } catch {
-            /* ignore */
-          }
-          const auxM = auxMapFromFplLivePlayers(fplPlayers);
-          const playersJson: Player[] = await fetch("/api/players").then((r) => r.json());
-          const byId = new Map<number, Player>(playersJson.map((p) => [p.id, p]));
-
-          const enriched: TeamResult[] = await Promise.all(
-            validResults.map(async (r) => {
-              let displayPoints = r.finalPoints;
-              try {
-                const team = await getUserTeam(r.owner, selectedGameweek);
-                const pids = team?.playerIds;
-                if (team && pids && pids.length >= 11) {
-                  const statsMap = (await getGameweekStats(selectedGameweek, pids)) as Record<string, unknown>;
-                  let sum = 0;
-                  for (const pid of pids.slice(0, 11)) {
-                    const pl = byId.get(pid);
-                    const raw = statsMap[String(pid)] ?? statsMap[pid];
-                    if (!pl || !raw) continue;
-                    const merged = mergeFplAuxIntoStats(raw as Record<string, unknown>, auxM.get(pid));
-                    sum += calculateFantasyPointsWithRating(pl, merged);
-                  }
-                  displayPoints = sum;
-                }
-              } catch (e) {
-                console.error("leaderboard rules total", r.owner, e);
-              }
-              return { ...r, displayPoints };
-            }),
-          );
-          setLeaderboardData(enriched);
+          setLeaderboardData(validResults);
         } else {
           setLeaderboardData([]);
         }
@@ -295,28 +248,28 @@ export default function LeaderboardPage() {
               {
                 label: "Місце",
                 value: userResult.rank > 0 ? `#${userResult.rank}` : "—",
-                className: userResult.rank === 1 ? "text-[#FFD700]" : userResult.rank === 2 ? "text-[#E2E8F0]" : userResult.rank === 3 ? "text-[#F59E0B]" : "text-white"
+                className:
+                  userResult.rank === 1
+                    ? "text-[#FFD700]"
+                    : userResult.rank === 2
+                      ? "text-[#E2E8F0]"
+                      : userResult.rank === 3
+                        ? "text-[#F59E0B]"
+                        : "text-white",
               },
               {
                 label: "Очки",
-                value: String(userResult.displayPoints ?? userResult.finalPoints),
+                value: String(userResult.finalPoints),
                 className: "text-white",
-                sub:
-                  userResult.displayPoints !== undefined && userResult.displayPoints !== userResult.finalPoints ? (
-                    <span className="block text-[9px] text-white/35 font-medium normal-case tracking-normal mt-1 leading-tight">
-                      у контракті {userResult.finalPoints}
-                    </span>
-                  ) : null,
               },
               {
                 label: "Приз (MOVE)",
                 value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—",
-                className: "text-emerald-400"
+                className: "text-emerald-400",
               },
-            ].map(({ label, value, className, sub }) => (
+            ].map(({ label, value, className }) => (
               <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
                 <p className={cn("text-2xl font-display font-black tabular-nums", className)}>{value}</p>
-                {sub}
                 <p className="text-[10px] text-white/30 uppercase tracking-wider mt-0.5">{label}</p>
               </div>
             ))}
