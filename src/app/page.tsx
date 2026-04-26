@@ -58,21 +58,23 @@ function CountdownTimer({ targetTime, gwId }: { targetTime: string; gwId: number
   ];
 
   return (
-    <div className="flex flex-col items-start">
-      <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">
+    <div className="flex min-w-0 w-full max-w-full flex-col items-start">
+      <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate max-w-full">
         До дедлайну GW{gwId}
       </p>
       {expired ? (
         <span className="text-white/40 text-sm font-bold">Дедлайн пройшов</span>
       ) : (
-        <div className="flex items-end gap-1.5">
+        <div className="flex w-full min-w-0 flex-wrap items-end gap-x-1 gap-y-1 sm:gap-x-1.5">
           {units.map(({ v, l }, i) => (
-            <div key={l} className="flex items-baseline gap-0.5">
-              <span className="font-display font-black text-xl sm:text-2xl text-white tabular-nums leading-none">
+            <div key={l} className="flex items-baseline gap-0.5 shrink-0">
+              <span className="font-display font-black text-base min-[360px]:text-lg sm:text-xl md:text-2xl text-white tabular-nums leading-none">
                 {String(v).padStart(2, "0")}
               </span>
-              <span className="text-[9px] text-white/30 uppercase tracking-wider">{l}</span>
-              {i < units.length - 1 && <span className="text-white/20 font-black text-lg ml-0.5">:</span>}
+              <span className="text-[8px] sm:text-[9px] text-white/30 uppercase tracking-wider">{l}</span>
+              {i < units.length - 1 && (
+                <span className="text-white/20 font-black text-sm sm:text-lg ml-0.5 shrink-0">:</span>
+              )}
             </div>
           ))}
         </div>
@@ -688,7 +690,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[85vh] flex flex-col justify-start px-6 sm:px-10 lg:px-16 pt-[120px] pb-16">
+      <section className="relative min-h-[85vh] flex flex-col justify-start px-4 sm:px-10 lg:px-16 pt-[104px] sm:pt-[120px] pb-16 max-w-[100vw] overflow-x-hidden">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
@@ -708,7 +710,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,196,106,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-2xl flex flex-col gap-10">
+        <div className="relative z-10 w-full min-w-0 max-w-2xl flex flex-col gap-8 sm:gap-10">
 
           {/* Text Group */}
           <div className="flex flex-col gap-5">
@@ -746,11 +748,11 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="flex flex-row items-center justify-start gap-4"
+              className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-start sm:gap-4"
             >
-            <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">Призовий фонд</p>
-              <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
+            <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate w-full">Призовий фонд</p>
+              <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
@@ -760,9 +762,9 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mb-1">Менеджерів</p>
-              <p className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
+            <div className="flex min-w-0 flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20">
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.12em] sm:tracking-[0.2em] font-bold mb-1 truncate w-full">Менеджерів</p>
+              <p className="text-xl min-[380px]:text-2xl sm:text-3xl font-display font-black text-white tabular-nums truncate w-full">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : totalManagers !== null ? (
@@ -773,7 +775,7 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime && (
-              <div className="flex flex-col items-start bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-4 py-2 shadow-lg shadow-black/20">
+              <div className="col-span-2 flex min-w-0 flex-col items-stretch bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-xl px-3 py-2 sm:px-4 shadow-lg shadow-black/20 sm:col-span-1 sm:w-auto sm:max-w-[min(100%,20rem)]">
                 <CountdownTimer
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={fixturesData.gameweek.id}

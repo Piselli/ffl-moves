@@ -19,11 +19,13 @@ const navLinks = [
 export function Navbar() {
   const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [connectHint, setConnectHint] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navShellRef = useRef<HTMLDivElement>(null);
   const connectedRef = useRef(false);
   const connectHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
@@ -62,13 +64,21 @@ export function Navbar() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const t = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(t)) {
         setShowWalletList(false);
+      }
+      if (navShellRef.current && !navShellRef.current.contains(t)) {
+        setMobileMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!connected) return;
@@ -107,16 +117,16 @@ export function Navbar() {
   const nightlyRows = nightlyConnectRows(wallets, notDetectedWallets);
 
   const logoEl = (
-    <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+    <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">
       {/* Logo icon */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00C46A] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#00C46A]/20 group-hover:shadow-[#00C46A]/40 group-hover:scale-105 transition-all duration-300">
-        <svg className="w-5 h-5 text-[#0D0F12]" viewBox="0 0 24 24" fill="currentColor">
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#00C46A] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#00C46A]/20 group-hover:shadow-[#00C46A]/40 group-hover:scale-105 transition-all duration-300 shrink-0">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0F12]" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" />
         </svg>
       </div>
-      <span className="font-display font-black text-xl uppercase tracking-tighter text-white">
+      <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
         FPL<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MOVE</span>
       </span>
     </Link>
@@ -125,10 +135,10 @@ export function Navbar() {
   // Skeleton for SSR
   if (!mounted) {
     return (
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-6xl">
-        <nav className="flex items-center justify-between px-6 py-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0">
+        <nav className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           {logoEl}
-          <div className="px-5 py-2 rounded-xl border border-white/10 text-xs font-semibold bg-white/5 text-white/30">
+          <div className="px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-[10px] sm:text-xs font-semibold bg-white/5 text-white/30 shrink-0">
             Loading...
           </div>
         </nav>
@@ -137,19 +147,22 @@ export function Navbar() {
   }
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-6xl transition-all duration-500">
+    <div
+      ref={navShellRef}
+      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0 transition-all duration-500"
+    >
       <nav
-        className={`flex items-center justify-between px-6 py-3.5 rounded-2xl border transition-all duration-500 ${
+        className={`flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
           scrolled
             ? "bg-black/60 backdrop-blur-2xl border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
             : "bg-black/40 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
         }`}
       >
         {/* ── Left: Logo ──────────────────────────────── */}
-        {logoEl}
+        <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
 
         {/* ── Center: Nav Links ───────────────────────── */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -199,10 +212,30 @@ export function Navbar() {
           />
         )}
 
-        {/* ── Right: Wallet ────────────────────────────── */}
-        <div className="relative flex items-center gap-3" ref={dropdownRef}>
+        {/* ── Right: Mobile menu + Wallet ────────────────────────────── */}
+        <div className="relative flex items-center gap-1.5 sm:gap-3 shrink-0" ref={dropdownRef}>
+          <button
+            type="button"
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? "Закрити меню" : "Відкрити меню"}
+            onClick={() => {
+              setMobileMenuOpen((o) => !o);
+              setShowWalletList(false);
+            }}
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
           {connected && account ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Nickname / address pill — click to edit */}
               <button
                 onClick={() => setShowNicknameModal(true)}
@@ -221,7 +254,7 @@ export function Navbar() {
               {/* Disconnect */}
               <button
                 onClick={disconnect}
-                className="px-4 py-2 rounded-xl text-xs font-display font-bold uppercase tracking-wider border border-red-500/20 text-red-400/70 hover:border-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
+                className="px-2.5 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-display font-bold uppercase tracking-wider border border-red-500/20 text-red-400/70 hover:border-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 whitespace-nowrap"
               >
                 Від'єднати
               </button>
@@ -232,6 +265,7 @@ export function Navbar() {
               <button
                 id="wallet-connect-btn"
                 onClick={() => {
+                  setMobileMenuOpen(false);
                   setConnectHint(null);
                   if (connectHintTimerRef.current) {
                     clearTimeout(connectHintTimerRef.current);
@@ -239,14 +273,15 @@ export function Navbar() {
                   }
                   setShowWalletList(!showWalletList);
                 }}
-                className="relative group px-5 py-2.5 rounded-xl text-xs font-display font-black uppercase tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none"
+                className="relative group px-2.5 py-2 min-[400px]:px-4 min-[400px]:py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] min-[400px]:text-xs font-display font-black uppercase tracking-wide min-[400px]:tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none whitespace-nowrap"
               >
-                Підключити гаманець
+                <span className="min-[400px]:hidden">Гаманець</span>
+                <span className="hidden min-[400px]:inline">Підключити гаманець</span>
               </button>
 
               {/* Wallet dropdown */}
               {showWalletList && (
-                <div className="absolute right-0 top-full mt-4 w-72 rounded-2xl bg-[#0D0F12]/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full z-[60] mt-3 sm:mt-4 w-[min(18rem,calc(100vw-2rem))] sm:w-72 rounded-2xl bg-[#0D0F12]/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-4 border-b border-white/[0.06] bg-white/[0.02]">
                     <p className="text-sm font-display font-black uppercase tracking-wider text-white">
                       Обери гаманець
@@ -311,6 +346,35 @@ export function Navbar() {
           )}
         </div>
       </nav>
+
+      {mobileMenuOpen ? (
+        <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-[#0D0F12]/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden p-2 space-y-0.5">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest transition-colors ${
+                  isActive ? "bg-white/[0.08] text-white" : "text-white/60 hover:bg-white/[0.05] hover:text-white"
+                }`}
+              >
+                {link.label}
+                {isActive ? <span className="h-1.5 w-1.5 rounded-full bg-[#00C46A] shadow-[0_0_8px_rgba(0,196,106,0.8)]" /> : null}
+              </Link>
+            );
+          })}
+          <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest text-white/25 cursor-not-allowed select-none">
+            <span className="relative">
+              Таланти
+              <span className="absolute -top-1.5 -right-12 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
+                soon
+              </span>
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
