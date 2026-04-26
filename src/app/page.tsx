@@ -52,12 +52,6 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
     return () => clearInterval(id);
   }, [targetTime]);
 
-  /** Tight separators (no spaces) — shorter + no “huge gap” around ":" with tabular numerals. */
-  const line =
-    timeLeft &&
-    !expired &&
-    `${String(timeLeft.d).padStart(2, "0")}д:${String(timeLeft.h).padStart(2, "0")}г:${String(timeLeft.m).padStart(2, "0")}хв`;
-
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col items-stretch">
       <div className="mb-0.5 min-w-0 shrink-0 space-y-px sm:mb-1 sm:space-y-0.5">
@@ -72,8 +66,18 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
         ) : expired ? (
           <span className="text-white/50">Дедлайн пройшов</span>
         ) : (
-          <span className="block w-full min-w-0 overflow-x-auto overflow-y-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {line}
+          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline gap-x-1 sm:gap-x-1.5">
+            <span className="shrink-0">{String(timeLeft.d).padStart(2, "0")}д</span>
+            <span className="shrink-0 text-white/40" aria-hidden>
+              :
+            </span>
+            <span className="shrink-0">{String(timeLeft.h).padStart(2, "0")}г</span>
+            <span className="shrink-0 text-white/40" aria-hidden>
+              :
+            </span>
+            <span className="shrink-0">
+              {String(timeLeft.m).padStart(2, "0")}хв
+            </span>
           </span>
         )}
       </p>
@@ -752,7 +756,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="grid w-full max-w-xl min-w-0 grid-cols-3 gap-1.5 sm:gap-4"
+              className="grid w-full max-w-xl min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.38fr)] gap-1.5 sm:gap-4"
             >
             <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
