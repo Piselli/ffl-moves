@@ -66,7 +66,7 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
         ) : expired ? (
           <span className="text-white/50">Дедлайн пройшов</span>
         ) : (
-          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline gap-x-1 sm:gap-x-1.5">
+          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline gap-x-0.5 sm:gap-x-1">
             <span className="shrink-0">{String(timeLeft.d).padStart(2, "0")}д</span>
             <span className="shrink-0 text-white/40" aria-hidden>
               :
@@ -756,9 +756,9 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="grid w-full max-w-xl min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.38fr)] gap-1.5 sm:gap-4"
+              className="grid w-full max-w-2xl min-w-0 grid-cols-3 gap-2 sm:gap-4"
             >
-            <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+            <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
                 <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
                   Призовий фонд цього туру
@@ -767,7 +767,7 @@ export default function Home() {
                   <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{statsGwLabel}</p>
                 ) : null}
               </div>
-              <p className="mt-auto w-full min-w-0 truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
+              <p className="mt-auto w-full min-w-0 font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : prizePool !== null ? (
@@ -777,7 +777,7 @@ export default function Home() {
                 )}
               </p>
             </div>
-            <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+            <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
                 <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
                   Учасників у цьому турі
@@ -786,7 +786,7 @@ export default function Home() {
                   зареєстрованих складів
                 </p>
               </div>
-              <p className="mt-auto w-full min-w-0 truncate font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
+              <p className="mt-auto w-full min-w-0 font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
                 ) : tourEntryCount !== null ? (
@@ -797,14 +797,14 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime ? (
-              <div className="flex h-full min-h-0 min-w-0 flex-col items-stretch self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+              <div className="flex h-full min-h-0 min-w-0 flex-col items-stretch self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
                 <HeroDeadlinePlaque
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={Number(fixturesData.gameweek.id)}
                 />
               </div>
             ) : (
-              <div className="min-w-0 self-stretch rounded-lg border border-transparent bg-transparent px-2 py-1.5 sm:px-4 sm:py-2" aria-hidden />
+              <div className="min-w-0 self-stretch rounded-lg border border-transparent bg-transparent px-2.5 py-1.5 sm:px-5 sm:py-2" aria-hidden />
             )}
           </motion.div>
 
