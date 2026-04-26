@@ -19,6 +19,7 @@ import {
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
+import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -81,7 +82,7 @@ export default function GameweekPage() {
         setAlreadyRegistered(registered);
 
         if (registered) {
-          const key = `ffl_team_gw${targetGwId}_${account.address.toString()}`;
+          const key = `ffl_team_v2_gw${targetGwId}_${account.address.toString()}`;
           const saved = localStorage.getItem(key);
           if (saved) {
             try {
@@ -126,7 +127,7 @@ export default function GameweekPage() {
 
     async function loadFromChain() {
       const gwId = currentGameweek?.id ?? config.currentGameweek;
-      const key = `ffl_team_gw${gwId}_${account!.address.toString()}`;
+      const key = `ffl_team_v2_gw${gwId}_${account!.address.toString()}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         try {
@@ -144,6 +145,7 @@ export default function GameweekPage() {
       if (!chainTeam || !chainTeam.playerIds.length) return;
 
       const catalog = new Map(players.map((p) => [p.id, p]));
+      await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
       const teamPlayers = squadPlayersFromChain(
         { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
         catalog,
@@ -336,7 +338,7 @@ export default function GameweekPage() {
       const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };
       setRegisteredTeam(teamSnapshot);
       if (account?.address && currentGameweek?.id) {
-        const key = `ffl_team_gw${currentGameweek.id}_${account.address.toString()}`;
+        const key = `ffl_team_v2_gw${currentGameweek.id}_${account.address.toString()}`;
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
       setAlreadyRegistered(true);

@@ -8,7 +8,9 @@ import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, g
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
+import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { Player, TeamResult } from "@/lib/types";
+import { FORMATION } from "@/lib/constants";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 
@@ -139,28 +141,47 @@ export default function MyResultPage() {
       try {
         const config = await getConfig();
         if (!config) throw new Error("Не вдалось завантажити конфіг");
-        let currentGwId: number = config.currentGameweek;
+        let currentGwId: number = Number(config.currentGameweek) || 1;
 
-        // Scan for the latest open/resolved GW if chain's currentGameweek is stale
-        const baseGw = await getGameweek(currentGwId);
-        if (baseGw && baseGw.status !== "open") {
-          for (let i = currentGwId + 1; i <= currentGwId + 10; i++) {
-            const newerGw = await getGameweek(i);
-            if (!newerGw) break;
-            currentGwId = i;
-            if (newerGw.status === "open") break;
+        // Latest GW where this wallet has a result (config may already point at the next open week).
+        let teamResult = await getTeamResult(addr, currentGwId);
+        if (!teamResult) {
+          for (let i = currentGwId - 1; i >= Math.max(1, currentGwId - 45); i--) {
+            const tr = await getTeamResult(addr, i);
+            if (tr) {
+              currentGwId = i;
+              teamResult = tr;
+              break;
+            }
           }
         }
+        if (!teamResult) {
+          for (let i = currentGwId + 1; i <= currentGwId + 20; i++) {
+            const tr = await getTeamResult(addr, i);
+            if (tr) {
+              currentGwId = i;
+              teamResult = tr;
+              break;
+            }
+            const g = await getGameweek(i);
+            if (!g) break;
+          }
+        }
+
         setGwId(currentGwId);
 
-        const [teams, teamResult, userTeam, playersRes] = await Promise.all([
+        const [teams, userTeam, playersRes] = await Promise.all([
           getGameweekTeams(currentGwId),
-          getTeamResult(addr, currentGwId),
           getUserTeam(addr, currentGwId),
           fetch("/api/players"),
         ]);
 
         setTotalParticipants(teams.length);
+
+        if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
+        setResult({ ...teamResult, owner: addr });
+
+        if (!userTeam) throw new Error("Склад не знайдено");
 
         // Fetch per-player stats using the actual player IDs from the team
         if (userTeam?.playerIds?.length) {
@@ -175,17 +196,12 @@ export default function MyResultPage() {
           setGwStats(merged);
         }
 
-        if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
-        setResult({ ...teamResult, owner: addr });
-
-        if (!userTeam) throw new Error("Склад не знайдено");
-
         if (!playersRes.ok) throw new Error("Не вдалось завантажити гравців");
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
+        await mergeFplCatalogForChainIds(playerMap, userTeam.playerIds);
 
-        // Same order as on-chain register_team (11 starters + bench). Do not drop ids missing from
-        // /api/players (injured / loaned / not can_select) — that caused “wrong” short squads.
+        // Same order as on-chain register_team (11 starters + bench).
         const squad = squadPlayersFromChain(
           { playerIds: userTeam.playerIds, playerPositions: userTeam.playerPositions },
           playerMap,
@@ -337,28 +353,49 @@ export default function MyResultPage() {
             )}
           </div>
 
-          {/* Players grid */}
+          {/* Players: starters vs bench (same order as on-chain registration) */}
           {players.length > 0 && (
-            <div className="px-6 py-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="px-6 py-5 space-y-6">
+              <div className="flex items-center justify-between">
                 <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-bold">Склад туру</p>
                 {!hasStats && (
                   <p className="text-[10px] text-white/20 italic">Статистику ще не підведено</p>
                 )}
               </div>
               {players.some((p) => p.team === "Немає в каталозі") && (
-                <p className="text-[10px] text-amber-400/90 leading-snug mb-3">
-                  Деякі слоти показані як FPL #id: гравець тимчасово не в каталозі сайту (травма / оренда / не can_select), але id збігається з тим, що в контракті.
+                <p className="text-[10px] text-amber-400/90 leading-snug -mt-2">
+                  Деякі id не знайдені в короткому каталозі сайту; ім’я підтягується з повного списку FPL. Якщо все ще «Гравець #id» — гравця немає в bootstrap FPL (рідкісно).
                 </p>
               )}
-              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
-                {players.map((p) => (
-                  <PlayerResultCard
-                    key={p.id}
-                    player={p}
-                    stats={gwStats[p.id] ?? gwStats[p.id.toString()] ?? null}
-                  />
-                ))}
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/35 mb-2.5">
+                  Основний склад · {FORMATION.GK + FORMATION.DEF + FORMATION.MID + FORMATION.FWD}
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+                  {players.slice(0, 11).map((p, i) => (
+                    <PlayerResultCard
+                      key={`gw${gwId}-xi-${i}-${p.id}`}
+                      player={p}
+                      stats={gwStats[p.id] ?? gwStats[p.id.toString()] ?? null}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-1 border-t border-white/[0.06]">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/35 mb-2.5">
+                  Запасні · {FORMATION.BENCH}
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+                  {players.slice(11, 14).map((p, i) => (
+                    <PlayerResultCard
+                      key={`gw${gwId}-bench-${i}-${p.id}`}
+                      player={p}
+                      stats={gwStats[p.id] ?? gwStats[p.id.toString()] ?? null}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Points legend */}
