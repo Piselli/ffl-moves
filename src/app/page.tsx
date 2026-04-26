@@ -2,7 +2,7 @@
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
@@ -29,18 +29,28 @@ import {
 
 // ─── Countdown to a single instant (hero strip — compact digits) ───────────────
 function CountdownToInstant({
+  deadlineEpochMs,
   targetTime,
   expiredLabel = "Дедлайн пройшов",
 }: {
-  targetTime: string;
+  /** Prefer server-parsed UTC instant so the client never mis-reads the ISO string. */
+  deadlineEpochMs?: number | null;
+  targetTime?: string | null;
   expiredLabel?: string;
 }) {
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
   const [expired, setExpired] = useState(false);
 
+  const endMs = useMemo(() => {
+    if (typeof deadlineEpochMs === "number" && Number.isFinite(deadlineEpochMs)) return deadlineEpochMs;
+    if (targetTime) return new Date(targetTime).getTime();
+    return NaN;
+  }, [deadlineEpochMs, targetTime]);
+
   useEffect(() => {
     function update() {
-      const diff = new Date(targetTime).getTime() - Date.now();
+      if (!Number.isFinite(endMs)) return;
+      const diff = endMs - Date.now();
       if (diff <= 0) {
         setExpired(true);
         setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
@@ -57,7 +67,11 @@ function CountdownToInstant({
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [targetTime]);
+  }, [endMs]);
+
+  if (!Number.isFinite(endMs)) {
+    return <span className="text-white/30 text-[10px] sm:text-xs">—</span>;
+  }
 
   if (!timeLeft) return <span className="text-white/20 animate-pulse text-lg">—</span>;
 
@@ -92,7 +106,15 @@ function CountdownToInstant({
 }
 
 /** FPL official squad deadline for the same gameweek as /fixtures (bootstrap `deadline_time`). */
-function DeadlineHeroBlock({ deadlineTime, gwId }: { deadlineTime: string; gwId: number }) {
+function DeadlineHeroBlock({
+  deadlineTime,
+  deadlineEpochMs,
+  gwId,
+}: {
+  deadlineTime?: string | null;
+  deadlineEpochMs?: number | null;
+  gwId: number;
+}) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
       <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
@@ -101,7 +123,11 @@ function DeadlineHeroBlock({ deadlineTime, gwId }: { deadlineTime: string; gwId:
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <CountdownToInstant targetTime={deadlineTime} expiredLabel="Дедлайн пройшов" />
+      <CountdownToInstant
+        deadlineEpochMs={deadlineEpochMs}
+        targetTime={deadlineTime ?? undefined}
+        expiredLabel="Дедлайн пройшов"
+      />
     </div>
   );
 }
@@ -646,9 +672,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/fixtures")
+    fetch("/api/fixtures", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => { if (!d.error) setFixturesData(d); })
+      .then((d) => {
+        if (!d.error) setFixturesData(d);
+      })
       .catch(() => {});
   }, []);
 
@@ -814,14 +842,16 @@ export default function Home() {
                 )}
               </p>
             </div>
-            {fixturesData?.gameweek?.deadlineTime && fixturesData.gameweek.id != null && (
-              <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                <DeadlineHeroBlock
-                  deadlineTime={fixturesData.gameweek.deadlineTime}
-                  gwId={Number(fixturesData.gameweek.id)}
-                />
-              </div>
-            )}
+            {fixturesData?.gameweek?.id != null &&
+              (fixturesData.gameweek.deadlineEpochMs != null || fixturesData.gameweek.deadlineTime) && (
+                <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
+                  <DeadlineHeroBlock
+                    deadlineTime={fixturesData.gameweek.deadlineTime}
+                    deadlineEpochMs={fixturesData.gameweek.deadlineEpochMs}
+                    gwId={Number(fixturesData.gameweek.id)}
+                  />
+                </div>
+              )}
           </motion.div>
 
           {/* CTAs */}

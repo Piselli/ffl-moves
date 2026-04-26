@@ -4,7 +4,8 @@ const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const FPL_FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/";
 const BADGE_BASE = "https://resources.premierleague.com/premierleague/badges/70/t";
 
-export const revalidate = 300; // 5 minutes
+/** Never cache this handler’s JSON at the edge — stale `deadline_time` breaks the hero countdown. */
+export const dynamic = "force-dynamic";
 
 const BROWSER_HEADERS = {
   "User-Agent":
@@ -69,15 +70,27 @@ export async function GET() {
 
     const formattedFixtures = await fetchAndFormatEvent(targetEvent.id, teamMap);
 
-    return NextResponse.json({
+    const rawDeadline = targetEvent.deadline_time as string | null | undefined;
+    const deadlineEpochMs =
+      typeof rawDeadline === "string" && rawDeadline.length > 0 ? Date.parse(rawDeadline) : NaN;
+
+    const payload = {
       gameweek: {
         id: targetEvent.id,
         name: targetEvent.name,
-        deadlineTime: targetEvent.deadline_time,
+        deadlineTime: rawDeadline ?? null,
+        /** Same instant as `deadlineTime`, parsed once on the server (ms since epoch, UTC). */
+        deadlineEpochMs: Number.isFinite(deadlineEpochMs) ? deadlineEpochMs : null,
         isCurrent: targetEvent.is_current,
         isNext: targetEvent.is_next,
       },
       fixtures: formattedFixtures,
+    };
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+      },
     });
   } catch (e) {
     console.error("Fixtures API error:", e instanceof Error ? e.message : e);

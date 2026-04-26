@@ -19,7 +19,8 @@ type FixturesData = {
   gameweek: {
     id: number;
     name: string;
-    deadlineTime: string;
+    deadlineTime: string | null;
+    deadlineEpochMs?: number | null;
     isCurrent: boolean;
     isNext: boolean;
   };
@@ -44,7 +45,7 @@ export default function FixturesPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("/api/fixtures")
+    fetch("/api/fixtures", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(true);
@@ -57,6 +58,13 @@ export default function FixturesPage() {
   const groups = data ? groupByDate(data.fixtures) : {};
   const totalMatches = data?.fixtures.length ?? 0;
   const finishedCount = data?.fixtures.filter((f) => f.finished).length ?? 0;
+
+  const deadlineRaw: string | number | null =
+    data &&
+    typeof data.gameweek.deadlineEpochMs === "number" &&
+    Number.isFinite(data.gameweek.deadlineEpochMs)
+      ? data.gameweek.deadlineEpochMs
+      : data?.gameweek.deadlineTime ?? null;
 
   return (
     <div className="bg-[#0D0F12] min-h-screen text-white">
@@ -92,12 +100,15 @@ export default function FixturesPage() {
               </h1>
             </div>
 
-            {data?.gameweek.deadlineTime && (
+            {deadlineRaw != null && deadlineRaw !== "" && (
               <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3 text-right sm:text-left shrink-0">
                 <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold mb-1">Дедлайн реєстрації</p>
                 <p className="text-base font-display font-black text-white">
-                  {new Date(data.gameweek.deadlineTime).toLocaleString("uk-UA", {
-                    day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+                  {new Date(deadlineRaw).toLocaleString("uk-UA", {
+                    day: "numeric",
+                    month: "long",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
