@@ -2,7 +2,7 @@
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
 import { octasToMOVE } from "@/lib/utils";
@@ -28,7 +28,13 @@ import {
 } from "@/lib/scoring-rules";
 
 // ─── Countdown to a single instant (hero strip — compact digits) ───────────────
-function CountdownToInstant({ targetTime }: { targetTime: string }) {
+function CountdownToInstant({
+  targetTime,
+  expiredLabel = "Дедлайн пройшов",
+}: {
+  targetTime: string;
+  expiredLabel?: string;
+}) {
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
   const [expired, setExpired] = useState(false);
 
@@ -63,7 +69,7 @@ function CountdownToInstant({ targetTime }: { targetTime: string }) {
   ];
 
   if (expired) {
-    return <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">Тур уже йде</span>;
+    return <span className="text-white/40 text-[10px] sm:text-sm font-bold leading-tight">{expiredLabel}</span>;
   }
 
   return (
@@ -85,55 +91,17 @@ function CountdownToInstant({ targetTime }: { targetTime: string }) {
   );
 }
 
-/** Same source as /fixtures: next upcoming kickoff in the loaded GW, or “tour live” if all have started. */
-function TourKickoffHeroBlock({
-  fixtures,
-  gwId,
-}: {
-  fixtures: { kickoffTime: string }[];
-  gwId: number;
-}) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const targetKickoff = useMemo(() => {
-    const t = Date.now();
-    const next = fixtures.find((f) => new Date(f.kickoffTime).getTime() > t);
-    return next?.kickoffTime ?? null;
-  }, [fixtures, tick]);
-
+/** FPL official squad deadline for the same gameweek as /fixtures (bootstrap `deadline_time`). */
+function DeadlineHeroBlock({ deadlineTime, gwId }: { deadlineTime: string; gwId: number }) {
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col items-start">
       <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
-        {targetKickoff ? (
-          <>
-            <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
-              До старту туру
-            </p>
-            <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
-          </>
-        ) : (
-          <>
-            <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
-              Тур у розпалі
-            </p>
-            <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
-          </>
-        )}
+        <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
+          До дедлайну
+        </p>
+        <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      {targetKickoff ? (
-        <CountdownToInstant targetTime={targetKickoff} />
-      ) : (
-        <span className="text-[10px] font-bold leading-tight text-white/45 sm:text-sm">
-          Усі матчі вже почались —{" "}
-          <Link href="/fixtures" className="text-[#00C46A] underline-offset-2 hover:underline">
-            матчі
-          </Link>
-        </span>
-      )}
+      <CountdownToInstant targetTime={deadlineTime} expiredLabel="Дедлайн пройшов" />
     </div>
   );
 }
@@ -724,22 +692,6 @@ export default function Home() {
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
 
-  /** Prefer API `heroNextRound` (is_next or GW+1) so countdown is not a mid-week straggler of the current GW */
-  const heroKickoffBlock = useMemo(() => {
-    const d = fixturesData;
-    if (!d) return null;
-    const hr = d.heroNextRound as { gwId: number; fixtures: { kickoffTime: string }[] } | undefined;
-    if (hr?.fixtures?.length) {
-      return { fixtures: hr.fixtures, gwId: hr.gwId };
-    }
-    const f = d.fixtures;
-    const id = d.gameweek?.id;
-    if (Array.isArray(f) && f.length > 0 && id != null) {
-      return { fixtures: f as { kickoffTime: string }[], gwId: Number(id) };
-    }
-    return null;
-  }, [fixturesData]);
-
   // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
   const squad11 = [
     // GK - В воротарській
@@ -862,9 +814,12 @@ export default function Home() {
                 )}
               </p>
             </div>
-            {heroKickoffBlock && (
+            {fixturesData?.gameweek?.deadlineTime && fixturesData.gameweek.id != null && (
               <div className="flex min-w-0 flex-1 basis-0 flex-col items-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-4 sm:py-2">
-                <TourKickoffHeroBlock fixtures={heroKickoffBlock.fixtures} gwId={heroKickoffBlock.gwId} />
+                <DeadlineHeroBlock
+                  deadlineTime={fixturesData.gameweek.deadlineTime}
+                  gwId={Number(fixturesData.gameweek.id)}
+                />
               </div>
             )}
           </motion.div>

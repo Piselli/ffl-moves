@@ -24,8 +24,6 @@ type FixturesData = {
     isNext: boolean;
   };
   fixtures: Fixture[];
-  /** Next PL round for hero countdown (may differ from `gameweek` when that is still current GW) */
-  heroNextRound?: { gwId: number; fixtures: Fixture[] };
 };
 
 function groupByDate(fixtures: Fixture[]): Record<string, Fixture[]> {
