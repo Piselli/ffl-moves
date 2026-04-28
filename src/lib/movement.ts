@@ -38,6 +38,8 @@ export async function getConfig() {
   }
 }
 
+export type ChainConfig = NonNullable<Awaited<ReturnType<typeof getConfig>>>;
+
 export async function isAdmin(address: string) {
   try {
     const result = await client.view({
@@ -97,6 +99,21 @@ export async function getGameweek(gameweekId: number): Promise<GameweekSummary |
   }
 }
 
+/** Run an async fn over `ids` in batches of `concurrency`, preserving order. */
+async function mapInBatches<T, R>(
+  ids: T[],
+  concurrency: number,
+  fn: (id: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(ids.length);
+  for (let start = 0; start < ids.length; start += concurrency) {
+    const slice = ids.slice(start, start + concurrency);
+    const results = await Promise.all(slice.map((id) => fn(id)));
+    for (let i = 0; i < results.length; i++) out[start + i] = results[i];
+  }
+  return out;
+}
+
 /**
  * Resolves the gameweek players should use for registration (first OPEN week).
  * Uses `config.current_gameweek` as a hint, then scans forward/backward so we
@@ -109,20 +126,18 @@ export async function findOpenGameweekFromChain(
   const c = Number(configData.currentGameweek);
   if (!Number.isFinite(c) || c < 0) return null;
 
+  // Build the candidate scan order once, then batch the RPC fan-out so the leaderboard /
+  // gameweek pages don't make 60+ sequential round-trips on every load.
+  const candidates: number[] = [];
   if (c === 0) {
-    for (let i = 1; i <= 80; i++) {
-      const g = await getGameweek(i);
-      if (g?.status === "open") return g;
-    }
-    return null;
+    for (let i = 1; i <= 80; i++) candidates.push(i);
+  } else {
+    for (let i = c; i <= c + 60; i++) candidates.push(i);
+    for (let i = c - 1; i >= 1; i--) candidates.push(i);
   }
 
-  for (let i = c; i <= c + 60; i++) {
-    const g = await getGameweek(i);
-    if (g?.status === "open") return g;
-  }
-  for (let i = c - 1; i >= 1; i--) {
-    const g = await getGameweek(i);
+  const results = await mapInBatches(candidates, 12, (id) => getGameweek(id));
+  for (const g of results) {
     if (g?.status === "open") return g;
   }
   return null;
@@ -142,10 +157,11 @@ export async function findHighestGameweekIdOnChain(
   const hint = Number(configData.currentGameweek);
   const maxScan =
     Number.isFinite(hint) && hint >= 1 ? Math.min(Math.max(hint + 80, 120), 200) : 120;
+  const ids = Array.from({ length: maxScan }, (_, i) => i + 1);
+  const results = await mapInBatches(ids, 16, (id) => getGameweek(id));
   let maxId = 0;
-  for (let id = 1; id <= maxScan; id++) {
-    const g = await getGameweek(id);
-    if (g) maxId = id;
+  for (let i = 0; i < results.length; i++) {
+    if (results[i]) maxId = ids[i];
   }
   return maxId;
 }
@@ -153,9 +169,10 @@ export async function findHighestGameweekIdOnChain(
 /** Latest resolved GW at or below `highestId` — best default for the leaderboard after publishing results. */
 export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
   if (highestId < 1) return 0;
-  for (let id = highestId; id >= 1; id--) {
-    const g = await getGameweek(id);
-    if (g?.status === "resolved") return id;
+  const ids = Array.from({ length: highestId }, (_, i) => highestId - i);
+  const results = await mapInBatches(ids, 12, (id) => getGameweek(id));
+  for (let i = 0; i < results.length; i++) {
+    if (results[i]?.status === "resolved") return ids[i];
   }
   return 0;
 }
@@ -362,11 +379,16 @@ export async function getPlayerStats(gameweekId: number, playerId: number) {
   }
 }
 
-export async function getGameweekStats(gameweekId: number, playerIds: number[]): Promise<Record<number, any>> {
+export type OnChainPlayerStats = NonNullable<Awaited<ReturnType<typeof getPlayerStats>>>;
+
+export async function getGameweekStats(
+  gameweekId: number,
+  playerIds: number[],
+): Promise<Record<number, OnChainPlayerStats>> {
   const results = await Promise.allSettled(
     playerIds.map((id) => getPlayerStats(gameweekId, id))
   );
-  const stats: Record<number, any> = {};
+  const stats: Record<number, OnChainPlayerStats> = {};
   results.forEach((r, i) => {
     if (r.status === "fulfilled" && r.value) {
       stats[playerIds[i]] = r.value;

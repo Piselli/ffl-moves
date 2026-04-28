@@ -12,6 +12,63 @@ const BROWSER_HEADERS = {
   Origin: "https://fantasy.premierleague.com",
 };
 
+interface FplBootstrapSelectable {
+  id: number;
+  element_type: number;
+  can_select?: boolean;
+  status?: string;
+}
+
+interface FplFixtureRow {
+  finished?: boolean;
+  team_h: number;
+  team_a: number;
+}
+
+interface FplLiveGwStats {
+  minutes?: number;
+  goals_scored?: number;
+  assists?: number;
+  clean_sheets?: number;
+  saves?: number;
+  penalties_saved?: number;
+  penalties_missed?: number;
+  own_goals?: number;
+  yellow_cards?: number;
+  red_cards?: number;
+  bonus?: number;
+  goals_conceded?: number;
+}
+
+interface FplLiveElementRow {
+  id: number;
+  stats?: FplLiveGwStats;
+}
+
+/** Response row aligned with admin / chain stat submit shape. */
+interface FplLiveMappedPlayer {
+  playerId: number;
+  position: number;
+  minutesPlayed: number;
+  goals: number;
+  assists: number;
+  cleanSheet: boolean;
+  saves: number;
+  penaltiesSaved: number;
+  penaltiesMissed: number;
+  ownGoals: number;
+  yellowCards: number;
+  redCards: number;
+  rating: number;
+  bonus: number;
+  goalsConceded: number;
+  fplCleanSheets: number;
+  tackles: number;
+  interceptions: number;
+  successfulDribbles: number;
+  freeKickGoals: number;
+}
+
 /**
  * GET /api/fpl-live?gw=N
  *
@@ -24,15 +81,14 @@ const BROWSER_HEADERS = {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const gw = searchParams.get("gw");
+  const gwNum = gw != null ? parseInt(gw, 10) : NaN;
 
-  if (!gw || isNaN(Number(gw))) {
+  if (!gw || !Number.isFinite(gwNum) || gwNum < 1) {
     return NextResponse.json(
-      { gameweekId: 0, players: [], fixtures: [], errors: ["Valid ?gw= parameter required"] },
+      { gameweekId: 0, players: [], fixtures: [], errors: ["Valid ?gw= parameter required (integer ≥ 1)"] },
       { status: 400 },
     );
   }
-
-  const gwNum = parseInt(gw);
   const errors: string[] = [];
 
   try {
@@ -46,18 +102,22 @@ export async function GET(request: Request) {
     if (!liveRes.ok) throw new Error(`FPL live API returned ${liveRes.status} — gameweek ${gwNum} may not exist yet`);
     if (!fixturesRes.ok) throw new Error(`FPL fixtures API returned ${fixturesRes.status}`);
 
-    const [bootstrap, live, fixtures] = await Promise.all([
+    const [bootstrap, live, fixtures] = (await Promise.all([
       bootstrapRes.json(),
       liveRes.json(),
       fixturesRes.json(),
-    ]);
+    ])) as [
+      { elements: FplBootstrapSelectable[]; teams: { id: number; name: string }[] },
+      { elements: FplLiveElementRow[] },
+      FplFixtureRow[],
+    ];
 
     const selectableElements = bootstrap.elements.filter(
-      (el: any) => el.can_select && el.status !== "u",
+      (el) => Boolean(el.can_select) && el.status !== "u",
     );
 
     const fplIdToInternal = new Map<number, { id: number; positionId: number }>();
-    selectableElements.forEach((el: any) => {
+    selectableElements.forEach((el) => {
       fplIdToInternal.set(el.id, {
         id: el.id,
         positionId: el.element_type - 1, // FPL 1-4 → our 0-3
@@ -69,9 +129,9 @@ export async function GET(request: Request) {
     for (const t of bootstrap.teams) teamName[t.id] = t.name;
 
     // Completed fixtures info
-    const completedFixtures = fixtures.filter((f: any) => f.finished);
+    const completedFixtures = fixtures.filter((f) => f.finished);
     const fixtureNames = completedFixtures.map(
-      (f: any) => `${teamName[f.team_h] || "?"} vs ${teamName[f.team_a] || "?"}`,
+      (f) => `${teamName[f.team_h] || "?"} vs ${teamName[f.team_a] || "?"}`,
     );
 
     if (completedFixtures.length === 0) {
@@ -84,7 +144,7 @@ export async function GET(request: Request) {
     }
 
     // Map FPL live stats → OraclePlayerStats format
-    const players: any[] = [];
+    const players: FplLiveMappedPlayer[] = [];
 
     for (const element of live.elements) {
       const s = element.stats;

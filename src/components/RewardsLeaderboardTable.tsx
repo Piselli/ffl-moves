@@ -17,8 +17,12 @@ const PRIZE_TIERS = [
   { rank: 10, pct: 2 },
 ];
 
-/* ── Helpers ───────────────────────────────────────────────────────────────── */
-function formatMOVE(n: number): string {
+/**
+ * Compact MOVE display for the homepage rewards table (`12.5K`, `7.50`).
+ * Distinct from `lib/utils.ts` `formatMOVE(octas)` which converts octas → MOVE
+ * with two decimals; this one already takes a MOVE-denominated number.
+ */
+function formatPrizeMoveCompact(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
   if (n < 1 && n > 0) return n.toFixed(2);
   if (!Number.isInteger(n)) return n.toFixed(2);
@@ -192,7 +196,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
                   
                   <div className="flex items-baseline gap-1.5 w-[75px] sm:w-[90px] justify-end">
                     <span className={`text-base sm:text-lg font-display font-black tabular-nums tracking-tight ${tier.colorClass}`}>
-                      {formatMOVE(tier.moveAmount)}
+                      {formatPrizeMoveCompact(tier.moveAmount)}
                     </span>
                     <span className={`text-[8px] font-bold uppercase tracking-widest ${tier.icon ? tier.colorClass : 'text-white/20'}`}>
                       MOVE

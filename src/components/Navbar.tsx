@@ -31,7 +31,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   const address = account?.address?.toString() ?? null;
-  const { getNickname, setNickname, hasNickname, myNickname } = useNickname(address);
+  const { setNickname, hasNickname, myNickname } = useNickname(address);
   connectedRef.current = connected;
 
   // Auto-open nickname modal on first connection
@@ -97,7 +97,9 @@ export function Navbar() {
       connectHintTimerRef.current = null;
     }
     try {
-      await connect(walletName as any);
+      // wallet-adapter types `connect` as `void`, but the runtime returns a Promise that may reject
+      // (e.g. user closed Nightly) — await so the catch below actually handles cancellation hints.
+      await connect(walletName);
       connectHintTimerRef.current = setTimeout(() => {
         connectHintTimerRef.current = null;
         if (!connectedRef.current) {
@@ -260,7 +262,7 @@ export function Navbar() {
                 onClick={disconnect}
                 className="px-2.5 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-display font-bold uppercase tracking-wider border border-red-500/20 text-red-400/70 hover:border-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 whitespace-nowrap"
               >
-                Від'єднати
+                {"Від'єднати"}
               </button>
             </div>
           ) : (

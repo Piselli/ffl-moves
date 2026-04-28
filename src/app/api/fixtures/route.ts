@@ -19,17 +19,40 @@ const BROWSER_HEADERS = {
 
 type TeamMap = Record<number, { name: string; shortName: string; badge: string }>;
 
+interface FplFixtureRaw {
+  id: number;
+  kickoff_time?: string;
+  team_h: number;
+  team_a: number;
+  finished?: boolean;
+  started?: boolean;
+  team_h_score?: number | null;
+  team_a_score?: number | null;
+}
+
+interface FplEvent {
+  id: number;
+  name: string;
+  deadline_time?: string | null;
+  is_current?: boolean;
+  is_next?: boolean;
+  finished?: boolean;
+}
+
 async function fetchAndFormatEvent(eventId: number, teamMap: TeamMap) {
   const fixturesRes = await fetch(`${FPL_FIXTURES_URL}?event=${eventId}`, {
     headers: BROWSER_HEADERS,
     cache: "no-store",
   });
   if (!fixturesRes.ok) throw new Error(`FPL fixtures API ${fixturesRes.status} event=${eventId}`);
-  const raw = await fixturesRes.json();
+  const raw = (await fixturesRes.json()) as FplFixtureRaw[];
   return raw
-    .filter((f: any) => f.kickoff_time)
-    .sort((a: any, b: any) => new Date(a.kickoff_time).getTime() - new Date(b.kickoff_time).getTime())
-    .map((f: any) => ({
+    .filter((f) => Boolean(f.kickoff_time))
+    .sort(
+      (a, b) =>
+        new Date(a.kickoff_time!).getTime() - new Date(b.kickoff_time!).getTime(),
+    )
+    .map((f) => ({
       id: f.id,
       kickoffTime: f.kickoff_time,
       teamH: { id: f.team_h, ...teamMap[f.team_h] },
@@ -48,12 +71,15 @@ export async function GET() {
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`FPL bootstrap API ${res.status}`);
-    const data = await res.json();
+    const data = (await res.json()) as {
+      events: FplEvent[];
+      teams: { id: number; name: string; short_name: string; code: number }[];
+    };
 
     const targetEvent =
-      data.events.find((e: any) => e.is_next) ||
-      data.events.find((e: any) => e.is_current) ||
-      data.events.filter((e: any) => e.finished).slice(-1)[0];
+      data.events.find((e) => e.is_next) ||
+      data.events.find((e) => e.is_current) ||
+      data.events.filter((e) => e.finished).slice(-1)[0];
 
     if (!targetEvent) {
       return NextResponse.json({ error: "No upcoming gameweek found" }, { status: 404 });
@@ -94,9 +120,6 @@ export async function GET() {
     });
   } catch (e) {
     console.error("Fixtures API error:", e instanceof Error ? e.message : e);
-    return NextResponse.json(
-      { error: "Failed to fetch fixtures", detail: e instanceof Error ? e.message : String(e) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch fixtures" }, { status: 500 });
   }
 }

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain } from "@/lib/movement";
-import { cn, formatTxError, toU64Stat } from "@/lib/utils";
+import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain, type ChainConfig, type GameweekSummary } from "@/lib/movement";
+import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
 function normAddr(a: string | undefined | null): string {
@@ -13,11 +13,11 @@ function normAddr(a: string | undefined | null): string {
 export default function AdminPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
 
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<ChainConfig | null>(null);
   /** `get_gameweek(config.current_gameweek)` — покажчик у конфігу (може відставати). */
-  const [currentGameweek, setCurrentGameweek] = useState<any>(null);
+  const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
   /** Фактичний OPEN-тур на ланцюгу (скан) — саме його треба закривати для зупинки реєстрації. */
-  const [openGameweek, setOpenGameweek] = useState<any>(null);
+  const [openGameweek, setOpenGameweek] = useState<GameweekSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -130,8 +130,8 @@ export default function AdminPage() {
       if (dataSource === "api-sports") {
         await handleCheckApiStatus();
       }
-    } catch (error: any) {
-      setFetchError(error.message || "Failed to fetch stats");
+    } catch (error: unknown) {
+      setFetchError(getErrorMessage(error, "Failed to fetch stats"));
     } finally {
       setIsFetchingApi(false);
     }
@@ -139,7 +139,7 @@ export default function AdminPage() {
 
   const walletAddr = normAddr(account?.address?.toString());
   const isAdmin = Boolean(
-    walletAddr && config?.admins?.some((a: string) => normAddr(a) === walletAddr)
+    walletAddr && config?.admins?.some((a) => normAddr(a) === walletAddr)
   );
   const isOracle = Boolean(
     walletAddr && config?.oracle && normAddr(config.oracle) === walletAddr
@@ -288,7 +288,7 @@ export default function AdminPage() {
       const configData = await getConfig();
       setConfig(configData);
       setNewPrizePoolPct("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update percentage:", error);
       alert(`Failed: ${formatTxError(error)}`);
     } finally {
@@ -302,7 +302,7 @@ export default function AdminPage() {
     setIsSubmitting(true);
     try {
       // Parse JSON input
-      const stats = JSON.parse(statsJson);
+      const stats = JSON.parse(statsJson) as { gameweekId: number | string; players: Record<string, unknown>[] };
 
       // Validate structure
       if (!stats.gameweekId || !Array.isArray(stats.players)) {
@@ -313,39 +313,39 @@ export default function AdminPage() {
       if (n === 0) throw new Error("No players in JSON");
 
       // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
-      const playerIds = stats.players.map((p: any) => {
+      const playerIds = stats.players.map((p) => {
         const id = toU64Stat(p.playerId);
-        if (id < 1) throw new Error(`Invalid playerId: ${p.playerId}`);
+        if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
         return id;
       });
-      const positions = stats.players.map((p: any) => {
+      const positions = stats.players.map((p) => {
         const pos = toU64Stat(p.position);
-        if (pos > 3) throw new Error(`Invalid position (0–3): ${p.position}`);
+        if (pos > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
         return pos;
       });
-      const minutesPlayed = stats.players.map((p: any) => toU64Stat(p.minutesPlayed));
-      const goals = stats.players.map((p: any) => toU64Stat(p.goals));
-      const assists = stats.players.map((p: any) => toU64Stat(p.assists));
-      const cleanSheets = stats.players.map((p: any) => Boolean(p.cleanSheet));
-      const saves = stats.players.map((p: any) => toU64Stat(p.saves));
-      const penaltiesSaved = stats.players.map((p: any) => toU64Stat(p.penaltiesSaved));
-      const penaltiesMissed = stats.players.map((p: any) => toU64Stat(p.penaltiesMissed));
-      const ownGoals = stats.players.map((p: any) => toU64Stat(p.ownGoals));
-      const yellowCards = stats.players.map((p: any) => toU64Stat(p.yellowCards));
-      const redCards = stats.players.map((p: any) => toU64Stat(p.redCards));
-      const ratings = stats.players.map((p: any) => toU64Stat(p.rating));
-      const tackles = stats.players.map((p: any) => toU64Stat(p.tackles));
-      const interceptions = stats.players.map((p: any) => toU64Stat(p.interceptions));
-      const successfulDribbles = stats.players.map((p: any) => toU64Stat(p.successfulDribbles));
-      const freeKickGoals = stats.players.map((p: any) => toU64Stat(p.freeKickGoals));
-      const goalsConceded = stats.players.map((p: any) =>
+      const minutesPlayed = stats.players.map((p) => toU64Stat(p.minutesPlayed));
+      const goals = stats.players.map((p) => toU64Stat(p.goals));
+      const assists = stats.players.map((p) => toU64Stat(p.assists));
+      const cleanSheets = stats.players.map((p) => Boolean(p.cleanSheet));
+      const saves = stats.players.map((p) => toU64Stat(p.saves));
+      const penaltiesSaved = stats.players.map((p) => toU64Stat(p.penaltiesSaved));
+      const penaltiesMissed = stats.players.map((p) => toU64Stat(p.penaltiesMissed));
+      const ownGoals = stats.players.map((p) => toU64Stat(p.ownGoals));
+      const yellowCards = stats.players.map((p) => toU64Stat(p.yellowCards));
+      const redCards = stats.players.map((p) => toU64Stat(p.redCards));
+      const ratings = stats.players.map((p) => toU64Stat(p.rating));
+      const tackles = stats.players.map((p) => toU64Stat(p.tackles));
+      const interceptions = stats.players.map((p) => toU64Stat(p.interceptions));
+      const successfulDribbles = stats.players.map((p) => toU64Stat(p.successfulDribbles));
+      const freeKickGoals = stats.players.map((p) => toU64Stat(p.freeKickGoals));
+      const goalsConceded = stats.players.map((p) =>
         toU64Stat(p.goalsConceded ?? p.goals_conceded),
       );
-      const fplBonus = stats.players.map((p: any) => {
+      const fplBonus = stats.players.map((p) => {
         const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
         return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
       });
-      const fplCleanSheet = stats.players.map((p: any) => {
+      const fplCleanSheet = stats.players.map((p) => {
         const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
         return Boolean(v === true || v === 1 || v === "1");
       });
@@ -391,7 +391,7 @@ export default function AdminPage() {
         options: { timeoutSecs: 90, checkSuccess: true },
       });
       alert("Stats submitted successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
       alert(`Failed: ${formatTxError(error)}`);
     } finally {
@@ -430,7 +430,7 @@ export default function AdminPage() {
         options: { timeoutSecs: 90, checkSuccess: true },
       });
       alert(`Results calculated for GW ${resultsGameweekId}!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to calculate results:", error);
       alert(`Failed: ${formatTxError(error)}`);
     } finally {

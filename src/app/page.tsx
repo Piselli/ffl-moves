@@ -417,7 +417,16 @@ const CAROUSEL_MATCHES = [
   }
 ];
 
-const ALL_PLAYERS = [
+type MarqueeStatRow = { icon: string; text: string };
+type MarqueePlayerCard = {
+  player: string;
+  stats: MarqueeStatRow[];
+  pts: string;
+  color: string;
+  image: string;
+};
+
+const ALL_PLAYERS: MarqueePlayerCard[] = [
   { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Сейви"}, {icon: "🛡", text: "Суха пара"}], pts: "+7 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
   { player: "M. Cucurella", stats: [{icon: "🛡", text: "Відбір"}, {icon: "⏱", text: "90+ хв"}], pts: "+6 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
   { player: "W. Saliba", stats: [{icon: "🛡", text: "Суха пара"}, {icon: "⏱", text: "90+ хв"}], pts: "+8 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
@@ -558,7 +567,7 @@ function LiveDataCarousel() {
                    
                    {/* Multiple Player Stats Line */}
                    <div className="flex flex-col gap-1 w-full mb-3 px-2">
-                     {ev.stats.map((stat: any, idx: number) => (
+                     {ev.stats.map((stat: MarqueeStatRow, idx: number) => (
                        <div key={idx} className="flex items-center justify-between w-full opacity-80 group-hover:opacity-100 transition-opacity">
                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 truncate">{stat.text}</span>
                          <span className="text-[9px] sm:text-[10px] font-bold" style={{ color: ev.color }}>{stat.icon}</span>
@@ -589,6 +598,19 @@ function LiveDataCarousel() {
   );
 }
 
+/** `/api/fixtures` success JSON (subset used on the homepage). */
+type FixturesApiPayload = {
+  gameweek: {
+    id: number;
+    name?: string;
+    deadlineTime: string | null;
+    deadlineEpochMs?: number | null;
+    isCurrent?: boolean;
+    isNext?: boolean;
+  };
+  fixtures?: unknown[];
+};
+
 export default function Home() {
 
   const { connected } = useWallet();
@@ -600,7 +622,7 @@ export default function Home() {
   const [dataLoading, setDataLoading] = useState(true);
   
   // Fixtures / deadline
-  const [fixturesData, setFixturesData] = useState<any>(null);
+  const [fixturesData, setFixturesData] = useState<FixturesApiPayload | null>(null);
 
   // Accordion state
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
@@ -628,7 +650,7 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/fixtures", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => {
+      .then((d: FixturesApiPayload & { error?: string }) => {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});

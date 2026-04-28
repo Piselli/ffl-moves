@@ -11,6 +11,20 @@ const POSITION_MAP: Record<number, "GK" | "DEF" | "MID" | "FWD"> = {
   4: "FWD",
 };
 
+interface FplBootstrapElement {
+  id: number;
+  element_type: number;
+  team: number;
+  code: number;
+  known_name?: string;
+  first_name?: string;
+  second_name?: string;
+  web_name?: string;
+  status?: string;
+  chance_of_playing_next_round?: number | null;
+  news?: string;
+}
+
 /** Same FPL fetch headers as `/api/players`. */
 async function fetchBootstrap() {
   const res = await fetch(FPL_URL, {
@@ -28,7 +42,7 @@ async function fetchBootstrap() {
   if (!res.ok) throw new Error(`FPL API returned ${res.status}`);
   return res.json() as Promise<{
     teams: { id: number; name: string }[];
-    elements: any[];
+    elements: FplBootstrapElement[];
   }>;
 }
 
@@ -59,9 +73,9 @@ export async function POST(req: Request) {
       teamMap[t.id] = t.name;
     }
 
-    const byId = new Map<number, any>();
+    const byId = new Map<number, FplBootstrapElement>();
     for (const el of data.elements) {
-      if (typeof el?.id === "number") byId.set(el.id, el);
+      if (typeof el.id === "number") byId.set(el.id, el);
     }
 
     const out = ids

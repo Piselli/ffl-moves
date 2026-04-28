@@ -5,7 +5,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/movement";
-import { formatMOVE, cn } from "@/lib/utils";
+import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -31,8 +31,8 @@ const positionBorder: Record<string, string> = {
 
 const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
-function calcPoints(player: Player, stats: any): number {
-  return calculateFantasyPointsWithRating(player, stats as Record<string, unknown>);
+function calcPoints(player: Player, stats: Record<string, unknown> | null | undefined): number {
+  return calculateFantasyPointsWithRating(player, stats);
 }
 
 function PlayerResultCard({
@@ -40,7 +40,7 @@ function PlayerResultCard({
   stats,
 }: {
   player: Player;
-  stats: any;
+  stats: Record<string, unknown> | null | undefined;
 }) {
   const pts = calcPoints(player, stats);
   const hasStats = !!stats;
@@ -96,12 +96,12 @@ function PlayerResultCard({
       {hasStats && (
         <div className="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 px-0.5">
           {Number(stats.goals ?? 0) > 0 && (
-            <span className="text-[9px] text-[#00C46A] font-bold">⚽ {stats.goals}</span>
+            <span className="text-[9px] text-[#00C46A] font-bold">⚽ {Number(stats.goals ?? 0)}</span>
           )}
           {Number(stats.assists ?? 0) > 0 && (
-            <span className="text-[9px] text-blue-400 font-bold">🅰 {stats.assists}</span>
+            <span className="text-[9px] text-blue-400 font-bold">🅰 {Number(stats.assists ?? 0)}</span>
           )}
-          {(stats.clean_sheet ?? stats.cleanSheet) && (
+          {Boolean(stats.clean_sheet ?? stats.cleanSheet) && (
             <span className="text-[9px] text-amber-400 font-bold">🧱</span>
           )}
           {Number(stats.yellow_cards ?? stats.yellowCards ?? 0) > 0 && (
@@ -132,7 +132,7 @@ export default function MyResultPage() {
   const [result, setResult] = useState<(TeamResult & { owner: string }) | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
-  const [gwStats, setGwStats] = useState<Record<string, any>>({});
+  const [gwStats, setGwStats] = useState<Record<string, Record<string, unknown>>>({});
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
@@ -189,10 +189,17 @@ export default function MyResultPage() {
         // Fetch per-player stats using the actual player IDs from the team
         if (userTeam?.playerIds?.length) {
           const stats = await getGameweekStats(currentGwId, userTeam.playerIds);
-          let merged: Record<string, any> = stats;
+          let merged: Record<string, Record<string, unknown>> = stats as Record<
+            string,
+            Record<string, unknown>
+          >;
           try {
             const fpl = await fetch(`/api/fpl-live?gw=${currentGwId}`).then((r) => (r.ok ? r.json() : null));
-            if (fpl?.players) merged = enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players) as Record<string, any>;
+            if (fpl?.players)
+              merged = enrichStatsMapWithFplPlayers(
+                stats as Record<string, unknown>,
+                fpl.players,
+              ) as Record<string, Record<string, unknown>>;
           } catch {
             /* keep chain-only */
           }
@@ -210,8 +217,8 @@ export default function MyResultPage() {
           playerMap,
         );
         setPlayers(squad);
-      } catch (e: any) {
-        setError(e.message ?? "Щось пішло не так");
+      } catch (e: unknown) {
+        setError(getErrorMessage(e, "Щось пішло не так"));
       } finally {
         setLoading(false);
       }

@@ -68,10 +68,7 @@ async function loadPlayerMappings(): Promise<Map<number, { id: number; position:
 
     for (const player of players) {
       if (player.apiId) {
-        const posId =
-          player.position === "GK" ? 0 :
-          player.position === "DEF" ? 1 :
-          player.position === "MID" ? 2 : 3;
+        // We only need the original position string here; downstream code converts to a positionId.
         playerMappings.set(player.apiId, { id: player.id, position: player.position });
       }
     }

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { FormationGrid } from "@/components/FormationGrid";
 import { PlayerCard } from "@/components/PlayerCard";
-import { Player } from "@/lib/types";
+import { Player, TeamResult } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import {
   client,
@@ -15,8 +15,10 @@ import {
   getGameweekStats,
   getTeamResult,
   getUserTeam,
+  type ChainConfig,
+  type GameweekSummary,
 } from "@/lib/movement";
-import { formatMOVE, cn } from "@/lib/utils";
+import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -24,6 +26,10 @@ import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
+
+// Hoisted constant: lives outside the component so the filteredPlayers `useMemo`
+// doesn't need to depend on it (avoids a react-hooks/exhaustive-deps warning).
+const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
 
 function isCompleteRegisteredSnapshot(
   t: { starters: Player[]; bench: Player[] } | null | undefined,
@@ -41,14 +47,14 @@ export default function GameweekPage() {
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [config, setConfig] = useState<any>(null);
-  const [currentGameweek, setCurrentGameweek] = useState<any>(null);
+  const [config, setConfig] = useState<ChainConfig | null>(null);
+  const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
-  const [gameweekStats, setGameweekStats] = useState<Record<string, any>>({});
-  const [teamResult, setTeamResult] = useState<any>(null);
+  const [gameweekStats, setGameweekStats] = useState<Record<string, Record<string, unknown>>>({});
+  const [teamResult, setTeamResult] = useState<TeamResult | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("players");
 
   // Fetch live FPL players (FPL or /api can fail: use local JSON fallback).
@@ -69,6 +75,13 @@ export default function GameweekPage() {
   }, []);
 
   useEffect(() => {
+    // Drop per-wallet state when the connected address changes/clears, so we don't
+    // briefly show the previous user's registered squad / result while the new wallet loads.
+    setAlreadyRegistered(false);
+    setRegisteredTeam(null);
+    setGameweekStats({});
+    setTeamResult(null);
+
     async function fetchData() {
       const configData = await getConfig();
       setConfig(configData);
@@ -112,9 +125,9 @@ export default function GameweekPage() {
               const merged = fpl?.players
                 ? enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players)
                 : stats;
-              setGameweekStats(merged);
+              setGameweekStats(merged as Record<string, Record<string, unknown>>);
             } catch {
-              setGameweekStats(stats);
+              setGameweekStats(stats as Record<string, Record<string, unknown>>);
             }
           }
         }
@@ -128,9 +141,11 @@ export default function GameweekPage() {
     const hasValidTeam = isCompleteRegisteredSnapshot(registeredTeam);
     if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
 
+    const addr = account.address.toString();
+    const cfg = config;
     async function loadFromChain() {
-      const gwId = currentGameweek?.id ?? config.currentGameweek;
-      const key = `ffl_team_v2_gw${gwId}_${account!.address.toString()}`;
+      const gwId = currentGameweek?.id ?? cfg.currentGameweek;
+      const key = `ffl_team_v2_gw${gwId}_${addr}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         try {
@@ -144,7 +159,7 @@ export default function GameweekPage() {
         }
       }
 
-      const chainTeam = await getUserTeam(account!.address.toString(), gwId);
+      const chainTeam = await getUserTeam(addr, gwId);
       if (!chainTeam || !chainTeam.playerIds.length) return;
 
       const catalog = new Map(players.map((p) => [p.id, p]));
@@ -161,7 +176,7 @@ export default function GameweekPage() {
       }
     }
     loadFromChain();
-  }, [alreadyRegistered, registeredTeam, players, account?.address, config, currentGameweek]);
+  }, [alreadyRegistered, registeredTeam, players, account, config, currentGameweek]);
 
   const selectedPlayers = useMemo(() => {
     return new Set([...starters, ...bench].filter(Boolean).map((p) => p!.id));
@@ -179,8 +194,6 @@ export default function GameweekPage() {
     const teams = Array.from(new Set(players.map((p) => p.team))).filter(Boolean);
     return teams.sort((a, b) => a.localeCompare(b));
   }, [players]);
-
-  const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
 
   const filteredPlayers = useMemo(() => {
     return players
@@ -345,19 +358,26 @@ export default function GameweekPage() {
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
       setAlreadyRegistered(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Error type:", typeof error);
       console.error("Error:", error);
-      console.error("Error message:", error?.message);
-      console.error("Error code:", error?.code);
-      console.error("Error data:", error?.data);
-      console.error("Full error JSON:", JSON.stringify(error, Object.getOwnPropertyNames(error || {}), 2));
-      
+      const errRec =
+        error !== null && typeof error === "object"
+          ? (error as { message?: unknown; code?: unknown; data?: unknown })
+          : null;
+      console.error("Error message:", errRec?.message);
+      console.error("Error code:", errRec?.code);
+      console.error("Error data:", errRec?.data);
+      console.error(
+        "Full error JSON:",
+        JSON.stringify(error, Object.getOwnPropertyNames(Object(error)), 2),
+      );
+
       // Clean, user-friendly error message (wallet vendors vary: "User rejected" vs "User has rejected the request", casing, EIP-1193 code 4001)
-      const msg = String(error?.message || error?.toString?.() || "Unknown error");
+      const msg = getErrorMessage(error);
       const msgLower = msg.toLowerCase();
-      const code = error?.code;
+      const code = errRec?.code;
       const isUserRejection =
         code === 4001 ||
         msgLower.includes("user rejected") ||

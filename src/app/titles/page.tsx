@@ -4,15 +4,16 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { TitleCard } from "@/components/TitleCard";
 import { TITLE_TYPES, MULTIPLIER_DISPLAY } from "@/lib/constants";
-import { moduleFunction, getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild } from "@/lib/movement";
-import { formatMOVE, getMultiplierDisplay, cn } from "@/lib/utils";
+import { moduleFunction, getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild, type ChainConfig } from "@/lib/movement";
+import { formatMOVE, getMultiplierDisplay, cn, getErrorMessage } from "@/lib/utils";
+import type { UserGuild, UserTitle } from "@/lib/types";
 
 export default function TitlesPage() {
   const { connected, account, signAndSubmitTransaction } = useWallet();
 
-  const [config, setConfig] = useState<any>(null);
-  const [userTitle, setUserTitle] = useState<any>(null);
-  const [userGuild, setUserGuild] = useState<any>(null);
+  const [config, setConfig] = useState<ChainConfig | null>(null);
+  const [userTitle, setUserTitle] = useState<UserTitle | null>(null);
+  const [userGuild, setUserGuild] = useState<UserGuild | null>(null);
   const [hasTitleFlag, setHasTitleFlag] = useState(false);
   const [hasGuildFlag, setHasGuildFlag] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,9 +67,9 @@ export default function TitlesPage() {
       const titleData = await getUserTitle(account.address.toString());
       setUserTitle(titleData);
       setHasTitleFlag(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to buy title:", error);
-      alert(`Failed to buy title: ${error.message || "Unknown error"}`);
+      alert(`Failed to buy title: ${getErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -90,9 +91,9 @@ export default function TitlesPage() {
       // Refresh data
       const titleData = await getUserTitle(account.address.toString());
       setUserTitle(titleData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to reroll title:", error);
-      alert(`Failed to reroll title: ${error.message || "Unknown error"}`);
+      alert(`Failed to reroll title: ${getErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -115,9 +116,9 @@ export default function TitlesPage() {
       const guildData = await getUserGuild(account.address.toString());
       setUserGuild(guildData);
       setHasGuildFlag(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to buy guild:", error);
-      alert(`Failed to buy guild: ${error.message || "Unknown error"}`);
+      alert(`Failed to buy guild: ${getErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -139,9 +140,9 @@ export default function TitlesPage() {
       // Refresh data
       const guildData = await getUserGuild(account.address.toString());
       setUserGuild(guildData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to reroll guild:", error);
-      alert(`Failed to reroll guild: ${error.message || "Unknown error"}`);
+      alert(`Failed to reroll guild: ${getErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -231,7 +232,7 @@ export default function TitlesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
-              <p className="text-muted-foreground mb-4">You don't have a title yet.</p>
+              <p className="text-muted-foreground mb-4">{"You don't have a title yet."}</p>
               <button
                 onClick={handleBuyTitle}
                 disabled={isSubmitting}
@@ -301,7 +302,7 @@ export default function TitlesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
-              <p className="text-muted-foreground mb-4">You don't have a guild yet.</p>
+              <p className="text-muted-foreground mb-4">{"You don't have a guild yet."}</p>
               <button
                 onClick={handleBuyGuild}
                 disabled={isSubmitting}

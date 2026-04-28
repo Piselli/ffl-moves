@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
@@ -14,16 +14,18 @@ import {
   getTeamResult,
   getGameweekTeams,
   moduleFunction,
+  type ChainConfig,
+  type GameweekSummary,
 } from "@/lib/movement";
 import { formatMOVE, cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 
 export default function LeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<ChainConfig | null>(null);
   /** Upper bound for tour dropdown; can exceed `config.currentGameweek` if pointer lags. */
   const [pickerMaxGw, setPickerMaxGw] = useState(0);
-  const [currentGameweek, setCurrentGameweek] = useState<any>(null);
+  const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
   const [selectedGameweek, setSelectedGameweek] = useState<number>(0);
   const [leaderboardData, setLeaderboardData] = useState<TeamResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,35 +74,36 @@ export default function LeaderboardPage() {
     loadConfig();
   }, []);
 
-  // Fetch gameweek data when selection changes
+  // Fetch gameweek data when selection changes (also reused after a successful claim).
+  const fetchGameweekData = useCallback(async (gwId: number) => {
+    if (gwId === 0) return;
+    setIsLoading(true);
+    try {
+      const gwData = await getGameweek(gwId);
+      setCurrentGameweek(gwData);
+
+      if (gwData && gwData.status === "resolved") {
+        const addresses = await getGameweekTeams(gwId);
+        const results = await Promise.all(
+          addresses.map((addr) => getTeamResult(addr, gwId)),
+        );
+        const validResults = results.filter((r): r is TeamResult => r !== null);
+        validResults.sort((a, b) => a.rank - b.rank);
+        setLeaderboardData(validResults);
+      } else {
+        setLeaderboardData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching gameweek data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedGameweek === 0) return;
-
-    async function fetchGameweekData() {
-      setIsLoading(true);
-      try {
-        const gwData = await getGameweek(selectedGameweek);
-        setCurrentGameweek(gwData);
-
-        if (gwData && gwData.status === "resolved") {
-          const addresses = await getGameweekTeams(selectedGameweek);
-          const results = await Promise.all(
-            addresses.map((addr) => getTeamResult(addr, selectedGameweek))
-          );
-          const validResults = results.filter((r): r is TeamResult => r !== null);
-          validResults.sort((a, b) => a.rank - b.rank);
-          setLeaderboardData(validResults);
-        } else {
-          setLeaderboardData([]);
-        }
-      } catch (error) {
-        console.error("Error fetching gameweek data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchGameweekData();
-  }, [selectedGameweek]);
+    fetchGameweekData(selectedGameweek);
+  }, [selectedGameweek, fetchGameweekData]);
 
   const handleClaimPrize = async (gameweekId: number) => {
     if (!connected || !account?.address) return;
@@ -126,7 +129,10 @@ export default function LeaderboardPage() {
         options: { timeoutSecs: 30, checkSuccess: true },
       });
       alert("Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).");
-      setSelectedGameweek(gameweekId); // refresh
+      // setSelectedGameweek(gameweekId) here is a no-op (same value) — React skips state updates,
+      // so the leaderboard would never reflect `claimed: true` until the user changes the dropdown.
+      // Re-run the fetch directly instead.
+      await fetchGameweekData(gameweekId);
     } catch (error: unknown) {
       alert(`Не вдалося заклеймити: ${formatTxError(error)}`);
     } finally {

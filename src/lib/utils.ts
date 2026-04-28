@@ -21,6 +21,13 @@ export function shortenAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
 }
 
+/** Human-readable message from `catch` values without using `any`. */
+export function getErrorMessage(err: unknown, fallback = "Unknown error"): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err.trim()) return err;
+  return fallback;
+}
+
 export function getMultiplierDisplay(basisPoints: number): string {
   return `${basisPoints / 100}%`;
 }

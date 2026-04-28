@@ -81,8 +81,13 @@ export function calculateFantasyPoints(player: ScoringPlayer, stats: Record<stri
 
   pts += pensSaved * PENALTY_SAVE_POINTS;
 
+  // Move uses saturating subtraction here (u64 can't go negative), so a GK with very few minutes
+  // and many goals conceded clamps to 0 *before* bonus is added. Mirror that exactly so the TS
+  // preview never disagrees with what the contract publishes (e.g. mins=1, gc=6, bonus=2 → 2 in
+  // Move, but would be 0 if we let `pts` go negative here in JS).
   if (player.positionId <= 1 && gc > 0) {
-    pts -= Math.floor(gc / GOALS_CONCEDED_DIVISOR);
+    const gcPen = Math.floor(gc / GOALS_CONCEDED_DIVISOR);
+    pts = pts >= gcPen ? pts - gcPen : 0;
   }
 
   pts += Math.max(0, Math.min(FPL_BONUS_MAX, Math.floor(bonus)));
@@ -93,7 +98,7 @@ export function calculateFantasyPoints(player: ScoringPlayer, stats: Record<stri
   ded += yc * DEDUCTIONS.yellowCard;
   ded += rc * DEDUCTIONS.redCardMultiplier;
 
-  return Math.max(0, pts - ded);
+  return pts >= ded ? pts - ded : 0;
 }
 
 /**
