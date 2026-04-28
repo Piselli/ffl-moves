@@ -294,26 +294,6 @@ export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
   }
 }
 
-/** Every distinct player id in any registered team for this GW → on-chain position (0–3). */
-export async function getRegisteredSquadCoverage(gameweekId: number): Promise<Map<number, number>> {
-  const idToPos = new Map<number, number>();
-  try {
-    const teams = await getGameweekTeams(gameweekId);
-    for (const owner of teams) {
-      const team = await getUserTeam(owner, gameweekId);
-      if (!team) continue;
-      const n = Math.min(team.playerIds.length, team.playerPositions.length);
-      for (let i = 0; i < n; i++) {
-        const id = team.playerIds[i];
-        if (id > 0) idToPos.set(id, team.playerPositions[i]);
-      }
-    }
-  } catch (e) {
-    console.error("getRegisteredSquadCoverage:", e);
-  }
-  return idToPos;
-}
-
 export async function getPlayerStats(gameweekId: number, playerId: number) {
   try {
     const result = await aptos.view({

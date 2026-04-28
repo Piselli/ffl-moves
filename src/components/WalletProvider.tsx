@@ -1,25 +1,30 @@
 "use client";
 
 import { PropsWithChildren } from "react";
+import { Network } from "@aptos-labs/ts-sdk";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NETWORK } from "@/lib/constants";
+import { MOVEMENT_RPC_URL } from "@/lib/constants";
 
 const queryClient = new QueryClient();
 
 /**
- * Movement deploys use `Network.CUSTOM` + `NEXT_PUBLIC_MOVEMENT_RPC_URL` in `src/lib/aptos.ts`.
- * Passing `MAINNET`/`TESTNET` here makes some wallets resolve modules against canonical Aptos RPC
- * (e.g. rpc.aptos.nightly.app) → `module_not_found` for Movement-only packages.
+ * Aptos Connect (Google/Apple SDK wallets) rejects Network.CUSTOM.
+ * We still use Network.CUSTOM + fullnode in `src/lib/aptos.ts` for reads; here we only
+ * satisfy the adapter so it can construct SDK wallets without throwing.
  */
+function walletAdapterDappNetwork(): Network {
+  const u = MOVEMENT_RPC_URL.toLowerCase();
+  if (u.includes("mainnet")) return Network.MAINNET;
+  return Network.TESTNET;
+}
+
 export function WalletProvider({ children }: PropsWithChildren) {
   return (
     <AptosWalletAdapterProvider
       autoConnect={true}
       optInWallets={["Nightly"]}
-      dappConfig={{
-        network: NETWORK,
-      }}
+      dappConfig={{ network: walletAdapterDappNetwork() }}
       onError={(error) => {
         console.error("Wallet adapter error:", error);
       }}

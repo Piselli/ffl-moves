@@ -2,17 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import {
-  aptos,
-  moduleFunction,
-  getConfig,
-  getGameweek,
-  getRegisteredSquadCoverage,
-  findOpenGameweekFromChain,
-  type GameweekSummary,
-} from "@/lib/aptos";
-import { mergePlayersWithRegisteredCoverage, type OracleStatJson } from "@/lib/oracle-stats-coverage";
-import { MOVEMENT_RPC_URL } from "@/lib/constants";
+import { aptos, moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
 import { cn, formatTxError, toU64Stat } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
@@ -33,8 +23,6 @@ export default function AdminPage() {
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
-  const [vaultWithdrawRecipient, setVaultWithdrawRecipient] = useState("");
-  const [vaultWithdrawMove, setVaultWithdrawMove] = useState("");
 
   // API states
   const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
@@ -45,10 +33,6 @@ export default function AdminPage() {
   const [apiWarning, setApiWarning] = useState("");
   const [fetchedFixtures, setFetchedFixtures] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState("");
-  /** After fetch: how many 0-min rows were inserted for registered squads (on-chain auto-sub). */
-  const [coverageNote, setCoverageNote] = useState("");
-  /** OPEN week for registration (may differ from `config.currentGameweek` if the pointer lags). */
-  const [openRegistrationGameweek, setOpenRegistrationGameweek] = useState<GameweekSummary | null>(null);
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
@@ -56,7 +40,6 @@ export default function AdminPage() {
       const configData = await getConfig();
       setConfig(configData);
       setCurrentGameweek(null);
-      setOpenRegistrationGameweek(null);
       if (configData?.currentGameweek) {
         try {
           const gwData = await getGameweek(configData.currentGameweek);
@@ -64,12 +47,6 @@ export default function AdminPage() {
         } catch {
           console.log("No active gameweek found on chain yet (likely initialized to 0).");
         }
-      }
-      try {
-        const openGw = await findOpenGameweekFromChain(configData);
-        setOpenRegistrationGameweek(openGw);
-      } catch {
-        setOpenRegistrationGameweek(null);
       }
     } finally {
       setIsLoading(false);
@@ -116,7 +93,6 @@ export default function AdminPage() {
     setIsFetchingApi(true);
     setFetchError("");
     setFetchedFixtures([]);
-    setCoverageNote("");
 
     try {
       const result: GameweekStatsResult =
@@ -128,26 +104,10 @@ export default function AdminPage() {
         setFetchError(result.errors.join("; "));
       }
 
-      let mergedPlayers: OracleStatJson[] = result.players as unknown as OracleStatJson[];
-      try {
-        const idToPos = await getRegisteredSquadCoverage(result.gameweekId);
-        const { merged, addedIds } = mergePlayersWithRegisteredCoverage(mergedPlayers, idToPos);
-        mergedPlayers = merged;
-        if (addedIds.length > 0) {
-          setCoverageNote(
-            `Registered coverage: added ${addedIds.length} row(s) at 0 minutes (IDs missing from fetch) — ` +
-              `${addedIds.slice(0, 24).join(", ")}${addedIds.length > 24 ? " …" : ""}. ` +
-              `Needed so starters with 0 min can auto-sub on-chain.`,
-          );
-        }
-      } catch (covErr) {
-        console.warn("Registered squad coverage merge skipped:", covErr);
-      }
-
-      if (mergedPlayers.length > 0) {
+      if (result.players.length > 0) {
         const formattedStats = {
           gameweekId: result.gameweekId,
-          players: mergedPlayers,
+          players: result.players,
         };
         setStatsJson(JSON.stringify(formattedStats, null, 2));
         setFetchedFixtures(result.fixtures);
@@ -197,29 +157,21 @@ export default function AdminPage() {
   };
 
   const handleCloseGameweek = async () => {
-    if (!connected) return;
+    if (!connected || !currentGameweek) return;
 
     setIsSubmitting(true);
     try {
-      const configData = await getConfig();
-      if (!configData) {
-        alert("Не вдалося прочитати config з ланцюга.");
-        return;
-      }
-      const openGw = await findOpenGameweekFromChain(configData);
-      if (!openGw || openGw.status !== "open") {
-        alert("Немає туру зі статусом OPEN для закриття (реєстрація вже закрита або тур не знайдено).");
-        return;
-      }
       await signAndSubmitTransaction({
         data: {
           function: moduleFunction("close_gameweek"),
           typeArguments: [],
-          functionArguments: [openGw.id.toString()],
+          functionArguments: [currentGameweek.id.toString()],
         },
       });
-      alert(`Gameweek ${openGw.id} closed!`);
-      await loadChainConfig();
+      alert(`Gameweek ${currentGameweek.id} closed!`);
+      // Refresh
+      const gwData = await getGameweek(currentGameweek.id);
+      setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -243,7 +195,9 @@ export default function AdminPage() {
         },
       });
       alert(`Gameweek ${currentGameweek.id} is now OPEN again!`);
-      await loadChainConfig();
+      // Refresh
+      const gwData = await getGameweek(currentGameweek.id);
+      setCurrentGameweek(gwData);
     } catch (error: any) {
       console.error("Failed to reopen gameweek:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -276,45 +230,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleWithdrawPrizeVault = async () => {
-    if (!connected || !account) return;
-    const recipient = (vaultWithdrawRecipient || account.address.toString()).trim();
-    const moveStr = vaultWithdrawMove.trim();
-    if (!recipient || !moveStr) {
-      alert("Enter amount in MOVE and optionally a recipient address.");
-      return;
-    }
-    const octas = Math.round(parseFloat(moveStr) * 100_000_000);
-    if (!Number.isFinite(octas) || octas <= 0) {
-      alert("Invalid amount.");
-      return;
-    }
-    if (
-      !confirm(
-        `Withdraw ${moveStr} MOVE (${octas} octas) from prize vault to:\n${recipient}\n\nLeave enough in the vault for unresolved prize claims, or claims will fail.`,
-      )
-    ) {
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_withdraw_prize_vault"),
-          typeArguments: [],
-          functionArguments: [recipient, octas.toString()],
-        },
-      });
-      alert("Withdrawal submitted.");
-      setVaultWithdrawMove("");
-    } catch (error: any) {
-      console.error("Failed to withdraw from prize vault:", error);
-      alert(`Failed: ${formatTxError(error)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSubmitStats = async () => {
     if (!connected || !account || !statsJson) return;
 
@@ -328,50 +243,43 @@ export default function AdminPage() {
         throw new Error("Invalid stats format. Need { gameweekId, players: [...] }");
       }
 
-      const gwId = Number(stats.gameweekId);
-      const idToPos = await getRegisteredSquadCoverage(gwId);
-      const { merged, addedIds } = mergePlayersWithRegisteredCoverage(stats.players, idToPos);
-      if (addedIds.length > 0) {
-        setStatsJson(JSON.stringify({ gameweekId: gwId, players: merged }, null, 2));
-      }
-
-      const n = merged.length;
+      const n = stats.players.length;
       if (n === 0) throw new Error("No players in JSON");
 
       // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
-      const playerIds = merged.map((p: any) => {
+      const playerIds = stats.players.map((p: any) => {
         const id = toU64Stat(p.playerId);
         if (id < 1) throw new Error(`Invalid playerId: ${p.playerId}`);
         return id;
       });
-      const positions = merged.map((p: any) => {
+      const positions = stats.players.map((p: any) => {
         const pos = toU64Stat(p.position);
         if (pos > 3) throw new Error(`Invalid position (0–3): ${p.position}`);
         return pos;
       });
-      const minutesPlayed = merged.map((p: any) => toU64Stat(p.minutesPlayed));
-      const goals = merged.map((p: any) => toU64Stat(p.goals));
-      const assists = merged.map((p: any) => toU64Stat(p.assists));
-      const cleanSheets = merged.map((p: any) => Boolean(p.cleanSheet));
-      const saves = merged.map((p: any) => toU64Stat(p.saves));
-      const penaltiesSaved = merged.map((p: any) => toU64Stat(p.penaltiesSaved));
-      const penaltiesMissed = merged.map((p: any) => toU64Stat(p.penaltiesMissed));
-      const ownGoals = merged.map((p: any) => toU64Stat(p.ownGoals));
-      const yellowCards = merged.map((p: any) => toU64Stat(p.yellowCards));
-      const redCards = merged.map((p: any) => toU64Stat(p.redCards));
-      const ratings = merged.map((p: any) => toU64Stat(p.rating));
-      const tackles = merged.map((p: any) => toU64Stat(p.tackles));
-      const interceptions = merged.map((p: any) => toU64Stat(p.interceptions));
-      const successfulDribbles = merged.map((p: any) => toU64Stat(p.successfulDribbles));
-      const freeKickGoals = merged.map((p: any) => toU64Stat(p.freeKickGoals));
-      const goalsConceded = merged.map((p: any) =>
+      const minutesPlayed = stats.players.map((p: any) => toU64Stat(p.minutesPlayed));
+      const goals = stats.players.map((p: any) => toU64Stat(p.goals));
+      const assists = stats.players.map((p: any) => toU64Stat(p.assists));
+      const cleanSheets = stats.players.map((p: any) => Boolean(p.cleanSheet));
+      const saves = stats.players.map((p: any) => toU64Stat(p.saves));
+      const penaltiesSaved = stats.players.map((p: any) => toU64Stat(p.penaltiesSaved));
+      const penaltiesMissed = stats.players.map((p: any) => toU64Stat(p.penaltiesMissed));
+      const ownGoals = stats.players.map((p: any) => toU64Stat(p.ownGoals));
+      const yellowCards = stats.players.map((p: any) => toU64Stat(p.yellowCards));
+      const redCards = stats.players.map((p: any) => toU64Stat(p.redCards));
+      const ratings = stats.players.map((p: any) => toU64Stat(p.rating));
+      const tackles = stats.players.map((p: any) => toU64Stat(p.tackles));
+      const interceptions = stats.players.map((p: any) => toU64Stat(p.interceptions));
+      const successfulDribbles = stats.players.map((p: any) => toU64Stat(p.successfulDribbles));
+      const freeKickGoals = stats.players.map((p: any) => toU64Stat(p.freeKickGoals));
+      const goalsConceded = stats.players.map((p: any) =>
         toU64Stat(p.goalsConceded ?? p.goals_conceded),
       );
-      const fplBonus = merged.map((p: any) => {
+      const fplBonus = stats.players.map((p: any) => {
         const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
         return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
       });
-      const fplCleanSheet = merged.map((p: any) => {
+      const fplCleanSheet = stats.players.map((p: any) => {
         const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
         return Boolean(v === true || v === 1 || v === "1");
       });
@@ -382,7 +290,7 @@ export default function AdminPage() {
           function: moduleFunction("submit_player_stats"),
           typeArguments: [],
           functionArguments: [
-            gwId,
+            Number(stats.gameweekId),
             playerIds,
             positions,
             minutesPlayed,
@@ -416,11 +324,7 @@ export default function AdminPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });
-      const filledNote =
-        addedIds.length > 0
-          ? ` Also merged ${addedIds.length} registered-only player(s) at 0 minutes (on-chain auto-sub).`
-          : "";
-      alert(`Stats submitted successfully!${filledNote}`);
+      alert("Stats submitted successfully!");
     } catch (error: any) {
       console.error("Failed to submit stats:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -575,7 +479,6 @@ export default function AdminPage() {
             <p className="text-3xl font-bold text-white">
               {currentGameweek?.id || "None"}
             </p>
-            <p className="text-[10px] text-muted-foreground/70 mt-1">from get_gameweek(config.currentGameweek)</p>
           </div>
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
             <p className="text-muted-foreground text-sm mb-1">Status</p>
@@ -594,44 +497,16 @@ export default function AdminPage() {
               {currentGameweek?.status?.toUpperCase() || "N/A"}
             </div>
           </div>
-          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
-            <p className="text-muted-foreground text-sm mb-1">OPEN registration</p>
-            <p className="text-3xl font-bold text-white">
-              {openRegistrationGameweek?.status === "open" ? openRegistrationGameweek.id : "—"}
-            </p>
-            <p className="text-[10px] text-muted-foreground/70 mt-1">oracle must close this GW before stats</p>
-          </div>
-          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-2">
             <p className="text-muted-foreground text-sm mb-1">Prize Pool Percentage</p>
             <p className="text-3xl font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
               {config?.prizePoolPercent || "0"}%
             </p>
           </div>
         </div>
-        {openRegistrationGameweek?.status === "open" &&
-          config?.currentGameweek != null &&
-          openRegistrationGameweek.id !== config.currentGameweek && (
-            <p className="mt-4 text-sm text-amber-200/90 leading-relaxed border-t border-white/[0.06] pt-4">
-              <strong>Увага:</strong> у config вказівник <code className="text-xs bg-black/30 px-1 rounded">current_gameweek = {config.currentGameweek}</code>, але реєстрація ще{" "}
-              <strong>OPEN</strong> на <strong>GW{openRegistrationGameweek.id}</strong>. Кнопка «Close» закриває саме відкритий тур — після цього оракул зможе подати статистику для GW{openRegistrationGameweek.id}.
-            </p>
-          )}
       </div>
 
       <div className="space-y-6">
-        {MOVEMENT_RPC_URL.toLowerCase().includes("testnet") && (
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100 text-sm leading-relaxed">
-            <strong className="text-amber-200">Підключено до testnet RPC.</strong> Якщо модуль опублікований на{" "}
-            <strong>mainnet</strong>, додай у <code className="rounded bg-black/30 px-1 text-xs">.env.local</code>{" "}
-            <code className="rounded bg-black/30 px-1 text-xs break-all">
-              NEXT_PUBLIC_MOVEMENT_RPC_URL=https://mainnet.movementnetwork.xyz/v1
-            </code>
-            , збережи файл і повністю перезапусти <code className="rounded bg-black/30 px-1 text-xs">npm run dev</code>.
-            Інакше SDK тягне ABI з testnet (там стара версія пакета без{" "}
-            <code className="rounded bg-black/30 px-1 text-xs">admin_withdraw_prize_vault</code>) — звідси помилка «Could not find entry function ABI».
-          </div>
-        )}
-
         {/* Create Gameweek (Admin) */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6">
@@ -673,9 +548,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Adjust Prize Pool (%)</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  On-chain: this percent of each <strong>entry fee</strong> is sent to the prize vault; the rest goes to the module publisher address (your deployer wallet). Title and guild fees go to the same publisher address in full (not the prize vault).
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Change what percentage of entry fees goes to the prize pool vs platform.</p>
               </div>
             </div>
             <div className="flex gap-4 mt-4">
@@ -697,97 +570,39 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Prize vault withdrawal — requires upgraded module on chain */}
-        {isAdmin && (
-          <div className="glass-card rounded-2xl p-6 border border-amber-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Prize vault withdrawal</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  After you publish a package upgrade that includes <code className="text-xs text-amber-200/90">admin_withdraw_prize_vault</code>, use this to move MOVE from the resource-account vault to any address (e.g. recover funds swept there by mistake). Do not drain below what winners still need to claim.
-                </p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">Recipient address (empty = connected wallet)</label>
-                <input
-                  type="text"
-                  placeholder={account?.address?.toString() ?? "0x…"}
-                  value={vaultWithdrawRecipient}
-                  onChange={(e) => setVaultWithdrawRecipient(e.target.value)}
-                  className="w-full px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border font-mono text-sm"
-                />
-              </div>
-              <div className="flex gap-3 flex-wrap">
-                <input
-                  type="text"
-                  placeholder="Amount in MOVE (e.g. 150)"
-                  value={vaultWithdrawMove}
-                  onChange={(e) => setVaultWithdrawMove(e.target.value)}
-                  className="flex-1 min-w-[160px] px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={handleWithdrawPrizeVault}
-                  disabled={isSubmitting || !vaultWithdrawMove.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:from-amber-400 hover:to-orange-500 transition-all disabled:opacity-50"
-                >
-                  {isSubmitting ? "…" : "Withdraw from vault"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Close OPEN gameweek (Admin) — uses findOpenGameweekFromChain, not config pointer */}
-        {isAdmin && openRegistrationGameweek?.status === "open" && (
+        {/* Close/Reopen Gameweek (Admin) */}
+        {isAdmin && currentGameweek && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  {currentGameweek.status === "open" ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  )}
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">Close registration</h2>
+              <h2 className="text-xl font-bold text-white">
+                {currentGameweek.status === "open" ? "Close Registration" : "Re-open Gameweek"}
+              </h2>
             </div>
             <p className="text-muted-foreground mb-4">
-              Close GW <strong className="text-white">{openRegistrationGameweek.id}</strong> to stop new team registrations and allow oracle stats submission for this gameweek.
+              {currentGameweek.status === "open" 
+                ? `Close GW ${currentGameweek.id} to stop new team registrations and prepare for stats submission.`
+                : `Reset GW ${currentGameweek.id} back to OPEN status. WARNING: This will clear calculated results and submitted stats.`}
             </p>
             <button
-              onClick={handleCloseGameweek}
+              onClick={currentGameweek.status === "open" ? handleCloseGameweek : handleReopenGameweek}
               disabled={isSubmitting}
-              className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400"
+              className={cn(
+                "px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
+                currentGameweek.status === "open" 
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400"
+                  : "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500"
+              )}
             >
-              {isSubmitting ? "..." : `Close GW ${openRegistrationGameweek.id}`}
-            </button>
-          </div>
-        )}
-
-        {isAdmin && currentGameweek && currentGameweek.status !== "open" && (
-          <div className="glass-card rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold text-white">Re-open gameweek (pointer row)</h2>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Reset GW <strong className="text-white">{currentGameweek.id}</strong> (the week shown as &quot;Current&quot; above) back to OPEN. WARNING: clears calculated results and submitted stats for that gameweek.
-            </p>
-            <button
-              onClick={handleReopenGameweek}
-              disabled={isSubmitting}
-              className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500"
-            >
-              {isSubmitting ? "..." : `Re-open GW ${currentGameweek.id}`}
+              {isSubmitting ? "..." : currentGameweek.status === "open" ? "Close Gameweek" : "Re-open Gameweek"}
             </button>
           </div>
         )}
@@ -927,12 +742,6 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {coverageNote && (
-                <div className="p-3 bg-sky-500/10 text-sky-200/95 rounded-xl text-sm border border-sky-500/25 leading-relaxed">
-                  {coverageNote}
-                </div>
-              )}
-
               {/* Fetched Fixtures */}
               {fetchedFixtures.length > 0 && (
                 <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
@@ -970,11 +779,6 @@ export default function AdminPage() {
             </div>
             <p className="text-muted-foreground text-sm mb-4">
               {statsJson ? "Stats fetched from API - review and submit:" : "Paste JSON with player stats for the gameweek. Format:"}
-              <span className="block text-xs text-muted-foreground/70 mt-2">
-                On submit, any player id registered for this GW on-chain but missing from JSON gets a 0-minute row
-                (same positions as squads) so <code className="text-xs text-muted-foreground/90">calculate_team_points</code> can
-                auto-substitute.
-              </span>
             </p>
             <pre className="text-xs bg-secondary/50 p-4 rounded-xl mb-4 overflow-x-auto text-muted-foreground border border-border">
 {`{
