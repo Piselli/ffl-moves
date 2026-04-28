@@ -1,11 +1,12 @@
 import { Aptos, AptosConfig } from "@aptos-labs/ts-sdk";
 import { NETWORK, MODULE_ADDRESS, MODULE_NAME, MOVEMENT_RPC_URL } from "./constants";
 
+/** Movement fullnode client (Aptos-compatible API). */
 const config = new AptosConfig({
   network: NETWORK,
   fullnode: MOVEMENT_RPC_URL,
 });
-export const aptos = new Aptos(config);
+export const client = new Aptos(config);
 
 // Helper to build module function name
 export const moduleFunction = (functionName: string): `${string}::${string}::${string}` => {
@@ -15,7 +16,7 @@ export const moduleFunction = (functionName: string): `${string}::${string}::${s
 // View function helpers
 export async function getConfig() {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_config"),
         typeArguments: [],
@@ -39,7 +40,7 @@ export async function getConfig() {
 
 export async function isAdmin(address: string) {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("is_admin_address"),
         typeArguments: [],
@@ -74,7 +75,7 @@ export type GameweekSummary = {
 
 export async function getGameweek(gameweekId: number): Promise<GameweekSummary | null> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_gameweek"),
         typeArguments: [],
@@ -161,7 +162,7 @@ export async function findLatestResolvedGameweekId(highestId: number): Promise<n
 
 export async function getUserTitle(owner: string) {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_user_title"),
         typeArguments: [],
@@ -180,7 +181,7 @@ export async function getUserTitle(owner: string) {
 
 export async function getUserGuild(owner: string) {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_user_guild"),
         typeArguments: [],
@@ -198,7 +199,7 @@ export async function getUserGuild(owner: string) {
 
 export async function hasTitle(owner: string): Promise<boolean> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("has_title"),
         typeArguments: [],
@@ -213,7 +214,7 @@ export async function hasTitle(owner: string): Promise<boolean> {
 
 export async function hasGuild(owner: string): Promise<boolean> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("has_guild"),
         typeArguments: [],
@@ -228,7 +229,7 @@ export async function hasGuild(owner: string): Promise<boolean> {
 
 export async function hasRegisteredTeam(owner: string, gameweekId: number): Promise<boolean> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("has_registered_team"),
         typeArguments: [],
@@ -243,7 +244,7 @@ export async function hasRegisteredTeam(owner: string, gameweekId: number): Prom
 
 export async function getTeamResult(owner: string, gameweekId: number) {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_team_result"),
         typeArguments: [],
@@ -283,7 +284,7 @@ export async function getUserTeam(
   gameweekId: number,
 ): Promise<{ playerIds: number[]; playerPositions: number[] } | null> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_user_team"),
         typeArguments: [],
@@ -312,7 +313,7 @@ export async function getUserTeam(
 
 export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_gameweek_teams"),
         typeArguments: [],
@@ -328,7 +329,7 @@ export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
 
 export async function getPlayerStats(gameweekId: number, playerId: number) {
   try {
-    const result = await aptos.view({
+    const result = await client.view({
       payload: {
         function: moduleFunction("get_player_stats"),
         typeArguments: [],

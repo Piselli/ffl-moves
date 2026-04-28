@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { TitleCard } from "@/components/TitleCard";
 import { TITLE_TYPES, MULTIPLIER_DISPLAY } from "@/lib/constants";
-import { moduleFunction, getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild } from "@/lib/aptos";
+import { moduleFunction, getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild } from "@/lib/movement";
 import { formatMOVE, getMultiplierDisplay, cn } from "@/lib/utils";
 
 export default function TitlesPage() {

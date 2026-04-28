@@ -65,7 +65,7 @@ function fantasyEplAbortHintUk(code: number): string | undefined {
   return FANTASY_EPL_ABORT_HINT_UK[code];
 }
 
-/** Best-effort text for wallet / Aptos SDK errors (often missing `message`). */
+/** Best-effort text for wallet / chain errors (often missing `message`). */
 export function formatTxError(error: unknown): string {
   if (error == null) return "Unknown error";
 

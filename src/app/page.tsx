@@ -4,7 +4,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getConfig, findOpenGameweekFromChain } from "@/lib/aptos";
+import { getConfig, findOpenGameweekFromChain } from "@/lib/movement";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";

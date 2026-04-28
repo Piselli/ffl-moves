@@ -7,7 +7,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { Player } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import {
-  aptos,
+  client,
   moduleFunction,
   getConfig,
   findOpenGameweekFromChain,
@@ -15,7 +15,7 @@ import {
   getGameweekStats,
   getTeamResult,
   getUserTeam,
-} from "@/lib/aptos";
+} from "@/lib/movement";
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
@@ -304,8 +304,8 @@ export default function GameweekPage() {
       console.log("positions:", playerPositions);
       console.log("clubs:", playerClubs);
 
-      // Build the transaction via Aptos SDK (fullnode from NEXT_PUBLIC_MOVEMENT_RPC_URL)
-      const transaction = await aptos.transaction.build.simple({
+      // Build the transaction via TS SDK (fullnode from NEXT_PUBLIC_MOVEMENT_RPC_URL)
+      const transaction = await client.transaction.build.simple({
         sender: account.address.toString(),
         data: {
           function: moduleFunction("register_team"),
@@ -322,8 +322,8 @@ export default function GameweekPage() {
       // Sign via the wallet extension
       const signResult = await signTransaction({ transactionOrPayload: transaction });
 
-      // Submit through Aptos SDK to the configured fullnode
-      const pending = await aptos.transaction.submit.simple({
+      // Submit to the configured Movement fullnode
+      const pending = await client.transaction.submit.simple({
         transaction,
         senderAuthenticator: signResult.authenticator,
       });
@@ -331,7 +331,7 @@ export default function GameweekPage() {
       console.log("TX submitted, hash:", pending.hash);
 
       // Wait for on-chain confirmation
-      const confirmed = await aptos.waitForTransaction({
+      const confirmed = await client.waitForTransaction({
         transactionHash: pending.hash,
         options: { timeoutSecs: 30, checkSuccess: true },
       });

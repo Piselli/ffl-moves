@@ -13,7 +13,7 @@ import {
   getTeamResult,
   getGameweekTeams,
   moduleFunction,
-} from "@/lib/aptos";
+} from "@/lib/movement";
 import { formatMOVE, cn } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 

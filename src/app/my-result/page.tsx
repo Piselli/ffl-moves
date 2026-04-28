@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/aptos";
+import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/movement";
 import { formatMOVE, cn } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";

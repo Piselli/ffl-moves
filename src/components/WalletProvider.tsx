@@ -1,6 +1,6 @@
 "use client";
 
-import { PropsWithChildren } from "react";
+import { type ComponentProps, type PropsWithChildren } from "react";
 import { Network } from "@aptos-labs/ts-sdk";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,11 +9,10 @@ import { MOVEMENT_RPC_URL } from "@/lib/constants";
 const queryClient = new QueryClient();
 
 /**
- * Wallet adapter's `getAptosConfig` (core) only allows Movement / custom fullnode if
- * `dappConfig.fullnode` contains "movementnetwork" — otherwise it falls back to the
- * wallet's `networkInfo.name`, which is often "custom" on Nightly and throws
- * "Invalid network, network custom not supported…".
- * @see node_modules/@aptos-labs/wallet-adapter-core (getAptosConfig)
+ * Wallet adapter only applies the Movement fullnode if `dappConfig.fullnode` contains
+ * "movementnetwork". Without it, Nightly may report `custom` and throw
+ * "Invalid network… custom not supported".
+ * @see wallet-adapter-core `getAptosConfig` (internal name in upstream package)
  */
 function walletAdapterDappNetwork(): Network {
   const u = MOVEMENT_RPC_URL.toLowerCase();
@@ -22,11 +21,17 @@ function walletAdapterDappNetwork(): Network {
 }
 
 export function WalletProvider({ children }: PropsWithChildren) {
+  /** Runtime adapter reads `fullnode` (see wallet-adapter-core `getAptosConfig`); duplicate `.d.ts` in pnpm may omit `fullnode`. */
+  const dappConfig = {
+    network: walletAdapterDappNetwork(),
+    fullnode: MOVEMENT_RPC_URL,
+  } as ComponentProps<typeof AptosWalletAdapterProvider>["dappConfig"];
+
   return (
     <AptosWalletAdapterProvider
       autoConnect={true}
       optInWallets={["Nightly"]}
-      dappConfig={{ network: walletAdapterDappNetwork(), fullnode: MOVEMENT_RPC_URL }}
+      dappConfig={dappConfig}
       onError={(error) => {
         console.error("Wallet adapter error:", error);
       }}

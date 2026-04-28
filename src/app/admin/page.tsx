@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { aptos, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain } from "@/lib/aptos";
+import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain } from "@/lib/movement";
 import { cn, formatTxError, toU64Stat } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 
@@ -350,7 +350,7 @@ export default function AdminPage() {
         return Boolean(v === true || v === 1 || v === "1");
       });
 
-      const transaction = await aptos.transaction.build.simple({
+      const transaction = await client.transaction.build.simple({
         sender: account.address.toString(),
         data: {
           function: moduleFunction("submit_player_stats"),
@@ -382,11 +382,11 @@ export default function AdminPage() {
       });
 
       const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await aptos.transaction.submit.simple({
+      const pending = await client.transaction.submit.simple({
         transaction,
         senderAuthenticator: signResult.authenticator,
       });
-      await aptos.waitForTransaction({
+      await client.waitForTransaction({
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });
@@ -405,7 +405,7 @@ export default function AdminPage() {
     setIsSubmitting(true);
     try {
       const gw = Number(resultsGameweekId);
-      const transaction = await aptos.transaction.build.simple({
+      const transaction = await client.transaction.build.simple({
         sender: account.address.toString(),
         data: {
           function: moduleFunction("calculate_results"),
@@ -421,11 +421,11 @@ export default function AdminPage() {
       });
 
       const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await aptos.transaction.submit.simple({
+      const pending = await client.transaction.submit.simple({
         transaction,
         senderAuthenticator: signResult.authenticator,
       });
-      await aptos.waitForTransaction({
+      await client.waitForTransaction({
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });

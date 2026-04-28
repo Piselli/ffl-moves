@@ -1,6 +1,6 @@
 import { Network } from "@aptos-labs/ts-sdk";
 
-/** Movement uses CUSTOM + explicit fullnode in Aptos TS SDK. */
+/** Movement uses a custom fullnode; `Network` enum is from the compatible TS SDK. */
 export const NETWORK = Network.CUSTOM;
 
 /** Dev fallback — production must set NEXT_PUBLIC_* (see .env.example). */
