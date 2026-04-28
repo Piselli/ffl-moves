@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { aptos, moduleFunction, getConfig, getGameweek } from "@/lib/aptos";
+import { aptos, moduleFunction, getConfig, getGameweek, getRegisteredSquadCoverage } from "@/lib/aptos";
+import { mergePlayersWithRegisteredCoverage, type OracleStatJson } from "@/lib/oracle-stats-coverage";
 import { MOVEMENT_RPC_URL } from "@/lib/constants";
 import { cn, formatTxError, toU64Stat } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
@@ -36,6 +37,8 @@ export default function AdminPage() {
   const [apiWarning, setApiWarning] = useState("");
   const [fetchedFixtures, setFetchedFixtures] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState("");
+  /** After fetch: how many 0-min rows were inserted for registered squads (on-chain auto-sub). */
+  const [coverageNote, setCoverageNote] = useState("");
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
@@ -96,6 +99,7 @@ export default function AdminPage() {
     setIsFetchingApi(true);
     setFetchError("");
     setFetchedFixtures([]);
+    setCoverageNote("");
 
     try {
       const result: GameweekStatsResult =
@@ -107,10 +111,26 @@ export default function AdminPage() {
         setFetchError(result.errors.join("; "));
       }
 
-      if (result.players.length > 0) {
+      let mergedPlayers: OracleStatJson[] = result.players as unknown as OracleStatJson[];
+      try {
+        const idToPos = await getRegisteredSquadCoverage(result.gameweekId);
+        const { merged, addedIds } = mergePlayersWithRegisteredCoverage(mergedPlayers, idToPos);
+        mergedPlayers = merged;
+        if (addedIds.length > 0) {
+          setCoverageNote(
+            `Registered coverage: added ${addedIds.length} row(s) at 0 minutes (IDs missing from fetch) — ` +
+              `${addedIds.slice(0, 24).join(", ")}${addedIds.length > 24 ? " …" : ""}. ` +
+              `Needed so starters with 0 min can auto-sub on-chain.`,
+          );
+        }
+      } catch (covErr) {
+        console.warn("Registered squad coverage merge skipped:", covErr);
+      }
+
+      if (mergedPlayers.length > 0) {
         const formattedStats = {
           gameweekId: result.gameweekId,
-          players: result.players,
+          players: mergedPlayers,
         };
         setStatsJson(JSON.stringify(formattedStats, null, 2));
         setFetchedFixtures(result.fixtures);
@@ -285,43 +305,50 @@ export default function AdminPage() {
         throw new Error("Invalid stats format. Need { gameweekId, players: [...] }");
       }
 
-      const n = stats.players.length;
+      const gwId = Number(stats.gameweekId);
+      const idToPos = await getRegisteredSquadCoverage(gwId);
+      const { merged, addedIds } = mergePlayersWithRegisteredCoverage(stats.players, idToPos);
+      if (addedIds.length > 0) {
+        setStatsJson(JSON.stringify({ gameweekId: gwId, players: merged }, null, 2));
+      }
+
+      const n = merged.length;
       if (n === 0) throw new Error("No players in JSON");
 
       // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
-      const playerIds = stats.players.map((p: any) => {
+      const playerIds = merged.map((p: any) => {
         const id = toU64Stat(p.playerId);
         if (id < 1) throw new Error(`Invalid playerId: ${p.playerId}`);
         return id;
       });
-      const positions = stats.players.map((p: any) => {
+      const positions = merged.map((p: any) => {
         const pos = toU64Stat(p.position);
         if (pos > 3) throw new Error(`Invalid position (0–3): ${p.position}`);
         return pos;
       });
-      const minutesPlayed = stats.players.map((p: any) => toU64Stat(p.minutesPlayed));
-      const goals = stats.players.map((p: any) => toU64Stat(p.goals));
-      const assists = stats.players.map((p: any) => toU64Stat(p.assists));
-      const cleanSheets = stats.players.map((p: any) => Boolean(p.cleanSheet));
-      const saves = stats.players.map((p: any) => toU64Stat(p.saves));
-      const penaltiesSaved = stats.players.map((p: any) => toU64Stat(p.penaltiesSaved));
-      const penaltiesMissed = stats.players.map((p: any) => toU64Stat(p.penaltiesMissed));
-      const ownGoals = stats.players.map((p: any) => toU64Stat(p.ownGoals));
-      const yellowCards = stats.players.map((p: any) => toU64Stat(p.yellowCards));
-      const redCards = stats.players.map((p: any) => toU64Stat(p.redCards));
-      const ratings = stats.players.map((p: any) => toU64Stat(p.rating));
-      const tackles = stats.players.map((p: any) => toU64Stat(p.tackles));
-      const interceptions = stats.players.map((p: any) => toU64Stat(p.interceptions));
-      const successfulDribbles = stats.players.map((p: any) => toU64Stat(p.successfulDribbles));
-      const freeKickGoals = stats.players.map((p: any) => toU64Stat(p.freeKickGoals));
-      const goalsConceded = stats.players.map((p: any) =>
+      const minutesPlayed = merged.map((p: any) => toU64Stat(p.minutesPlayed));
+      const goals = merged.map((p: any) => toU64Stat(p.goals));
+      const assists = merged.map((p: any) => toU64Stat(p.assists));
+      const cleanSheets = merged.map((p: any) => Boolean(p.cleanSheet));
+      const saves = merged.map((p: any) => toU64Stat(p.saves));
+      const penaltiesSaved = merged.map((p: any) => toU64Stat(p.penaltiesSaved));
+      const penaltiesMissed = merged.map((p: any) => toU64Stat(p.penaltiesMissed));
+      const ownGoals = merged.map((p: any) => toU64Stat(p.ownGoals));
+      const yellowCards = merged.map((p: any) => toU64Stat(p.yellowCards));
+      const redCards = merged.map((p: any) => toU64Stat(p.redCards));
+      const ratings = merged.map((p: any) => toU64Stat(p.rating));
+      const tackles = merged.map((p: any) => toU64Stat(p.tackles));
+      const interceptions = merged.map((p: any) => toU64Stat(p.interceptions));
+      const successfulDribbles = merged.map((p: any) => toU64Stat(p.successfulDribbles));
+      const freeKickGoals = merged.map((p: any) => toU64Stat(p.freeKickGoals));
+      const goalsConceded = merged.map((p: any) =>
         toU64Stat(p.goalsConceded ?? p.goals_conceded),
       );
-      const fplBonus = stats.players.map((p: any) => {
+      const fplBonus = merged.map((p: any) => {
         const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
         return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
       });
-      const fplCleanSheet = stats.players.map((p: any) => {
+      const fplCleanSheet = merged.map((p: any) => {
         const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
         return Boolean(v === true || v === 1 || v === "1");
       });
@@ -332,7 +359,7 @@ export default function AdminPage() {
           function: moduleFunction("submit_player_stats"),
           typeArguments: [],
           functionArguments: [
-            Number(stats.gameweekId),
+            gwId,
             playerIds,
             positions,
             minutesPlayed,
@@ -366,7 +393,11 @@ export default function AdminPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });
-      alert("Stats submitted successfully!");
+      const filledNote =
+        addedIds.length > 0
+          ? ` Also merged ${addedIds.length} registered-only player(s) at 0 minutes (on-chain auto-sub).`
+          : "";
+      alert(`Stats submitted successfully!${filledNote}`);
     } catch (error: any) {
       console.error("Failed to submit stats:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -847,6 +878,12 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {coverageNote && (
+                <div className="p-3 bg-sky-500/10 text-sky-200/95 rounded-xl text-sm border border-sky-500/25 leading-relaxed">
+                  {coverageNote}
+                </div>
+              )}
+
               {/* Fetched Fixtures */}
               {fetchedFixtures.length > 0 && (
                 <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
@@ -884,6 +921,11 @@ export default function AdminPage() {
             </div>
             <p className="text-muted-foreground text-sm mb-4">
               {statsJson ? "Stats fetched from API - review and submit:" : "Paste JSON with player stats for the gameweek. Format:"}
+              <span className="block text-xs text-muted-foreground/70 mt-2">
+                On submit, any player id registered for this GW on-chain but missing from JSON gets a 0-minute row
+                (same positions as squads) so <code className="text-xs text-muted-foreground/90">calculate_team_points</code> can
+                auto-substitute.
+              </span>
             </p>
             <pre className="text-xs bg-secondary/50 p-4 rounded-xl mb-4 overflow-x-auto text-muted-foreground border border-border">
 {`{

@@ -238,6 +238,14 @@ export async function getTeamResult(owner: string, gameweekId: number) {
   }
 }
 
+/** Normalize Move `vector<u8>` from view (array or Uint8Array). */
+function viewU8Vector(raw: unknown): number[] {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map((x) => viewNum(x));
+  if (raw instanceof Uint8Array) return Array.from(raw);
+  return [];
+}
+
 export async function getUserTeam(
   owner: string,
   gameweekId: number,
@@ -251,7 +259,7 @@ export async function getUserTeam(
       },
     });
     const rawIds = result[0] as unknown[];
-    const rawPos = (result[1] as unknown[]) ?? [];
+    const posArr = viewU8Vector(result[1]);
     // Must stay index-aligned with on-chain vectors (14 slots: 11 + bench). Filtering
     // ids dropped entries and paired wrong positions — squads looked short/wrong.
     const n = rawIds.length;
@@ -260,7 +268,7 @@ export async function getUserTeam(
     for (let i = 0; i < n; i++) {
       const id = viewNum(rawIds[i]);
       playerIds[i] = Number.isFinite(id) ? id : 0;
-      const v = viewNum(rawPos[i]);
+      const v = posArr[i];
       playerPositions[i] = Number.isFinite(v) && v >= 0 && v <= 3 ? v : 2;
     }
     return { playerIds, playerPositions };
@@ -284,6 +292,26 @@ export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
     console.error("Failed to get gameweek teams:", e);
     return [];
   }
+}
+
+/** Every distinct player id in any registered team for this GW → on-chain position (0–3). */
+export async function getRegisteredSquadCoverage(gameweekId: number): Promise<Map<number, number>> {
+  const idToPos = new Map<number, number>();
+  try {
+    const teams = await getGameweekTeams(gameweekId);
+    for (const owner of teams) {
+      const team = await getUserTeam(owner, gameweekId);
+      if (!team) continue;
+      const n = Math.min(team.playerIds.length, team.playerPositions.length);
+      for (let i = 0; i < n; i++) {
+        const id = team.playerIds[i];
+        if (id > 0) idToPos.set(id, team.playerPositions[i]);
+      }
+    }
+  } catch (e) {
+    console.error("getRegisteredSquadCoverage:", e);
+  }
+  return idToPos;
 }
 
 export async function getPlayerStats(gameweekId: number, playerId: number) {
