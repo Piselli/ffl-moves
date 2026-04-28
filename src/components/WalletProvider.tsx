@@ -20,11 +20,24 @@ function walletAdapterDappNetwork(): Network {
   return Network.TESTNET;
 }
 
+/**
+ * `wallet-adapter-core` only treats the dapp as “Movement” if `dappConfig.fullnode` is a
+ * string containing `movementnetwork`. Custom RPCs without that substring (or a broken env)
+ * make Nightly report `custom` and throw — even though reads use `MOVEMENT_RPC_URL`.
+ */
+function walletAdapterFullnodeOverride(): string {
+  const raw = MOVEMENT_RPC_URL.trim();
+  const lower = raw.toLowerCase();
+  if (lower.includes("movementnetwork")) return raw;
+  if (lower.includes("testnet")) return "https://testnet.movementnetwork.xyz/v1";
+  return "https://mainnet.movementnetwork.xyz/v1";
+}
+
 export function WalletProvider({ children }: PropsWithChildren) {
   /** Runtime adapter reads `fullnode` (see wallet-adapter-core `getAptosConfig`); duplicate `.d.ts` in pnpm may omit `fullnode`. */
   const dappConfig = {
     network: walletAdapterDappNetwork(),
-    fullnode: MOVEMENT_RPC_URL,
+    fullnode: walletAdapterFullnodeOverride(),
   } as ComponentProps<typeof AptosWalletAdapterProvider>["dappConfig"];
 
   return (
