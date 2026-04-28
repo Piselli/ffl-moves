@@ -8,6 +8,8 @@ import {
   getConfig,
   getGameweek,
   findOpenGameweekFromChain,
+  findHighestGameweekIdOnChain,
+  findLatestResolvedGameweekId,
   getTeamResult,
   getGameweekTeams,
   moduleFunction,
@@ -18,6 +20,8 @@ import { TeamResult } from "@/lib/types";
 export default function LeaderboardPage() {
   const { account, connected, signAndSubmitTransaction } = useWallet();
   const [config, setConfig] = useState<any>(null);
+  /** Upper bound for tour dropdown; can exceed `config.currentGameweek` if pointer lags. */
+  const [pickerMaxGw, setPickerMaxGw] = useState(0);
   const [currentGameweek, setCurrentGameweek] = useState<any>(null);
   const [selectedGameweek, setSelectedGameweek] = useState<number>(0);
   const [leaderboardData, setLeaderboardData] = useState<TeamResult[]>([]);
@@ -30,10 +34,32 @@ export default function LeaderboardPage() {
       try {
         const configData = await getConfig();
         setConfig(configData);
+        if (!configData) {
+          setIsLoading(false);
+          return;
+        }
 
-        const openGw = await findOpenGameweekFromChain(configData);
-        if (openGw) {
-          setSelectedGameweek(openGw.id);
+        const [openGw, highestId] = await Promise.all([
+          findOpenGameweekFromChain(configData),
+          findHighestGameweekIdOnChain(configData),
+        ]);
+
+        const maxPick = Math.max(Number(configData.currentGameweek) || 0, highestId);
+        setPickerMaxGw(maxPick);
+
+        const latestResolved = await findLatestResolvedGameweekId(highestId);
+
+        let initial = 0;
+        if (latestResolved > 0) {
+          initial = latestResolved;
+        } else if (openGw) {
+          initial = openGw.id;
+        } else if (maxPick > 0) {
+          initial = maxPick;
+        }
+
+        if (initial > 0) {
+          setSelectedGameweek(initial);
         } else {
           setIsLoading(false);
         }
@@ -127,7 +153,10 @@ export default function LeaderboardPage() {
             onChange={(e) => setSelectedGameweek(Number(e.target.value))}
             className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer"
           >
-            {Array.from({ length: config?.currentGameweek || 1 }, (_, i) => i + 1).map((gw) => (
+            {Array.from(
+              { length: Math.max(1, pickerMaxGw || Number(config?.currentGameweek) || 1) },
+              (_, i) => i + 1,
+            ).map((gw) => (
               <option key={gw} value={gw} className="bg-[#0D0F12]">
                 {gw}
               </option>

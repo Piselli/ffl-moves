@@ -127,6 +127,38 @@ export async function findOpenGameweekFromChain(
   return null;
 }
 
+/**
+ * Highest gameweek id that exists on-chain.
+ *
+ * Important: do **not** stop at the first missing id — `Table` ids may be non-contiguous
+ * (e.g. GW 34 exists while GW 33 was never stored), and a single RPC failure would also
+ * truncate the range incorrectly.
+ */
+export async function findHighestGameweekIdOnChain(
+  configData: Awaited<ReturnType<typeof getConfig>>,
+): Promise<number> {
+  if (!configData) return 0;
+  const hint = Number(configData.currentGameweek);
+  const maxScan =
+    Number.isFinite(hint) && hint >= 1 ? Math.min(Math.max(hint + 80, 120), 200) : 120;
+  let maxId = 0;
+  for (let id = 1; id <= maxScan; id++) {
+    const g = await getGameweek(id);
+    if (g) maxId = id;
+  }
+  return maxId;
+}
+
+/** Latest resolved GW at or below `highestId` — best default for the leaderboard after publishing results. */
+export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
+  if (highestId < 1) return 0;
+  for (let id = highestId; id >= 1; id--) {
+    const g = await getGameweek(id);
+    if (g?.status === "resolved") return id;
+  }
+  return 0;
+}
+
 export async function getUserTitle(owner: string) {
   try {
     const result = await aptos.view({
