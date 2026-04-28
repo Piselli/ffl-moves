@@ -6588,12 +6588,12 @@
     "photo": "https://media.api-sports.io/football/players/24888.png"
   },
   {
-    "id": 550,
+    "id": 654,
     "apiId": 2032,
     "name": "J. Strand Larsen",
-    "team": "Wolverhampton",
-    "teamId": 5,
-    "apiTeamId": 39,
+    "team": "Crystal Palace",
+    "teamId": 16,
+    "apiTeamId": 52,
     "position": "FWD",
     "positionId": 3,
     "price": 6,

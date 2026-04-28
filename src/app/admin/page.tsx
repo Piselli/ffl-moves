@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { aptos, moduleFunction, getConfig, getGameweek, getRegisteredSquadCoverage } from "@/lib/aptos";
+import {
+  aptos,
+  moduleFunction,
+  getConfig,
+  getGameweek,
+  getRegisteredSquadCoverage,
+  findOpenGameweekFromChain,
+  type GameweekSummary,
+} from "@/lib/aptos";
 import { mergePlayersWithRegisteredCoverage, type OracleStatJson } from "@/lib/oracle-stats-coverage";
 import { MOVEMENT_RPC_URL } from "@/lib/constants";
 import { cn, formatTxError, toU64Stat } from "@/lib/utils";
@@ -39,6 +47,8 @@ export default function AdminPage() {
   const [fetchError, setFetchError] = useState("");
   /** After fetch: how many 0-min rows were inserted for registered squads (on-chain auto-sub). */
   const [coverageNote, setCoverageNote] = useState("");
+  /** OPEN week for registration (may differ from `config.currentGameweek` if the pointer lags). */
+  const [openRegistrationGameweek, setOpenRegistrationGameweek] = useState<GameweekSummary | null>(null);
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
@@ -46,6 +56,7 @@ export default function AdminPage() {
       const configData = await getConfig();
       setConfig(configData);
       setCurrentGameweek(null);
+      setOpenRegistrationGameweek(null);
       if (configData?.currentGameweek) {
         try {
           const gwData = await getGameweek(configData.currentGameweek);
@@ -53,6 +64,12 @@ export default function AdminPage() {
         } catch {
           console.log("No active gameweek found on chain yet (likely initialized to 0).");
         }
+      }
+      try {
+        const openGw = await findOpenGameweekFromChain(configData);
+        setOpenRegistrationGameweek(openGw);
+      } catch {
+        setOpenRegistrationGameweek(null);
       }
     } finally {
       setIsLoading(false);
@@ -180,21 +197,29 @@ export default function AdminPage() {
   };
 
   const handleCloseGameweek = async () => {
-    if (!connected || !currentGameweek) return;
+    if (!connected) return;
 
     setIsSubmitting(true);
     try {
+      const configData = await getConfig();
+      if (!configData) {
+        alert("Не вдалося прочитати config з ланцюга.");
+        return;
+      }
+      const openGw = await findOpenGameweekFromChain(configData);
+      if (!openGw || openGw.status !== "open") {
+        alert("Немає туру зі статусом OPEN для закриття (реєстрація вже закрита або тур не знайдено).");
+        return;
+      }
       await signAndSubmitTransaction({
         data: {
           function: moduleFunction("close_gameweek"),
           typeArguments: [],
-          functionArguments: [currentGameweek.id.toString()],
+          functionArguments: [openGw.id.toString()],
         },
       });
-      alert(`Gameweek ${currentGameweek.id} closed!`);
-      // Refresh
-      const gwData = await getGameweek(currentGameweek.id);
-      setCurrentGameweek(gwData);
+      alert(`Gameweek ${openGw.id} closed!`);
+      await loadChainConfig();
     } catch (error: any) {
       console.error("Failed to close gameweek:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -218,9 +243,7 @@ export default function AdminPage() {
         },
       });
       alert(`Gameweek ${currentGameweek.id} is now OPEN again!`);
-      // Refresh
-      const gwData = await getGameweek(currentGameweek.id);
-      setCurrentGameweek(gwData);
+      await loadChainConfig();
     } catch (error: any) {
       console.error("Failed to reopen gameweek:", error);
       alert(`Failed: ${formatTxError(error)}`);
@@ -552,6 +575,7 @@ export default function AdminPage() {
             <p className="text-3xl font-bold text-white">
               {currentGameweek?.id || "None"}
             </p>
+            <p className="text-[10px] text-muted-foreground/70 mt-1">from get_gameweek(config.currentGameweek)</p>
           </div>
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
             <p className="text-muted-foreground text-sm mb-1">Status</p>
@@ -570,13 +594,28 @@ export default function AdminPage() {
               {currentGameweek?.status?.toUpperCase() || "N/A"}
             </div>
           </div>
-          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-2">
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
+            <p className="text-muted-foreground text-sm mb-1">OPEN registration</p>
+            <p className="text-3xl font-bold text-white">
+              {openRegistrationGameweek?.status === "open" ? openRegistrationGameweek.id : "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground/70 mt-1">oracle must close this GW before stats</p>
+          </div>
+          <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
             <p className="text-muted-foreground text-sm mb-1">Prize Pool Percentage</p>
             <p className="text-3xl font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
               {config?.prizePoolPercent || "0"}%
             </p>
           </div>
         </div>
+        {openRegistrationGameweek?.status === "open" &&
+          config?.currentGameweek != null &&
+          openRegistrationGameweek.id !== config.currentGameweek && (
+            <p className="mt-4 text-sm text-amber-200/90 leading-relaxed border-t border-white/[0.06] pt-4">
+              <strong>Увага:</strong> у config вказівник <code className="text-xs bg-black/30 px-1 rounded">current_gameweek = {config.currentGameweek}</code>, але реєстрація ще{" "}
+              <strong>OPEN</strong> на <strong>GW{openRegistrationGameweek.id}</strong>. Кнопка «Close» закриває саме відкритий тур — після цього оракул зможе подати статистику для GW{openRegistrationGameweek.id}.
+            </p>
+          )}
       </div>
 
       <div className="space-y-6">
@@ -706,39 +745,49 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Close/Reopen Gameweek (Admin) */}
-        {isAdmin && currentGameweek && (
+        {/* Close OPEN gameweek (Admin) — uses findOpenGameweekFromChain, not config pointer */}
+        {isAdmin && openRegistrationGameweek?.status === "open" && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {currentGameweek.status === "open" ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  )}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">
-                {currentGameweek.status === "open" ? "Close Registration" : "Re-open Gameweek"}
-              </h2>
+              <h2 className="text-xl font-bold text-white">Close registration</h2>
             </div>
             <p className="text-muted-foreground mb-4">
-              {currentGameweek.status === "open" 
-                ? `Close GW ${currentGameweek.id} to stop new team registrations and prepare for stats submission.`
-                : `Reset GW ${currentGameweek.id} back to OPEN status. WARNING: This will clear calculated results and submitted stats.`}
+              Close GW <strong className="text-white">{openRegistrationGameweek.id}</strong> to stop new team registrations and allow oracle stats submission for this gameweek.
             </p>
             <button
-              onClick={currentGameweek.status === "open" ? handleCloseGameweek : handleReopenGameweek}
+              onClick={handleCloseGameweek}
               disabled={isSubmitting}
-              className={cn(
-                "px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
-                currentGameweek.status === "open" 
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400"
-                  : "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500"
-              )}
+              className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400"
             >
-              {isSubmitting ? "..." : currentGameweek.status === "open" ? "Close Gameweek" : "Re-open Gameweek"}
+              {isSubmitting ? "..." : `Close GW ${openRegistrationGameweek.id}`}
+            </button>
+          </div>
+        )}
+
+        {isAdmin && currentGameweek && currentGameweek.status !== "open" && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">Re-open gameweek (pointer row)</h2>
+            </div>
+            <p className="text-muted-foreground mb-4">
+              Reset GW <strong className="text-white">{currentGameweek.id}</strong> (the week shown as &quot;Current&quot; above) back to OPEN. WARNING: clears calculated results and submitted stats for that gameweek.
+            </p>
+            <button
+              onClick={handleReopenGameweek}
+              disabled={isSubmitting}
+              className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500"
+            >
+              {isSubmitting ? "..." : `Re-open GW ${currentGameweek.id}`}
             </button>
           </div>
         )}
