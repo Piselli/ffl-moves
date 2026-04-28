@@ -9,9 +9,11 @@ import { MOVEMENT_RPC_URL } from "@/lib/constants";
 const queryClient = new QueryClient();
 
 /**
- * Aptos Connect (Google/Apple SDK wallets) rejects Network.CUSTOM.
- * We still use Network.CUSTOM + fullnode in `src/lib/aptos.ts` for reads; here we only
- * satisfy the adapter so it can construct SDK wallets without throwing.
+ * Wallet adapter's `getAptosConfig` (core) only allows Movement / custom fullnode if
+ * `dappConfig.fullnode` contains "movementnetwork" — otherwise it falls back to the
+ * wallet's `networkInfo.name`, which is often "custom" on Nightly and throws
+ * "Invalid network, network custom not supported…".
+ * @see node_modules/@aptos-labs/wallet-adapter-core (getAptosConfig)
  */
 function walletAdapterDappNetwork(): Network {
   const u = MOVEMENT_RPC_URL.toLowerCase();
@@ -24,7 +26,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
     <AptosWalletAdapterProvider
       autoConnect={true}
       optInWallets={["Nightly"]}
-      dappConfig={{ network: walletAdapterDappNetwork() }}
+      dappConfig={{ network: walletAdapterDappNetwork(), fullnode: MOVEMENT_RPC_URL }}
       onError={(error) => {
         console.error("Wallet adapter error:", error);
       }}
