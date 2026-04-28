@@ -9,14 +9,17 @@ import { nightlyConnectRows } from "@/lib/walletNightly";
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { useNickname } from "@/hooks/useNickname";
 import { NicknameModal } from "./NicknameModal";
-
-const navLinks = [
-  { href: "/gameweek", label: "Склад" },
-  { href: "/leaderboard", label: "Лідерборд" },
-  { href: "/fixtures", label: "Матчі" },
-];
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 
 export function Navbar() {
+  const m = useSiteMessages();
+  const { locale } = useSiteLocale();
+  const navLinks = [
+    { href: "/gameweek", label: m.nav.squad },
+    { href: "/leaderboard", label: m.nav.leaderboard },
+    { href: "/fixtures", label: m.nav.fixtures },
+  ];
   const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -103,16 +106,12 @@ export function Navbar() {
       connectHintTimerRef.current = setTimeout(() => {
         connectHintTimerRef.current = null;
         if (!connectedRef.current) {
-          setConnectHint(
-            "Схоже, Nightly не відкрився або не встановлено. Завантаж Nightly за посиланням нижче й спробуй підключити знову.",
-          );
+          setConnectHint(m.nav.connectHintNightly);
         }
       }, 2200);
     } catch (e) {
       console.error("Failed to connect:", e);
-      setConnectHint(
-        "Не вдалося підключити гаманець. Перевір, чи встановлено Nightly, або скористайся посиланнями нижче.",
-      );
+      setConnectHint(m.nav.connectHintFailed);
     }
   };
 
@@ -144,8 +143,9 @@ export function Navbar() {
             <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
             <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
           </div>
-          <div className="hidden md:flex flex-1 justify-end px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-xs font-semibold bg-white/5 text-white/30">
-            Loading...
+          <div className="hidden md:flex flex-1 justify-end items-center gap-3 px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-xs font-semibold bg-white/5 text-white/30">
+            <LanguageSwitcher />
+            <span>{m.nav.loading}</span>
           </div>
         </nav>
       </div>
@@ -198,10 +198,10 @@ export function Navbar() {
           <div className="relative flex flex-col items-center px-4 py-2 rounded-lg cursor-not-allowed select-none">
             <div className="relative">
               <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
-                Таланти
+                {m.nav.talents}
               </span>
               <span className="absolute -top-2 -right-7 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
-                soon
+                {m.nav.soon}
               </span>
             </div>
             <span className="mt-0.5 w-1 h-1 rounded-full bg-transparent" />
@@ -219,11 +219,12 @@ export function Navbar() {
         )}
 
         {/* ── Right: Mobile menu + Wallet ────────────────────────────── */}
-        <div className="relative flex items-center gap-1.5 sm:gap-3 shrink-0" ref={dropdownRef}>
+        <div className="relative flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0" ref={dropdownRef}>
+          <LanguageSwitcher />
           <button
             type="button"
             aria-expanded={mobileMenuOpen}
-            aria-label={mobileMenuOpen ? "Закрити меню" : "Відкрити меню"}
+            aria-label={mobileMenuOpen ? m.nav.menuClose : m.nav.menuOpen}
             onClick={() => {
               setMobileMenuOpen((o) => !o);
               setShowWalletList(false);
@@ -246,7 +247,7 @@ export function Navbar() {
               <button
                 onClick={() => setShowNicknameModal(true)}
                 className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-[#00C46A]/40 hover:bg-white/[0.08] transition-all duration-200 group"
-                title={myNickname ? "Змінити нікнейм" : "Встановити нікнейм"}
+                title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse shadow-[0_0_6px_rgba(0,196,106,0.8)]" />
                 <span className="text-xs text-[#00C46A] font-black font-display uppercase tracking-wider">
@@ -262,7 +263,7 @@ export function Navbar() {
                 onClick={disconnect}
                 className="px-2.5 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-display font-bold uppercase tracking-wider border border-red-500/20 text-red-400/70 hover:border-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 whitespace-nowrap"
               >
-                {"Від'єднати"}
+                {m.nav.disconnect}
               </button>
             </div>
           ) : (
@@ -281,8 +282,8 @@ export function Navbar() {
                 }}
                 className="relative group px-2.5 py-2 min-[400px]:px-4 min-[400px]:py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] min-[400px]:text-xs font-display font-black uppercase tracking-wide min-[400px]:tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none whitespace-nowrap"
               >
-                <span className="min-[400px]:hidden">Гаманець</span>
-                <span className="hidden min-[400px]:inline">Підключити гаманець</span>
+                <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
+                <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
               </button>
 
               {/* Wallet dropdown */}
@@ -290,9 +291,9 @@ export function Navbar() {
                 <div className="absolute right-0 top-full z-[60] mt-3 sm:mt-4 w-[min(18rem,calc(100vw-2rem))] sm:w-72 rounded-2xl bg-[#0D0F12]/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-4 border-b border-white/[0.06] bg-white/[0.02]">
                     <p className="text-sm font-display font-black uppercase tracking-wider text-white">
-                      Обери гаманець
+                      {m.nav.chooseWallet}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">Сумісний з Movement Network</p>
+                    <p className="text-xs text-white/40 mt-1">{m.nav.compatibleMovement}</p>
                   </div>
                   <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
                     {connectHint ? (
@@ -319,30 +320,30 @@ export function Navbar() {
                                 {row.name}
                               </p>
                               <p className="text-xs text-[#00e676] font-bold uppercase tracking-wider mt-0.5">
-                                {row.mode === "installed" ? "Встановлено" : "Відкрити в Nightly"}
+                                {row.mode === "installed" ? m.nav.installed : m.nav.openInNightly}
                               </p>
                             </div>
                           </button>
                         ))}
                         {nightlyRows.some((r) => r.mode === "app") ? (
                           <div className="px-3 pb-2 pt-2 border-t border-white/[0.06] mt-1">
-                            <WalletOnboardingLinks locale="uk" />
+                            <WalletOnboardingLinks locale={locale} />
                           </div>
                         ) : null}
                       </>
                     ) : (
                       <div className="p-4 text-center">
                         <span className="text-3xl block mb-3">🔌</span>
-                        <p className="text-sm font-bold text-white mb-1">Гаманців не знайдено</p>
+                        <p className="text-sm font-bold text-white mb-1">{m.nav.noWalletsFound}</p>
                         <p className="text-xs text-white/45 leading-relaxed mb-4">
-                          Потрібен гаманець Nightly. Після встановлення натисни «Підключити гаманець» знову.
+                          {m.nav.noWalletsHint}
                         </p>
-                        <WalletOnboardingLinks locale="uk" />
+                        <WalletOnboardingLinks locale={locale} />
                       </div>
                     )}
                     {connectHint && nightlyRows.length > 0 && !nightlyRows.some((r) => r.mode === "app") ? (
                       <div className="px-3 pb-2 pt-2 border-t border-white/[0.06]">
-                        <WalletOnboardingLinks locale="uk" />
+                        <WalletOnboardingLinks locale={locale} />
                       </div>
                     ) : null}
                   </div>
@@ -373,9 +374,9 @@ export function Navbar() {
           })}
           <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest text-white/25 cursor-not-allowed select-none">
             <span className="relative">
-              Таланти
+              {m.nav.talents}
               <span className="absolute -top-1.5 -right-12 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
-                soon
+                {m.nav.soon}
               </span>
             </span>
           </div>

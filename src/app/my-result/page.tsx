@@ -14,6 +14,9 @@ import { FORMATION } from "@/lib/constants";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { useSiteMessages, useSiteLocale } from "@/i18n/LocaleProvider";
+import { messages } from "@/i18n/messages";
+import { TEAM_NOT_IN_SITE_CATALOG } from "@/lib/catalog-placeholders";
 
 const positionColor: Record<string, string> = {
   GK:  "text-rose-400",
@@ -125,6 +128,8 @@ export default function MyResultPage() {
   const { connected, account } = useWallet();
   const address = account?.address?.toString() ?? null;
   const { myNickname } = useNickname(address);
+  const { locale } = useSiteLocale();
+  const mr = useSiteMessages().pages.myResult;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,11 +144,12 @@ export default function MyResultPage() {
     const addr: string = address;
 
     async function load() {
+      const mr = messages[locale].pages.myResult;
       setLoading(true);
       setError(null);
       try {
         const config = await getConfig();
-        if (!config) throw new Error("Не вдалось завантажити конфіг");
+        if (!config) throw new Error(mr.errConfig);
         let currentGwId: number = Number(config.currentGameweek) || 1;
 
         // Latest GW where this wallet has a result (config may already point at the next open week).
@@ -181,10 +187,10 @@ export default function MyResultPage() {
 
         setTotalParticipants(teams.length);
 
-        if (!teamResult) throw new Error("Результат не знайдено — тур ще не закритий або ти не реєстрував склад");
+        if (!teamResult) throw new Error(mr.errResultNotFound);
         setResult({ ...teamResult, owner: addr });
 
-        if (!userTeam) throw new Error("Склад не знайдено");
+        if (!userTeam) throw new Error(mr.errSquadNotFound);
 
         // Fetch per-player stats using the actual player IDs from the team
         if (userTeam?.playerIds?.length) {
@@ -206,7 +212,7 @@ export default function MyResultPage() {
           setGwStats(merged);
         }
 
-        if (!playersRes.ok) throw new Error("Не вдалось завантажити гравців");
+        if (!playersRes.ok) throw new Error(mr.errPlayersLoad);
         const allPlayers: Player[] = await playersRes.json();
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
         await mergeFplCatalogForChainIds(playerMap, userTeam.playerIds);
@@ -218,13 +224,13 @@ export default function MyResultPage() {
         );
         setPlayers(squad);
       } catch (e: unknown) {
-        setError(getErrorMessage(e, "Щось пішло не так"));
+        setError(getErrorMessage(e, mr.errGeneric));
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [connected, address]);
+  }, [connected, address, locale]);
 
   // ── Not connected ──────────────────────────────────────────────────────────
   if (!connected) {
@@ -232,8 +238,8 @@ export default function MyResultPage() {
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white">
         <div className="text-center px-6">
           <p className="text-4xl mb-4">🔒</p>
-          <h1 className="text-xl font-display font-black uppercase mb-2">Підключи гаманець</h1>
-          <p className="text-white/40 text-sm">Щоб побачити свій результат</p>
+          <h1 className="text-xl font-display font-black uppercase mb-2">{mr.connectTitle}</h1>
+          <p className="text-white/40 text-sm">{mr.connectHint}</p>
         </div>
       </div>
     );
@@ -245,7 +251,7 @@ export default function MyResultPage() {
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-white/30">
           <div className="w-8 h-8 border-2 border-white/10 border-t-[#00C46A] rounded-full animate-spin" />
-          <p className="text-sm">Завантаження результату…</p>
+          <p className="text-sm">{mr.loading}</p>
         </div>
       </div>
     );
@@ -257,10 +263,10 @@ export default function MyResultPage() {
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white px-6">
         <div className="text-center max-w-sm">
           <p className="text-3xl mb-4">⚠️</p>
-          <h1 className="text-lg font-display font-black uppercase mb-2">Результат недоступний</h1>
+          <h1 className="text-lg font-display font-black uppercase mb-2">{mr.unavailableTitle}</h1>
           <p className="text-white/40 text-sm mb-6">{error}</p>
           <Link href="/leaderboard" className="text-[#00C46A] text-sm font-semibold hover:underline">
-            Переглянути лідерборд →
+            {mr.viewLeaderboard}
           </Link>
         </div>
       </div>
@@ -283,7 +289,7 @@ export default function MyResultPage() {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Лідерборд
+          {mr.backLeaderboard}
         </Link>
 
         {/* ── Card ────────────────────────────────────────────────────────── */}
@@ -303,7 +309,7 @@ export default function MyResultPage() {
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#00C46A] text-[10px] font-bold uppercase tracking-widest mb-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
-                  Gameweek {gwId}
+                  {mr.gwBadge(gwId)}
                 </div>
                 <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-none">
                   {displayName}
@@ -337,17 +343,17 @@ export default function MyResultPage() {
               <div className="grid grid-cols-3 gap-3 mt-5">
                 {[
                   {
-                    label: "Очки",
+                    label: mr.pointsLabel,
                     value: String(result.finalPoints),
                     accent: false,
                   },
                   {
-                    label: "Приз",
+                    label: mr.prizeLabel,
                     value: result.prizeAmount > 0 ? `${formatMOVE(result.prizeAmount)} MOVE` : "—",
                     accent: result.prizeAmount > 0,
                   },
                   {
-                    label: "Учасників",
+                    label: mr.participantsLabel,
                     value: totalParticipants > 0 ? String(totalParticipants) : "—",
                     accent: false,
                   },
@@ -367,20 +373,20 @@ export default function MyResultPage() {
           {players.length > 0 && (
             <div className="px-6 py-5 space-y-6">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-bold">Склад туру</p>
+                <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-bold">{mr.squadTitle}</p>
                 {!hasStats && (
-                  <p className="text-[10px] text-white/20 italic">Статистику ще не підведено</p>
+                  <p className="text-[10px] text-white/20 italic">{mr.statsPending}</p>
                 )}
               </div>
-              {players.some((p) => p.team === "Немає в каталозі") && (
+              {players.some((p) => p.team === TEAM_NOT_IN_SITE_CATALOG) && (
                 <p className="text-[10px] text-amber-400/90 leading-snug -mt-2">
-                  Деякі id не знайдені в короткому каталозі сайту; ім’я підтягується з повного списку FPL. Якщо все ще «Гравець #id» — гравця немає в bootstrap FPL (рідкісно).
+                  {mr.catalogHint}
                 </p>
               )}
 
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/35 mb-2.5">
-                  Основний склад · {FORMATION.GK + FORMATION.DEF + FORMATION.MID + FORMATION.FWD}
+                  {mr.startingXi(FORMATION.GK + FORMATION.DEF + FORMATION.MID + FORMATION.FWD)}
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
                   {players.slice(0, 11).map((p, i) => (
@@ -395,7 +401,7 @@ export default function MyResultPage() {
 
               <div className="pt-1 border-t border-white/[0.06]">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/35 mb-2.5">
-                  Запасні · {FORMATION.BENCH}
+                  {mr.bench(FORMATION.BENCH)}
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
                   {players.slice(11, 14).map((p, i) => (
@@ -411,7 +417,7 @@ export default function MyResultPage() {
               {/* Points legend */}
               {hasStats && (
                 <div className="mt-4 flex items-center gap-3 flex-wrap">
-                  <span className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Очки:</span>
+                  <span className="text-[9px] text-white/20 uppercase tracking-widest font-bold">{mr.pointsLegend}</span>
                   {[
                     { color: "bg-[#00C46A]", label: "7+" },
                     { color: "bg-amber-400", label: "4–6" },
@@ -447,7 +453,7 @@ export default function MyResultPage() {
             href="/gameweek"
             className="flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/[0.10] text-white/60 font-display font-bold uppercase tracking-wider text-sm hover:border-white/[0.20] hover:text-white/80 transition-all"
           >
-            Зібрати склад на наступний тур →
+            {mr.ctaNextGw}
           </Link>
         </motion.div>
 

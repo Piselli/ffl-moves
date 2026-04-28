@@ -22,6 +22,7 @@ import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -40,6 +41,7 @@ function isCompleteRegisteredSnapshot(
 
 export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
+  const g = useSiteMessages().pages.gameweek;
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
@@ -393,7 +395,7 @@ export default function GameweekPage() {
       if (isUserRejection) {
         // User dismissed the wallet prompt — no error alert
       } else {
-        alert(`Помилка реєстрації: ${msg}`);
+        alert(`${g.registerErrorPrefix} ${msg}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -409,8 +411,8 @@ export default function GameweekPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">Вибір складу</h1>
-          <p className="text-white/40 text-sm leading-relaxed">Підключи гаманець щоб вибрати свій склад на поточний тур.</p>
+          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">{g.connectTitle}</h1>
+          <p className="text-white/40 text-sm leading-relaxed">{g.connectDesc}</p>
         </div>
       </div>
     );
@@ -434,21 +436,21 @@ export default function GameweekPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">Тур {currentGameweek?.id}</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">{g.gwWord} {currentGameweek?.id}</span>
             </div>
-            <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">Твій зареєстрований склад</h1>
+            <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">{g.registeredTitle}</h1>
           </div>
           <a
             href="/leaderboard"
             className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-sm hover:bg-emerald-500/30 transition-colors"
           >
-            Лідерборд →
+            {g.leaderboardLink}
           </a>
         </div>
 
         {/* Starters */}
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
-          <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Основа</h2>
+          <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">{g.startersSection}</h2>
           <div className="space-y-1">
             {positionOrder.map((pos) => {
               const posPlayers = teamToShow.filter((p) => p.position === pos);
@@ -488,7 +490,7 @@ export default function GameweekPage() {
         {/* Bench */}
         {benchToShow.length > 0 && (
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
-            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Запасні</h2>
+            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">{g.benchSection}</h2>
             <div className="space-y-1">
               {benchToShow.map((player) => (
                 <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
@@ -518,10 +520,18 @@ export default function GameweekPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">Тур недоступний</h1>
+          <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">{g.unavailableTitle}</h1>
           <p className="text-white/40 text-sm leading-relaxed">
-            Зараз немає відкритого ігрового тижня.
-            {currentGameweek && ` Тур ${currentGameweek.id} — ${currentGameweek.status === "closed" ? "закрито" : currentGameweek.status === "resolved" ? "завершено" : currentGameweek.status}.`}
+            {g.unavailableIntro}
+            {currentGameweek &&
+              g.unavailableGwSuffix(
+                currentGameweek.id,
+                currentGameweek.status === "closed"
+                  ? g.statusClosed
+                  : currentGameweek.status === "resolved"
+                    ? g.statusResolved
+                    : String(currentGameweek.status),
+              )}
           </p>
         </div>
       </div>
@@ -543,9 +553,9 @@ export default function GameweekPage() {
         extraClass
       )}
     >
-      {isSubmitting ? "Реєстрація..." : isTeamComplete
-        ? `Підтвердити склад · ${formatMOVE(config?.entryFee || 0)} MOVE`
-        : `Обери ${FORMATION.TOTAL} гравців (${totalCount}/${FORMATION.TOTAL})`}
+      {isSubmitting ? g.submitRegistering : isTeamComplete
+        ? g.submitConfirm(formatMOVE(config?.entryFee || 0))
+        : g.submitNeedPlayers(totalCount, FORMATION.TOTAL)}
     </button>
   );
 
@@ -557,12 +567,12 @@ export default function GameweekPage() {
         <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">
-              Тур {currentGameweek?.id} · Вибір складу
+              {g.headerTitle(currentGameweek?.id ?? 0)}
             </h1>
-            <p className="text-white/40 text-sm">Обери 11 гравців. Максимум 3 з однієї команди.</p>
+            <p className="text-white/40 text-sm">{g.pickPlayersHint}</p>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Вартість реєстрації</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
             <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent">
               {config ? formatMOVE(config.entryFee) : "—"} MOVE
             </p>
@@ -572,12 +582,12 @@ export default function GameweekPage() {
         <div className="lg:hidden flex items-center justify-between mb-4">
           <div>
             <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
-              Тур {currentGameweek?.id} · Вибір складу
+              {g.headerTitle(currentGameweek?.id ?? 0)}
             </h1>
-            <p className="text-white/30 text-xs mt-0.5">Максимум 3 з однієї команди</p>
+            <p className="text-white/30 text-xs mt-0.5">{g.maxThreeHint}</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Внесок</p>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>
             <p className="text-base font-display font-black text-[#00C46A]">
               {config ? formatMOVE(config.entryFee) : "—"} MOVE
             </p>
@@ -594,7 +604,7 @@ export default function GameweekPage() {
 
             {/* Bench */}
             <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Запасні ({benchCount}/{FORMATION.BENCH})</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">{g.benchTitle(benchCount, FORMATION.BENCH)}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {bench.map((player, idx) => (
                   <button
@@ -613,7 +623,7 @@ export default function GameweekPage() {
                         <span className="text-xs font-medium text-white truncate">{player.webName || player.name}</span>
                       </>
                     ) : (
-                      <span className="text-xs">Запасний {idx + 1}</span>
+                      <span className="text-xs">{g.benchSlotEmpty(idx)}</span>
                     )}
                   </button>
                 ))}
@@ -626,7 +636,7 @@ export default function GameweekPage() {
                 isTeamComplete ? "text-emerald-400" : "text-white/40"
               )}>
                 <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {totalCount}/{FORMATION.TOTAL} гравців ({starterCount} основних + {benchCount} запасних)
+                {g.playersProgress(totalCount, FORMATION.TOTAL, starterCount, benchCount)}
               </span>
             </div>
             {submitBtn("mt-3 text-lg")}
@@ -642,7 +652,7 @@ export default function GameweekPage() {
               </svg>
               <input
                 type="text"
-                placeholder="Пошук гравця..."
+                placeholder={g.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] focus:border-[#00C46A]/30 transition-colors"
@@ -675,7 +685,7 @@ export default function GameweekPage() {
                 onChange={(e) => setTeamFilter(e.target.value)}
                 className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 focus:border-[#00C46A]/30 text-sm appearance-none cursor-pointer transition-colors"
               >
-                <option value="">Всі команди</option>
+                <option value="">{g.allTeams}</option>
                 {uniqueTeams.map((team) => (
                   <option key={team} value={team}>{team}</option>
                 ))}
@@ -687,12 +697,12 @@ export default function GameweekPage() {
             {/* Active filters count */}
             {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
               <div className="flex items-center justify-between text-xs text-white/40">
-                <span>{filteredPlayers.length} гравців</span>
+                <span>{g.playersFound(filteredPlayers.length)}</span>
                 <button
                   onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }}
                   className="text-[#00C46A]/70 hover:text-[#00C46A] font-semibold transition-colors"
                 >
-                  Скинути фільтри
+                  {g.resetFilters}
                 </button>
               </div>
             )}
@@ -713,8 +723,8 @@ export default function GameweekPage() {
               ))
             ) : filteredPlayers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-white/30">
-                <p className="text-base font-semibold">Гравців не знайдено</p>
-                <p className="text-sm mt-1 text-white/20">Спробуй інші фільтри</p>
+                <p className="text-base font-semibold">{g.noPlayersTitle}</p>
+                <p className="text-sm mt-1 text-white/20">{g.noPlayersHint}</p>
               </div>
             ) : (
               filteredPlayers.map((player) => {
@@ -745,7 +755,7 @@ export default function GameweekPage() {
             <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
             {/* Bench */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Запасні ({benchCount}/{FORMATION.BENCH})</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">{g.benchTitle(benchCount, FORMATION.BENCH)}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {bench.map((player, idx) => (
                   <button
@@ -764,7 +774,7 @@ export default function GameweekPage() {
                         <span className="text-[11px] font-medium text-white truncate">{player.webName || player.name}</span>
                       </>
                     ) : (
-                      <span className="text-[11px]">Запасний {idx + 1}</span>
+                      <span className="text-[11px]">{g.benchSlotEmpty(idx)}</span>
                     )}
                   </button>
                 ))}
@@ -773,7 +783,7 @@ export default function GameweekPage() {
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
               <span className={cn("flex items-center gap-2 text-sm font-semibold", isTeamComplete ? "text-emerald-400" : "text-white/40")}>
                 <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {totalCount}/{FORMATION.TOTAL} гравців
+                {g.playersProgressShort(totalCount, FORMATION.TOTAL)}
               </span>
             </div>
           </div>
@@ -790,7 +800,7 @@ export default function GameweekPage() {
                 </svg>
                 <input
                   type="text"
-                  placeholder="Пошук гравця..."
+                  placeholder={g.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] text-sm transition-colors"
@@ -821,7 +831,7 @@ export default function GameweekPage() {
                   onChange={(e) => setTeamFilter(e.target.value)}
                   className="w-full pl-8 pr-7 py-2 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50"
                 >
-                  <option value="">Всі команди</option>
+                  <option value="">{g.allTeams}</option>
                   {uniqueTeams.map((team) => <option key={team} value={team}>{team}</option>)}
                 </select>
                 <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -830,9 +840,9 @@ export default function GameweekPage() {
               </div>
               {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
                 <div className="flex items-center justify-between text-xs text-white/40">
-                  <span>{filteredPlayers.length} гравців</span>
+                  <span>{g.playersFound(filteredPlayers.length)}</span>
                   <button onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }} className="text-[#00C46A]/70 font-semibold">
-                    Скинути
+                    {g.reset}
                   </button>
                 </div>
               )}
@@ -851,7 +861,7 @@ export default function GameweekPage() {
                 ))
               ) : filteredPlayers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-white/30">
-                  <p className="text-sm font-semibold">Гравців не знайдено</p>
+                  <p className="text-sm font-semibold">{g.noPlayersTitle}</p>
                 </div>
               ) : (
                 filteredPlayers.map((player) => {
@@ -891,7 +901,7 @@ export default function GameweekPage() {
                 <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" />
                 <path strokeLinecap="round" d="M3 12h18M12 3v18" />
               </svg>
-              <span className="text-[10px] font-bold uppercase tracking-wide">Поле</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide">{g.tabPitch}</span>
             </button>
 
             {/* Progress pill */}
@@ -915,7 +925,7 @@ export default function GameweekPage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span className="text-[10px] font-bold uppercase tracking-wide">Гравці</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide">{g.tabPlayers}</span>
             </button>
           </div>
         )}

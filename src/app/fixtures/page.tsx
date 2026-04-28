@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { resolveFplDeadlineRaw, formatFplDeadlineUk } from "@/lib/fpl-deadline";
+import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Fixture = {
   id: number;
@@ -28,19 +29,22 @@ type FixturesData = {
   fixtures: Fixture[];
 };
 
-function groupByDate(fixtures: Fixture[]): Record<string, Fixture[]> {
+function groupByDate(fixtures: Fixture[], localeTag: string): Record<string, Fixture[]> {
   const groups: Record<string, Fixture[]> = {};
-  for (const f of fixtures) {
-    const key = new Date(f.kickoffTime).toLocaleDateString("uk-UA", {
+  for (const fx of fixtures) {
+    const key = new Date(fx.kickoffTime).toLocaleDateString(localeTag, {
       weekday: "long", day: "numeric", month: "long",
     });
     if (!groups[key]) groups[key] = [];
-    groups[key].push(f);
+    groups[key].push(fx);
   }
   return groups;
 }
 
 export default function FixturesPage() {
+  const { locale } = useSiteLocale();
+  const fx = useSiteMessages().pages.fixtures;
+  const localeTag = locale === "uk" ? "uk-UA" : "en-GB";
   const [data, setData] = useState<FixturesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -56,7 +60,7 @@ export default function FixturesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const groups = data ? groupByDate(data.fixtures) : {};
+  const groups = data ? groupByDate(data.fixtures, localeTag) : {};
   const totalMatches = data?.fixtures.length ?? 0;
   const finishedCount = data?.fixtures.filter((f) => f.finished).length ?? 0;
 
@@ -80,7 +84,7 @@ export default function FixturesPage() {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Назад
+            {fx.back}
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -92,14 +96,16 @@ export default function FixturesPage() {
                 </div>
               )}
               <h1 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
-                Матчі туру
+                {fx.title}
               </h1>
             </div>
 
             {deadlineRaw != null && deadlineRaw !== "" && (
               <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3 text-right sm:text-left shrink-0">
-                <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold mb-1">Дедлайн реєстрації</p>
-                <p className="text-base font-display font-black text-white">{formatFplDeadlineUk(deadlineRaw)}</p>
+                <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold mb-1">{fx.deadlineLabel}</p>
+                <p className="text-base font-display font-black text-white">
+                  {formatFplDeadlineLocale(deadlineRaw, locale === "uk" ? "uk" : "en")}
+                </p>
               </div>
             )}
           </div>
@@ -114,7 +120,7 @@ export default function FixturesPage() {
                 />
               </div>
               <span className="text-xs text-white/30 font-medium tabular-nums shrink-0">
-                {finishedCount}/{totalMatches} завершено
+                {fx.progressDone(finishedCount, totalMatches)}
               </span>
             </div>
           )}
@@ -123,7 +129,7 @@ export default function FixturesPage() {
         {/* Loading */}
         {loading && (
           <div className="space-y-6">
-            <p className="text-white/30 text-xs font-bold uppercase tracking-widest animate-pulse">Завантажуємо матчі...</p>
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest animate-pulse">{fx.loading}</p>
             {[1, 2].map((g) => (
               <div key={g}>
                 <div className="h-3 w-32 bg-white/[0.06] rounded animate-pulse mb-3" />
@@ -140,8 +146,8 @@ export default function FixturesPage() {
         {/* Error */}
         {error && !loading && (
           <div className="text-center py-20 text-white/30">
-            <p className="text-lg font-semibold">Не вдалось завантажити матчі</p>
-            <p className="text-sm mt-1">Спробуй оновити сторінку</p>
+            <p className="text-lg font-semibold">{fx.errorTitle}</p>
+            <p className="text-sm mt-1">{fx.errorHint}</p>
           </div>
         )}
 
@@ -161,45 +167,45 @@ export default function FixturesPage() {
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {matches.map((f) => {
-                    const time = new Date(f.kickoffTime).toLocaleTimeString("uk-UA", {
+                  {matches.map((match) => {
+                    const time = new Date(match.kickoffTime).toLocaleTimeString(localeTag, {
                       hour: "2-digit", minute: "2-digit",
                     });
 
-                    const statusBadge = f.finished
-                      ? <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">Завершено</span>
-                      : f.started
+                    const statusBadge = match.finished
+                      ? <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">{fx.finished}</span>
+                      : match.started
                       ? <span className="flex items-center gap-1 text-[9px] font-bold text-[#00C46A] uppercase tracking-wider"><span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse" />Live</span>
                       : null;
 
                     return (
                       <div
-                        key={f.id}
+                        key={match.id}
                         className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200"
                       >
                         {/* Home team */}
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           <img
-                            src={f.teamH.badge}
-                            alt={f.teamH.shortName}
+                            src={match.teamH.badge}
+                            alt={match.teamH.shortName}
                             className="w-7 h-7 object-contain shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
                           />
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-white truncate leading-none">{f.teamH.shortName}</p>
-                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{f.teamH.name}</p>
+                            <p className="text-sm font-bold text-white truncate leading-none">{match.teamH.shortName}</p>
+                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{match.teamH.name}</p>
                           </div>
                         </div>
 
                         {/* Center: score or time */}
                         <div className="shrink-0 flex flex-col items-center gap-0.5 px-1">
-                          {f.finished ? (
+                          {match.finished ? (
                             <span className="text-lg font-display font-black text-white tabular-nums leading-none">
-                              {f.scoreH} – {f.scoreA}
+                              {match.scoreH} – {match.scoreA}
                             </span>
-                          ) : f.started ? (
+                          ) : match.started ? (
                             <span className="text-lg font-display font-black text-[#00C46A] tabular-nums leading-none animate-pulse">
-                              {f.scoreH ?? 0} – {f.scoreA ?? 0}
+                              {match.scoreH ?? 0} – {match.scoreA ?? 0}
                             </span>
                           ) : (
                             <span className="text-sm font-display font-black text-white/50 tabular-nums leading-none">
@@ -212,12 +218,12 @@ export default function FixturesPage() {
                         {/* Away team */}
                         <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
                           <div className="min-w-0 text-right">
-                            <p className="text-sm font-bold text-white truncate leading-none">{f.teamA.shortName}</p>
-                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{f.teamA.name}</p>
+                            <p className="text-sm font-bold text-white truncate leading-none">{match.teamA.shortName}</p>
+                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{match.teamA.name}</p>
                           </div>
                           <img
-                            src={f.teamA.badge}
-                            alt={f.teamA.shortName}
+                            src={match.teamA.badge}
+                            alt={match.teamA.shortName}
                             className="w-7 h-7 object-contain shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
                           />
@@ -240,7 +246,7 @@ export default function FixturesPage() {
                 href="/gameweek"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#00C46A] text-black font-display font-black uppercase tracking-widest text-sm hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_20px_rgba(0,196,106,0.25)]"
               >
-                Зібрати склад
+                {fx.buildSquad}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>

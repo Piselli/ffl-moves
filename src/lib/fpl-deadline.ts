@@ -33,14 +33,20 @@ export function deadlineRawToUtcMs(raw: string | number): number {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
-/** Same wall-clock line as the matches header (`uk-UA`). */
-export function formatFplDeadlineUk(raw: string | number): string {
+/** Same wall-clock line as the matches header; locale picks formatting. */
+export function formatFplDeadlineLocale(raw: string | number, locale: "en" | "uk"): string {
   const ms = deadlineRawToUtcMs(raw);
   if (!Number.isFinite(ms)) return "—";
-  return new Date(ms).toLocaleString("uk-UA", {
+  const tag = locale === "uk" ? "uk-UA" : "en-GB";
+  return new Date(ms).toLocaleString(tag, {
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** @deprecated Use `formatFplDeadlineLocale(raw, "uk")` */
+export function formatFplDeadlineUk(raw: string | number): string {
+  return formatFplDeadlineLocale(raw, "uk");
 }

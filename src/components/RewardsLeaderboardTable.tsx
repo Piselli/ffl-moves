@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { TreasureChest } from "@/components/TreasureChest";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { formatRewardPlaceEn, formatRewardPlaceUk } from "@/i18n/messages";
 
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
 const PRIZE_TIERS = [
@@ -62,6 +64,9 @@ const VIP_STYLES = {
 
 /* ── Main Component ────────────────────────────────────────────────────────── */
 export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | null }) {
+  const m = useSiteMessages();
+  const { locale } = useSiteLocale();
+  const placeLabel = locale === "uk" ? formatRewardPlaceUk : formatRewardPlaceEn;
   const pool = (totalPool && totalPool > 0) ? totalPool : 10000;
 
   const allTiers = PRIZE_TIERS.map(tier => {
@@ -109,16 +114,16 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3">
             <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A]" />
             <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#00C46A] uppercase">
-              03 — ПЕРЕМАГАЙ
+              {m.rewards.stepBadge}
             </span>
           </div>
 
           <h3 className="text-4xl sm:text-5xl lg:text-[60px] md:leading-[1.1] font-display font-black text-white tracking-tight drop-shadow-md mb-4">
-            РОЗДІЛИ <br className="hidden lg:block" /> ПРИЗОВИЙ ПУЛ
+            {m.rewards.titleLine1} <br className="hidden lg:block" /> {m.rewards.titleLine2}
           </h3>
 
           <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-4">
-            Топ-10 менеджерів туру ділять призовий пул. Закінчився тур — MOVE токени надходять на гаманець автоматично.
+            {m.rewards.subtitle}
           </p>
         </div>
 
@@ -157,10 +162,10 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           {/* Tiny complementary explanation header */}
           <div className="relative flex items-center justify-between px-6 sm:px-8 pb-3">
             <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
-              Позиція
+              {m.rewards.colPosition}
             </span>
             <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
-              Розподіл
+              {m.rewards.colShare}
             </span>
           </div>
 
@@ -184,7 +189,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
                     )}
                   </div>
                   <span className={`text-[#A0AEC0] text-xs font-medium ${tier.icon ? 'text-white/80' : 'text-white/40'}`}>
-                    {tier.rank}-те місце
+                    {placeLabel(tier.rank)}
                   </span>
                 </div>
 

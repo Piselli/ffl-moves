@@ -4,6 +4,10 @@ import { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
+import type { PagesMessages } from "@/i18n/pages";
+
+type PlayerCardCopy = PagesMessages["playerCard"];
 
 interface PlayerCardProps {
   player: Player;
@@ -39,10 +43,12 @@ function PlayerAvailabilityIcon({
   status,
   chance,
   news,
+  copy,
 }: {
   status?: string;
   chance?: number | null;
   news?: string;
+  copy: PlayerCardCopy;
 }) {
   if (!status || status === "a") return null;
 
@@ -51,7 +57,7 @@ function PlayerAvailabilityIcon({
   const newsTrim = news?.trim();
 
   if (status === "i") {
-    const title = newsTrim || "Травма / пропуск туру";
+    const title = newsTrim || copy.injuryFallback;
     return (
       <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
         <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-rose-400" aria-hidden>
@@ -66,7 +72,7 @@ function PlayerAvailabilityIcon({
   }
 
   if (status === "s") {
-    const title = newsTrim || "Дискваліфікація (червона картка / відбуття матчів)";
+    const title = newsTrim || copy.suspensionFallback;
     return (
       <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
         <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" aria-hidden>
@@ -81,9 +87,7 @@ function PlayerAvailabilityIcon({
     const severe = chance === 0;
     const title =
       newsTrim ||
-      (pct != null
-        ? `Під питанням — шанс зіграти: ${pct}`
-        : "Під питанням (ймовірність участі не відома)");
+      (pct != null ? copy.doubtfulWithPct(pct) : copy.doubtfulUnknown);
     const cls = severe ? "text-rose-400" : "text-amber-400";
     return (
       <span title={title} className="inline-flex shrink-0" aria-label={title} role="img">
@@ -105,7 +109,7 @@ function PlayerAvailabilityIcon({
     );
   }
 
-  const title = newsTrim || `Статус: ${status}${pct ? ` (${pct})` : ""}`;
+  const title = newsTrim || copy.statusLine(status, pct);
   return (
     <span
       title={title}
@@ -116,7 +120,7 @@ function PlayerAvailabilityIcon({
 }
 
 /** Form badge — avg pts per match last 4 GWs */
-function FormBadge({ form }: { form?: number }) {
+function FormBadge({ form, copy }: { form?: number; copy: PlayerCardCopy }) {
   if (!form || isNaN(form)) return null;
   const color =
     form >= 7 ? "text-emerald-400 border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_8px_rgba(52,211,153,0.2)]" :
@@ -126,32 +130,32 @@ function FormBadge({ form }: { form?: number }) {
   return (
     <div className="relative group/form shrink-0">
       <div className={cn("flex flex-col items-center px-2 py-1 rounded-lg border cursor-default", color)}>
-        <span className="text-[8px] font-bold uppercase tracking-wider leading-none opacity-60">форма</span>
+        <span className="text-[8px] font-bold uppercase tracking-wider leading-none opacity-60">{copy.formLabel}</span>
         <span className="font-display font-black text-sm leading-none tabular-nums mt-0.5">{form.toFixed(1)}</span>
       </div>
       {/* Tooltip — positioned to the left to avoid container clipping */}
       <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 hidden group-hover/form:block z-50 pointer-events-none w-52">
         <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl">
-          <p className="text-white text-xs font-bold mb-1">Форма гравця</p>
+          <p className="text-white text-xs font-bold mb-1">{copy.formTitle}</p>
           <p className="text-white/50 text-[11px] leading-relaxed mb-2">
-            Середнє очок за гру в нашій системі нарахування (сезон 2025/26)
+            {copy.formSubtitle}
           </p>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-emerald-400 text-[10px] font-black">≥ 7.0</span>
-              <span className="text-white/40 text-[10px]">гравець у топ-формі</span>
+              <span className="text-emerald-400 text-[10px] font-black">{copy.formTier1}</span>
+              <span className="text-white/40 text-[10px]">{copy.formTier1Hint}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#00C46A] text-[10px] font-black">≥ 5.0</span>
-              <span className="text-white/40 text-[10px]">стабільно набирає</span>
+              <span className="text-[#00C46A] text-[10px] font-black">{copy.formTier2}</span>
+              <span className="text-white/40 text-[10px]">{copy.formTier2Hint}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-amber-400 text-[10px] font-black">≥ 3.0</span>
-              <span className="text-white/40 text-[10px]">непостійний</span>
+              <span className="text-amber-400 text-[10px] font-black">{copy.formTier3}</span>
+              <span className="text-white/40 text-[10px]">{copy.formTier3Hint}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/30 text-[10px] font-black">&lt; 3.0</span>
-              <span className="text-white/40 text-[10px]">погана форма</span>
+              <span className="text-white/30 text-[10px] font-black">{copy.formTier4}</span>
+              <span className="text-white/40 text-[10px]">{copy.formTier4Hint}</span>
             </div>
           </div>
         </div>
@@ -167,6 +171,7 @@ export function PlayerCard({
   onClick,
   compact = false,
 }: PlayerCardProps) {
+  const copy = useSiteMessages().pages.playerCard;
   const photoUrl = player.photo || player.imageUrl;
   const fplCode = player.fplPhotoCode;
 
@@ -250,6 +255,7 @@ export function PlayerCard({
               status={player.status}
               chance={player.chanceOfPlaying}
               news={player.news}
+              copy={copy}
             />
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -261,7 +267,7 @@ export function PlayerCard({
         </div>
 
         {/* Right: only form badge */}
-        <FormBadge form={player.form} />
+        <FormBadge form={player.form} copy={copy} />
       </div>
     </div>
   );

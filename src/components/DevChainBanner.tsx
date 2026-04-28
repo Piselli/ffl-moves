@@ -1,9 +1,11 @@
 "use client";
 
 import { MOVEMENT_RPC_URL, MODULE_ADDRESS } from "@/lib/constants";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 /** Shows effective chain env in dev so misconfigured .env.local is obvious. */
 export function DevChainBanner() {
+  const m = useSiteMessages();
   if (process.env.NODE_ENV !== "development") return null;
 
   const isNightly = /movement\.nightly\.app|nightly\.app\/.*movement/i.test(MOVEMENT_RPC_URL);
@@ -20,7 +22,7 @@ export function DevChainBanner() {
       <span className="font-mono break-all">MODULE {MODULE_ADDRESS}</span>
       {(isNightly || (isDefaultTestnet3Module && MOVEMENT_RPC_URL.includes("mainnet"))) && (
         <div className="mt-1 font-medium text-amber-300">
-          Перевір .env.local і Nightly: не nightly RPC і не дефолтна адреса testnet3 на mainnet.
+          {m.devBanner.envHint}
         </div>
       )}
     </div>

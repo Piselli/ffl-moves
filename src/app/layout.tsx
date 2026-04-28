@@ -4,6 +4,7 @@ import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navbar } from "@/components/Navbar";
 import { DevChainBanner } from "@/components/DevChainBanner";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 
 const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
@@ -26,18 +27,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preload" href="/sprites/fpl-players.webp" as="image" type="image/webp" />
       </head>
       <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
-        <WalletProvider>
-          <div className="min-h-screen bg-[#0D0F12] text-white">
-            <DevChainBanner />
-            <Navbar />
-            <main className="relative z-10">{children}</main>
-          </div>
-        </WalletProvider>
+        <LocaleProvider>
+          <WalletProvider>
+            <div className="min-h-screen bg-[#0D0F12] text-white">
+              <DevChainBanner />
+              <Navbar />
+              <main className="relative z-10">{children}</main>
+            </div>
+          </WalletProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

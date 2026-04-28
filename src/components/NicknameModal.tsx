@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 interface NicknameModalProps {
   address: string;
@@ -16,6 +17,7 @@ export function NicknameModal({
   onSave,
   onClose,
 }: NicknameModalProps) {
+  const nn = useSiteMessages().pages.nickname;
   const [value, setValue] = useState(currentNickname ?? "");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,8 +36,8 @@ export function NicknameModal({
 
   const handleSave = () => {
     const trimmed = value.trim();
-    if (!trimmed) { setError("Введи нікнейм"); return; }
-    if (trimmed.length < 2) { setError("Мінімум 2 символи"); return; }
+    if (!trimmed) { setError(nn.errEmpty); return; }
+    if (trimmed.length < 2) { setError(nn.errMin); return; }
     onSave(trimmed);
     onClose();
   };
@@ -60,12 +62,10 @@ export function NicknameModal({
           <div className="flex items-start justify-between mb-5">
             <div>
               <h2 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
-                {currentNickname ? "Змінити нікнейм" : "Вітаємо!"}
+                {currentNickname ? nn.titleEdit : nn.titleWelcome}
               </h2>
               <p className="text-xs text-white/30 mt-1.5">
-                {currentNickname
-                  ? "Це ім'я буде відображатись у лідерборді"
-                  : "Обери нікнейм — він відображатиметься замість адреси гаманця"}
+                {currentNickname ? nn.descEdit : nn.descWelcome}
               </p>
             </div>
             <button
@@ -87,7 +87,7 @@ export function NicknameModal({
           {/* Input */}
           <div className="mb-4">
             <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">
-              Нікнейм
+              {nn.fieldLabel}
             </label>
             <input
               ref={inputRef}
@@ -95,7 +95,7 @@ export function NicknameModal({
               value={value}
               onChange={(e) => { setValue(e.target.value.slice(0, 20)); setError(""); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-              placeholder="Введи нікнейм"
+              placeholder={nn.placeholder}
               maxLength={20}
               className={cn(
                 "w-full px-4 py-3 rounded-xl bg-white/[0.05] border text-sm text-white placeholder-white/20 outline-none transition-all font-medium",
@@ -116,14 +116,14 @@ export function NicknameModal({
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white/40 font-semibold hover:text-white/70 hover:border-white/[0.15] transition-all"
             >
-              Пізніше
+              {nn.later}
             </button>
             <button
               onClick={handleSave}
               disabled={!value.trim()}
               className="flex-2 flex-grow py-2.5 px-5 rounded-xl bg-[#00C46A] text-black text-sm font-display font-black uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              Зберегти
+              {nn.save}
             </button>
           </div>
         </div>

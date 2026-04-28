@@ -1,4 +1,5 @@
 import type { Player } from "./types";
+import { TEAM_NOT_IN_SITE_CATALOG } from "@/lib/catalog-placeholders";
 
 const POS: readonly ("GK" | "DEF" | "MID" | "FWD")[] = ["GK", "DEF", "MID", "FWD"];
 
@@ -14,8 +15,8 @@ export function placeholderPlayerFromChain(id: number, positionId: number): Play
     id,
     fplId: id,
     name: `FPL #${id}`,
-    webName: `Гравець #${id}`,
-    team: "Немає в каталозі",
+    webName: `Player #${id}`,
+    team: TEAM_NOT_IN_SITE_CATALOG,
     teamId: 0,
     position,
     positionId: Math.max(0, Math.min(3, positionId)),

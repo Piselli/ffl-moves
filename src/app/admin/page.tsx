@@ -5,6 +5,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain, type ChainConfig, type GameweekSummary } from "@/lib/movement";
 import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
@@ -12,6 +13,7 @@ function normAddr(a: string | undefined | null): string {
 
 export default function AdminPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
+  const ad = useSiteMessages().pages.admin;
 
   const [config, setConfig] = useState<ChainConfig | null>(null);
   /** `get_gameweek(config.current_gameweek)` — покажчик у конфігу (може відставати). */
@@ -150,7 +152,7 @@ export default function AdminPage() {
 
     const idNum = Number.parseInt(newGameweekId, 10);
     if (!Number.isFinite(idNum) || idNum < 1) {
-      alert("Введи коректний номер туру (ціле число ≥ 1).");
+      alert(ad.alertInvalidGw);
       return;
     }
 
@@ -158,15 +160,11 @@ export default function AdminPage() {
     if (existing) {
       const st =
         existing.status === "open"
-          ? "відкритий"
+          ? ad.statusWordOpen
           : existing.status === "closed"
-            ? "закритий"
-            : "завершений";
-      alert(
-        `Тур ${idNum} уже є в контракті (зараз — ${st}).\n\n` +
-          `Створити його знову неможливо (обмеження смарт-контракту). ` +
-          `Щоб змінити тур: використай «Повторно відкрити тур» для цього номера, або створи НОВИЙ номер, якого ще немає в таблиці (наприклад наступний вільний після останнього).`,
-      );
+            ? ad.statusWordClosed
+            : ad.statusWordResolved;
+      alert(ad.alertGwExists(idNum, st));
       return;
     }
 
@@ -179,14 +177,14 @@ export default function AdminPage() {
           functionArguments: [String(idNum)],
         },
       });
-      alert(`Тур ${idNum} створено.`);
+      alert(ad.alertGwCreated(idNum));
       setNewGameweekId("");
       const gwData = await getGameweek(idNum);
       setCurrentGameweek(gwData);
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to create gameweek:", error);
-      alert(`Не вдалося: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -196,9 +194,7 @@ export default function AdminPage() {
     if (!connected) return;
     const toClose = openGameweek?.status === "open" ? openGameweek : null;
     if (!toClose) {
-      alert(
-        "Немає відкритого туру на ланцюгу (статус OPEN) — закривати нічого. Якщо в гаманці/сайті здається інакше, натисни «Оновити» після останньої транзакції.",
-      );
+      alert(ad.alertNoOpenToClose);
       return;
     }
 
@@ -211,11 +207,11 @@ export default function AdminPage() {
           functionArguments: [String(toClose.id)],
         },
       });
-      alert(`Тур ${toClose.id} закрито (реєстрацію зупинено).`);
+      alert(ad.alertGwClosed(toClose.id));
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to close gameweek:", error);
-      alert(`Не вдалося: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -226,25 +222,21 @@ export default function AdminPage() {
 
     const idNum = Number.parseInt((reopenTargetId || "").trim(), 10);
     if (!Number.isFinite(idNum) || idNum < 1) {
-      alert("Введи номер туру для re-open (ціле число ≥ 1).");
+      alert(ad.alertReopenInvalidGw);
       return;
     }
 
     const gw = await getGameweek(idNum);
     if (!gw) {
-      alert(`Тур ${idNum} не знайдено в контракті.`);
+      alert(ad.alertGwNotFound(idNum));
       return;
     }
     if (gw.status === "open") {
-      alert(`Тур ${idNum} уже відкритий — re-open не потрібен.`);
+      alert(ad.alertGwAlreadyOpen(idNum));
       return;
     }
 
-    if (
-      !confirm(
-        `Повторно відкрити тур ${idNum}? Буде очищено збережену статистику оракула та опубліковані результати для цього туру on-chain.`,
-      )
-    ) {
+    if (!confirm(ad.alertReopenConfirm(idNum))) {
       return;
     }
 
@@ -257,7 +249,7 @@ export default function AdminPage() {
           functionArguments: [String(idNum)],
         },
       });
-      alert(`Тур ${idNum} знову OPEN. Якщо в конфігу «current» інший номер — це нормально, покажчик не завжди змінюється при reopen іншого туру.`);
+      alert(ad.alertReopenDone(idNum));
       await loadChainConfig();
       const cfg = await getConfig();
       if (cfg?.currentGameweek != null) {
@@ -266,7 +258,7 @@ export default function AdminPage() {
       }
     } catch (error: unknown) {
       console.error("Failed to reopen gameweek:", error);
-      alert(`Не вдалося: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -284,13 +276,13 @@ export default function AdminPage() {
           functionArguments: [newPrizePoolPct.toString()],
         },
       });
-      alert("Prize pool percentage updated!");
+      alert(ad.alertPrizePoolUpdated);
       const configData = await getConfig();
       setConfig(configData);
       setNewPrizePoolPct("");
     } catch (error: unknown) {
       console.error("Failed to update percentage:", error);
-      alert(`Failed: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -390,10 +382,10 @@ export default function AdminPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });
-      alert("Stats submitted successfully!");
+      alert(ad.alertStatsSubmitted);
     } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
-      alert(`Failed: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -429,10 +421,10 @@ export default function AdminPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 90, checkSuccess: true },
       });
-      alert(`Results calculated for GW ${resultsGameweekId}!`);
+      alert(ad.alertResultsCalculated(String(resultsGameweekId)));
     } catch (error: unknown) {
       console.error("Failed to calculate results:", error);
-      alert(`Failed: ${formatTxError(error)}`);
+      alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -469,18 +461,14 @@ export default function AdminPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
         <div className="glass-card rounded-2xl p-12">
-          <h1 className="text-2xl font-bold text-white mb-3">Не вдалося завантажити контракт</h1>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Запит{" "}
-            <code className="text-emerald-400/90 text-xs px-1 py-0.5 rounded bg-white/5">get_config</code>
-            {" "}до Movement не відповів (мережа, RPC або контракт недоступні). Без цих даних адмінка не може перевірити права доступу.
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-3">{ad.loadFailedTitle}</h1>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">{ad.loadFailedBody}</p>
           <button
             type="button"
             onClick={() => void loadChainConfig()}
             className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold text-sm hover:bg-emerald-500/30 transition-colors"
           >
-            Спробувати знову
+            {ad.retry}
           </button>
         </div>
       </div>
@@ -541,13 +529,13 @@ export default function AdminPage() {
         <h2 className="text-xl font-bold text-white mb-4">Current Status</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
-            <p className="text-muted-foreground text-sm mb-1">У конфігу (current_gameweek)</p>
+            <p className="text-muted-foreground text-sm mb-1">{ad.statConfigGw}</p>
             <p className="text-3xl font-bold text-white">
               {currentGameweek?.id ?? "—"}
             </p>
           </div>
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-1">
-            <p className="text-muted-foreground text-sm mb-1">Статус (той самий тур)</p>
+            <p className="text-muted-foreground text-sm mb-1">{ad.statSameGwStatus}</p>
             <div className={cn(
               "inline-flex items-center gap-2 text-2xl font-bold items-center mt-1",
               currentGameweek?.status === "open" && "text-emerald-400",
@@ -564,12 +552,12 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-2 border border-emerald-500/20 bg-emerald-500/[0.06]">
-            <p className="text-muted-foreground text-sm mb-1">Відкритий для реєстрації (факт на ланцюгу)</p>
+            <p className="text-muted-foreground text-sm mb-1">{ad.statOpenRegistration}</p>
             <p className="text-3xl font-bold text-emerald-300 tabular-nums">
               {openGameweek?.status === "open" ? (
                 <>GW {openGameweek.id} · OPEN</>
               ) : (
-                <span className="text-white/40 text-xl font-semibold">немає OPEN</span>
+                <span className="text-white/40 text-xl font-semibold">{ad.noOpenGw}</span>
               )}
             </p>
           </div>
@@ -586,18 +574,14 @@ export default function AdminPage() {
           currentGameweek &&
           openGameweek.id !== currentGameweek.id && (
             <div className="mt-5 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/95 leading-relaxed">
-              <strong className="text-amber-100">Розсинхрон:</strong> у конфігу зараз{" "}
-              <strong>GW {currentGameweek.id}</strong>, але реєстрація йде в{" "}
-              <strong>GW {openGameweek.id}</strong>. Кнопка «Close» нижче закриє саме{" "}
-              <strong>GW {openGameweek.id}</strong>.
+              <strong className="text-amber-100">{ad.desyncTitle}</strong>{" "}
+              {ad.desyncBody(currentGameweek.id, openGameweek.id)}
             </div>
           )}
 
         {isAdmin && currentGameweek?.status === "resolved" && openGameweek?.status !== "open" && (
           <div className="mt-5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-50/95 leading-relaxed">
-            <strong className="text-sky-100">Керування туром:</strong> покажчик у конфігу —{" "}
-            <strong>RESOLVED</strong>. Якщо немає рядка «Відкритий для реєстрації · OPEN» вище, закривати нічого;
-            можна <strong>Re-open</strong> або <strong>Create</strong> новий тур.
+            <strong className="text-sky-100">{ad.manageResolvedTitle}</strong> {ad.manageResolvedBody}
           </div>
         )}
       </div>
@@ -618,21 +602,22 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {openGameweek?.status === "open" ? "Закрити реєстрацію" : "Повторно відкрити тур"}
+                  {openGameweek?.status === "open" ? ad.sectionTitleWhenOpen : ad.sectionTitleWhenClosed}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   {openGameweek?.status === "open"
-                    ? `Закриття стосується GW ${openGameweek.id} (відкритий зараз на ланцюгу).`
-                    : `У конфігу зараз GW ${currentGameweek?.id ?? "—"}, статус ${currentGameweek?.status?.toUpperCase() ?? "—"}.`}
+                    ? ad.sectionCloseSubtitleOpen(openGameweek.id)
+                    : ad.sectionCloseSubtitleConfig(
+                        String(currentGameweek?.id ?? "—"),
+                        currentGameweek?.status?.toUpperCase() ?? "—",
+                      )}
                 </p>
               </div>
             </div>
 
             {openGameweek?.status === "open" && (
               <>
-                <p className="text-muted-foreground mb-4">
-                  Закрий <strong>GW {openGameweek.id}</strong>, щоб зупинити нові реєстрації складів і підготувати подачу статистики оракулом.
-                </p>
+                <p className="text-muted-foreground mb-4">{ad.closeExplain(openGameweek.id)}</p>
                 <button
                   type="button"
                   onClick={handleCloseGameweek}
@@ -642,7 +627,7 @@ export default function AdminPage() {
                     "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400",
                   )}
                 >
-                  {isSubmitting ? "..." : `Close GW ${openGameweek.id}`}
+                  {isSubmitting ? "..." : ad.closeGwButtonLabel(openGameweek.id)}
                 </button>
               </>
             )}
@@ -651,26 +636,22 @@ export default function AdminPage() {
               <>
                 {currentGameweek?.status === "resolved" && (
                   <div className="mb-4 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100/95 leading-relaxed">
-                    <strong className="text-sky-200">Чому немає «Close»:</strong> відкритого туру (OPEN) на ланцюгу не знайдено; тур у
-                    конфігу може бути <strong>RESOLVED</strong> — реєстрація вже закрита раніше. Щоб знову приймати склади для того ж
-                    номера — <strong>Re-open</strong>. Новий тур — <strong>Create</strong>.
+                    <strong className="text-sky-200">{ad.whyNoCloseTitle}</strong> {ad.whyNoCloseBody}
                   </div>
                 )}
 
                 {currentGameweek?.status === "closed" && (
                   <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
-                    Відкритого туру не видно — якщо реєстрація ще мала б бути відкрита, перевір блок «Відкритий для реєстрації» вище після
-                    оновлення сторінки.
+                    {ad.noOpenVisibleHint}
                   </div>
                 )}
 
                 <p className="text-muted-foreground mb-4">
-                  Поверни обраний тур у OPEN. За замовчуванням підставлено номер з конфігу (GW {currentGameweek?.id ?? "—"}) — можна змінити
-                  на інший існуючий тур. УВАГА: очистяться результати й статистика оракула для цього туру.
+                  {ad.reopenExplain(String(currentGameweek?.id ?? "—"))}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
                   <label className="flex flex-col gap-1 flex-1">
-                    <span className="text-xs text-muted-foreground">Номер туру для re-open</span>
+                    <span className="text-xs text-muted-foreground">{ad.reopenGwLabel}</span>
                     <input
                       type="number"
                       min={1}

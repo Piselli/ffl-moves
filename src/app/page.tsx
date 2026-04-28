@@ -2,7 +2,7 @@
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { getConfig, findOpenGameweekFromChain } from "@/lib/movement";
 import { octasToMOVE } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
+import type { SiteMessages } from "@/i18n/messages";
 import {
   ASSIST_POINTS,
   CLEAN_SHEET_POINTS,
@@ -27,8 +29,22 @@ import {
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
 
-// ─── Hero deadline (restored pre–stats-copy logic: FPL `deadline_time` string only, d : г : хв) ───
-function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: number }) {
+// ─── Hero deadline (FPL `deadline_time`; copy from site messages) ───
+function HeroDeadlinePlaque({
+  targetTime,
+  gwId,
+  copy,
+}: {
+  targetTime: string;
+  gwId: number;
+  copy: {
+    untilDeadline: string;
+    deadlinePassed: string;
+    daySuffix: string;
+    hourSuffix: string;
+    minSuffix: string;
+  };
+}) {
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number } | null>(null);
   const [expired, setExpired] = useState(false);
 
@@ -56,7 +72,7 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
     <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col items-start">
       <div className="mb-0.5 min-w-0 w-full shrink-0 space-y-px sm:mb-1 sm:space-y-0.5">
         <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
-          До дедлайну
+          {copy.untilDeadline}
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
@@ -64,19 +80,20 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
         {!timeLeft ? (
           <span className="text-white/20 animate-pulse">—</span>
         ) : expired ? (
-          <span className="text-white/50">Дедлайн пройшов</span>
+          <span className="text-white/50">{copy.deadlinePassed}</span>
         ) : (
           <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline justify-start gap-x-px sm:gap-x-0.5 md:gap-x-1">
-            <span className="shrink-0 tabular-nums">{String(timeLeft.d).padStart(2, "0")}д</span>
+            <span className="shrink-0 tabular-nums">{String(timeLeft.d).padStart(2, "0")}{copy.daySuffix}</span>
             <span className="shrink-0 text-white/40 text-[0.85em]" aria-hidden>
               :
             </span>
-            <span className="shrink-0 tabular-nums">{String(timeLeft.h).padStart(2, "0")}г</span>
+            <span className="shrink-0 tabular-nums">{String(timeLeft.h).padStart(2, "0")}{copy.hourSuffix}</span>
             <span className="shrink-0 text-white/40 text-[0.85em]" aria-hidden>
               :
             </span>
             <span className="shrink-0 tabular-nums">
-              {String(timeLeft.m).padStart(2, "0")}хв
+              {String(timeLeft.m).padStart(2, "0")}
+              {copy.minSuffix}
             </span>
           </span>
         )}
@@ -275,7 +292,7 @@ function PlayerCutout({
 // ─── Position Scoring Cards (values from `scoring-rules.ts` = chain + `calculateFantasyPoints`) ───
 type CardGain = { label: string; pts: string; value?: number; negative?: true };
 
-const POSITION_CARDS: {
+type PositionCardModel = {
   pos: string;
   posEn: string;
   player: string;
@@ -285,136 +302,261 @@ const POSITION_CARDS: {
   bgClass: string;
   borderClass: string;
   gains: CardGain[];
-}[] = [
-  {
-    pos: "ВР", posEn: "GK",
-    player: "Jordan Pickford", img: "p111234.png",
-    color: "#F43F5E", colorClass: "text-rose-400", bgClass: "bg-rose-500/15", borderClass: "border-rose-500/40",
-    gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.GK}`, value: GOAL_POINTS.GK },
-      { label: "Відбитий пенальті", pts: `+${PENALTY_SAVE_POINTS}`, value: PENALTY_SAVE_POINTS },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
-      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
-      { label: `Кожні ${GK_SAVE_BATCH} сейви`, pts: `+${GK_SAVE_POINTS_PER_BATCH}`, value: GK_SAVE_POINTS_PER_BATCH },
-      { label: `Пропущений гол (×${GOALS_CONCEDED_DIVISOR})`, pts: "−1", negative: true },
-    ],
-  },
-  {
-    pos: "ЗАХ", posEn: "DEF",
-    player: "William Saliba", img: "p462424.png",
-    color: "#F59E0B", colorClass: "text-amber-400", bgClass: "bg-amber-500/15", borderClass: "border-amber-500/40",
-    gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.DEF}`, value: GOAL_POINTS.DEF },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
-      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
-      { label: `Пропущений гол (×${GOALS_CONCEDED_DIVISOR})`, pts: "−1", negative: true },
-    ],
-  },
-  {
-    pos: "ПЗ", posEn: "MID",
-    player: "Cole Palmer", img: "p244851.png",
-    color: "#3B82F6", colorClass: "text-blue-400", bgClass: "bg-blue-500/15", borderClass: "border-blue-500/40",
-    gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.MID}`, value: GOAL_POINTS.MID },
-      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
-      { label: "Суха пара", pts: `+${CLEAN_SHEET_POINTS.MID}`, value: CLEAN_SHEET_POINTS.MID },
-    ],
-  },
-  {
-    pos: "НАП", posEn: "FWD",
-    player: "Erling Haaland", img: "p223094.png",
-    color: "#10B981", colorClass: "text-emerald-400", bgClass: "bg-emerald-500/15", borderClass: "border-emerald-500/40",
-    gains: [
-      { label: "Гол", pts: `+${GOAL_POINTS.FWD}`, value: GOAL_POINTS.FWD },
-      { label: "Асист", pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
-    ],
-  },
-];
+};
+
+function buildPositionCards(m: SiteMessages): PositionCardModel[] {
+  const g = m.scoringGains;
+  const h = m.home;
+  const a = m.positionAbbrev;
+  return [
+    {
+      pos: a.GK,
+      posEn: "GK",
+      player: "Jordan Pickford",
+      img: "p111234.png",
+      color: "#F43F5E",
+      colorClass: "text-rose-400",
+      bgClass: "bg-rose-500/15",
+      borderClass: "border-rose-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.GK}`, value: GOAL_POINTS.GK },
+        { label: g.penSave, pts: `+${PENALTY_SAVE_POINTS}`, value: PENALTY_SAVE_POINTS },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        {
+          label: h.scoringSavesEvery.replace("{n}", String(GK_SAVE_BATCH)),
+          pts: `+${GK_SAVE_POINTS_PER_BATCH}`,
+          value: GK_SAVE_POINTS_PER_BATCH,
+        },
+        {
+          label: h.scoringConcededGoal.replace("{n}", String(GOALS_CONCEDED_DIVISOR)),
+          pts: "−1",
+          negative: true,
+        },
+      ],
+    },
+    {
+      pos: a.DEF,
+      posEn: "DEF",
+      player: "William Saliba",
+      img: "p462424.png",
+      color: "#F59E0B",
+      colorClass: "text-amber-400",
+      bgClass: "bg-amber-500/15",
+      borderClass: "border-amber-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.DEF}`, value: GOAL_POINTS.DEF },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        {
+          label: h.scoringConcededGoal.replace("{n}", String(GOALS_CONCEDED_DIVISOR)),
+          pts: "−1",
+          negative: true,
+        },
+      ],
+    },
+    {
+      pos: a.MID,
+      posEn: "MID",
+      player: "Cole Palmer",
+      img: "p244851.png",
+      color: "#3B82F6",
+      colorClass: "text-blue-400",
+      bgClass: "bg-blue-500/15",
+      borderClass: "border-blue-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.MID}`, value: GOAL_POINTS.MID },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.MID}`, value: CLEAN_SHEET_POINTS.MID },
+      ],
+    },
+    {
+      pos: a.FWD,
+      posEn: "FWD",
+      player: "Erling Haaland",
+      img: "p223094.png",
+      color: "#10B981",
+      colorClass: "text-emerald-400",
+      bgClass: "bg-emerald-500/15",
+      borderClass: "border-emerald-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.FWD}`, value: GOAL_POINTS.FWD },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+      ],
+    },
+  ];
+}
 
 function sumPositiveCardValues(gains: CardGain[]): number {
   return gains.filter((g) => !g.negative).reduce((s, g) => s + (g.value ?? 0), 0);
 }
 
-const RATING_TIER_LABELS = RATING_BONUS_TIERS.map((tier) => ({
-  label: `Рейтинг матчу ≥ ${(tier.minTenths / 10).toFixed(1)}`,
-  pts: `+${tier.points}`,
-  color: "text-[#00C46A]" as const,
-}));
+function buildRatingTierLabels(m: SiteMessages) {
+  return RATING_BONUS_TIERS.map((tier) => ({
+    label: m.ratingTier((tier.minTenths / 10).toFixed(1)),
+    pts: `+${tier.points}`,
+    color: "text-[#00C46A]" as const,
+  }));
+}
 
-const UNIVERSAL_BONUSES = [
-  { label: "Гравець матчу (BPS)", pts: `+${FPL_BONUS_MAX}`, color: "text-[#00C46A]" },
-  { label: "Хет-трик", pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00C46A]" },
-  { label: "Вихід 60+ хв", pts: `+${MINUTES_POINTS.full}`, color: "text-[#00C46A]" },
-  { label: "Вихід 1–59 хв", pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00C46A]" },
-  ...RATING_TIER_LABELS,
-];
+function buildUniversalBonuses(m: SiteMessages) {
+  const g = m.scoringGains;
+  return [
+    { label: g.bps, pts: `+${FPL_BONUS_MAX}`, color: "text-[#00C46A]" },
+    { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00C46A]" },
+    { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00C46A]" },
+    { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00C46A]" },
+    ...buildRatingTierLabels(m),
+  ];
+}
 
-const UNIVERSAL_PENALTIES = [
-  { label: "Червона картка", pts: `−${DEDUCTIONS.redCardMultiplier}` },
-  { label: "Автогол", pts: `−${DEDUCTIONS.ownGoal}` },
-  { label: "Незабитий пенальті", pts: `−${DEDUCTIONS.penaltyMissed}` },
-  { label: "Жовта картка", pts: `−${DEDUCTIONS.yellowCard}` },
-  {
-    label: `Низький рейтинг (<${(RATING_SUB_THRESHOLD_TENTHS / 10).toFixed(1)}, з хвилинами)`,
-    pts: `−${RATING_SUB_POINTS}`,
-  },
-];
+function buildUniversalPenalties(m: SiteMessages) {
+  const g = m.scoringGains;
+  return [
+    { label: g.redCard, pts: `−${DEDUCTIONS.redCardMultiplier}` },
+    { label: g.ownGoal, pts: `−${DEDUCTIONS.ownGoal}` },
+    { label: g.penMiss, pts: `−${DEDUCTIONS.penaltyMissed}` },
+    { label: g.yellowCard, pts: `−${DEDUCTIONS.yellowCard}` },
+    {
+      label: m.lowRating((RATING_SUB_THRESHOLD_TENTHS / 10).toFixed(1)),
+      pts: `−${RATING_SUB_POINTS}`,
+    },
+  ];
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── Live Data Carousel (Swipeable) ──────────────────────────────────────────
-const CAROUSEL_MATCHES = [
+// ─── Live Data Carousel (Swipeable) — locale text merged in `LiveDataCarousel` ───
+const CAROUSEL_MATCH_BASE = [
   {
     league: "Premier League",
     time: "74:12",
-    statusText: "LIVE",
-    halfText: "2-й тайм",
     scoreH: 2,
     scoreA: 1,
-    teamH: { name: "MANCHESTER CITY", short: "MNC", badge: "https://resources.premierleague.com/premierleague/badges/t43.png", color: "#87CEEB" },
-    teamA: { name: "ARSENAL", short: "ARS", badge: "https://resources.premierleague.com/premierleague/badges/t3.png", color: "#EF0107" },
+    teamH: {
+      name: "MANCHESTER CITY",
+      short: "MNC",
+      badge: "https://resources.premierleague.com/premierleague/badges/t43.png",
+      color: "#87CEEB",
+    },
+    teamA: {
+      name: "ARSENAL",
+      short: "ARS",
+      badge: "https://resources.premierleague.com/premierleague/badges/t3.png",
+      color: "#EF0107",
+    },
     stadium: "Etihad Stadium",
     matchday: 26,
     events: [
-      { player: "E. Haaland", action: "Гол!", pts: "+5", color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-      { player: "P. Foden", action: "Асист", pts: "+3", color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-      { player: "B. Saka", action: "Жовта картка", pts: "-1", color: "#F87171", icon: "🟨", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" }
-    ]
+      {
+        player: "E. Haaland",
+        pts: "+5",
+        color: "#00C46A",
+        icon: "⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png",
+      },
+      {
+        player: "P. Foden",
+        pts: "+3",
+        color: "#00C46A",
+        icon: "👟",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png",
+      },
+      {
+        player: "B. Saka",
+        pts: "-1",
+        color: "#F87171",
+        icon: "🟨",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png",
+      },
+    ],
   },
   {
     league: "Premier League",
     time: "FT",
-    statusText: "ЗАВЕРШЕНО",
-    halfText: "",
     scoreH: 1,
     scoreA: 3,
-    teamH: { name: "TOTTENHAM", short: "TOT", badge: "https://resources.premierleague.com/premierleague/badges/t6.png", color: "#FFFFFF" },
-    teamA: { name: "CHELSEA", short: "CHE", badge: "https://resources.premierleague.com/premierleague/badges/t8.png", color: "#034694" },
+    teamH: {
+      name: "TOTTENHAM",
+      short: "TOT",
+      badge: "https://resources.premierleague.com/premierleague/badges/t6.png",
+      color: "#FFFFFF",
+    },
+    teamA: {
+      name: "CHELSEA",
+      short: "CHE",
+      badge: "https://resources.premierleague.com/premierleague/badges/t8.png",
+      color: "#034694",
+    },
     stadium: "Hotspur Stadium",
     matchday: 26,
     events: [
-      { player: "C. Palmer", action: "2 Голи", pts: "+10", color: "#00C46A", icon: "⚽️⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png" },
-      { player: "P. Porro", action: "Асист", pts: `+${ASSIST_POINTS}`, color: "#00C46A", icon: "👟", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-      { player: "S. Heung-Min", action: "Гол!", pts: `+${GOAL_POINTS.FWD}`, color: "#00C46A", icon: "⚽️", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png" }
-    ]
+      {
+        player: "C. Palmer",
+        pts: "+10",
+        color: "#00C46A",
+        icon: "⚽️⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png",
+      },
+      {
+        player: "P. Porro",
+        pts: `+${ASSIST_POINTS}`,
+        color: "#00C46A",
+        icon: "👟",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png",
+      },
+      {
+        player: "S. Heung-Min",
+        pts: `+${GOAL_POINTS.FWD}`,
+        color: "#00C46A",
+        icon: "⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png",
+      },
+    ],
   },
   {
     league: "Premier League",
     time: "24:00",
-    statusText: "LIVE",
-    halfText: "1-й тайм",
     scoreH: 0,
     scoreA: 0,
-    teamH: { name: "EVERTON", short: "EVE", badge: "https://resources.premierleague.com/premierleague/badges/t11.png", color: "#003399" },
-    teamA: { name: "LIVERPOOL", short: "LIV", badge: "https://resources.premierleague.com/premierleague/badges/t14.png", color: "#C8102E" },
+    teamH: {
+      name: "EVERTON",
+      short: "EVE",
+      badge: "https://resources.premierleague.com/premierleague/badges/t11.png",
+      color: "#003399",
+    },
+    teamA: {
+      name: "LIVERPOOL",
+      short: "LIV",
+      badge: "https://resources.premierleague.com/premierleague/badges/t14.png",
+      color: "#C8102E",
+    },
     stadium: "Goodison Park",
     matchday: 26,
     events: [
-      { player: "J. Pickford", action: "3 Сейви", pts: "+2", color: "#00C46A", icon: "🧤", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-      { player: "T. Alex-Arnold", action: "Ключ. пас", pts: "+1", color: "#00C46A", icon: "🎯", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png" },
-      { player: "J. Branthwaite", action: "Суха пара", pts: "+2", color: "#00C46A", icon: "🛡", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png" }
-    ]
-  }
+      {
+        player: "J. Pickford",
+        pts: "+2",
+        color: "#00C46A",
+        icon: "🧤",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png",
+      },
+      {
+        player: "T. Alex-Arnold",
+        pts: "+1",
+        color: "#00C46A",
+        icon: "🎯",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png",
+      },
+      {
+        player: "J. Branthwaite",
+        pts: "+2",
+        color: "#00C46A",
+        icon: "🛡",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png",
+      },
+    ],
+  },
 ];
 
 type MarqueeStatRow = { icon: string; text: string };
@@ -426,32 +568,71 @@ type MarqueePlayerCard = {
   image: string;
 };
 
-const ALL_PLAYERS: MarqueePlayerCard[] = [
-  { player: "J. Pickford", stats: [{icon: "🧤", text: "3 Сейви"}, {icon: "🛡", text: "Суха пара"}], pts: "+7 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-  { player: "M. Cucurella", stats: [{icon: "🛡", text: "Відбір"}, {icon: "⏱", text: "90+ хв"}], pts: "+6 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
-  { player: "W. Saliba", stats: [{icon: "🛡", text: "Суха пара"}, {icon: "⏱", text: "90+ хв"}], pts: "+8 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
-  { player: "Gabriel M.", stats: [{icon: "🛡", text: "Суха пара"}, {icon: "🟨", text: "Жовта картка"}], pts: "+6 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
-  { player: "P. Porro", stats: [{icon: "👟", text: "Асист"}, {icon: "🛡", text: "Відбір"}], pts: "+9 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-  { player: "B. Guimarães", stats: [{icon: "⚽️", text: "Гол"}, {icon: "⏱", text: "90+ хв"}], pts: "+11 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
-  { player: "C. Palmer", stats: [{icon: "⚽️⚽️", text: "2 Голи"}, {icon: "🌟", text: "ГМ"}], pts: "+12 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
-  { player: "P. Foden", stats: [{icon: "👟", text: "Асист"}, {icon: "⚡️", text: "Ключ. пас"}], pts: "+8 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-  { player: "O. Watkins", stats: [{icon: "⚽️", text: "Гол"}, {icon: "👟", text: "Асист"}], pts: "+15 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
-  { player: "E. Haaland", stats: [{icon: "⚽️⚽️", text: "2 Голи"}, {icon: "⏱", text: "90+ хв"}], pts: "+18 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-  { player: "B. Saka", stats: [{icon: "⚽️", text: "Гол"}, {icon: "⚡️", text: "Ключ. пас"}], pts: "+14 ОЧК", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+const MARQUEE_PLAYERS_BASE = [
+  { player: "J. Pickford", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+];
+
+/** Stat icons per player row (same order as `MARQUEE_PLAYERS_BASE`). */
+const MARQUEE_STATS_ICONS: [string, string][] = [
+  ["🧤", "🛡"],
+  ["🛡", "⏱"],
+  ["🛡", "⏱"],
+  ["🛡", "🟨"],
+  ["👟", "🛡"],
+  ["⚽️", "⏱"],
+  ["⚽️⚽️", "🌟"],
+  ["👟", "⚡️"],
+  ["⚽️", "👟"],
+  ["⚽️⚽️", "⏱"],
+  ["⚽️", "⚡️"],
 ];
 
 function LiveDataCarousel() {
+  const m = useSiteMessages();
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % CAROUSEL_MATCHES.length);
+      setActiveIndex((prev) => (prev + 1) % CAROUSEL_MATCH_BASE.length);
     }, 4500);
     return () => clearInterval(timer);
   }, []);
 
-  const slide = CAROUSEL_MATCHES[activeIndex];
-  const marqueePlayers = [...ALL_PLAYERS, ...ALL_PLAYERS];
+  const slideBase = CAROUSEL_MATCH_BASE[activeIndex];
+  const slideI18n = m.carousel.slides[activeIndex];
+  const slide = {
+    ...slideBase,
+    statusText: slideI18n.statusText,
+    halfText: slideI18n.halfText,
+    events: slideBase.events.map((e, j) => ({
+      ...e,
+      action: slideI18n.events[j]?.action ?? "",
+    })),
+  };
+
+  const marqueePlayers: MarqueePlayerCard[] = [...MARQUEE_PLAYERS_BASE, ...MARQUEE_PLAYERS_BASE].map((p, i) => {
+    const idx = i % MARQUEE_PLAYERS_BASE.length;
+    const row = m.marquee[idx];
+    const icons = MARQUEE_STATS_ICONS[idx];
+    return {
+      ...p,
+      stats: row.stats.map((s, si) => ({
+        icon: icons[si] ?? "",
+        text: s.text,
+      })),
+      pts: row.pts,
+    };
+  });
 
   return (
     <div className="relative w-full flex flex-col items-center">
@@ -522,7 +703,7 @@ function LiveDataCarousel() {
           <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 text-white/50 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] mt-auto pt-4 md:pt-6 border-t border-white/5 font-medium w-full relative z-10">
             <div className="flex items-center gap-1 md:gap-1.5">
               <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              Matchday 26
+              {m.home.matchday} {slide.matchday}
             </div>
             <div className="flex items-center gap-1 md:gap-1.5">
               <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -590,7 +771,7 @@ function LiveDataCarousel() {
       
       {/* Slider Dots */}
       <div className="flex items-center justify-center gap-2 md:gap-3 mt-1 md:mt-2">
-        {CAROUSEL_MATCHES.map((_, i) => (
+        {CAROUSEL_MATCH_BASE.map((_, i) => (
            <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00C46A] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,196,106,0.8)]" : "bg-white/20 hover:bg-white/40"}`} />
         ))}
       </div>
@@ -612,6 +793,20 @@ type FixturesApiPayload = {
 };
 
 export default function Home() {
+  const m = useSiteMessages();
+  const positionCards = useMemo(() => buildPositionCards(m), [m]);
+  const universalBonuses = useMemo(() => buildUniversalBonuses(m), [m]);
+  const universalPenalties = useMemo(() => buildUniversalPenalties(m), [m]);
+  const deadlineCopy = useMemo(
+    () => ({
+      untilDeadline: m.home.untilDeadline,
+      deadlinePassed: m.home.deadlinePassed,
+      daySuffix: m.home.daySuffix,
+      hourSuffix: m.home.hourSuffix,
+      minSuffix: m.home.minSuffix,
+    }),
+    [m],
+  );
 
   const { connected } = useWallet();
 
@@ -726,7 +921,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
           <img
             src="/images/manager-bg.png"
-            alt="Fantasy EPL Tactical Board"
+            alt={m.home.heroAlt}
             className="absolute inset-0 w-full h-full object-cover object-right"
           />
           {/* Gradient: Much darker on left for perfect text readability, fades to transparent on right */}
@@ -751,11 +946,11 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className="text-4xl sm:text-5xl lg:text-5xl font-display font-black uppercase leading-[1.15] tracking-tight text-white pb-2"
             >
-              Розбираєшся в АПЛ
+              {m.home.heroLine1}
               <br />
-              <span className="text-[#00C46A]">краще за інших?</span>
+              <span className="text-[#00C46A]">{m.home.heroLine2}</span>
               <br />
-              Час на цьому заробити
+              {m.home.heroLine3}
             </motion.h1>
 
             {/* Subheadline */}
@@ -765,9 +960,9 @@ export default function Home() {
               transition={{ duration: 0.7, delay: 0.25 }}
               className="text-lg text-white/50 leading-relaxed max-w-xl"
             >
-              Аналізуй форму гравців і розклад туру.<br />
-              Збери 11 стартовиків і 3 запасних.<br />
-              Чим точніший твій вибір, тим більше MOVE на гаманець.
+              {m.home.heroSub1}<br />
+              {m.home.heroSub2}<br />
+              {m.home.heroSub3}
             </motion.p>
           </div>
 
@@ -783,7 +978,7 @@ export default function Home() {
             <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
                 <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
-                  Призовий фонд цього туру
+                  {m.home.statPrizePool}
                 </p>
                 {statsGwLabel != null ? (
                   <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{statsGwLabel}</p>
@@ -802,10 +997,10 @@ export default function Home() {
             <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
               <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
                 <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
-                  Учасників у цьому турі
+                  {m.home.statParticipants}
                 </p>
                 <p className="text-[6px] font-bold uppercase leading-tight tracking-wider text-white/25 sm:text-[8px]">
-                  зареєстрованих складів
+                  {m.home.statRegistered}
                 </p>
               </div>
               <p className="mt-auto w-full min-w-0 font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
@@ -823,6 +1018,7 @@ export default function Home() {
                 <HeroDeadlinePlaque
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={Number(fixturesData.gameweek.id)}
+                  copy={deadlineCopy}
                 />
               </div>
             ) : (
@@ -842,7 +1038,7 @@ export default function Home() {
                 href="/gameweek"
                 className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-[#00C46A] text-black hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(0,196,106,0.35)]"
               >
-                Почати змагатись
+                {m.home.ctaStart}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -854,7 +1050,7 @@ export default function Home() {
               >
                 <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00C46A] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
                 <div className="relative bg-[#0D0F12] border border-white/10 text-white px-10 py-4 w-full sm:w-auto sm:min-w-[260px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
-                  <span>Почати змагатись</span>
+                  <span>{m.home.ctaStart}</span>
                   <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
@@ -867,7 +1063,7 @@ export default function Home() {
               whileHover={{ y: 2 }}
               className="flex items-center justify-center gap-1.5 text-white/40 hover:text-white/80 text-sm font-medium transition-colors sm:ml-4"
             >
-              Як це працює
+              {m.home.howItWorks}
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
@@ -882,9 +1078,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto space-y-24">
           
           <AnimatedStep
-            subheader="01 — Твій склад, твоя тактика"
-            title="Весь склад АПЛ — твій вибір"
-            desc="Аналізуй форму, дивись розклад і збирай склад з будь-яких гравців Англійської Прем'єр-ліги. 11 стартовиків і 3 запасних — твоє тактичне рішення на тур."
+            subheader={m.home.step1Sub}
+            title={m.home.step1Title}
+            desc={m.home.step1Desc}
             visual={
               <div 
                 className="relative w-full max-w-4xl mx-auto h-[450px] sm:h-[650px] flex items-center justify-center mt-10 mb-20 md:mb-0"
@@ -983,15 +1179,15 @@ export default function Home() {
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
                 <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A] shadow-[0_0_8px_#00C46A]"></span>
                 <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00C46A] uppercase">
-                  02 — Очки в реальному часі
+                  {m.home.step2Badge}
                 </span>
               </div>
               <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight uppercase">
-                Твої гравці. <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">Реальні матчі.</span>
+                {m.home.step2Title1} <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">{m.home.step2Title2}</span>
               </h3>
               <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
-                Статистика надходить з офіційних джерел АПЛ. Кожна дія твоїх гравців на полі — твої очки.
+                {m.home.step2Desc}
               </p>
             </motion.div>
           </div>
@@ -1041,19 +1237,19 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
-              Правила нарахування
+              {m.home.scoringBadge}
             </div>
             <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-2">
-              Чим більше дій — тим більше очок
+              {m.home.scoringTitle}
             </h2>
             <p className="text-white/40 text-sm leading-relaxed">
-              Голи, асисти, сейви, суха пара, вихід на поле — все враховується. Кожна позиція має свою вагу.
+              {m.home.scoringSubtitle}
             </p>
           </motion.div>
 
           {/* 4 Position Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-5">
-            {POSITION_CARDS.map((card, i) => (
+            {positionCards.map((card, i) => (
               <motion.div
                 key={card.posEn}
                 initial={{ opacity: 0, y: 30 }}
@@ -1089,7 +1285,7 @@ export default function Home() {
 
                 {/* Scoring rows — position-specific only */}
                 <div className="flex-1 px-4 py-2.5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">Бали за позицією</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">{m.home.positionScores}</p>
                   <ul className="space-y-0.5">
                     {card.gains.map((g) => (
                       <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
@@ -1103,9 +1299,9 @@ export default function Home() {
                 {/* Footer */}
                 <div className="px-4 py-2.5 border-t border-white/[0.04]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] text-white/20 uppercase tracking-widest">Макс. за тур</span>
+                    <span className="text-[9px] text-white/20 uppercase tracking-widest">{m.home.maxPerGw}</span>
                     <span className="text-sm font-display font-black tabular-nums text-[#00C46A]">
-                      {sumPositiveCardValues(card.gains)} балів
+                      {sumPositiveCardValues(card.gains)} {m.home.pointsWord}
                     </span>
                   </div>
                 </div>
@@ -1126,12 +1322,12 @@ export default function Home() {
               <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-xs">🟥</div>
                 <div>
-                  <p className="text-xs font-black text-white uppercase tracking-wider">Штрафи</p>
-                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">{m.home.penaltiesTitle}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">{m.home.penaltiesSubtitle}</p>
                 </div>
               </div>
               <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
-                {UNIVERSAL_PENALTIES.map((p) => (
+                {universalPenalties.map((p) => (
                   <li key={p.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
                     <span className="text-xs text-white/50">{p.label}</span>
                     <span className="text-sm font-display font-black tabular-nums text-rose-400">{p.pts}</span>
@@ -1145,12 +1341,12 @@ export default function Home() {
               <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-xs">⭐</div>
                 <div>
-                  <p className="text-xs font-black text-white uppercase tracking-wider">Загальні бонуси</p>
-                  <p className="text-[9px] text-white/30 uppercase tracking-widest">Для всіх позицій</p>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">{m.home.bonusesTitle}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">{m.home.bonusesSubtitle}</p>
                 </div>
               </div>
               <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
-                {UNIVERSAL_BONUSES.map((b) => (
+                {universalBonuses.map((b) => (
                   <li key={b.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
                     <span className="text-xs text-white/50">{b.label}</span>
                     <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
@@ -1178,23 +1374,29 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/35 text-[10px] font-bold uppercase tracking-widest mb-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
-                Незабаром
+                {m.home.talentsBadge}
               </div>
               <h2 className="text-xl sm:text-2xl font-display font-black text-white/70 uppercase mb-2">
-                Таланти
+                {m.home.talentsTitle}
               </h2>
               <p className="text-white/35 text-sm leading-relaxed max-w-xl">
-                Розблокуй унікальні <span className="text-white/55 font-semibold">Таланти</span>, які множать фінальні очки гравця на +5%, +10% або +15%. Один правильний вибір може перекинути весь лідерборд.
+                {m.home.talentsBodyStart}
+                <span className="text-white/55 font-semibold">{m.home.talentsHighlight}</span>
+                {m.home.talentsBodyEnd}
               </p>
             </div>
 
             {/* Multiplier pills */}
             <div className="shrink-0 flex flex-row md:flex-col gap-2">
-              {["+5%", "+10%", "+15%"].map((m, i) => (
-                <div key={m} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center opacity-50">
-                  <span className="text-base font-display font-black text-white/60">{m}</span>
+              {["+5%", "+10%", "+15%"].map((pct, i) => (
+                <div key={pct} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center opacity-50">
+                  <span className="text-base font-display font-black text-white/60">{pct}</span>
                   <p className="text-[8px] text-white/20 uppercase tracking-widest mt-0.5">
-                    {["Звичайний", "Рідкісний", "Епічний"][i]}
+                    {[
+                      m.home.rarityCommon,
+                      m.home.rarityRare,
+                      m.home.rarityEpic,
+                    ][i]}
                   </p>
                 </div>
               ))}

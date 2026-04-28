@@ -4,6 +4,7 @@ import { TeamResult } from "@/lib/types";
 import { shortenAddress, formatMOVE } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 interface LeaderboardTableProps {
   results: (TeamResult & { owner: string })[];
@@ -19,34 +20,45 @@ const rankColor: Record<number, string> = {
 
 export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps) {
   const { getNickname } = useNickname();
+  const lt = useSiteMessages().pages.leaderboardTable;
+
+  const headRank = lt.colRank;
+  const headMgr = lt.colManager;
+  const headPts = lt.colPoints;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-white/[0.06]">
-            {(["#", "Менеджер", "Очки"] as const).map((h) => (
+            {(
+              [
+                { label: headRank, align: "left" as const, narrow: true },
+                { label: headMgr, align: "left" as const, narrow: false },
+                { label: headPts, align: "right" as const, narrow: false },
+              ] as const
+            ).map((h) => (
               <th
-                key={h}
+                key={h.label}
                 className={cn(
                   "py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30",
-                  h === "#" ? "text-left w-12" : h === "Менеджер" ? "text-left" : "text-right"
+                  h.align === "left" && h.narrow ? "text-left w-12" : h.align === "left" ? "text-left" : "text-right"
                 )}
               >
-                {h}
+                {h.label}
               </th>
             ))}
             {/* Prize column with distribution tooltip */}
             <th className="py-3 px-4 text-right">
               <div className="inline-flex items-center gap-1.5 justify-end group/prize relative">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Приз</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lt.colPrize}</span>
                 <div className="w-3.5 h-3.5 rounded-full border border-white/20 flex items-center justify-center cursor-default">
                   <span className="text-[8px] text-white/30 leading-none font-bold">?</span>
                 </div>
                 {/* Tooltip */}
                 <div className="absolute right-0 top-full mt-2 hidden group-hover/prize:block z-50 w-44">
                   <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Розподіл фонду</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">{lt.fundSplit}</p>
                     <div className="space-y-1">
                       {[
                         { rank: "1", medal: "🥇", share: "30%", color: "text-[#FFD700]" },
@@ -118,7 +130,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                       </p>
                       {isUser && (
                         <span className="text-[10px] font-bold text-[#00C46A]/60 uppercase tracking-widest">
-                          Ви
+                          {lt.you}
                         </span>
                       )}
                     </div>
@@ -143,7 +155,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                       </span>
                       {result.claimed && (
                         <span className="text-[9px] font-bold text-emerald-400/50 uppercase tracking-wider">
-                          Отримано ✓
+                          {lt.claimed}
                         </span>
                       )}
                     </div>

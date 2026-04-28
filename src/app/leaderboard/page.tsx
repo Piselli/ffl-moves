@@ -19,9 +19,11 @@ import {
 } from "@/lib/movement";
 import { formatMOVE, cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 export default function LeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
+  const lb = useSiteMessages().pages.leaderboard;
   const [config, setConfig] = useState<ChainConfig | null>(null);
   /** Upper bound for tour dropdown; can exceed `config.currentGameweek` if pointer lags. */
   const [pickerMaxGw, setPickerMaxGw] = useState(0);
@@ -128,13 +130,13 @@ export default function LeaderboardPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 30, checkSuccess: true },
       });
-      alert("Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).");
+      alert(lb.claimSuccess);
       // setSelectedGameweek(gameweekId) here is a no-op (same value) — React skips state updates,
       // so the leaderboard would never reflect `claimed: true` until the user changes the dropdown.
       // Re-run the fetch directly instead.
       await fetchGameweekData(gameweekId);
     } catch (error: unknown) {
-      alert(`Не вдалося заклеймити: ${formatTxError(error)}`);
+      alert(lb.claimFail(formatTxError(error)));
     } finally {
       setIsClaiming(false);
     }
@@ -149,7 +151,7 @@ export default function LeaderboardPage() {
       <div className="max-w-6xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center">
           <div className="w-8 h-8 border-2 border-[#00C46A]/60 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/40 text-sm">Завантаження даних...</p>
+          <p className="text-white/40 text-sm">{lb.loading}</p>
         </div>
       </div>
     );
@@ -160,12 +162,12 @@ export default function LeaderboardPage() {
       {/* Header */}
       <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00C46A]/60">Сезон 2024/25</span>
-          <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mt-1">Лідерборд</h1>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00C46A]/60">{lb.seasonTag}</span>
+          <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mt-1">{lb.pageTitle}</h1>
         </div>
 
         <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-2xl mb-1">
-          <span className="text-white/40 text-xs font-bold uppercase tracking-widest">Тур</span>
+          <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{lb.gwLabel}</span>
           <select
             value={selectedGameweek}
             onChange={(e) => setSelectedGameweek(Number(e.target.value))}
@@ -201,7 +203,7 @@ export default function LeaderboardPage() {
               currentGameweek.status === "closed" && "text-amber-400",
               currentGameweek.status === "resolved" && "text-[#00C46A]"
             )}>
-              {currentGameweek.status === "open" ? "Відкрито" : currentGameweek.status === "closed" ? "Закрито" : "Завершено"}
+              {currentGameweek.status === "open" ? lb.statusOpen : currentGameweek.status === "closed" ? lb.statusClosed : lb.statusResolved}
             </span>
           </div>
 
@@ -209,7 +211,7 @@ export default function LeaderboardPage() {
 
           {/* Prize Pool */}
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Фонд</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.poolLabel}</span>
             <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent tabular-nums">
               {formatMOVE(currentGameweek.prizePool)}
             </span>
@@ -220,7 +222,7 @@ export default function LeaderboardPage() {
 
           {/* Entries */}
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Учасників</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.entriesLabel}</span>
             <span className="text-xl font-display font-black text-white tabular-nums">
               {currentGameweek.totalEntries}
             </span>
@@ -229,11 +231,11 @@ export default function LeaderboardPage() {
           {/* Distribution tooltip — pushed to the right */}
           <div className="ml-auto relative group/dist">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2 whitespace-nowrap">
-              Розподіл призів
+              {lb.prizeDistribution}
             </span>
             <div className="absolute top-full right-0 mt-2 hidden group-hover/dist:block z-50 w-44 pointer-events-none">
               <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Топ-10 отримують</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">{lb.top10Receive}</p>
                 <div className="space-y-1">
                   {[
                     { rank: "1",  icon: "🥇", share: "30%", color: "text-[#FFD700]" },
@@ -260,7 +262,7 @@ export default function LeaderboardPage() {
         </div>
       ) : (
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center mb-8">
-          <p className="text-white/30 text-sm">Немає даних для GW {selectedGameweek}</p>
+          <p className="text-white/30 text-sm">{lb.noDataForGw(selectedGameweek)}</p>
         </div>
       )}
 
@@ -274,26 +276,26 @@ export default function LeaderboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">Мій результат · Тур {selectedGameweek}</h2>
+              <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">{lb.myResultTitle(selectedGameweek)}</h2>
             </div>
             <div className="flex items-center gap-2">
               {userResult.rank > 0 && userResult.rank <= 10 && (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                  У призах 🎉
+                  {lb.inPrizes}
                 </span>
               )}
               <Link
                 href="/my-result"
                 className="text-[10px] font-bold uppercase tracking-wider text-[#00C46A]/70 hover:text-[#00C46A] border border-[#00C46A]/20 hover:border-[#00C46A]/40 px-3 py-1 rounded-full transition-colors"
               >
-                Детальніше →
+                {lb.detailsLink}
               </Link>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
             {[
               {
-                label: "Місце",
+                label: lb.colRank,
                 value: userResult.rank > 0 ? `#${userResult.rank}` : "—",
                 className:
                   userResult.rank === 1
@@ -305,12 +307,12 @@ export default function LeaderboardPage() {
                         : "text-white",
               },
               {
-                label: "Очки",
+                label: lb.colPoints,
                 value: String(userResult.finalPoints),
                 className: "text-white",
               },
               {
-                label: "Приз (MOVE)",
+                label: lb.colPrizeMove,
                 value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—",
                 className: "text-emerald-400",
               },
@@ -327,16 +329,16 @@ export default function LeaderboardPage() {
                   disabled={isClaiming}
                   className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isClaiming ? "..." : "Отримати"}
+                  {isClaiming ? lb.claiming : lb.claim}
                 </button>
               )}
               {userResult.claimed && (
                 <div className="text-center">
-                  <p className="text-emerald-400 font-bold text-sm">✓ Отримано</p>
+                  <p className="text-emerald-400 font-bold text-sm">{lb.claimed}</p>
                 </div>
               )}
               {userResult.prizeAmount === 0 && (
-                <p className="text-white/20 text-xs text-center">Без призу</p>
+                <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>
               )}
             </div>
           </div>
@@ -354,24 +356,21 @@ export default function LeaderboardPage() {
         ) : (
           <div className="py-10 text-center">
             <div className="text-3xl mb-3">🏆</div>
-            <h3 className="text-base font-display font-black text-white uppercase tracking-tight mb-1">Результатів поки немає</h3>
+            <h3 className="text-base font-display font-black text-white uppercase tracking-tight mb-1">{lb.emptyTitle}</h3>
             {currentGameweek?.status === "closed" ? (
               <p className="text-white/40 text-xs max-w-md mx-auto mb-4 leading-relaxed">
-                Тур {selectedGameweek} на ланцюгу в статусі «Закрито»: склади зафіксовано, статистику можна вже відправити в контракт.
-                Таблиця лідерборду з’явиться після останнього кроку в адмінці — кнопка{" "}
-                <span className="text-amber-400/90 font-semibold">Calculate &amp; Publish</span>{" "}
-                (транзакція обчислення та публікації). До цього on-chain статус туру не «Завершено».
+                {lb.emptyClosedHint(selectedGameweek)}
               </p>
             ) : (
               <p className="text-white/30 text-xs mb-4">
-                Результати Туру {selectedGameweek} ще не опубліковані.
+                {lb.emptyNotPublished(selectedGameweek)}
               </p>
             )}
             <a
               href="/gameweek"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00C46A]/10 border border-[#00C46A]/20 text-[#00C46A] font-display font-bold text-xs uppercase tracking-wider hover:bg-[#00C46A]/20 hover:border-[#00C46A]/30 transition-all"
             >
-              Зареєструй свій склад
+              {lb.registerSquadCta}
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -381,7 +380,7 @@ export default function LeaderboardPage() {
       </div>
 
       <p className="text-center text-white/20 text-xs mt-6">
-        Реальні on-chain результати · Тур {selectedGameweek} · Movement
+        {lb.footerLine(selectedGameweek)}
       </p>
     </div>
   );
