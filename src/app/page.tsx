@@ -53,29 +53,29 @@ function HeroDeadlinePlaque({ targetTime, gwId }: { targetTime: string; gwId: nu
   }, [targetTime]);
 
   return (
-    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col items-stretch">
-      <div className="mb-0.5 min-w-0 shrink-0 space-y-px sm:mb-1 sm:space-y-0.5">
+    <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col items-start">
+      <div className="mb-0.5 min-w-0 w-full shrink-0 space-y-px sm:mb-1 sm:space-y-0.5">
         <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
           До дедлайну
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <p className="mt-auto w-full min-w-0 max-w-full whitespace-nowrap font-display text-base font-black text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none tracking-tight [font-variant-numeric:lining-nums]">
+      <p className="mt-auto w-full min-w-0 max-w-full overflow-x-clip text-left whitespace-nowrap font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-xl md:text-2xl leading-none [font-variant-numeric:lining-nums] tracking-tight sm:tracking-normal">
         {!timeLeft ? (
           <span className="text-white/20 animate-pulse">—</span>
         ) : expired ? (
           <span className="text-white/50">Дедлайн пройшов</span>
         ) : (
-          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline gap-x-0.5 sm:gap-x-1">
-            <span className="shrink-0">{String(timeLeft.d).padStart(2, "0")}д</span>
-            <span className="shrink-0 text-white/40" aria-hidden>
+          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline justify-start gap-x-px sm:gap-x-0.5 md:gap-x-1">
+            <span className="shrink-0 tabular-nums">{String(timeLeft.d).padStart(2, "0")}д</span>
+            <span className="shrink-0 text-white/40 text-[0.85em]" aria-hidden>
               :
             </span>
-            <span className="shrink-0">{String(timeLeft.h).padStart(2, "0")}г</span>
-            <span className="shrink-0 text-white/40" aria-hidden>
+            <span className="shrink-0 tabular-nums">{String(timeLeft.h).padStart(2, "0")}г</span>
+            <span className="shrink-0 text-white/40 text-[0.85em]" aria-hidden>
               :
             </span>
-            <span className="shrink-0">
+            <span className="shrink-0 tabular-nums">
               {String(timeLeft.m).padStart(2, "0")}хв
             </span>
           </span>
@@ -819,7 +819,7 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime ? (
-              <div className="flex h-full min-h-0 min-w-0 flex-col items-stretch self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
+              <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
                 <HeroDeadlinePlaque
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={Number(fixturesData.gameweek.id)}
