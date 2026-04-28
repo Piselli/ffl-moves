@@ -5,6 +5,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
+  client,
   getConfig,
   getGameweek,
   findOpenGameweekFromChain,
@@ -14,11 +15,11 @@ import {
   getGameweekTeams,
   moduleFunction,
 } from "@/lib/movement";
-import { formatMOVE, cn } from "@/lib/utils";
+import { formatMOVE, cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 
 export default function LeaderboardPage() {
-  const { account, connected, signAndSubmitTransaction } = useWallet();
+  const { account, connected, signTransaction } = useWallet();
   const [config, setConfig] = useState<any>(null);
   /** Upper bound for tour dropdown; can exceed `config.currentGameweek` if pointer lags. */
   const [pickerMaxGw, setPickerMaxGw] = useState(0);
@@ -102,21 +103,32 @@ export default function LeaderboardPage() {
   }, [selectedGameweek]);
 
   const handleClaimPrize = async (gameweekId: number) => {
-    if (!connected) return;
+    if (!connected || !account?.address) return;
     setIsClaiming(true);
     try {
-      await signAndSubmitTransaction({
+      // Same path as gameweek registration: build on Movement fullnode, sign raw tx.
+      // `signAndSubmitTransaction` always runs wallet-adapter `getAptosConfig` and breaks on Movement ("custom").
+      const transaction = await client.transaction.build.simple({
+        sender: account.address.toString(),
         data: {
           function: moduleFunction("claim_prize"),
           typeArguments: [],
           functionArguments: [gameweekId.toString()],
         },
       });
+      const signResult = await signTransaction({ transactionOrPayload: transaction });
+      const pending = await client.transaction.submit.simple({
+        transaction,
+        senderAuthenticator: signResult.authenticator,
+      });
+      await client.waitForTransaction({
+        transactionHash: pending.hash,
+        options: { timeoutSecs: 30, checkSuccess: true },
+      });
       alert("Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).");
       setSelectedGameweek(gameweekId); // refresh
-    } catch (error: any) {
-      const msg = error?.message || error?.toString() || "Unknown error";
-      alert(`Failed to claim: ${msg}`);
+    } catch (error: unknown) {
+      alert(`Не вдалося заклеймити: ${formatTxError(error)}`);
     } finally {
       setIsClaiming(false);
     }
