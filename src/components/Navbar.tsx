@@ -128,7 +128,7 @@ export function Navbar() {
         </svg>
       </div>
       <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
-        FPL<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MOVE</span>
+        MOVE<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MATCH</span>
       </span>
     </Link>
   );

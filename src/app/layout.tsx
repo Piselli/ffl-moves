@@ -10,8 +10,8 @@ const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
-  title: "Fantasy EPL on Movement",
-  description: "Fantasy football game powered by Movement Network",
+  title: "MOVEMATCH",
+  description: "Fantasy Premier League picks on Movement — earn MOVE for accurate squads.",
 };
 
 /** Without this, some mobile browsers use a ~980px layout width and `md:` breakpoints never match “phone”. */

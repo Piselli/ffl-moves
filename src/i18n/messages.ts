@@ -158,7 +158,7 @@ const uk: SiteMessages = {
       "Перевір .env.local і Nightly: не nightly RPC і не дефолтна адреса testnet3 на mainnet.",
   },
   home: {
-    heroAlt: "Тактична дошка Fantasy EPL",
+    heroAlt: "Тактична дошка MOVEMATCH",
     heroLine1: "Розбираєшся в АПЛ",
     heroLine2: "краще за інших?",
     heroLine3: "Час на цьому заробити",
@@ -303,7 +303,7 @@ const en: SiteMessages = {
       "Check .env.local and Nightly: avoid nightly RPC and the default testnet3 module address on mainnet.",
   },
   home: {
-    heroAlt: "Fantasy EPL tactical board",
+    heroAlt: "MOVEMATCH tactical board",
     heroLine1: "Know the EPL",
     heroLine2: "Better than everyone?",
     heroLine3: "Time to earn from it",

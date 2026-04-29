@@ -136,6 +136,11 @@ export default function MyResultPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [gwStats, setGwStats] = useState<Record<string, Record<string, unknown>>>({});
+  const [siteHost, setSiteHost] = useState("");
+
+  useEffect(() => {
+    setSiteHost(typeof window !== "undefined" ? window.location.host : "");
+  }, []);
 
   useEffect(() => {
     if (!connected || !address) { setLoading(false); return; }
@@ -434,9 +439,9 @@ export default function MyResultPage() {
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
             <span className="text-xs font-display font-black text-white/20 uppercase tracking-widest">
-              FPL<span className="text-[#00C46A]/40">MOVE</span>
+              MOVE<span className="text-[#00C46A]/40">MATCH</span>
             </span>
-            <span className="text-[10px] text-white/15">ffl-moves.vercel.app</span>
+            <span className="text-[10px] text-white/15">{siteHost}</span>
           </div>
         </motion.div>
 

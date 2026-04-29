@@ -1,9 +1,9 @@
 {
-  "name": "fantasy-epl-frontend",
+  "name": "movematch",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "WATCHPACK_POLLING=1 next dev",
+    "dev": "WATCHPACK_POLLING=1 next dev -H 0.0.0.0",
     "dev:3001": "WATCHPACK_POLLING=1 next dev -p 3001",
     "dev:lan": "WATCHPACK_POLLING=1 next dev -H 0.0.0.0 -p 3000",
     "build:atlas": "node scripts/build-fpl-photo-atlas.mjs",
