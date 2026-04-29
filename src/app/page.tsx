@@ -112,12 +112,20 @@ function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
       duration: 1.6,
       ease: "easeOut",
       onUpdate(v) {
-        node.textContent = v.toFixed(decimals) + suffix;
+        // Trim redundant ".0" / ".00" while keeping real fractional values (e.g. 37.5).
+        const text = String(Number(v.toFixed(decimals)));
+        node.textContent = text + suffix;
       },
     });
     return controls.stop;
   }, [to, suffix, decimals]);
-  return <span ref={nodeRef}>0{suffix}</span>;
+  const initial = String(Number((0).toFixed(decimals)));
+  return (
+    <span ref={nodeRef}>
+      {initial}
+      {suffix}
+    </span>
+  );
 }
 
 // ─── Animated step (How It Works) ─────────────────────────────────────────────
