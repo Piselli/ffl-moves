@@ -30,14 +30,6 @@ const positionTextColor = {
   FWD: "text-emerald-400",
 };
 
-// kept for compact border + fallback text
-const positionBadgeColors = {
-  GK:  "bg-rose-500/20    text-rose-400    border-rose-500/40",
-  DEF: "bg-amber-500/20   text-amber-400   border-amber-500/40",
-  MID: "bg-blue-500/20    text-blue-400    border-blue-500/40",
-  FWD: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
-};
-
 /** FPL availability — icons match official meanings: injury, suspension, doubtful */
 function PlayerAvailabilityIcon({
   status,
@@ -199,11 +191,6 @@ export function PlayerCard({
             size={48}
             teamName={player.team}
             initials={initialsFromDisplayName(player.webName || player.name)}
-            positionFallback={player.position}
-            positionFallbackClassName={cn(
-              "text-[11px] font-black",
-              positionBadgeColors[player.position].split(" ")[1]
-            )}
             className="rounded-lg"
           />
         </div>
@@ -239,8 +226,6 @@ export function PlayerCard({
             size={44}
             teamName={player.team}
             initials={initialsFromDisplayName(player.webName || player.name)}
-            positionFallback={player.position}
-            positionFallbackClassName={cn("text-xs font-black", positionTextColor[player.position])}
             className="rounded-xl"
           />
         </div>

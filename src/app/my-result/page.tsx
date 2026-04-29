@@ -84,8 +84,6 @@ function PlayerResultCard({
           size={56}
           teamName={player.team}
           initials={initialsFromDisplayName(player.webName || player.name)}
-          positionFallback={player.position}
-          positionFallbackClassName={cn("text-xs font-black", positionColor[player.position])}
           className="rounded-xl"
         />
       </div>

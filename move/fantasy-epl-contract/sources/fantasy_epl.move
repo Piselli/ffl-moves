@@ -281,7 +281,7 @@ module fantasy_epl_addr::fantasy_epl {
         move_to(sender, Config {
             admins,
             oracle: sender_addr,  // Initially deployer is also oracle
-            entry_fee: 100000000,  // 1 APT default
+            entry_fee: 300_00000000,  // 300 MOVE default
             title_fee: 50000000,   // 0.5 APT
             guild_fee: 50000000,   // 0.5 APT
             prize_pool_percent: 80,
@@ -1474,9 +1474,9 @@ module fantasy_epl_addr::fantasy_epl {
         coin::register<AptosCoin>(user1);
         coin::register<AptosCoin>(user2);
 
-        let coins_admin = coin::mint<AptosCoin>(1000_00000000, &mint_cap); // 1000 APT
-        let coins_user1 = coin::mint<AptosCoin>(100_00000000, &mint_cap);  // 100 APT
-        let coins_user2 = coin::mint<AptosCoin>(100_00000000, &mint_cap);  // 100 APT
+        let coins_admin = coin::mint<AptosCoin>(1000_00000000, &mint_cap); // 1000 MOVE
+        let coins_user1 = coin::mint<AptosCoin>(1000_00000000, &mint_cap); // 1000 MOVE (covers 300 MOVE entry + fees)
+        let coins_user2 = coin::mint<AptosCoin>(1000_00000000, &mint_cap);
 
         coin::deposit(signer::address_of(admin), coins_admin);
         coin::deposit(signer::address_of(user1), coins_user1);
@@ -1531,7 +1531,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(vector::length(&admins) == 1, 1);
         assert!(*vector::borrow(&admins, 0) == @fantasy_epl_addr, 2);
         assert!(oracle_addr == @fantasy_epl_addr, 3);
-        assert!(entry_fee == 100000000, 4); // 1 APT
+        assert!(entry_fee == 300_00000000, 4); // 300 MOVE
         assert!(title_fee == 50000000, 5);  // 0.5 APT
         assert!(guild_fee == 50000000, 6);  // 0.5 APT
         assert!(prize_percent == 80, 7);
@@ -1585,7 +1585,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Verify gameweek updated
         let (_, _, prize_pool, total_entries) = get_gameweek(1);
         assert!(total_entries == 1, 2);
-        assert!(prize_pool == 80000000, 3); // 80% of 1 APT entry fee
+        assert!(prize_pool == 240_00000000, 3); // 80% of 300 MOVE entry fee
 
         // Verify user's team data
         let (ids, pos) = get_user_team(@0x123, 1);
@@ -1861,7 +1861,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Verify prize pool
         let (_, _, prize_pool, total_entries) = get_gameweek(1);
         assert!(total_entries == 2, 1);
-        assert!(prize_pool == 160000000, 2); // 2 entries * 80% of 1 APT
+        assert!(prize_pool == 480_00000000, 2); // 2 entries * 80% of 300 MOVE
 
         // 5. Submit player stats
         // Player 9 scored 2 goals, player 10 scored 1

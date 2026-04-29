@@ -39,8 +39,8 @@ export const MODULE_ADDRESS =
 
 export const MODULE_NAME = publicEnv(process.env.NEXT_PUBLIC_MODULE_NAME) ?? "fantasy_epl";
 
-// Entry fee in MOVE (for display)
-export const ENTRY_FEE_MOVE = 1;
+// Entry fee in MOVE (for display / docs; on-chain value comes from contract config)
+export const ENTRY_FEE_MOVE = 300;
 
 // Title types
 export const TITLE_TYPES = {

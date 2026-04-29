@@ -20,9 +20,6 @@ type Props = {
   className?: string;
   /** Square size in px */
   size: number;
-  /** Position letter when no photo (e.g. GK) — shown as small badge on generated avatar */
-  positionFallback?: string;
-  positionFallbackClassName?: string;
   /** Club / team name — stable tint for generated avatar when photo missing */
   teamName?: string | null;
   /** Override initials (e.g. `webName`) */
@@ -31,22 +28,18 @@ type Props = {
   accentHue?: number | null;
 };
 
-function SilhouettePlate() {
+/** Minimal bust — single smooth silhouette, no extra strokes or layers */
+function FallbackSilhouette({ className }: { className?: string }) {
   return (
     <svg
-      className="absolute inset-0 w-full h-full text-white pointer-events-none"
+      className={cn("pointer-events-none text-white", className)}
       viewBox="0 0 64 80"
       fill="currentColor"
       aria-hidden
     >
-      <ellipse cx="32" cy="22" rx="14" ry="15" opacity="0.14" />
       <path
-        d="M16 78c4-18 12-26 16-26s12 8 16 26"
-        opacity="0.1"
-        stroke="currentColor"
-        strokeWidth="3"
-        fill="none"
-        strokeLinecap="round"
+        opacity={0.26}
+        d="M32 15c7.2 0 13 5.6 13 12.5 0 5.2-3.1 9.7-7.6 11.7 9.2 2.2 15.6 10.4 15.6 20.2V68H10v-8.6c0-9.8 6.4-18 15.6-20.2C21.1 37.2 18 32.7 18 27.5 18 20.6 23.8 15 32 15z"
       />
     </svg>
   );
@@ -58,8 +51,6 @@ export function FplPhotoAvatar({
   alt,
   className,
   size,
-  positionFallback = "?",
-  positionFallbackClassName,
   teamName,
   initials: initialsProp,
   accentHue,
@@ -79,7 +70,6 @@ export function FplPhotoAvatar({
 
   const showImg = Boolean(photoUrl);
   const showRaster = showImg && !imgFailed;
-  const showGenerated = !useSprite && (!showImg || imgFailed);
 
   const initials =
     (initialsProp && initialsProp.trim()) || initialsFromDisplayName(alt);
@@ -89,10 +79,11 @@ export function FplPhotoAvatar({
       : hueFromString((teamName && teamName.trim()) || alt);
 
   const plateStyle: CSSProperties = {
-    background: `linear-gradient(145deg, hsl(${hue} 48% 34%) 0%, hsl(${hue} 40% 18%) 42%, #080a10 100%)`,
+    background: `linear-gradient(168deg, hsl(${hue} 20% 24%) 0%, hsl(${hue} 14% 13%) 52%, #050608 100%)`,
   };
 
-  const initialsFont = Math.max(11, Math.min(22, Math.round(size * 0.34)));
+  const initialsSize = Math.max(9, Math.min(16, Math.round(size * 0.22)));
+  const silhouetteBox = Math.round(size * 0.56);
 
   if (useSprite && frame) {
     const style: CSSProperties = {
@@ -117,49 +108,49 @@ export function FplPhotoAvatar({
       aria-label={alt}
       title={alt}
       className={cn(
-        "relative shrink-0 overflow-hidden flex items-center justify-center bg-[#0A0D14]",
+        "relative shrink-0 overflow-hidden flex flex-col bg-[#06080c]",
         className
       )}
       style={{ width: size, height: size }}
     >
-      {/* Tint plate + silhouette — visible under broken/missing photo */}
-      <div className="absolute inset-0 z-0" style={plateStyle}>
-        <SilhouettePlate />
-      </div>
+      <div className="absolute inset-0 z-0" style={plateStyle} />
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(ellipse_85%_65%_at_50%_28%,transparent_0%,rgba(0,0,0,0.38)_100%)]"
+        aria-hidden
+      />
 
       {showRaster ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={photoUrl!}
           alt=""
-          className="absolute inset-0 z-[1] h-full w-full object-cover object-top"
+          className="absolute inset-0 z-[2] h-full w-full object-cover object-top"
           onError={() => setImgFailed(true)}
         />
       ) : null}
 
-      {/* Initials + corner position when no usable raster */}
+      {/* Silhouette + monogram — only when no usable raster */}
       <div
         className={cn(
-          "absolute inset-0 z-[2] flex items-center justify-center px-0.5",
+          "absolute inset-0 z-[3] flex flex-col items-center justify-end",
           showRaster ? "pointer-events-none opacity-0" : "opacity-100"
         )}
+        style={{ paddingBottom: Math.max(5, Math.round(size * 0.1)) }}
       >
+        <div className="flex flex-1 w-full min-h-0 items-center justify-center px-[13%] pt-[7%]">
+          <div
+            className="flex items-center justify-center shrink-0 [&>svg]:h-full [&>svg]:w-auto [&>svg]:max-h-full"
+            style={{ height: silhouetteBox, width: (silhouetteBox * 64) / 80 }}
+          >
+            <FallbackSilhouette className="h-full w-full" />
+          </div>
+        </div>
         <span
-          className="font-black leading-none tracking-tight text-white/95 drop-shadow-md select-none"
-          style={{ fontSize: initialsFont }}
+          className="shrink-0 font-medium leading-none tracking-[0.14em] text-white/48 select-none uppercase"
+          style={{ fontSize: initialsSize }}
         >
           {initials}
         </span>
-        {positionFallback && positionFallback !== "?" ? (
-          <span
-            className={cn(
-              "absolute bottom-0.5 right-0.5 rounded px-1 py-px text-[7px] font-black uppercase leading-none bg-black/50 text-white/85 border border-white/15",
-              positionFallbackClassName
-            )}
-          >
-            {positionFallback}
-          </span>
-        ) : null}
       </div>
     </div>
   );

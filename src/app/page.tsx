@@ -275,7 +275,6 @@ function PlayerCutout({
           size={96}
           teamName={name}
           initials={initialsFromDisplayName(name)}
-          positionFallback={pos}
           className="rounded-xl shadow-2xl"
         />
       </div>
@@ -1144,7 +1143,6 @@ export default function Home() {
                                   size={72}
                                   teamName={p.name}
                                   initials={initialsFromDisplayName(p.name)}
-                                  positionFallback={p.pos}
                                   className="rounded-lg"
                                 />
                               </div>
@@ -1271,7 +1269,6 @@ export default function Home() {
                       size={44}
                       teamName={card.player}
                       initials={initialsFromDisplayName(card.player)}
-                      positionFallback={card.posEn}
                       className="scale-110 rounded-xl"
                     />
                   </div>

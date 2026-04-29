@@ -183,6 +183,14 @@ export type PagesMessages = {
     sectionTitleWhenOpen: string;
     sectionTitleWhenClosed: string;
     closeGwButtonLabel: (gw: number) => string;
+    feesSectionTitle: string;
+    feesSectionHint: string;
+    feesEntryLabel: string;
+    feesTitleLabel: string;
+    feesGuildLabel: string;
+    feesSubmit: string;
+    feesUpdated: string;
+    feesInvalid: string;
   };
 };
 
@@ -385,6 +393,15 @@ export const pagesEn: PagesMessages = {
     sectionTitleWhenOpen: "Close registration",
     sectionTitleWhenClosed: "Re-open gameweek",
     closeGwButtonLabel: (gw) => `Close GW ${gw}`,
+    feesSectionTitle: "Registration & title fees (MOVE)",
+    feesSectionHint:
+      "Updates on-chain entry_fee, title_fee, and guild_fee (octas). Squad page reads these values from get_config — republishing the package alone does not change an existing deployment.",
+    feesEntryLabel: "Squad registration",
+    feesTitleLabel: "Title purchase",
+    feesGuildLabel: "Guild",
+    feesSubmit: "Apply fees on-chain",
+    feesUpdated: "Fees updated on-chain. Refresh the squad page.",
+    feesInvalid: "Enter valid non-negative numbers for all three fees (MOVE).",
   },
 };
 
@@ -587,5 +604,14 @@ export const pagesUk: PagesMessages = {
     sectionTitleWhenOpen: "Закрити реєстрацію",
     sectionTitleWhenClosed: "Повторно відкрити тур",
     closeGwButtonLabel: (gw) => `Закрити GW ${gw}`,
+    feesSectionTitle: "Внески: реєстрація складу та титули (MOVE)",
+    feesSectionHint:
+      "Оновлює on-chain entry_fee, title_fee та guild_fee (у найменших одиницях). Сторінка вибору складу бере суми з get_config — лише зміна коду пакета не змінює вже задеплоєний контракт.",
+    feesEntryLabel: "Реєстрація складу",
+    feesTitleLabel: "Купівля титулу",
+    feesGuildLabel: "Гільдія",
+    feesSubmit: "Застосувати внески в мережі",
+    feesUpdated: "Внески оновлено on-chain. Онови сторінку вибору складу.",
+    feesInvalid: "Введи коректні невід’ємні числа для всіх трьох полів (MOVE).",
   },
 };

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain, type ChainConfig, type GameweekSummary } from "@/lib/movement";
-import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
+import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -30,6 +30,9 @@ export default function AdminPage() {
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
+  const [feeEntryMove, setFeeEntryMove] = useState("");
+  const [feeTitleMove, setFeeTitleMove] = useState("");
+  const [feeGuildMove, setFeeGuildMove] = useState("");
 
   // API states
   const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
@@ -85,6 +88,13 @@ export default function AdminPage() {
       setReopenTargetId(String(currentGameweek.id));
     }
   }, [currentGameweek?.id]);
+
+  useEffect(() => {
+    if (!config) return;
+    setFeeEntryMove(formatMOVE(config.entryFee));
+    setFeeTitleMove(formatMOVE(config.titleFee));
+    setFeeGuildMove(formatMOVE(config.guildFee));
+  }, [config]);
 
   const handleCheckApiStatus = async () => {
     if (!apiKey) return;
@@ -282,6 +292,40 @@ export default function AdminPage() {
       setNewPrizePoolPct("");
     } catch (error: unknown) {
       console.error("Failed to update percentage:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateFees = async () => {
+    if (!connected) return;
+    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
+    const entry = parseMove(feeEntryMove);
+    const title = parseMove(feeTitleMove);
+    const guild = parseMove(feeGuildMove);
+    if (![entry, title, guild].every((n) => Number.isFinite(n) && n >= 0)) {
+      alert(ad.feesInvalid);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("set_fees"),
+          typeArguments: [],
+          functionArguments: [
+            String(moveToOctas(entry)),
+            String(moveToOctas(title)),
+            String(moveToOctas(guild)),
+          ],
+        },
+      });
+      alert(ad.feesUpdated);
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to update fees:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -737,6 +781,68 @@ export default function AdminPage() {
                 {isSubmitting ? "..." : "Update %"}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Squad / title / guild fees (Admin) */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">{ad.feesSectionTitle}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{ad.feesSectionHint}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.feesEntryLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={feeEntryMove}
+                  onChange={(e) => setFeeEntryMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.feesTitleLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={feeTitleMove}
+                  onChange={(e) => setFeeTitleMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.feesGuildLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={feeGuildMove}
+                  onChange={(e) => setFeeGuildMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleUpdateFees}
+              disabled={isSubmitting || !feeEntryMove || !feeTitleMove || !feeGuildMove}
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:from-amber-400 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/25 disabled:opacity-50"
+            >
+              {isSubmitting ? "..." : ad.feesSubmit}
+            </button>
           </div>
         )}
 

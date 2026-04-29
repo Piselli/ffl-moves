@@ -26,11 +26,11 @@ export async function getConfig() {
     return {
       admins: result[0] as string[],  // Now returns array of admins
       oracle: result[1] as string,
-      entryFee: Number(result[2]),
-      titleFee: Number(result[3]),
-      guildFee: Number(result[4]),
-      prizePoolPercent: Number(result[5]),
-      currentGameweek: Number(result[6]),
+      entryFee: viewNum(result[2]),
+      titleFee: viewNum(result[3]),
+      guildFee: viewNum(result[4]),
+      prizePoolPercent: viewNum(result[5]),
+      currentGameweek: viewNum(result[6]),
     };
   } catch (e) {
     console.error("Failed to get config:", e);
