@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -20,12 +21,21 @@ export function NicknameModal({
   const nn = useSiteMessages().pages.nickname;
   const [value, setValue] = useState(currentNickname ?? "");
   const [error, setError] = useState("");
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    setPortalRoot(document.body);
   }, []);
+
+  useEffect(() => {
+    if (!portalRoot) return;
+    const id = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [portalRoot]);
 
   // Close on Escape
   useEffect(() => {
@@ -44,16 +54,19 @@ export function NicknameModal({
 
   const shortAddr = address.slice(0, 6) + "..." + address.slice(-4);
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="nickname-modal-title"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       {/* Modal */}
-      <div className="relative w-full max-w-sm bg-[#111214] border border-white/[0.10] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto bg-[#111214] border border-white/[0.10] rounded-2xl shadow-2xl overscroll-contain">
         {/* Top accent line */}
         <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00C46A]/60 to-transparent" />
 
@@ -61,7 +74,10 @@ export function NicknameModal({
           {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <div>
-              <h2 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
+              <h2
+                id="nickname-modal-title"
+                className="text-lg font-display font-black text-white uppercase tracking-tight leading-none"
+              >
                 {currentNickname ? nn.titleEdit : nn.titleWelcome}
               </h2>
               <p className="text-xs text-white/30 mt-1.5">
@@ -130,4 +146,7 @@ export function NicknameModal({
       </div>
     </div>
   );
+
+  if (!portalRoot) return null;
+  return createPortal(modal, portalRoot);
 }
