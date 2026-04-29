@@ -18,6 +18,7 @@ import {
   type GameweekSummary,
 } from "@/lib/movement";
 import { formatMOVE, cn, formatTxError } from "@/lib/utils";
+import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -64,7 +65,7 @@ export default function LeaderboardPage() {
         }
 
         if (initial > 0) {
-          setSelectedGameweek(initial);
+          setSelectedGameweek(Math.max(initial, MIN_PUBLIC_LEADERBOARD_GW));
         } else {
           setIsLoading(false);
         }
@@ -174,8 +175,15 @@ export default function LeaderboardPage() {
             className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer"
           >
             {Array.from(
-              { length: Math.max(1, pickerMaxGw || Number(config?.currentGameweek) || 1) },
-              (_, i) => i + 1,
+              {
+                length: Math.max(
+                  1,
+                  Math.max(pickerMaxGw || Number(config?.currentGameweek) || 1, MIN_PUBLIC_LEADERBOARD_GW) -
+                    MIN_PUBLIC_LEADERBOARD_GW +
+                    1,
+                ),
+              },
+              (_, i) => MIN_PUBLIC_LEADERBOARD_GW + i,
             ).map((gw) => (
               <option key={gw} value={gw} className="bg-[#0D0F12]">
                 {gw}

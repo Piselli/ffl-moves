@@ -9,9 +9,29 @@ import { LocaleProvider } from "@/i18n/LocaleProvider";
 const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
 
+const siteTitle = "MOVEMATCH — Premier League fantasy on Movement";
+const siteDescription =
+  "Build your EPL squad from live gameweek stats, compete for the top 10, and earn MOVE rewards on Movement Network.";
+
 export const metadata: Metadata = {
-  title: "MOVEMATCH",
-  description: "Fantasy Premier League picks on Movement — earn MOVE for accurate squads.",
+  title: {
+    default: siteTitle,
+    template: "%s · MOVEMATCH",
+  },
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    siteName: "MOVEMATCH",
+    type: "website",
+    locale: "en_US",
+    alternateLocale: ["uk_UA"],
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+  },
 };
 
 /** Without this, some mobile browsers use a ~980px layout width and `md:` breakpoints never match “phone”. */

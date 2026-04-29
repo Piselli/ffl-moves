@@ -42,6 +42,9 @@ export const MODULE_NAME = publicEnv(process.env.NEXT_PUBLIC_MODULE_NAME) ?? "fa
 // Entry fee in MOVE (for display / docs; on-chain value comes from contract config)
 export const ENTRY_FEE_MOVE = 300;
 
+/** First gameweek shown in leaderboard UI (earlier weeks were test / internal). */
+export const MIN_PUBLIC_LEADERBOARD_GW = 35;
+
 // Title types
 export const TITLE_TYPES = {
   0: { name: "Tackles Master", category: "Defensive", description: "Your player has most tackles + interceptions" },
