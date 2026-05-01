@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
@@ -119,14 +120,14 @@ export function Navbar() {
 
   const logoEl = (
     <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">
-      {/* Logo icon */}
-      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#00C46A] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#00C46A]/20 group-hover:shadow-[#00C46A]/40 group-hover:scale-105 transition-all duration-300 shrink-0">
-        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0F12]" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" />
-        </svg>
-      </div>
+      <Image
+        src="/logo.png"
+        alt="MoveMatch"
+        width={235}
+        height={150}
+        className="shrink-0 group-hover:scale-105 transition-transform duration-300 h-8 w-auto sm:h-10"
+        priority
+      />
       <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
         MOVE<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MATCH</span>
       </span>

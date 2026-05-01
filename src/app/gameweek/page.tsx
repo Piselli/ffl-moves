@@ -332,6 +332,9 @@ export default function GameweekPage() {
             playerClubs,
           ],
         },
+        options: {
+          expireTimestamp: Math.floor(Date.now() / 1000) + 120,
+        },
       });
 
       // Sign via the wallet extension
