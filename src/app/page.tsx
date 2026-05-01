@@ -102,28 +102,66 @@ function HeroDeadlinePlaque({
   );
 }
 
-// ─── Animated number counter ─────────────────────────────────────────────────
-function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
-  const nodeRef = useRef<HTMLSpanElement>(null);
+// ─── Slot-machine digit: spins through random digits then settles ─────────────
+function SlotDigit({ target, index }: { target: string; index: number }) {
+  const isDigit = /\d/.test(target);
+  const [displayed, setDisplayed] = useState(() => (isDigit ? String(Math.floor(Math.random() * 10)) : target));
+
   useEffect(() => {
-    const node = nodeRef.current;
-    if (!node) return;
-    const controls = animate(0, to, {
-      duration: 1.6,
-      ease: "easeOut",
-      onUpdate(v) {
-        // Trim redundant ".0" / ".00" while keeping real fractional values (e.g. 37.5).
-        const text = String(Number(v.toFixed(decimals)));
-        node.textContent = text + suffix;
-      },
+    if (!isDigit) return;
+    // Delays between each tick (ms) — fast at first, slows to a stop
+    const ticks = [40, 40, 50, 60, 75, 95, 120, 160, 210, 270];
+    const baseDelay = index * 60;
+    let cumulative = baseDelay;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    ticks.forEach((gap, i) => {
+      cumulative += gap;
+      timers.push(
+        setTimeout(() => {
+          setDisplayed(i === ticks.length - 1 ? target : String(Math.floor(Math.random() * 10)));
+        }, cumulative),
+      );
     });
-    return controls.stop;
-  }, [to, suffix, decimals]);
-  const initial = String(Number((0).toFixed(decimals)));
+    return () => timers.forEach(clearTimeout);
+  }, [target, index, isDigit]);
+
   return (
-    <span ref={nodeRef}>
-      {initial}
-      {suffix}
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.span
+        key={displayed}
+        initial={{ y: "-60%", opacity: 0, scaleY: 0.6 }}
+        animate={{ y: "0%", opacity: 1, scaleY: 1 }}
+        exit={{ y: "60%", opacity: 0, scaleY: 0.6 }}
+        transition={{ duration: 0.1, ease: "easeOut" }}
+        style={{ display: "inline-block" }}
+      >
+        {displayed}
+      </motion.span>
+    </AnimatePresence>
+  );
+}
+
+// ─── Counter: slot-machine number + static suffix ─────────────────────────────
+function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
+  const numText = String(Number(to.toFixed(decimals)));
+  return (
+    <span className="inline-flex items-baseline gap-[0.25em]">
+      <span className="inline-flex overflow-hidden" style={{ lineHeight: "inherit" }}>
+        {numText.split("").map((char, i) => (
+          <span key={i} className="relative inline-block overflow-hidden" style={{ lineHeight: "inherit" }}>
+            <SlotDigit target={char} index={i} />
+          </span>
+        ))}
+      </span>
+      {suffix.trim() && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: numText.length * 0.06 + 0.3, duration: 0.3 }}
+        >
+          {suffix.trim()}
+        </motion.span>
+      )}
     </span>
   );
 }
