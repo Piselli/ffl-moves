@@ -1,13 +1,12 @@
-/** Fields returned from `/api/fixtures` for `gameweek` (FPL bootstrap `deadline_time` + server-parsed epoch). */
+/** Fields returned from `/api/fixtures` for `gameweek` (registration deadline + server-parsed epoch). */
 export type FplGameweekDeadlineFields = {
   deadlineEpochMs?: number | null;
   deadlineTime?: string | null;
 };
 
 /**
- * Raw value for FPL squad deadline — same instant as «Дедлайн реєстрації» on `/fixtures`.
- * Prefer the canonical ISO `deadline_time` string from FPL so the client parses one source
- * (countdown + calendar line cannot diverge from a mismatched epoch field).
+ * Raw instant when squad registration closes — same as first GW kickoff from `/api/fixtures`
+ * (falls back to FPL official `deadline_time` only if fixtures are missing).
  */
 export function resolveFplDeadlineRaw(
   gw: FplGameweekDeadlineFields | null | undefined

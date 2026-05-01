@@ -236,7 +236,7 @@ export const pagesEn: PagesMessages = {
   fixtures: {
     back: "Back",
     title: "Gameweek fixtures",
-    deadlineLabel: "Squad deadline",
+    deadlineLabel: "Deadline (1st match)",
     loading: "Loading fixtures…",
     errorTitle: "Could not load fixtures",
     errorHint: "Try refreshing the page",
@@ -447,7 +447,7 @@ export const pagesUk: PagesMessages = {
   fixtures: {
     back: "Назад",
     title: "Матчі туру",
-    deadlineLabel: "Дедлайн реєстрації",
+    deadlineLabel: "Дедлайн (1-й матч)",
     loading: "Завантажуємо матчі...",
     errorTitle: "Не вдалось завантажити матчі",
     errorHint: "Спробуй оновити сторінку",

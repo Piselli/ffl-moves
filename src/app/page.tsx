@@ -29,7 +29,7 @@ import {
   RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
 
-// ─── Hero deadline (FPL `deadline_time`; copy from site messages) ───
+// ─── Hero deadline (first GW kickoff = registration close; copy from site messages) ───
 function HeroDeadlinePlaque({
   targetTime,
   gwId,
