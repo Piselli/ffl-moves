@@ -144,6 +144,34 @@ export async function findOpenGameweekFromChain(
 }
 
 /**
+ * Like `findOpenGameweekFromChain` but also returns "closed" gameweeks
+ * (registration closed, results not yet announced). Used for homepage stats
+ * so prize pool and entry count remain visible after the deadline.
+ */
+export async function findActiveGameweekFromChain(
+  configData: Awaited<ReturnType<typeof getConfig>>,
+): Promise<GameweekSummary | null> {
+  if (!configData) return null;
+  const c = Number(configData.currentGameweek);
+  if (!Number.isFinite(c) || c < 0) return null;
+
+  const candidates: number[] = [];
+  if (c === 0) {
+    for (let i = 1; i <= 80; i++) candidates.push(i);
+  } else {
+    for (let i = c; i <= c + 60; i++) candidates.push(i);
+    for (let i = c - 1; i >= 1; i--) candidates.push(i);
+  }
+
+  const results = await mapInBatches(candidates, 12, (id) => getGameweek(id));
+  // Prefer open, then closed — skip resolved
+  const open = results.find((g) => g?.status === "open");
+  if (open) return open;
+  const closed = results.find((g) => g?.status === "closed");
+  return closed ?? null;
+}
+
+/**
  * Highest gameweek id that exists on-chain.
  *
  * Important: do **not** stop at the first missing id — `Table` ids may be non-contiguous

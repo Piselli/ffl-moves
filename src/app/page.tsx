@@ -4,7 +4,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { getConfig, findOpenGameweekFromChain } from "@/lib/movement";
+import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
@@ -871,7 +871,7 @@ export default function Home() {
     async function fetchOnChainData() {
       try {
         const cfg = await getConfig();
-        const gw = await findOpenGameweekFromChain(cfg);
+        const gw = await findActiveGameweekFromChain(cfg);
         if (gw) {
           setPrizePool(octasToMOVE(gw.prizePool));
           setTourEntryCount(gw.totalEntries);
