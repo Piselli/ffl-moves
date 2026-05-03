@@ -153,8 +153,10 @@ async function resolveParams(
   for (const addr of addresses) {
     const result = await checkAddress(addr.trim(), quest, gwsToCheck);
     if (result.eligible) {
+      const { eligible: _, ...rest } = result;
+      void _;
       return NextResponse.json(
-        { eligible: true, matchedAddress: addr.trim(), ...result },
+        { eligible: true, matchedAddress: addr.trim(), ...rest },
         { status: 200, headers: CORS_HEADERS },
       );
     }
