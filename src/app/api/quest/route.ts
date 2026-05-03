@@ -74,126 +74,146 @@ async function getGameweek(gameweekId: number) {
   }
 }
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Cache-Control": "no-store",
+};
+
+type QuestType = "registered" | "top10" | "winner" | "claimed";
+
+/** Check one address against one quest type across given gameweeks. */
+async function checkAddress(
+  address: string,
+  quest: QuestType,
+  gwsToCheck: number[],
+): Promise<{ eligible: true; gameweek: number; rank?: number } | { eligible: false }> {
+  if (quest === "registered") {
+    for (const gw of gwsToCheck) {
+      if (await hasRegisteredTeam(address, gw)) return { eligible: true, gameweek: gw };
+    }
+    return { eligible: false };
+  }
+
+  for (const gw of gwsToCheck) {
+    const gwData = await getGameweek(gw);
+    if (gwData?.status !== "resolved") continue;
+    const result = await getTeamResult(address, gw);
+    if (!result) continue;
+    if (quest === "top10" && result.rank >= 1 && result.rank <= 10)
+      return { eligible: true, gameweek: gw, rank: result.rank };
+    if (quest === "winner" && result.rank === 1)
+      return { eligible: true, gameweek: gw, rank: 1 };
+    if (quest === "claimed" && result.claimed)
+      return { eligible: true, gameweek: gw };
+  }
+  return { eligible: false };
+}
+
+async function resolveParams(
+  addresses: string[],
+  quest: QuestType,
+  gwParam: string | null,
+): Promise<NextResponse> {
+  if (addresses.length === 0) {
+    return NextResponse.json(
+      { eligible: false, reason: "Missing required param: address or addresses" },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
+  const validQuests: QuestType[] = ["registered", "top10", "winner", "claimed"];
+  if (!validQuests.includes(quest)) {
+    return NextResponse.json(
+      { eligible: false, reason: `Unknown quest: "${quest}". Valid: ${validQuests.join(", ")}` },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
+  const config = await getConfig();
+  const currentGw = config.currentGameweek;
+
+  let gwsToCheck: number[];
+  if (gwParam) {
+    const n = parseInt(gwParam, 10);
+    gwsToCheck = Number.isFinite(n) && n >= 1 ? [n] : [];
+  } else {
+    gwsToCheck = Array.from({ length: 5 }, (_, i) => currentGw - i).filter((n) => n >= 1);
+  }
+
+  if (gwsToCheck.length === 0) {
+    return NextResponse.json(
+      { eligible: false, reason: "No valid gameweeks to check" },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
+  // Check all addresses — eligible if ANY of them satisfies the quest
+  for (const addr of addresses) {
+    const result = await checkAddress(addr.trim(), quest, gwsToCheck);
+    if (result.eligible) {
+      return NextResponse.json(
+        { eligible: true, matchedAddress: addr.trim(), ...result },
+        { status: 200, headers: CORS_HEADERS },
+      );
+    }
+  }
+
+  return NextResponse.json(
+    { eligible: false, reason: `Quest "${quest}" not completed by any of the provided addresses` },
+    { status: 200, headers: CORS_HEADERS },
+  );
+}
+
 /**
  * GET /api/quest
  *
- * Parthenon-compatible quest verification endpoint.
- * Returns whether a wallet address has completed a specific quest.
- *
- * Query params:
- *   address  — wallet address to check (required)
- *   quest    — quest type (optional, default: "registered")
- *              "registered"  — has registered a squad for any recent gameweek
- *              "top10"       — has finished in top 10 in any resolved gameweek
- *              "winner"      — has finished #1 in any resolved gameweek
- *              "claimed"     — has claimed a prize in any resolved gameweek
- *   gw       — specific gameweek to check (optional, defaults to current)
- *
- * Response:
- *   { "eligible": true }  or  { "eligible": false, "reason": "..." }
+ * Single address:   ?address=0xABC...&quest=registered
+ * Multiple (array): ?addresses=0xABC...,0xDEF...&quest=registered
  */
 export async function GET(req: NextRequest) {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Cache-Control": "no-store",
-  };
-
   try {
     const { searchParams } = new URL(req.url);
-    const address = searchParams.get("address");
-    const quest = searchParams.get("quest") ?? "registered";
+    const quest = (searchParams.get("quest") ?? "registered") as QuestType;
     const gwParam = searchParams.get("gw");
 
-    if (!address) {
-      return NextResponse.json(
-        { eligible: false, reason: "Missing required param: address" },
-        { status: 400, headers: corsHeaders },
-      );
-    }
+    // Support both ?address=X and ?addresses=X,Y,Z and multiple ?address=X&address=Y
+    const addressesParam = searchParams.get("addresses");
+    const addressParam = searchParams.getAll("address");
+    const addresses = addressesParam
+      ? addressesParam.split(",").map((a) => a.trim()).filter(Boolean)
+      : addressParam.filter(Boolean);
 
-    const config = await getConfig();
-    const currentGw = config.currentGameweek;
-
-    // Determine which gameweeks to scan
-    let gwsToCheck: number[];
-    if (gwParam) {
-      const n = parseInt(gwParam, 10);
-      gwsToCheck = Number.isFinite(n) && n >= 1 ? [n] : [];
-    } else {
-      // Scan last 5 gameweeks to catch recent activity
-      gwsToCheck = Array.from({ length: 5 }, (_, i) => currentGw - i).filter((n) => n >= 1);
-    }
-
-    if (gwsToCheck.length === 0) {
-      return NextResponse.json(
-        { eligible: false, reason: "No valid gameweeks to check" },
-        { status: 400, headers: corsHeaders },
-      );
-    }
-
-    // ── Quest: registered ─────────────────────────────────────────────────────
-    if (quest === "registered") {
-      for (const gw of gwsToCheck) {
-        const registered = await hasRegisteredTeam(address, gw);
-        if (registered) {
-          return NextResponse.json(
-            { eligible: true, gameweek: gw },
-            { status: 200, headers: corsHeaders },
-          );
-        }
-      }
-      return NextResponse.json(
-        { eligible: false, reason: "No squad registered in recent gameweeks" },
-        { status: 200, headers: corsHeaders },
-      );
-    }
-
-    // ── Quest: top10 / winner / claimed ───────────────────────────────────────
-    if (quest === "top10" || quest === "winner" || quest === "claimed") {
-      for (const gw of gwsToCheck) {
-        const gwData = await getGameweek(gw);
-        if (gwData?.status !== "resolved") continue;
-
-        const result = await getTeamResult(address, gw);
-        if (!result) continue;
-
-        if (quest === "top10" && result.rank >= 1 && result.rank <= 10) {
-          return NextResponse.json(
-            { eligible: true, gameweek: gw, rank: result.rank },
-            { status: 200, headers: corsHeaders },
-          );
-        }
-        if (quest === "winner" && result.rank === 1) {
-          return NextResponse.json(
-            { eligible: true, gameweek: gw, rank: 1 },
-            { status: 200, headers: corsHeaders },
-          );
-        }
-        if (quest === "claimed" && result.claimed) {
-          return NextResponse.json(
-            { eligible: true, gameweek: gw },
-            { status: 200, headers: corsHeaders },
-          );
-        }
-      }
-      return NextResponse.json(
-        { eligible: false, reason: `Quest "${quest}" not completed` },
-        { status: 200, headers: corsHeaders },
-      );
-    }
-
-    return NextResponse.json(
-      { eligible: false, reason: `Unknown quest type: "${quest}". Valid: registered, top10, winner, claimed` },
-      { status: 400, headers: corsHeaders },
-    );
+    return await resolveParams(addresses, quest, gwParam);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json(
-      { eligible: false, reason: message },
-      { status: 500, headers: corsHeaders },
-    );
+    return NextResponse.json({ eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
+  }
+}
+
+/**
+ * POST /api/quest
+ *
+ * Body: { "addresses": ["0xABC...", "0xDEF..."], "quest": "registered", "gw": 35 }
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json() as {
+      address?: string;
+      addresses?: string[];
+      quest?: string;
+      gw?: number;
+    };
+
+    const addresses = body.addresses ?? (body.address ? [body.address] : []);
+    const quest = (body.quest ?? "registered") as QuestType;
+    const gwParam = body.gw != null ? String(body.gw) : null;
+
+    return await resolveParams(addresses, quest, gwParam);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
   }
 }
 
