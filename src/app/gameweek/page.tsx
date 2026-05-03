@@ -10,7 +10,7 @@ import {
   client,
   moduleFunction,
   getConfig,
-  findOpenGameweekFromChain,
+  findActiveGameweekFromChain,
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
@@ -88,7 +88,7 @@ export default function GameweekPage() {
       const configData = await getConfig();
       setConfig(configData);
 
-      const gwData = await findOpenGameweekFromChain(configData);
+      const gwData = await findActiveGameweekFromChain(configData);
       setCurrentGameweek(gwData);
 
       if (!gwData) return;
@@ -96,31 +96,39 @@ export default function GameweekPage() {
       const targetGwId = gwData.id;
 
       if (account?.address) {
-        const registered = await hasRegisteredTeam(account.address.toString(), targetGwId);
-        setAlreadyRegistered(registered);
+        const addr = account.address.toString();
 
-        if (registered) {
-          const key = `ffl_team_v2_gw${targetGwId}_${account.address.toString()}`;
-          const saved = localStorage.getItem(key);
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
-              if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
-                setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
-              }
-            } catch {
-              /* ignore corrupt snapshot */
-            }
-          }
-        }
-
-        if (gwData.status === "resolved") {
+        // For closed/resolved GWs, load team from chain directly — more reliable
+        // than hasRegisteredTeam alone (avoids race conditions and contract edge cases).
+        if (gwData.status === "closed" || gwData.status === "resolved") {
           const [chainTeam, res] = await Promise.all([
-            getUserTeam(account.address.toString(), targetGwId),
-            getTeamResult(account.address.toString(), targetGwId),
+            getUserTeam(addr, targetGwId),
+            gwData.status === "resolved"
+              ? getTeamResult(addr, targetGwId)
+              : Promise.resolve(null),
           ]);
           setTeamResult(res);
+
           if (chainTeam?.playerIds?.length) {
+            // User has a registered team — mark as registered
+            setAlreadyRegistered(true);
+
+            // Try localStorage first, fall back to chain data
+            const key = `ffl_team_v2_gw${targetGwId}_${addr}`;
+            const saved = localStorage.getItem(key);
+            let loadedFromStorage = false;
+            if (saved) {
+              try {
+                const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
+                if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
+                  setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
+                  loadedFromStorage = true;
+                }
+              } catch { /* ignore */ }
+            }
+            // localStorage miss — chain fallback happens in the separate useEffect below
+
+            // Fetch stats for intermediate/final results
             const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
             try {
               const fpl = await fetch(`/api/fpl-live?gw=${targetGwId}`).then((r) => (r.ok ? r.json() : null));
@@ -130,6 +138,28 @@ export default function GameweekPage() {
               setGameweekStats(merged as Record<string, Record<string, unknown>>);
             } catch {
               setGameweekStats(stats as Record<string, Record<string, unknown>>);
+            }
+
+            void loadedFromStorage; // suppress unused warning
+          } else {
+            // No team on chain → not registered
+            setAlreadyRegistered(false);
+          }
+        } else {
+          // Open GW: use hasRegisteredTeam as before
+          const registered = await hasRegisteredTeam(addr, targetGwId);
+          setAlreadyRegistered(registered);
+
+          if (registered) {
+            const key = `ffl_team_v2_gw${targetGwId}_${addr}`;
+            const saved = localStorage.getItem(key);
+            if (saved) {
+              try {
+                const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
+                if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
+                  setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
+                }
+              } catch { /* ignore */ }
             }
           }
         }
@@ -432,8 +462,32 @@ export default function GameweekPage() {
     const teamToShow = registeredTeam?.starters || [];
     const benchToShow = registeredTeam?.bench || [];
 
+    const isPreviewMode = currentGameweek?.status === "closed";
+    const hasStats = Object.keys(gameweekStats).length > 0;
+
     return (
       <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
+        {/* Preview banner */}
+        {isPreviewMode && hasStats && (
+          <div className="mb-6 flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
+            <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p className="text-amber-300 text-xs font-bold uppercase tracking-widest">
+              Preview — Intermediate results. Not final until all matches are played.
+            </p>
+          </div>
+        )}
+        {isPreviewMode && !hasStats && (
+          <div className="mb-6 flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/[0.04] border border-white/10">
+            <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-white/40 text-xs font-bold uppercase tracking-widest">
+              Registration closed. Scores will appear here once match stats are submitted.
+            </p>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
@@ -471,7 +525,7 @@ export default function GameweekPage() {
                           <p className="text-white font-medium">{player.webName || player.name}</p>
                           <p className="text-white/40 text-[10px]">{player.team}</p>
                         </div>
-                        {currentGameweek?.status === "resolved" && (
+                        {(currentGameweek?.status === "resolved" || (currentGameweek?.status === "closed" && hasStats)) && (
                           <div className="text-right">
                             <span className={cn(
                               "text-sm font-bold",
@@ -524,7 +578,7 @@ export default function GameweekPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">{g.unavailableTitle}</h1>
-          <p className="text-white/40 text-sm leading-relaxed">
+          <p className="text-white/40 text-sm leading-relaxed mb-4">
             {g.unavailableIntro}
             {currentGameweek &&
               g.unavailableGwSuffix(
@@ -536,6 +590,14 @@ export default function GameweekPage() {
                     : String(currentGameweek.status),
               )}
           </p>
+          {currentGameweek?.status === "closed" && (
+            <a
+              href="/leaderboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-display font-bold text-xs uppercase tracking-wider hover:bg-amber-500/20 transition-colors"
+            >
+              View Intermediate Results →
+            </a>
+          )}
         </div>
       </div>
     );

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats } from "@/lib/movement";
+import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats, findActiveGameweekFromChain } from "@/lib/movement";
 import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
@@ -137,6 +137,7 @@ export default function MyResultPage() {
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [gwStats, setGwStats] = useState<Record<string, Record<string, unknown>>>({});
   const [siteHost, setSiteHost] = useState("");
+  const [isPreview, setIsPreview] = useState(false);
 
   useEffect(() => {
     setSiteHost(typeof window !== "undefined" ? window.location.host : "");
@@ -180,6 +181,19 @@ export default function MyResultPage() {
           }
         }
 
+        // If still no result, check if there's a closed (in-progress) gameweek for preview
+        let previewMode = false;
+        if (!teamResult) {
+          const activeGw = await findActiveGameweekFromChain(config);
+          if (activeGw && activeGw.status === "closed") {
+            currentGwId = activeGw.id;
+            previewMode = true;
+            setIsPreview(true);
+          } else {
+            throw new Error(mr.errResultNotFound);
+          }
+        }
+
         setGwId(currentGwId);
 
         const [teams, userTeam, playersRes] = await Promise.all([
@@ -190,8 +204,11 @@ export default function MyResultPage() {
 
         setTotalParticipants(teams.length);
 
-        if (!teamResult) throw new Error(mr.errResultNotFound);
-        setResult({ ...teamResult, owner: addr });
+        if (!teamResult && !previewMode) throw new Error(mr.errResultNotFound);
+
+        if (teamResult) {
+          setResult({ ...teamResult, owner: addr });
+        }
 
         if (!userTeam) throw new Error(mr.errSquadNotFound);
 
@@ -283,6 +300,18 @@ export default function MyResultPage() {
   return (
     <div className="bg-[#0D0F12] min-h-screen text-white">
       <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-28 pb-16">
+
+        {/* Preview banner */}
+        {isPreview && (
+          <div className="mb-6 flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
+            <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p className="text-amber-300 text-xs font-bold uppercase tracking-widest">
+              Preview — Intermediate results. Final scores will be published after all matches.
+            </p>
+          </div>
+        )}
 
         {/* Back */}
         <Link

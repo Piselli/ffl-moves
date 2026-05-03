@@ -13,10 +13,13 @@ import {
   findLatestResolvedGameweekId,
   getTeamResult,
   getGameweekTeams,
+  getUserTeam,
+  getGameweekStats,
   moduleFunction,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { formatMOVE, cn, formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { TeamResult } from "@/lib/types";
@@ -33,6 +36,7 @@ export default function LeaderboardPage() {
   const [leaderboardData, setLeaderboardData] = useState<TeamResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
 
   // Load config & resolve initial gameweek (runs once)
   useEffect(() => {
@@ -81,6 +85,7 @@ export default function LeaderboardPage() {
   const fetchGameweekData = useCallback(async (gwId: number) => {
     if (gwId === 0) return;
     setIsLoading(true);
+    setIsPreview(false);
     try {
       const gwData = await getGameweek(gwId);
       setCurrentGameweek(gwData);
@@ -93,6 +98,52 @@ export default function LeaderboardPage() {
         const validResults = results.filter((r): r is TeamResult => r !== null);
         validResults.sort((a, b) => a.rank - b.rank);
         setLeaderboardData(validResults);
+      } else if (gwData && gwData.status === "closed") {
+        // Preview mode: compute scores client-side from on-chain stats
+        const addresses = await getGameweekTeams(gwId);
+        if (addresses.length > 0) {
+          const teams = await Promise.all(addresses.map((addr) => getUserTeam(addr, gwId)));
+          const allIds = new Set<number>();
+          teams.forEach((t) => t?.playerIds.slice(0, 11).forEach((id) => allIds.add(id)));
+          const stats = await getGameweekStats(gwId, Array.from(allIds));
+
+          const hasAnyStats = Object.keys(stats).length > 0;
+          if (hasAnyStats) {
+            const scored = addresses.map((owner, i) => {
+              const team = teams[i];
+              if (!team) return { owner, finalPoints: 0 };
+              const points = team.playerIds.slice(0, 11).reduce((sum, playerId, j) => {
+                const positionId = team.playerPositions?.[j] ?? 4;
+                const s = stats[playerId];
+                return sum + (s ? calculateFantasyPointsWithRating({ positionId }, s as Record<string, unknown>) : 0);
+              }, 0);
+              return { owner, finalPoints: points };
+            });
+
+            scored.sort((a, b) => b.finalPoints - a.finalPoints);
+
+            const preview: TeamResult[] = scored.map((s, i) => ({
+              owner: s.owner,
+              basePoints: s.finalPoints,
+              ratingBonus: 0,
+              titleTriggered: false,
+              titleMultiplier: 1,
+              guildTriggered: false,
+              guildMultiplier: 1,
+              finalPoints: s.finalPoints,
+              rank: i + 1,
+              prizeAmount: 0,
+              claimed: false,
+            }));
+
+            setLeaderboardData(preview);
+            setIsPreview(true);
+          } else {
+            setLeaderboardData([]);
+          }
+        } else {
+          setLeaderboardData([]);
+        }
       } else {
         setLeaderboardData([]);
       }
@@ -192,6 +243,18 @@ export default function LeaderboardPage() {
           </select>
         </div>
       </div>
+
+      {/* Preview banner */}
+      {isPreview && (
+        <div className="mb-4 flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
+          <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <p className="text-amber-300 text-xs font-bold uppercase tracking-widest">
+            Preview — Intermediate results. Scores will update as more matches are played. Claims available after final results are published.
+          </p>
+        </div>
+      )}
 
       {/* Gameweek Summary — compact single row */}
       {currentGameweek ? (
@@ -331,22 +394,28 @@ export default function LeaderboardPage() {
               </div>
             ))}
             <div className="flex items-center justify-center">
-              {userResult.prizeAmount > 0 && !userResult.claimed && (
-                <button
-                  onClick={() => handleClaimPrize(selectedGameweek)}
-                  disabled={isClaiming}
-                  className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isClaiming ? lb.claiming : lb.claim}
-                </button>
-              )}
-              {userResult.claimed && (
-                <div className="text-center">
-                  <p className="text-emerald-400 font-bold text-sm">{lb.claimed}</p>
-                </div>
-              )}
-              {userResult.prizeAmount === 0 && (
-                <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>
+              {isPreview ? (
+                <p className="text-amber-400/60 text-xs text-center font-semibold uppercase tracking-wide">Interim results</p>
+              ) : (
+                <>
+                  {userResult.prizeAmount > 0 && !userResult.claimed && (
+                    <button
+                      onClick={() => handleClaimPrize(selectedGameweek)}
+                      disabled={isClaiming}
+                      className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isClaiming ? lb.claiming : lb.claim}
+                    </button>
+                  )}
+                  {userResult.claimed && (
+                    <div className="text-center">
+                      <p className="text-emerald-400 font-bold text-sm">{lb.claimed}</p>
+                    </div>
+                  )}
+                  {userResult.prizeAmount === 0 && (
+                    <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>
+                  )}
+                </>
               )}
             </div>
           </div>
