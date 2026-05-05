@@ -32,7 +32,7 @@ export function WalletOnboardingLinks({
         href={NIGHTLY_DOWNLOAD_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${linkClass} border-[#00C46A]/40 bg-[#00C46A]/10 text-[#00C46A] hover:bg-[#00C46A]/20 hover:border-[#00C46A]/60`}
+        className={`${linkClass} border-[#00f948]/40 bg-[#00f948]/10 text-[#00f948] hover:bg-[#00f948]/20 hover:border-[#00f948]/60`}
       >
         {t.nightly}
       </a>

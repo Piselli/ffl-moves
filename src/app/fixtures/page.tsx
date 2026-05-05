@@ -90,8 +90,8 @@ export default function FixturesPage() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               {data && (
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00C46A] text-[10px] font-bold uppercase tracking-widest mb-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00f948] text-[10px] font-bold uppercase tracking-widest mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f948]" />
                   {data.gameweek.name}
                 </div>
               )}
@@ -115,7 +115,7 @@ export default function FixturesPage() {
             <div className="mt-5 flex items-center gap-3">
               <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#00C46A] rounded-full transition-all duration-700"
+                  className="h-full bg-[#00f948] rounded-full transition-all duration-700"
                   style={{ width: `${(finishedCount / totalMatches) * 100}%` }}
                 />
               </div>
@@ -175,7 +175,7 @@ export default function FixturesPage() {
                     const statusBadge = match.finished
                       ? <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">{fx.finished}</span>
                       : match.started
-                      ? <span className="flex items-center gap-1 text-[9px] font-bold text-[#00C46A] uppercase tracking-wider"><span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse" />Live</span>
+                      ? <span className="flex items-center gap-1 text-[9px] font-bold text-[#00f948] uppercase tracking-wider"><span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse" />Live</span>
                       : null;
 
                     return (
@@ -204,7 +204,7 @@ export default function FixturesPage() {
                               {match.scoreH} – {match.scoreA}
                             </span>
                           ) : match.started ? (
-                            <span className="text-lg font-display font-black text-[#00C46A] tabular-nums leading-none animate-pulse">
+                            <span className="text-lg font-display font-black text-[#00f948] tabular-nums leading-none animate-pulse">
                               {match.scoreH ?? 0} – {match.scoreA ?? 0}
                             </span>
                           ) : (
@@ -244,7 +244,7 @@ export default function FixturesPage() {
             >
               <Link
                 href="/gameweek"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#00C46A] text-black font-display font-black uppercase tracking-widest text-sm hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_20px_rgba(0,196,106,0.25)]"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#00f948] text-black font-display font-black uppercase tracking-widest text-sm hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_20px_rgba(0,249,72,0.25)]"
               >
                 {fx.buildSquad}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

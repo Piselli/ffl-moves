@@ -68,7 +68,7 @@ export function NicknameModal({
       {/* Modal */}
       <div className="relative w-full max-w-sm max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto bg-[#111214] border border-white/[0.10] rounded-2xl shadow-2xl overscroll-contain">
         {/* Top accent line */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00C46A]/60 to-transparent" />
+        <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00f948]/60 to-transparent" />
 
         <div className="p-6">
           {/* Header */}
@@ -96,7 +96,7 @@ export function NicknameModal({
 
           {/* Wallet address */}
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
-            <span className="w-2 h-2 rounded-full bg-[#00C46A] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#00f948] shrink-0" />
             <span className="text-xs text-white/30 font-mono">{shortAddr}</span>
           </div>
 
@@ -117,7 +117,7 @@ export function NicknameModal({
                 "w-full px-4 py-3 rounded-xl bg-white/[0.05] border text-sm text-white placeholder-white/20 outline-none transition-all font-medium",
                 error
                   ? "border-rose-500/60 focus:border-rose-500/80"
-                  : "border-white/[0.08] focus:border-[#00C46A]/50 focus:bg-white/[0.07]"
+                  : "border-white/[0.08] focus:border-[#00f948]/50 focus:bg-white/[0.07]"
               )}
             />
             <div className="flex items-center justify-between mt-1.5">
@@ -137,7 +137,7 @@ export function NicknameModal({
             <button
               onClick={handleSave}
               disabled={!value.trim()}
-              className="flex-2 flex-grow py-2.5 px-5 rounded-xl bg-[#00C46A] text-black text-sm font-display font-black uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex-2 flex-grow py-2.5 px-5 rounded-xl bg-[#00f948] text-black text-sm font-display font-black uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {nn.save}
             </button>

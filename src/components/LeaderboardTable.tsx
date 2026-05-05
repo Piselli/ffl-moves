@@ -95,7 +95,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                 className={cn(
                   "group transition-colors duration-150",
                   isUser
-                    ? "bg-[#00C46A]/[0.04] hover:bg-[#00C46A]/[0.07]"
+                    ? "bg-[#00f948]/[0.04] hover:bg-[#00f948]/[0.07]"
                     : "hover:bg-white/[0.03]"
                 )}
               >
@@ -124,12 +124,12 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                     <div>
                       <p className={cn(
                         "font-mono text-sm font-medium",
-                        isUser ? "text-[#00C46A]" : "text-white/80"
+                        isUser ? "text-[#00f948]" : "text-white/80"
                       )}>
                         {getNickname(result.owner)}
                       </p>
                       {isUser && (
-                        <span className="text-[10px] font-bold text-[#00C46A]/60 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-[#00f948]/60 uppercase tracking-widest">
                           {lt.you}
                         </span>
                       )}
@@ -140,7 +140,7 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                 <td className="py-4 px-4 text-right align-top">
                   <span className={cn(
                     "font-display font-black text-xl tabular-nums",
-                    rColor || (isUser ? "text-[#00C46A]" : "text-white")
+                    rColor || (isUser ? "text-[#00f948]" : "text-white")
                   )}>
                     {result.finalPoints}
                   </span>

@@ -202,7 +202,7 @@ export default function LeaderboardPage() {
     return (
       <div className="max-w-6xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center">
-          <div className="w-8 h-8 border-2 border-[#00C46A]/60 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-[#00f948]/60 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/40 text-sm">{lb.loading}</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function LeaderboardPage() {
       {/* Header */}
       <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00C46A]/60">{lb.seasonTag}</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00f948]/60">{lb.seasonTag}</span>
           <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mt-1">{lb.pageTitle}</h1>
         </div>
 
@@ -266,13 +266,13 @@ export default function LeaderboardPage() {
               "w-2 h-2 rounded-full shrink-0",
               currentGameweek.status === "open" && "bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]",
               currentGameweek.status === "closed" && "bg-amber-400",
-              currentGameweek.status === "resolved" && "bg-[#00C46A]"
+              currentGameweek.status === "resolved" && "bg-[#00f948]"
             )} />
             <span className={cn(
               "text-sm font-bold uppercase tracking-wide",
               currentGameweek.status === "open" && "text-emerald-400",
               currentGameweek.status === "closed" && "text-amber-400",
-              currentGameweek.status === "resolved" && "text-[#00C46A]"
+              currentGameweek.status === "resolved" && "text-[#00f948]"
             )}>
               {currentGameweek.status === "open" ? lb.statusOpen : currentGameweek.status === "closed" ? lb.statusClosed : lb.statusResolved}
             </span>
@@ -283,7 +283,7 @@ export default function LeaderboardPage() {
           {/* Prize Pool */}
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.poolLabel}</span>
-            <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent tabular-nums">
+            <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent tabular-nums">
               {formatMOVE(currentGameweek.prizePool)}
             </span>
             <span className="text-white/30 text-xs">MOVE</span>
@@ -339,11 +339,11 @@ export default function LeaderboardPage() {
 
       {/* User's Result Highlight */}
       {userResult && (
-        <div className="bg-[#00C46A]/[0.04] border border-[#00C46A]/20 shadow-[0_0_40px_rgba(0,196,106,0.06)] rounded-2xl p-6 mb-8">
+        <div className="bg-[#00f948]/[0.04] border border-[#00f948]/20 shadow-[0_0_40px_rgba(0,249,72,0.06)] rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#00C46A]/15 border border-[#00C46A]/25 flex items-center justify-center">
-                <svg className="w-4 h-4 text-[#00C46A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-7 h-7 rounded-lg bg-[#00f948]/15 border border-[#00f948]/25 flex items-center justify-center">
+                <svg className="w-4 h-4 text-[#00f948]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -357,7 +357,7 @@ export default function LeaderboardPage() {
               )}
               <Link
                 href="/my-result"
-                className="text-[10px] font-bold uppercase tracking-wider text-[#00C46A]/70 hover:text-[#00C46A] border border-[#00C46A]/20 hover:border-[#00C46A]/40 px-3 py-1 rounded-full transition-colors"
+                className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-1 rounded-full transition-colors"
               >
                 {lb.detailsLink}
               </Link>
@@ -402,7 +402,7 @@ export default function LeaderboardPage() {
                     <button
                       onClick={() => handleClaimPrize(selectedGameweek)}
                       disabled={isClaiming}
-                      className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isClaiming ? lb.claiming : lb.claim}
                     </button>
@@ -445,7 +445,7 @@ export default function LeaderboardPage() {
             )}
             <a
               href="/gameweek"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00C46A]/10 border border-[#00C46A]/20 text-[#00C46A] font-display font-bold text-xs uppercase tracking-wider hover:bg-[#00C46A]/20 hover:border-[#00C46A]/30 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00f948]/10 border border-[#00f948]/20 text-[#00f948] font-display font-bold text-xs uppercase tracking-wider hover:bg-[#00f948]/20 hover:border-[#00f948]/30 transition-all"
             >
               {lb.registerSquadCta}
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

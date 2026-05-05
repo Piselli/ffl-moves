@@ -613,7 +613,7 @@ export default function GameweekPage() {
       className={cn(
         "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-all duration-200",
         isTeamComplete && !isSubmitting
-          ? "bg-gradient-to-r from-emerald-500 to-[#00C46A] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,196,106,0.25)]"
+          ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,249,72,0.25)]"
           : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed",
         extraClass
       )}
@@ -638,7 +638,7 @@ export default function GameweekPage() {
           </div>
           <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
-            <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00C46A] bg-clip-text text-transparent">
+            <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
               {config ? formatMOVE(config.entryFee) : "—"} MOVE
             </p>
           </div>
@@ -653,7 +653,7 @@ export default function GameweekPage() {
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>
-            <p className="text-base font-display font-black text-[#00C46A]">
+            <p className="text-base font-display font-black text-[#00f948]">
               {config ? formatMOVE(config.entryFee) : "—"} MOVE
             </p>
           </div>
@@ -720,7 +720,7 @@ export default function GameweekPage() {
                 placeholder={g.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] focus:border-[#00C46A]/30 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] focus:border-[#00f948]/30 transition-colors"
               />
             </div>
             {/* Position filter */}
@@ -732,7 +732,7 @@ export default function GameweekPage() {
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     positionFilter === pos
-                      ? "bg-[#00C46A]/15 text-[#00C46A] border border-[#00C46A]/30 shadow-[0_0_12px_rgba(0,196,106,0.15)]"
+                      ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30 shadow-[0_0_12px_rgba(0,249,72,0.15)]"
                       : "bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/80"
                   )}
                 >
@@ -748,7 +748,7 @@ export default function GameweekPage() {
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 focus:border-[#00C46A]/30 text-sm appearance-none cursor-pointer transition-colors"
+                className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 focus:border-[#00f948]/30 text-sm appearance-none cursor-pointer transition-colors"
               >
                 <option value="">{g.allTeams}</option>
                 {uniqueTeams.map((team) => (
@@ -765,7 +765,7 @@ export default function GameweekPage() {
                 <span>{g.playersFound(filteredPlayers.length)}</span>
                 <button
                   onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }}
-                  className="text-[#00C46A]/70 hover:text-[#00C46A] font-semibold transition-colors"
+                  className="text-[#00f948]/70 hover:text-[#00f948] font-semibold transition-colors"
                 >
                   {g.resetFilters}
                 </button>
@@ -868,7 +868,7 @@ export default function GameweekPage() {
                   placeholder={g.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50 border border-white/[0.08] text-sm transition-colors"
+                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] text-sm transition-colors"
                 />
               </div>
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
@@ -879,7 +879,7 @@ export default function GameweekPage() {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all",
                       positionFilter === pos
-                        ? "bg-[#00C46A]/15 text-[#00C46A] border border-[#00C46A]/30"
+                        ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30"
                         : "bg-white/[0.04] border border-white/[0.08] text-white/50"
                     )}
                   >
@@ -894,7 +894,7 @@ export default function GameweekPage() {
                 <select
                   value={teamFilter}
                   onChange={(e) => setTeamFilter(e.target.value)}
-                  className="w-full pl-8 pr-7 py-2 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00C46A]/50"
+                  className="w-full pl-8 pr-7 py-2 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00f948]/50"
                 >
                   <option value="">{g.allTeams}</option>
                   {uniqueTeams.map((team) => <option key={team} value={team}>{team}</option>)}
@@ -906,7 +906,7 @@ export default function GameweekPage() {
               {(teamFilter || positionFilter !== "ALL" || searchQuery) && (
                 <div className="flex items-center justify-between text-xs text-white/40">
                   <span>{g.playersFound(filteredPlayers.length)}</span>
-                  <button onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }} className="text-[#00C46A]/70 font-semibold">
+                  <button onClick={() => { setTeamFilter(""); setPositionFilter("ALL"); setSearchQuery(""); }} className="text-[#00f948]/70 font-semibold">
                     {g.reset}
                   </button>
                 </div>
@@ -959,7 +959,7 @@ export default function GameweekPage() {
               onClick={() => setMobileTab("pitch")}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
-                mobileTab === "pitch" ? "bg-[#00C46A]/10 text-[#00C46A]" : "text-white/30 hover:text-white/60"
+                mobileTab === "pitch" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60"
               )}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -984,7 +984,7 @@ export default function GameweekPage() {
               onClick={() => setMobileTab("players")}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
-                mobileTab === "players" ? "bg-[#00C46A]/10 text-[#00C46A]" : "text-white/30 hover:text-white/60"
+                mobileTab === "players" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60"
               )}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

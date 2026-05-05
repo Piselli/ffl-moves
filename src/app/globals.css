@@ -36,7 +36,7 @@
     --muted-foreground: 215 20% 65%;
 
     /* FPL Green for positive scores */
-    --accent: 142 71% 45%;
+    --accent: 138 100% 50%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
@@ -72,7 +72,7 @@
       hsla(260, 100%, 65%, 0.1) 0%, 
       transparent 80%),
     radial-gradient(100% 100% at 100% 0%, 
-      hsla(152, 100%, 38%, 0.12) 0%, 
+      hsla(138, 100%, 50%, 0.12) 0%, 
       transparent 80%),
     linear-gradient(180deg, 
       hsl(220 39% 11%) 0%, 
@@ -121,8 +121,8 @@
    ========================================= */
 
 .glow-cyan {
-  box-shadow: 0 0 20px hsla(152, 100%, 38%, 0.4),
-              0 0 40px hsla(152, 100%, 38%, 0.2);
+  box-shadow: 0 0 20px hsla(138, 100%, 50%, 0.4),
+              0 0 40px hsla(138, 100%, 50%, 0.2);
 }
 
 .glow-purple {
@@ -131,13 +131,13 @@
 }
 
 .glow-green {
-  box-shadow: 0 0 20px hsla(142, 71%, 45%, 0.4),
-              0 0 40px hsla(142, 71%, 45%, 0.2);
+  box-shadow: 0 0 20px hsla(138, 100%, 50%, 0.4),
+              0 0 40px hsla(138, 100%, 50%, 0.2);
 }
 
 .text-glow-cyan {
-  text-shadow: 0 0 10px hsla(152, 100%, 38%, 0.5),
-               0 0 20px hsla(152, 100%, 38%, 0.3);
+  text-shadow: 0 0 10px hsla(138, 100%, 50%, 0.5),
+               0 0 20px hsla(138, 100%, 50%, 0.3);
 }
 
 /* Pitch levitation animation */

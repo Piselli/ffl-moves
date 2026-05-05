@@ -28,7 +28,7 @@ export function LanguageSwitcher() {
             onClick={() => setLocale(code)}
             className={`min-w-[2.25rem] rounded-lg px-2 py-1.5 text-[10px] font-black font-display uppercase tracking-wider transition-all ${
               active
-                ? "bg-[#00C46A]/25 text-[#00C46A] shadow-[0_0_12px_rgba(0,196,106,0.25)]"
+                ? "bg-[#00f948]/25 text-[#00f948] shadow-[0_0_12px_rgba(0,249,72,0.25)]"
                 : "text-white/40 hover:bg-white/[0.06] hover:text-white/75"
             }`}
           >

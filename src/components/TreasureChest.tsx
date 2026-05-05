@@ -47,8 +47,8 @@ export function TreasureChest() {
             height: p.size,
             left: `${p.x}%`,
             bottom: "25%",
-            background: `rgba(0,196,106,${p.opacity * 0.7})`,
-            boxShadow: `0 0 ${p.size * 2}px rgba(0,196,106,${p.opacity * 0.4})`,
+            background: `rgba(0,249,72,${p.opacity * 0.7})`,
+            boxShadow: `0 0 ${p.size * 2}px rgba(0,249,72,${p.opacity * 0.4})`,
           }}
           animate={{
             y: p.yKeyframes,

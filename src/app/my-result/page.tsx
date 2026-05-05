@@ -61,7 +61,7 @@ function PlayerResultCard({
       {hasStats && (
         <span className={cn(
           "absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full text-[10px] font-black flex items-center justify-center shadow-lg z-10 tabular-nums",
-          pts >= 7 ? "bg-[#00C46A] text-black" :
+          pts >= 7 ? "bg-[#00f948] text-black" :
           pts >= 4 ? "bg-amber-400 text-black" :
           pts > 0  ? "bg-white/20 text-white" :
                      "bg-white/10 text-white/40"
@@ -97,7 +97,7 @@ function PlayerResultCard({
       {hasStats && (
         <div className="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 px-0.5">
           {Number(stats.goals ?? 0) > 0 && (
-            <span className="text-[9px] text-[#00C46A] font-bold">⚽ {Number(stats.goals ?? 0)}</span>
+            <span className="text-[9px] text-[#00f948] font-bold">⚽ {Number(stats.goals ?? 0)}</span>
           )}
           {Number(stats.assists ?? 0) > 0 && (
             <span className="text-[9px] text-blue-400 font-bold">🅰 {Number(stats.assists ?? 0)}</span>
@@ -270,7 +270,7 @@ export default function MyResultPage() {
     return (
       <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-white/30">
-          <div className="w-8 h-8 border-2 border-white/10 border-t-[#00C46A] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-white/10 border-t-[#00f948] rounded-full animate-spin" />
           <p className="text-sm">{mr.loading}</p>
         </div>
       </div>
@@ -285,7 +285,7 @@ export default function MyResultPage() {
           <p className="text-3xl mb-4">⚠️</p>
           <h1 className="text-lg font-display font-black uppercase mb-2">{mr.unavailableTitle}</h1>
           <p className="text-white/40 text-sm mb-6">{error}</p>
-          <Link href="/leaderboard" className="text-[#00C46A] text-sm font-semibold hover:underline">
+          <Link href="/leaderboard" className="text-[#00f948] text-sm font-semibold hover:underline">
             {mr.viewLeaderboard}
           </Link>
         </div>
@@ -332,15 +332,15 @@ export default function MyResultPage() {
           className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
         >
           {isTop3 && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#00C46A]/10 blur-[60px] pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#00f948]/10 blur-[60px] pointer-events-none" />
           )}
 
           {/* Header */}
           <div className="relative px-6 pt-7 pb-5 border-b border-white/[0.06]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#00C46A] text-[10px] font-bold uppercase tracking-widest mb-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#00f948] text-[10px] font-bold uppercase tracking-widest mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f948]" />
                   {mr.gwBadge(gwId)}
                 </div>
                 <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-none">
@@ -391,7 +391,7 @@ export default function MyResultPage() {
                   },
                 ].map(({ label, value, accent }) => (
                   <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
-                    <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00C46A]" : "text-white")}>
+                    <p className={cn("text-xl font-display font-black tabular-nums leading-none", accent ? "text-[#00f948]" : "text-white")}>
                       {value}
                     </p>
                     <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
@@ -451,7 +451,7 @@ export default function MyResultPage() {
                 <div className="mt-4 flex items-center gap-3 flex-wrap">
                   <span className="text-[9px] text-white/20 uppercase tracking-widest font-bold">{mr.pointsLegend}</span>
                   {[
-                    { color: "bg-[#00C46A]", label: "7+" },
+                    { color: "bg-[#00f948]", label: "7+" },
                     { color: "bg-amber-400", label: "4–6" },
                     { color: "bg-white/20", label: "1–3" },
                   ].map(({ color, label }) => (
@@ -468,7 +468,7 @@ export default function MyResultPage() {
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
             <span className="text-xs font-display font-black text-white/20 uppercase tracking-widest">
-              MOVE<span className="text-[#00C46A]/40">MATCH</span>
+              MOVE<span className="text-[#00f948]/40">MATCH</span>
             </span>
             <span className="text-[10px] text-white/15">{siteHost}</span>
           </div>

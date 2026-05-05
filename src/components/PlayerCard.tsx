@@ -116,7 +116,7 @@ function FormBadge({ form, copy }: { form?: number; copy: PlayerCardCopy }) {
   if (!form || isNaN(form)) return null;
   const color =
     form >= 7 ? "text-emerald-400 border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_8px_rgba(52,211,153,0.2)]" :
-    form >= 5 ? "text-[#00C46A] border-[#00C46A]/40 bg-[#00C46A]/15 shadow-[0_0_8px_rgba(0,196,106,0.15)]" :
+    form >= 5 ? "text-[#00f948] border-[#00f948]/40 bg-[#00f948]/15 shadow-[0_0_8px_rgba(0,249,72,0.15)]" :
     form >= 3 ? "text-amber-400 border-amber-500/50 bg-amber-500/15" :
                 "text-white/40 border-white/15 bg-white/5";
   return (
@@ -138,7 +138,7 @@ function FormBadge({ form, copy }: { form?: number; copy: PlayerCardCopy }) {
               <span className="text-white/40 text-[10px]">{copy.formTier1Hint}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#00C46A] text-[10px] font-black">{copy.formTier2}</span>
+              <span className="text-[#00f948] text-[10px] font-black">{copy.formTier2}</span>
               <span className="text-white/40 text-[10px]">{copy.formTier2Hint}</span>
             </div>
             <div className="flex items-center justify-between">
@@ -207,7 +207,7 @@ export function PlayerCard({
       className={cn(
         "group p-3 rounded-2xl cursor-pointer transition-all duration-200 border",
         selected
-          ? "border-[#00C46A]/30 bg-[#00C46A]/[0.05] shadow-[0_0_15px_rgba(0,196,106,0.08)]"
+          ? "border-[#00f948]/30 bg-[#00f948]/[0.05] shadow-[0_0_15px_rgba(0,249,72,0.08)]"
           : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12]"
       )}
     >

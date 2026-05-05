@@ -191,8 +191,8 @@ function AnimatedStep({
         className="flex-1 w-full max-w-xl"
       >
         <div className="flex items-center gap-4 mb-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00C46A]/10 border border-[#00C46A]/25 text-[#00C46A] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A]" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00f948]/10 border border-[#00f948]/25 text-[#00f948] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00f948]" />
             {subheader}
           </div>
         </div>
@@ -304,7 +304,7 @@ function PlayerCutout({
     >
       {/* Score badge */}
       <div className="mb-0.5 z-10 text-[0px]"> {/* closer to the card */}
-        <div className="px-2 py-0.5 rounded-full bg-[#00e676] text-black text-[11px] font-black font-display shadow-lg shadow-[#00e676]/30 leading-none">
+        <div className="px-2 py-0.5 rounded-full bg-[#00f948] text-black text-[11px] font-black font-display shadow-lg shadow-[#00f948]/30 leading-none">
           {pts}
         </div>
       </div>
@@ -440,17 +440,17 @@ function buildRatingTierLabels(m: SiteMessages) {
   return RATING_BONUS_TIERS.map((tier) => ({
     label: m.ratingTier((tier.minTenths / 10).toFixed(1)),
     pts: `+${tier.points}`,
-    color: "text-[#00C46A]" as const,
+    color: "text-[#00f948]" as const,
   }));
 }
 
 function buildUniversalBonuses(m: SiteMessages) {
   const g = m.scoringGains;
   return [
-    { label: g.bps, pts: `+${FPL_BONUS_MAX}`, color: "text-[#00C46A]" },
-    { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00C46A]" },
-    { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00C46A]" },
-    { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00C46A]" },
+    { label: g.bps, pts: `+${FPL_BONUS_MAX}`, color: "text-[#00f948]" },
+    { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00f948]" },
+    { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00f948]" },
+    { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00f948]" },
     ...buildRatingTierLabels(m),
   ];
 }
@@ -496,14 +496,14 @@ const CAROUSEL_MATCH_BASE = [
       {
         player: "E. Haaland",
         pts: "+5",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "⚽️",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png",
       },
       {
         player: "P. Foden",
         pts: "+3",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "👟",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png",
       },
@@ -539,21 +539,21 @@ const CAROUSEL_MATCH_BASE = [
       {
         player: "C. Palmer",
         pts: "+10",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "⚽️⚽️",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png",
       },
       {
         player: "P. Porro",
         pts: `+${ASSIST_POINTS}`,
-        color: "#00C46A",
+        color: "#00f948",
         icon: "👟",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png",
       },
       {
         player: "S. Heung-Min",
         pts: `+${GOAL_POINTS.FWD}`,
-        color: "#00C46A",
+        color: "#00f948",
         icon: "⚽️",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png",
       },
@@ -582,21 +582,21 @@ const CAROUSEL_MATCH_BASE = [
       {
         player: "J. Pickford",
         pts: "+2",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "🧤",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png",
       },
       {
         player: "T. Alex-Arnold",
         pts: "+1",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "🎯",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png",
       },
       {
         player: "J. Branthwaite",
         pts: "+2",
-        color: "#00C46A",
+        color: "#00f948",
         icon: "🛡",
         image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png",
       },
@@ -614,17 +614,17 @@ type MarqueePlayerCard = {
 };
 
 const MARQUEE_PLAYERS_BASE = [
-  { player: "J. Pickford", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
-  { player: "M. Cucurella", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
-  { player: "W. Saliba", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
-  { player: "Gabriel M.", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
-  { player: "P. Porro", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
-  { player: "B. Guimarães", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
-  { player: "C. Palmer", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
-  { player: "P. Foden", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
-  { player: "O. Watkins", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
-  { player: "E. Haaland", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
-  { player: "B. Saka", color: "#00C46A", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+  { player: "J. Pickford", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
 ];
 
 /** Stat icons per player row (same order as `MARQUEE_PLAYERS_BASE`). */
@@ -709,7 +709,7 @@ function LiveDataCarousel() {
                   {slide.statusText === "LIVE" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mt-px" />}
                   <span className={`text-[9px] font-bold tracking-[0.15em] uppercase leading-none flex items-center gap-1.5 ${slide.statusText === "LIVE" ? "text-red-500" : "text-white/40"}`}>
                     {slide.statusText} 
-                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00C46A]">{slide.halfText}</span></>}
+                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00f948]">{slide.halfText}</span></>}
                     <span className="text-white/20">•</span> <span className="text-white tracking-widest">{slide.time}</span>
                   </span>
                 </div>
@@ -817,7 +817,7 @@ function LiveDataCarousel() {
       {/* Slider Dots */}
       <div className="flex items-center justify-center gap-2 md:gap-3 mt-1 md:mt-2">
         {CAROUSEL_MATCH_BASE.map((_, i) => (
-           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00C46A] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,196,106,0.8)]" : "bg-white/20 hover:bg-white/40"}`} />
+           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00f948] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,249,72,0.8)]" : "bg-white/20 hover:bg-white/40"}`} />
         ))}
       </div>
     </div>
@@ -902,7 +902,7 @@ export default function Home() {
       num: "01",
       title: "Збери склад",
       desc: "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Будь-який гравець, жодних обмежень бюджету.",
-      accent: "from-[#00C46A] to-[#0077FF]",
+      accent: "from-[#00f948] to-[#0077FF]",
       icon: (
         <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -924,7 +924,7 @@ export default function Home() {
       num: "03",
       title: "Перемагай",
       desc: "Гравці забивають, асистують і захищають в реальних матчах — ти автоматично отримуєш MOVE токени на гаманець.",
-      accent: "from-[#00e676] to-[#00bcd4]",
+      accent: "from-[#00f948] to-[#00bcd4]",
       icon: (
         <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -977,7 +977,7 @@ export default function Home() {
 
         {/* Ambient accent glows */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(139,92,246,0.12)_0%,transparent_60%)] pointer-events-none -z-10" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,196,106,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,249,72,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
         <div className="relative z-10 w-full min-w-0 max-w-2xl flex flex-col gap-8 sm:gap-10">
@@ -993,7 +993,7 @@ export default function Home() {
             >
               {m.home.heroLine1}
               <br />
-              <span className="text-[#00C46A]">{m.home.heroLine2}</span>
+              <span className="text-[#00f948]">{m.home.heroLine2}</span>
               <br />
               {m.home.heroLine3}
             </motion.h1>
@@ -1081,7 +1081,7 @@ export default function Home() {
             {connected ? (
               <Link
                 href="/gameweek"
-                className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-[#00C46A] text-black hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(0,196,106,0.35)]"
+                className="inline-flex items-center justify-center gap-2 px-10 py-5 w-full sm:w-auto sm:min-w-[280px] rounded-2xl font-display font-black uppercase tracking-widest text-lg bg-[#00f948] text-black hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_30px_rgba(0,249,72,0.35)]"
               >
                 {m.home.ctaStart}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1093,7 +1093,7 @@ export default function Home() {
                 className="relative group cursor-pointer inline-block w-full sm:w-auto"
                 onClick={() => (document.getElementById('wallet-connect-btn') as HTMLButtonElement)?.click()}
               >
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00C46A] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#00f948] opacity-60 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
                 <div className="relative bg-[#0D0F12] border border-white/10 text-white px-10 py-4 w-full sm:w-auto sm:min-w-[260px] rounded-2xl font-display font-black uppercase tracking-widest text-lg text-center flex items-center justify-center gap-2">
                   <span>{m.home.ctaStart}</span>
                   <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1221,8 +1221,8 @@ export default function Home() {
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00C46A] shadow-[0_0_8px_#00C46A]"></span>
-                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00C46A] uppercase">
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00f948] shadow-[0_0_8px_#00f948]"></span>
+                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00f948] uppercase">
                   {m.home.step2Badge}
                 </span>
               </div>
@@ -1333,7 +1333,7 @@ export default function Home() {
                     {card.gains.map((g) => (
                       <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
                         <span className="text-xs text-white/50">{g.label}</span>
-                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400/80' : 'text-[#00C46A]'}`}>{g.pts}</span>
+                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400/80' : 'text-[#00f948]'}`}>{g.pts}</span>
                       </li>
                     ))}
                   </ul>
@@ -1343,7 +1343,7 @@ export default function Home() {
                 <div className="px-4 py-2.5 border-t border-white/[0.04]">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-white/20 uppercase tracking-widest">{m.home.maxPerGw}</span>
-                    <span className="text-sm font-display font-black tabular-nums text-[#00C46A]">
+                    <span className="text-sm font-display font-black tabular-nums text-[#00f948]">
                       {sumPositiveCardValues(card.gains)} {m.home.pointsWord}
                     </span>
                   </div>

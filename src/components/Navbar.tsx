@@ -129,7 +129,7 @@ export function Navbar() {
         priority
       />
       <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
-        MOVE<span className="text-[#00C46A] drop-shadow-[0_0_8px_rgba(0,196,106,0.6)]">MATCH</span>
+        MOVE<span className="text-[#00f948] drop-shadow-[0_0_8px_rgba(0,249,72,0.6)]">MATCH</span>
       </span>
     </Link>
   );
@@ -189,7 +189,7 @@ export function Navbar() {
                 </span>
                 <span
                   className={`mt-0.5 w-1 h-1 rounded-full transition-all duration-300 ${
-                    isActive ? "bg-[#00C46A] shadow-[0_0_6px_rgba(0,196,106,0.8)]" : "bg-transparent"
+                    isActive ? "bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" : "bg-transparent"
                   }`}
                 />
               </Link>
@@ -247,15 +247,15 @@ export function Navbar() {
               {/* Nickname / address pill — click to edit */}
               <button
                 onClick={() => setShowNicknameModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-[#00C46A]/40 hover:bg-white/[0.08] transition-all duration-200 group"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-[#00f948]/40 hover:bg-white/[0.08] transition-all duration-200 group"
                 title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00C46A] animate-pulse shadow-[0_0_6px_rgba(0,196,106,0.8)]" />
-                <span className="text-xs text-[#00C46A] font-black font-display uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
+                <span className="text-xs text-[#00f948] font-black font-display uppercase tracking-wider">
                   {myNickname ?? shortenAddress(account.address.toString())}
                 </span>
                 {/* Edit icon */}
-                <svg className="w-3 h-3 text-white/20 group-hover:text-[#00C46A]/60 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-3 h-3 text-white/20 group-hover:text-[#00f948]/60 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </button>
@@ -281,7 +281,7 @@ export function Navbar() {
                   }
                   setShowWalletList(!showWalletList);
                 }}
-                className="relative group px-2.5 py-2 min-[400px]:px-4 min-[400px]:py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] min-[400px]:text-xs font-display font-black uppercase tracking-wide min-[400px]:tracking-wider text-[#00C46A] bg-[#00C46A]/10 border border-[#00C46A]/30 hover:border-[#00C46A]/60 hover:bg-[#00C46A]/20 hover:shadow-[0_0_20px_rgba(0,196,106,0.4)] transition-all duration-300 focus:outline-none whitespace-nowrap"
+                className="relative group px-2.5 py-2 min-[400px]:px-4 min-[400px]:py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] min-[400px]:text-xs font-display font-black uppercase tracking-wide min-[400px]:tracking-wider text-[#00f948] bg-[#00f948]/10 border border-[#00f948]/30 hover:border-[#00f948]/60 hover:bg-[#00f948]/20 hover:shadow-[0_0_20px_rgba(0,249,72,0.4)] transition-all duration-300 focus:outline-none whitespace-nowrap"
               >
                 <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
                 <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
@@ -311,16 +311,16 @@ export function Navbar() {
                             onClick={() => handleConnectWallet(row.name)}
                             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00C46A]/40 transition-colors flex shrink-0 items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
                               {row.icon ? (
                                 <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
                               ) : null}
                             </div>
                             <div>
-                              <p className="text-sm font-display font-bold text-white group-hover:text-[#00C46A] transition-colors">
+                              <p className="text-sm font-display font-bold text-white group-hover:text-[#00f948] transition-colors">
                                 {row.name}
                               </p>
-                              <p className="text-xs text-[#00e676] font-bold uppercase tracking-wider mt-0.5">
+                              <p className="text-xs text-[#00f948] font-bold uppercase tracking-wider mt-0.5">
                                 {row.mode === "installed" ? m.nav.installed : m.nav.openInNightly}
                               </p>
                             </div>
@@ -369,7 +369,7 @@ export function Navbar() {
                 }`}
               >
                 {link.label}
-                {isActive ? <span className="h-1.5 w-1.5 rounded-full bg-[#00C46A] shadow-[0_0_8px_rgba(0,196,106,0.8)]" /> : null}
+                {isActive ? <span className="h-1.5 w-1.5 rounded-full bg-[#00f948] shadow-[0_0_8px_rgba(0,249,72,0.8)]" /> : null}
               </Link>
             );
           })}
