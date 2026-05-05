@@ -51,6 +51,7 @@ export default function GameweekPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [config, setConfig] = useState<ChainConfig | null>(null);
   const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
+  const [gameweekLoading, setGameweekLoading] = useState(true);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -83,6 +84,7 @@ export default function GameweekPage() {
     setRegisteredTeam(null);
     setGameweekStats({});
     setTeamResult(null);
+    setGameweekLoading(true);
 
     async function fetchData() {
       const configData = await getConfig();
@@ -90,6 +92,7 @@ export default function GameweekPage() {
 
       const gwData = await findActiveGameweekFromChain(configData);
       setCurrentGameweek(gwData);
+      setGameweekLoading(false);
 
       if (!gwData) return;
 
@@ -564,6 +567,14 @@ export default function GameweekPage() {
           </div>
         )}
 
+      </div>
+    );
+  }
+
+  if (gameweekLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
       </div>
     );
   }
