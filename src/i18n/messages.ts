@@ -7,6 +7,7 @@ export type SiteMessages = {
     squad: string;
     leaderboard: string;
     fixtures: string;
+    faq: string;
     talents: string;
     soon: string;
     loading: string;
@@ -131,6 +132,7 @@ const uk: SiteMessages = {
     squad: "Склад",
     leaderboard: "Лідерборд",
     fixtures: "Матчі",
+    faq: "FAQ",
     talents: "Таланти",
     soon: "soon",
     loading: "Завантаження…",
@@ -277,6 +279,7 @@ const en: SiteMessages = {
     squad: "Squad",
     leaderboard: "Leaderboard",
     fixtures: "Fixtures",
+    faq: "FAQ",
     talents: "Talents",
     soon: "soon",
     loading: "Loading…",

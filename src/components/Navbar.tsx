@@ -20,6 +20,7 @@ export function Navbar() {
     { href: "/gameweek", label: m.nav.squad },
     { href: "/leaderboard", label: m.nav.leaderboard },
     { href: "/fixtures", label: m.nav.fixtures },
+    { href: "/faq", label: m.nav.faq },
   ];
   const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
