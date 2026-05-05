@@ -129,7 +129,7 @@ export function Navbar() {
         priority
       />
       <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
-        MOVE<span className="text-[#00f948] drop-shadow-[0_0_8px_rgba(0,249,72,0.6)]">MATCH</span>
+        MOVE<span className="text-[#00f948]">MATCH</span>
       </span>
     </Link>
   );
