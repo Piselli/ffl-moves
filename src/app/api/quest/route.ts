@@ -81,6 +81,12 @@ const CORS_HEADERS = {
   "Cache-Control": "no-store",
 };
 
+/** Split a comma-separated list and trim each entry. */
+function splitCsv(value: string | null): string[] {
+  if (!value) return [];
+  return value.split(",").map((a) => a.trim()).filter(Boolean);
+}
+
 type QuestType = "registered" | "top10" | "winner" | "claimed";
 
 /** Check one address against one quest type across given gameweeks. */
@@ -118,7 +124,7 @@ async function resolveParams(
 ): Promise<NextResponse> {
   if (addresses.length === 0) {
     return NextResponse.json(
-      { eligible: false, reason: "Missing required param: address or addresses" },
+      { result: false, eligible: false, reason: "Missing required param: wallets (or address / addresses)" },
       { status: 400, headers: CORS_HEADERS },
     );
   }
@@ -126,7 +132,7 @@ async function resolveParams(
   const validQuests: QuestType[] = ["registered", "top10", "winner", "claimed"];
   if (!validQuests.includes(quest)) {
     return NextResponse.json(
-      { eligible: false, reason: `Unknown quest: "${quest}". Valid: ${validQuests.join(", ")}` },
+      { result: false, eligible: false, reason: `Unknown quest: "${quest}". Valid: ${validQuests.join(", ")}` },
       { status: 400, headers: CORS_HEADERS },
     );
   }
@@ -144,35 +150,53 @@ async function resolveParams(
 
   if (gwsToCheck.length === 0) {
     return NextResponse.json(
-      { eligible: false, reason: "No valid gameweeks to check" },
+      { result: false, eligible: false, reason: "No valid gameweeks to check" },
       { status: 400, headers: CORS_HEADERS },
     );
   }
 
   // Check all addresses — eligible if ANY of them satisfies the quest
   for (const addr of addresses) {
-    const result = await checkAddress(addr.trim(), quest, gwsToCheck);
-    if (result.eligible) {
-      const { eligible: _, ...rest } = result;
+    const check = await checkAddress(addr.trim(), quest, gwsToCheck);
+    if (check.eligible) {
+      const { eligible: _, ...rest } = check;
       void _;
       return NextResponse.json(
-        { eligible: true, matchedAddress: addr.trim(), ...rest },
+        // `result` is the Parthenon-spec field (lowercase bool).
+        // `eligible`, `matchedAddress`, `gameweek`, `rank` are kept for our internal/admin use.
+        { result: true, eligible: true, matchedAddress: addr.trim(), ...rest },
         { status: 200, headers: CORS_HEADERS },
       );
     }
   }
 
   return NextResponse.json(
-    { eligible: false, reason: `Quest "${quest}" not completed by any of the provided addresses` },
+    { result: false, eligible: false, reason: `Quest "${quest}" not completed by any of the provided addresses` },
     { status: 200, headers: CORS_HEADERS },
   );
 }
 
 /**
- * GET /api/quest
+ * GET /api/quest   (Parthenon-compatible)
  *
- * Single address:   ?address=0xABC...&quest=registered
- * Multiple (array): ?addresses=0xABC...,0xDEF...&quest=registered
+ * Parthenon spec — preferred:
+ *   /api/quest?wallets=0x0,0x1,0x2&quest=registered
+ *   → { "result": true } | { "result": false }
+ *
+ * Back-compat (still supported):
+ *   /api/quest?address=0xABC...&quest=registered
+ *   /api/quest?addresses=0xABC...,0xDEF...&quest=registered
+ *   /api/quest?address=0xABC...&address=0xDEF...&quest=registered
+ *
+ * Optional:
+ *   gw=<n>          — pin to a specific gameweek (default: scan last 5)
+ *   startTime=<ts>  — UNIX seconds (accepted for Parthenon recurring quests; currently a no-op,
+ *                     since our quests are gameweek-scoped via `gw`)
+ *   endTime=<ts>    — UNIX seconds (same)
+ *
+ * Quest types: registered | top10 | winner | claimed
+ *
+ * Reference: https://move-industries.notion.site/Parthenon-Onboarding-Guide-2fbca0320d868045b046ecf85aa9ec8c
  */
 export async function GET(req: NextRequest) {
   try {
@@ -180,42 +204,54 @@ export async function GET(req: NextRequest) {
     const quest = (searchParams.get("quest") ?? "registered") as QuestType;
     const gwParam = searchParams.get("gw");
 
-    // Support both ?address=X and ?addresses=X,Y,Z and multiple ?address=X&address=Y
-    const addressesParam = searchParams.get("addresses");
-    const addressParam = searchParams.getAll("address");
-    const addresses = addressesParam
-      ? addressesParam.split(",").map((a) => a.trim()).filter(Boolean)
-      : addressParam.filter(Boolean);
+    // Accept any of: ?wallets=X,Y  ?addresses=X,Y  ?address=X (repeatable)  ?wallets=X&wallets=Y
+    const walletsCsv = splitCsv(searchParams.get("wallets"));
+    const walletsRepeated = searchParams.getAll("wallets").flatMap((v) => splitCsv(v));
+    const addressesCsv = splitCsv(searchParams.get("addresses"));
+    const addressRepeated = searchParams.getAll("address").filter(Boolean);
+
+    // Dedupe while preserving order.
+    const seen = new Set<string>();
+    const addresses = [...walletsCsv, ...walletsRepeated, ...addressesCsv, ...addressRepeated].filter((a) => {
+      if (seen.has(a)) return false;
+      seen.add(a);
+      return true;
+    });
 
     return await resolveParams(addresses, quest, gwParam);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
+    return NextResponse.json({ result: false, eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
   }
 }
 
 /**
- * POST /api/quest
+ * POST /api/quest   (back-compat; Parthenon uses GET — see GET handler above)
  *
- * Body: { "addresses": ["0xABC...", "0xDEF..."], "quest": "registered", "gw": 35 }
+ * Body: { "wallets": ["0xABC...", "0xDEF..."], "quest": "registered", "gw": 35 }
+ *   or: { "addresses": ["0xABC...", "0xDEF..."], "quest": "registered", "gw": 35 }
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
       address?: string;
       addresses?: string[];
+      wallets?: string[];
       quest?: string;
       gw?: number;
     };
 
-    const addresses = body.addresses ?? (body.address ? [body.address] : []);
+    const addresses =
+      body.wallets ??
+      body.addresses ??
+      (body.address ? [body.address] : []);
     const quest = (body.quest ?? "registered") as QuestType;
     const gwParam = body.gw != null ? String(body.gw) : null;
 
     return await resolveParams(addresses, quest, gwParam);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
+    return NextResponse.json({ result: false, eligible: false, reason: message }, { status: 500, headers: CORS_HEADERS });
   }
 }
 
@@ -225,7 +261,7 @@ export async function OPTIONS() {
     status: 204,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     },
   });
