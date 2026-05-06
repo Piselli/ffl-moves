@@ -761,9 +761,9 @@ export default function GameweekPage() {
                 onChange={(e) => setTeamFilter(e.target.value)}
                 className="w-full pl-9 pr-8 py-2.5 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 focus:border-[#00f948]/30 text-sm appearance-none cursor-pointer transition-colors"
               >
-                <option value="">{g.allTeams}</option>
+                <option value="" className="text-black bg-white">{g.allTeams}</option>
                 {uniqueTeams.map((team) => (
-                  <option key={team} value={team}>{team}</option>
+                  <option key={team} value={team} className="text-black bg-white">{team}</option>
                 ))}
               </select>
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -907,8 +907,8 @@ export default function GameweekPage() {
                   onChange={(e) => setTeamFilter(e.target.value)}
                   className="w-full pl-8 pr-7 py-2 bg-white/[0.04] rounded-xl text-white border border-white/[0.08] text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00f948]/50"
                 >
-                  <option value="">{g.allTeams}</option>
-                  {uniqueTeams.map((team) => <option key={team} value={team}>{team}</option>)}
+                  <option value="" className="text-black bg-white">{g.allTeams}</option>
+                  {uniqueTeams.map((team) => <option key={team} value={team} className="text-black bg-white">{team}</option>)}
                 </select>
                 <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
