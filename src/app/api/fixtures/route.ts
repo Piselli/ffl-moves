@@ -11,6 +11,14 @@ export const maxDuration = 30;
 /** Never cache this handler’s JSON at the edge — stale kickoff/deadline breaks the hero countdown. */
 export const dynamic = "force-dynamic";
 
+/**
+ * Fixture IDs to exclude from the displayed schedule.
+ * Used for postponed/rescheduled matches that FPL assigns to this GW
+ * but don't belong to it from a fantasy scoring perspective.
+ * 307 = MCI vs CRY (rescheduled from another round, 13 May 2026)
+ */
+const EXCLUDED_FIXTURE_IDS = new Set([307]);
+
 const BROWSER_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -91,7 +99,7 @@ export async function GET() {
     }
 
     const formattedFixtures = allRaw
-      .filter((f) => f.event === targetEventId && Boolean(f.kickoff_time))
+      .filter((f) => f.event === targetEventId && Boolean(f.kickoff_time) && !EXCLUDED_FIXTURE_IDS.has(f.id))
       .sort(
         (a, b) =>
           new Date(a.kickoff_time!).getTime() - new Date(b.kickoff_time!).getTime(),
