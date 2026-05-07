@@ -9,6 +9,7 @@ import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { GwRecapSection } from "@/components/GwRecapSection";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { PrizeTickerInline } from "@/components/PrizeTickerInline";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -1119,8 +1120,13 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ═══ PRIZE TICKER — winners from last GW ═══ */}
+      <div className="mt-11 sm:mt-14">
+        <PrizeTickerInline />
+      </div>
+
       {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
-      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-20 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
+      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-8 sm:pt-10 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
         <div className="max-w-7xl mx-auto space-y-24">
           
           <AnimatedStep

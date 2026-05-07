@@ -65,6 +65,10 @@ export type PagesMessages = {
     noPlayersHint: string;
     tabPitch: string;
     tabPlayers: string;
+    fplStripTitle: string;
+    fplStripSeeAll: string;
+    fplStripLoadError: string;
+    fplStripMatchCount: (n: number) => string;
   };
   fixtures: {
     back: string;
@@ -76,6 +80,9 @@ export type PagesMessages = {
     finished: string;
     progressDone: (finished: number, total: number) => string;
     buildSquad: string;
+    dateTbc: string;
+    timeTbc: string;
+    emptyScheduleHint: string;
   };
   leaderboard: {
     claimSuccess: string;
@@ -281,6 +288,10 @@ export const pagesEn: PagesMessages = {
     noPlayersHint: "Try different filters",
     tabPitch: "Pitch",
     tabPlayers: "Players",
+    fplStripTitle: "This round · FPL",
+    fplStripSeeAll: "Full schedule →",
+    fplStripLoadError: "Could not load the FPL fixture list.",
+    fplStripMatchCount: (n) => `${n} matches`,
   },
   fixtures: {
     back: "Back",
@@ -292,6 +303,10 @@ export const pagesEn: PagesMessages = {
     finished: "FT",
     progressDone: (f, t) => `${f}/${t} finished`,
     buildSquad: "Build squad",
+    dateTbc: "Date TBC",
+    timeTbc: "TBC",
+    emptyScheduleHint:
+      "Live match list from FPL did not load from this server — only the deadline from cache is shown. Refresh or try again shortly.",
   },
   leaderboard: {
     claimSuccess: "Claim complete: MOVE was sent to your wallet (check balance in wallet / explorer).",
@@ -922,6 +937,10 @@ export const pagesUk: PagesMessages = {
     noPlayersHint: "Спробуй інші фільтри",
     tabPitch: "Поле",
     tabPlayers: "Гравці",
+    fplStripTitle: "Поточний тур · FPL",
+    fplStripSeeAll: "Усі матчі →",
+    fplStripLoadError: "Не вдалося завантажити розклад FPL.",
+    fplStripMatchCount: (n) => `${n} матчів`,
   },
   fixtures: {
     back: "Назад",
@@ -933,6 +952,10 @@ export const pagesUk: PagesMessages = {
     finished: "Завершено",
     progressDone: (f, t) => `${f}/${t} завершено`,
     buildSquad: "Зібрати склад",
+    dateTbc: "Дата уточнюється",
+    timeTbc: "TBC",
+    emptyScheduleHint:
+      "Живий список матчів з FPL із цього сервера не підвантажився — показано лише дедлайн із кешу. Онови сторінку або спробуй за хвилину.",
   },
   leaderboard: {
     claimSuccess: "Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).",

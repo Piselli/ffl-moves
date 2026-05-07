@@ -8,7 +8,7 @@ import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Fixture = {
   id: number;
-  kickoffTime: string;
+  kickoffTime: string | null;
   finished: boolean;
   started: boolean;
   scoreH: number | null;
@@ -29,9 +29,14 @@ type FixturesData = {
   fixtures: Fixture[];
 };
 
-function groupByDate(fixtures: Fixture[], localeTag: string): Record<string, Fixture[]> {
+function groupByDate(fixtures: Fixture[], localeTag: string, dateTbcLabel: string): Record<string, Fixture[]> {
   const groups: Record<string, Fixture[]> = {};
   for (const fx of fixtures) {
+    if (!fx.kickoffTime) {
+      if (!groups[dateTbcLabel]) groups[dateTbcLabel] = [];
+      groups[dateTbcLabel].push(fx);
+      continue;
+    }
     const key = new Date(fx.kickoffTime).toLocaleDateString(localeTag, {
       weekday: "long", day: "numeric", month: "long",
     });
@@ -60,7 +65,7 @@ export default function FixturesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const groups = data ? groupByDate(data.fixtures, localeTag) : {};
+  const groups = data ? groupByDate(data.fixtures, localeTag, fx.dateTbc) : {};
   const totalMatches = data?.fixtures.length ?? 0;
   const finishedCount = data?.fixtures.filter((f) => f.finished).length ?? 0;
 
@@ -154,6 +159,9 @@ export default function FixturesPage() {
         {/* Fixtures grouped by date */}
         {!loading && !error && data && (
           <div className="space-y-8">
+            {data.fixtures.length === 0 && (
+              <p className="text-white/45 text-sm leading-relaxed max-w-xl">{fx.emptyScheduleHint}</p>
+            )}
             {Object.entries(groups).map(([date, matches], gi) => (
               <motion.div
                 key={date}
@@ -168,9 +176,13 @@ export default function FixturesPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {matches.map((match) => {
-                    const time = new Date(match.kickoffTime).toLocaleTimeString(localeTag, {
-                      hour: "2-digit", minute: "2-digit",
-                    });
+                    const time =
+                      match.kickoffTime != null
+                        ? new Date(match.kickoffTime).toLocaleTimeString(localeTag, {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : fx.timeTbc;
 
                     const statusBadge = match.finished
                       ? <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">{fx.finished}</span>

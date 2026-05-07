@@ -63,6 +63,12 @@ module.exports = {
       animation: {
         'spin-slow': 'spin-slow 4s linear infinite',
       },
+      keyframes: {
+        'prize-ticker': {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
