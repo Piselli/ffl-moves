@@ -51,6 +51,11 @@
 }
 
 @layer base {
+  html {
+    /* Avoid mobile browsers inflating text (makes rem layout feel “zoomed” vs desktop localhost). */
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
   * {
     @apply border-border;
   }

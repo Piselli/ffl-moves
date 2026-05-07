@@ -962,7 +962,7 @@ export default function Home() {
     <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
 
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
-      <section className="relative min-h-[85vh] flex flex-col justify-start px-4 sm:px-10 lg:px-16 pt-[104px] sm:pt-[120px] pb-16 max-w-[100vw] overflow-x-hidden">
+      <section className="relative flex min-h-[100svh] flex-col px-4 sm:px-10 lg:px-16 pt-[104px] sm:pt-[120px] pb-3 max-w-[100vw] overflow-x-hidden">
 
         {/* Hero Background Image */}
         <div className="absolute inset-0 z-0">
@@ -982,10 +982,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(0,249,72,0.06)_0%,transparent_60%)] pointer-events-none -z-10" />
 
         {/* ── Top/Left: Text ─────────────────────────────────────── */}
-        <div className="relative z-10 w-full min-w-0 max-w-2xl flex flex-col gap-8 sm:gap-10">
+        <div className="relative z-10 flex flex-1 flex-col gap-6 sm:gap-8 min-h-0 w-full min-w-0 max-w-2xl">
 
           {/* Text Group */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 sm:gap-5">
             {/* Headline */}
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -1005,7 +1005,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.25 }}
-              className="text-lg text-white/50 leading-relaxed max-w-xl"
+              className="text-base sm:text-lg text-white/50 leading-relaxed max-w-xl"
             >
               {m.home.heroSub1}<br />
               {m.home.heroSub2}<br />
@@ -1014,7 +1014,7 @@ export default function Home() {
           </div>
 
           {/* ── Bottom/Left: Stats & CTAs ─────────────────────────────────────── */}
-          <div className="flex flex-col items-start gap-8">
+          <div className="flex flex-col items-start gap-6">
             {/* Live on-chain stats */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
@@ -1118,12 +1118,12 @@ export default function Home() {
           </motion.div>
         </div>
         </div>
-      </section>
 
-      {/* ═══ PRIZE TICKER — winners from last GW ═══ */}
-      <div className="mt-11 sm:mt-14">
-        <PrizeTickerInline />
-      </div>
+        {/* Prize ticker — inside hero + mt-auto keeps it on the first screen when content is shorter than viewport */}
+        <div className="relative z-10 mt-auto w-screen max-w-[100vw] shrink-0 -translate-x-1/2 left-1/2">
+          <PrizeTickerInline />
+        </div>
+      </section>
 
       {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
       <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-8 sm:pt-10 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
