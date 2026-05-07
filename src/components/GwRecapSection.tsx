@@ -31,9 +31,8 @@ interface GwRecap {
 
 const POS_ORDER = ["FWD", "MID", "DEF", "GK"] as const;
 
-// Border + glow for the points pill — green/white-only ramp to match the
-// site palette. Differentiation is by INTENSITY (bright green → faded green →
-// solid white → muted white) rather than swapping to off-palette amber.
+// Border + glow for the points pill — four tiers so a quick glance shows the
+// player's contribution: green = great, amber = good, white = okay, dim = poor.
 function pillStyle(pts: number) {
   if (pts >= 12)
     return {
@@ -43,9 +42,9 @@ function pillStyle(pts: number) {
     };
   if (pts >= 7)
     return {
-      border: "border-[#00f948]/35",
-      text: "text-[#00f948]/75",
-      glow: "shadow-[0_0_4px_rgba(0,249,72,0.18)]",
+      border: "border-amber-400/55",
+      text: "text-amber-400",
+      glow: "shadow-[0_0_6px_rgba(251,191,36,0.3)]",
     };
   if (pts >= 3)
     return {
@@ -242,17 +241,17 @@ function SquadPanel({
   sharedTitle: string;
 }) {
   const isOptimal = variant === "optimal";
-  // Two-tone palette: green for the optimal squad, white for the winner.
-  // Keeps the recap on-brand (green + white are the site's primary accents).
-  const accent      = isOptimal ? "#00f948" : "#ffffff";
-  const accentCls   = isOptimal ? "text-[#00f948]" : "text-white";
+  // Green for the optimal squad, gold for the gameweek winner — gold reads
+  // as the universal "winner / first place" cue.
+  const accent      = isOptimal ? "#00f948" : "#fbbf24";
+  const accentCls   = isOptimal ? "text-[#00f948]" : "text-amber-400";
   const badgeCls    = isOptimal
     ? "bg-[#00f948]/10 border-[#00f948]/25 text-[#00f948]"
-    : "bg-white/10 border-white/30 text-white";
+    : "bg-amber-400/10 border-amber-400/25 text-amber-400";
   // ONE accent border colour for every card in the panel — no per-position rainbow
   const cardBorder  = isOptimal
     ? "border-[#00f948]/30"
-    : "border-white/30";
+    : "border-amber-400/30";
 
   const byPos: Record<string, RecapPlayer[]> = { GK: [], DEF: [], MID: [], FWD: [] };
   for (const p of players) {
