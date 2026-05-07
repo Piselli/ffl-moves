@@ -973,8 +973,8 @@ export default function Home() {
           />
           {/* Gradient: Much darker on left for perfect text readability, fades to transparent on right */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/95 from-20% via-[#0D0F12]/90 via-50% to-transparent" />
-          {/* Bottom fade — fades fully to #0D0F12 so the transition to the next section is seamless */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0D0F12]" />
+          {/* Bottom fade — steeper end so solid #0D0F12 starts before the section edge (ticker sits below) */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_52%,rgba(13,15,18,0.65)_78%,#0D0F12_92%,#0D0F12_100%)]" />
         </div>
 
         {/* Ambient accent glows */}
@@ -1120,8 +1120,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Prize ticker — outside hero so it sits on solid bg below the image fade, not on the photo */}
-      <div className="relative z-10">
+      {/* Prize ticker — outside hero; extra top margin so it clears the image fade */}
+      <div className="relative z-10 mt-6 sm:mt-10">
         <PrizeTickerInline />
       </div>
 
