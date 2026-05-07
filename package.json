@@ -7,6 +7,7 @@
     "dev:3001": "WATCHPACK_POLLING=1 next dev -p 3001",
     "dev:lan": "WATCHPACK_POLLING=1 next dev -H 0.0.0.0 -p 3000",
     "build:atlas": "node scripts/build-fpl-photo-atlas.mjs",
+    "gw:recap": "node scripts/generate-gw-recap.mjs",
     "fpl:gw": "node scripts/fpl-oracle-gw.mjs",
     "fpl:bootstrap-lite": "node scripts/refresh-fpl-bootstrap-lite.mjs",
     "move:compile": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move compile --dev || aptos move compile --dev)'",

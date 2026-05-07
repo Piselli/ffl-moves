@@ -118,6 +118,21 @@ export type SiteMessages = {
     colPosition: string;
     colShare: string;
   };
+  recap: {
+    /** Top badge — `{gw}` interpolated with the gameweek number */
+    badge: string;
+    title1: string;
+    title2: string;
+    desc: string;
+    optimalLabel: string;
+    winnerLabel: string;
+    optimalSubtext: string;
+    pointsBase: string;
+    pointsFinal: string;
+    benchAbbrev: string;
+    /** Tooltip shown on the green dot for players present in BOTH squads */
+    sharedPlayer: string;
+  };
   positionAbbrev: {
     GK: string;
     DEF: string;
@@ -270,6 +285,19 @@ const uk: SiteMessages = {
     colPosition: "Позиція",
     colShare: "Розподіл",
   },
+  recap: {
+    badge: "Реальний приклад · Тур {gw}",
+    title1: "Так виглядав найкращий склад",
+    title2: "минулого туру",
+    desc: "Зліва — найоптимальніший вибір з усіх гравців АПЛ. Справа — реальний переможець туру.",
+    optimalLabel: "Найоптимальніший склад",
+    winnerLabel: "Переможець туру",
+    optimalSubtext: "З усіх гравців АПЛ",
+    pointsBase: "очок",
+    pointsFinal: "фінальних очок",
+    benchAbbrev: "ЛАВ",
+    sharedPlayer: "Є і в переможця",
+  },
   positionAbbrev: { GK: "ВР", DEF: "ЗАХ", MID: "ПЗ", FWD: "НАП" },
   pages: pagesUk,
 };
@@ -415,6 +443,19 @@ const en: SiteMessages = {
       "The top 10 managers of the gameweek share the pool. When the round ends, MOVE is sent to wallets automatically.",
     colPosition: "Rank",
     colShare: "Share",
+  },
+  recap: {
+    badge: "Real example · GW {gw}",
+    title1: "What the best lineup looked like",
+    title2: "last gameweek",
+    desc: "Left — the optimal pick from every PL player. Right — the actual gameweek winner.",
+    optimalLabel: "Best possible lineup",
+    winnerLabel: "Gameweek winner",
+    optimalSubtext: "From every PL player",
+    pointsBase: "pts",
+    pointsFinal: "final pts",
+    benchAbbrev: "BEN",
+    sharedPlayer: "Also in the winner's squad",
   },
   positionAbbrev: { GK: "GK", DEF: "DEF", MID: "MID", FWD: "FWD" },
   pages: pagesEn,

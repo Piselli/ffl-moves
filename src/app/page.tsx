@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
+import { GwRecapSection } from "@/components/GwRecapSection";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
@@ -1208,6 +1209,9 @@ export default function Home() {
               </div>
             }
           />
+
+        {/* ─── GW RECAP ─────────────────────────────────────────────────────── */}
+        <GwRecapSection />
 
         {/* STEP 2: Cinematic Full-Width */}
         <div id="step-2" className="mt-8 md:mt-16 w-full mx-auto relative z-10 flex flex-col items-center">
