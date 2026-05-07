@@ -128,7 +128,6 @@ export type SiteMessages = {
     winnerLabel: string;
     optimalSubtext: string;
     pointsBase: string;
-    pointsFinal: string;
     benchAbbrev: string;
     /** Tooltip shown on the green dot for players present in BOTH squads */
     sharedPlayer: string;
@@ -294,7 +293,6 @@ const uk: SiteMessages = {
     winnerLabel: "Переможець туру",
     optimalSubtext: "З усіх гравців АПЛ",
     pointsBase: "очок",
-    pointsFinal: "фінальних очок",
     benchAbbrev: "ЛАВ",
     sharedPlayer: "Є і в переможця",
   },
@@ -453,7 +451,6 @@ const en: SiteMessages = {
     winnerLabel: "Gameweek winner",
     optimalSubtext: "From every PL player",
     pointsBase: "pts",
-    pointsFinal: "final pts",
     benchAbbrev: "BEN",
     sharedPlayer: "Also in the winner's squad",
   },

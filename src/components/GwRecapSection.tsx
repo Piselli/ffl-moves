@@ -31,19 +31,21 @@ interface GwRecap {
 
 const POS_ORDER = ["FWD", "MID", "DEF", "GK"] as const;
 
-// Border + glow for the points pill (single tier ramp — same logic for both panels)
+// Border + glow for the points pill — green/white-only ramp to match the
+// site palette. Differentiation is by INTENSITY (bright green → faded green →
+// solid white → muted white) rather than swapping to off-palette amber.
 function pillStyle(pts: number) {
   if (pts >= 12)
     return {
-      border: "border-[#00f948]/55",
+      border: "border-[#00f948]/60",
       text: "text-[#00f948]",
       glow: "shadow-[0_0_8px_rgba(0,249,72,0.35)]",
     };
   if (pts >= 7)
     return {
-      border: "border-amber-400/55",
-      text: "text-amber-400",
-      glow: "shadow-[0_0_6px_rgba(251,191,36,0.3)]",
+      border: "border-[#00f948]/35",
+      text: "text-[#00f948]/75",
+      glow: "shadow-[0_0_4px_rgba(0,249,72,0.18)]",
     };
   if (pts >= 3)
     return {
@@ -84,8 +86,12 @@ function RecapCard({
       style={{ minWidth: maxW }}
     >
       {/* Photo + overlaid points pill (FPL-style) */}
-      <div className="relative" style={{ width: photo, height: photo }}>
-        <div className={`rounded-xl overflow-hidden border bg-white/[0.04]
+      <div
+        className="relative transition-transform duration-300 ease-out
+                   group-hover:-translate-y-0.5 group-hover:scale-[1.04]"
+        style={{ width: photo, height: photo }}
+      >
+        <div className={`relative rounded-xl overflow-hidden border bg-white/[0.04]
                          group-hover:brightness-110 transition-all duration-200 ${borderClass}`}
              style={{ width: photo, height: photo }}>
           <FplPhotoAvatar
@@ -99,13 +105,15 @@ function RecapCard({
           />
         </div>
 
-        {/* Shared-pick indicator — tiny green dot, top-right */}
+        {/* Shared-pick indicator — tiny breathing green dot, top-right */}
         {shared && (
-          <span
+          <motion.span
             title={sharedTitle}
-            className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#00f948]
-                       ring-2 ring-[#0D0F12] shadow-[0_0_6px_rgba(0,249,72,0.7)]"
             aria-label={sharedTitle}
+            className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#00f948]
+                       ring-2 ring-[#0D0F12] shadow-[0_0_8px_rgba(0,249,72,0.85)]"
+            animate={{ scale: [1, 1.18, 1], opacity: [1, 0.78, 1] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
 
@@ -234,15 +242,17 @@ function SquadPanel({
   sharedTitle: string;
 }) {
   const isOptimal = variant === "optimal";
-  const accent      = isOptimal ? "#00f948" : "#fbbf24";
-  const accentCls   = isOptimal ? "text-[#00f948]" : "text-amber-400";
+  // Two-tone palette: green for the optimal squad, white for the winner.
+  // Keeps the recap on-brand (green + white are the site's primary accents).
+  const accent      = isOptimal ? "#00f948" : "#ffffff";
+  const accentCls   = isOptimal ? "text-[#00f948]" : "text-white";
   const badgeCls    = isOptimal
     ? "bg-[#00f948]/10 border-[#00f948]/25 text-[#00f948]"
-    : "bg-amber-400/10 border-amber-400/25 text-amber-400";
+    : "bg-white/10 border-white/30 text-white";
   // ONE accent border colour for every card in the panel — no per-position rainbow
   const cardBorder  = isOptimal
     ? "border-[#00f948]/30"
-    : "border-amber-400/30";
+    : "border-white/30";
 
   const byPos: Record<string, RecapPlayer[]> = { GK: [], DEF: [], MID: [], FWD: [] };
   for (const p of players) {
@@ -252,42 +262,78 @@ function SquadPanel({
 
   let rowDelay = delay + 0.05;
 
+  // EXTERNAL-only glow — every layer sits OUTSIDE the panel (no `inset`).
+  // Tight enough that adjacent panels don't bleed into each other thanks to the
+  // larger grid gap.
+  const baseShadow = [
+    `0 0 0 1px ${accent}3a`,
+    `0 0 22px ${accent}45`,
+    `0 0 48px ${accent}24`,
+    `0 30px 60px rgba(0,0,0,0.55)`,
+  ].join(", ");
+  const hoverShadow = [
+    `0 0 0 1px ${accent}55`,
+    `0 0 30px ${accent}66`,
+    `0 0 64px ${accent}33`,
+    `0 30px 60px rgba(0,0,0,0.6)`,
+  ].join(", ");
+
   return (
+    <div className="relative w-full isolate">
+      {/* Tight breathing ambient halo BEHIND the panel — kept tight so adjacent
+          panels don't overlap, but a touch more luminous now. Sits below content
+          via `isolate` + `-z-10`. */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -inset-2 sm:-inset-3 -z-10 rounded-[2rem]"
+        style={{
+          background: `radial-gradient(55% 50% at 50% 50%, ${accent}55 0%, transparent 75%)`,
+          filter: "blur(24px)",
+        }}
+        initial={{ opacity: 0.55 }}
+        animate={{ opacity: [0.55, 0.78, 0.55] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl flex flex-col overflow-hidden w-full"
+      whileHover={{ boxShadow: hoverShadow }}
+      className="relative rounded-2xl flex flex-col overflow-hidden w-full bg-[#0D0F12]"
       style={{
-        background: "linear-gradient(175deg, rgba(255,255,255,0.024) 0%, rgba(0,0,0,0) 55%)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        boxShadow: `inset 0 1px 0 ${accent}1e, 0 0 0 1px ${accent}0f, 0 20px 48px rgba(0,0,0,0.45)`,
+        border: `1px solid ${accent}26`,
+        boxShadow: baseShadow,
       }}
     >
-      {/* ── Header (compact) ── */}
-      <div className="flex items-center justify-between gap-3 px-3.5 sm:px-4 pt-3 pb-2.5"
+      {/* ── Header: centred badge on top, subtext/score row below ── */}
+      <div className="relative px-3.5 sm:px-4 pt-3 pb-2.5"
            style={{ borderBottom: "1px solid rgba(255,255,255,0.055)" }}>
-        <div className="flex flex-col gap-1 min-w-0">
-          <span className={`self-start inline-flex items-center gap-1.5 px-2 py-[3px]
+        {/* Badge — centred across the full panel width */}
+        <div className="flex justify-center mb-2">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-[3px]
                             rounded-full border text-[9.5px] font-bold uppercase tracking-[0.13em]
                             ${badgeCls}`}>
             {label}
           </span>
+        </div>
+        {/* Bottom row — subtext on the left, score on the right (same as before) */}
+        <div className="flex items-center justify-between gap-3">
           <p className="text-[9.5px] text-white/22 uppercase tracking-[0.13em] font-mono truncate max-w-[200px] leading-tight">
             {subtext ?? "\u00A0"}
           </p>
-        </div>
-        <div className="text-right shrink-0 pl-3">
-          <p className={`text-[1.6rem] sm:text-[1.85rem] font-display font-black tabular-nums leading-none ${accentCls}`}>
-            {totalPoints}
-          </p>
-          <p className="text-[8px] text-white/22 uppercase tracking-[0.18em] mt-0.5">{pointsLabel}</p>
+          <div className="text-right shrink-0 pl-3">
+            <p className={`text-[1.6rem] sm:text-[1.85rem] font-display font-black tabular-nums leading-none ${accentCls}`}>
+              {totalPoints}
+            </p>
+            <p className="text-[8px] text-white/22 uppercase tracking-[0.18em] mt-0.5">{pointsLabel}</p>
+          </div>
         </div>
       </div>
 
       {/* ── Formation rows ── */}
-      <div className="flex flex-col gap-1 px-3 sm:px-3.5 py-2.5">
+      <div className="relative flex flex-col gap-1 px-3 sm:px-3.5 py-2.5">
         {POS_ORDER.map(pos => {
           const d = rowDelay;
           rowDelay += (byPos[pos]?.length ?? 0) * 0.045 + 0.04;
@@ -315,6 +361,7 @@ function SquadPanel({
         sharedTitle={sharedTitle}
       />
     </motion.div>
+    </div>
   );
 }
 
@@ -375,7 +422,7 @@ export function GwRecapSection() {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-3xl lg:max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 max-w-3xl lg:max-w-4xl mx-auto px-2">
         <SquadPanel
           variant="optimal"
           label={`${m.recap.optimalLabel} · GW${recap.gwId}`}
@@ -394,7 +441,7 @@ export function GwRecapSection() {
           variant="winner"
           label={`${m.recap.winnerLabel} · GW${recap.gwId}`}
           totalPoints={winnerPts}
-          pointsLabel={m.recap.pointsFinal}
+          pointsLabel={m.recap.pointsBase}
           subtext={winnerSubtext}
           players={recap.winnerSquad.players}
           bench={recap.winnerSquad.bench}

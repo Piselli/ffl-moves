@@ -55,10 +55,16 @@ export function FplPhotoAvatar({
   initials: initialsProp,
   accentHue,
 }: Props) {
+  // Track BOTH "loaded" and "failed" so the fallback can render underneath the
+  // <img> until the request actually succeeds. This prevents the browser's
+  // default broken-image icon from flashing while the request is in-flight or
+  // when the request 403s (PL CDN sometimes blocks newer/transferred players).
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     setImgFailed(false);
+    setImgLoaded(false);
   }, [photoUrl, fplPhotoCode]);
 
   const code =
@@ -68,8 +74,8 @@ export function FplPhotoAvatar({
   const frame = code ? getFplPhotoFrame(code) : null;
   const useSprite = hasFplAtlas() && frame != null;
 
-  const showImg = Boolean(photoUrl);
-  const showRaster = showImg && !imgFailed;
+  const showImg = Boolean(photoUrl) && !imgFailed;
+  const fallbackVisible = !imgLoaded || imgFailed;
 
   const initials =
     (initialsProp && initialsProp.trim()) || initialsFromDisplayName(alt);
@@ -119,21 +125,13 @@ export function FplPhotoAvatar({
         aria-hidden
       />
 
-      {showRaster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={photoUrl!}
-          alt=""
-          className="absolute inset-0 z-[2] h-full w-full object-cover object-top"
-          onError={() => setImgFailed(true)}
-        />
-      ) : null}
-
-      {/* Silhouette + monogram — only when no usable raster */}
+      {/* Silhouette + monogram — ALWAYS rendered underneath. The <img> fades in
+          on top after onLoad fires, so a 403/404/loading state never shows the
+          browser's broken-image icon. */}
       <div
         className={cn(
-          "absolute inset-0 z-[3] flex flex-col items-center justify-end",
-          showRaster ? "pointer-events-none opacity-0" : "opacity-100"
+          "absolute inset-0 z-[2] flex flex-col items-center justify-end pointer-events-none transition-opacity duration-200",
+          fallbackVisible ? "opacity-100" : "opacity-0"
         )}
         style={{ paddingBottom: Math.max(5, Math.round(size * 0.1)) }}
       >
@@ -152,6 +150,22 @@ export function FplPhotoAvatar({
           {initials}
         </span>
       </div>
+
+      {/* Photo — only mounted when there's a URL and it hasn't failed yet.
+          We keep it on a higher z-index than the fallback and fade in on load. */}
+      {showImg ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoUrl!}
+          alt=""
+          className={cn(
+            "absolute inset-0 z-[3] h-full w-full object-cover object-top transition-opacity duration-200",
+            imgLoaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgFailed(true)}
+        />
+      ) : null}
     </div>
   );
 }
