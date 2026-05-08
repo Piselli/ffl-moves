@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
+  const [sponsorGwId, setSponsorGwId] = useState("");
+  const [sponsorAmountMove, setSponsorAmountMove] = useState("");
   const [feeEntryMove, setFeeEntryMove] = useState("");
   const [feeTitleMove, setFeeTitleMove] = useState("");
   const [feeGuildMove, setFeeGuildMove] = useState("");
@@ -86,6 +88,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (currentGameweek?.id != null) {
       setReopenTargetId(String(currentGameweek.id));
+      setSponsorGwId(String(currentGameweek.id));
     }
   }, [currentGameweek?.id]);
 
@@ -292,6 +295,57 @@ export default function AdminPage() {
       setNewPrizePoolPct("");
     } catch (error: unknown) {
       console.error("Failed to update percentage:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSponsorPrizePool = async () => {
+    if (!connected) return;
+
+    const idNum = Number.parseInt((sponsorGwId || "").trim(), 10);
+    if (!Number.isFinite(idNum) || idNum < 1) {
+      alert(ad.sponsorInvalidGw);
+      return;
+    }
+
+    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
+    const amt = parseMove(sponsorAmountMove || "");
+    if (!Number.isFinite(amt) || amt <= 0) {
+      alert(ad.sponsorInvalidAmount);
+      return;
+    }
+    const octas = moveToOctas(amt);
+    if (octas < 1) {
+      alert(ad.sponsorAmountTooSmall);
+      return;
+    }
+
+    const gw = await getGameweek(idNum);
+    if (!gw) {
+      alert(ad.sponsorGwNotFound(idNum));
+      return;
+    }
+    if (gw.status === "resolved") {
+      alert(ad.sponsorAlertResolved);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_sponsor_prize_pool"),
+          typeArguments: [],
+          functionArguments: [String(idNum), String(octas)],
+        },
+      });
+      alert(ad.sponsorSuccess(idNum, formatMOVE(octas)));
+      setSponsorAmountMove("");
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to sponsor prize pool:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -781,6 +835,53 @@ export default function AdminPage() {
                 {isSubmitting ? "..." : "Update %"}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Sponsor prize pool (Admin) — MOVE to vault + on-chain pool before GW is RESOLVED */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6 border border-cyan-500/15">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">{ad.sponsorSectionTitle}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{ad.sponsorSectionHint}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.sponsorGwLabel}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={sponsorGwId}
+                  onChange={(e) => setSponsorGwId(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.sponsorAmountLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={sponsorAmountMove}
+                  onChange={(e) => setSponsorAmountMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleSponsorPrizePool}
+              disabled={isSubmitting || !sponsorGwId || !sponsorAmountMove}
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-medium hover:from-cyan-500 hover:to-teal-500 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+            >
+              {isSubmitting ? "..." : ad.sponsorSubmit}
+            </button>
           </div>
         )}
 

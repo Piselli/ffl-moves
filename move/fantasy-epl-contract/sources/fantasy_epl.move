@@ -40,6 +40,10 @@ module fantasy_epl_addr::fantasy_epl {
     const ETREASURY_AUTH_NOT_REGISTERED: u64 = 23;
     const EZERO_VAULT_WITHDRAW: u64 = 24;
     const EINSUFFICIENT_VAULT_BALANCE: u64 = 25;
+    /// admin_sponsor_prize_pool: amount must be positive
+    const EZERO_SPONSOR_AMOUNT: u64 = 26;
+    /// admin_sponsor_prize_pool: cannot sponsor a gameweek that is already RESOLVED
+    const ESPONSOR_GAMEWEEK_RESOLVED: u64 = 27;
 
     // ============ Constants ============
     // Gameweek status
@@ -253,6 +257,14 @@ module fantasy_epl_addr::fantasy_epl {
         admin: address,
         recipient: address,
         amount: u64,
+    }
+
+    #[event]
+    struct PrizePoolSponsored has drop, store {
+        gameweek_id: u64,
+        sponsor: address,
+        amount: u64,
+        new_pool_total: u64,
     }
 
     /// Signer capability for the prize vault (resource account). `claim_prize` pays from this vault.
@@ -517,6 +529,37 @@ module fantasy_epl_addr::fantasy_epl {
             admin: sender_addr,
             recipient,
             amount,
+        });
+    }
+
+    /// Add MOVE from the admin wallet to the prize vault and bump this gameweek's on-chain `prize_pool`
+    /// (the same field used when distributing prizes). Callable while the gameweek is OPEN or CLOSED.
+    /// After the gameweek is RESOLVED, prize amounts are already fixed — call this only before results are calculated.
+    public entry fun admin_sponsor_prize_pool(
+        sender: &signer,
+        gameweek_id: u64,
+        amount_octas: u64,
+    ) acquires Config, GameweekRegistry, TreasuryAuth {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+        assert!(amount_octas > 0, EZERO_SPONSOR_AMOUNT);
+
+        let registry = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.gameweeks, gameweek_id), EINVALID_GAMEWEEK);
+        let gameweek = table::borrow_mut(&mut registry.gameweeks, gameweek_id);
+        assert!(gameweek.status != STATUS_RESOLVED, ESPONSOR_GAMEWEEK_RESOLVED);
+
+        let vault_addr = fee_recipient_addr();
+        coin::transfer<AptosCoin>(sender, vault_addr, amount_octas);
+        gameweek.prize_pool = gameweek.prize_pool + amount_octas;
+
+        event::emit(PrizePoolSponsored {
+            gameweek_id,
+            sponsor: sender_addr,
+            amount: amount_octas,
+            new_pool_total: gameweek.prize_pool,
         });
     }
 

@@ -227,6 +227,17 @@ export type PagesMessages = {
     feesSubmit: string;
     feesUpdated: string;
     feesInvalid: string;
+    sponsorSectionTitle: string;
+    sponsorSectionHint: string;
+    sponsorGwLabel: string;
+    sponsorAmountLabel: string;
+    sponsorSubmit: string;
+    sponsorSuccess: (gw: number, amountMove: string) => string;
+    sponsorInvalidGw: string;
+    sponsorInvalidAmount: string;
+    sponsorAmountTooSmall: string;
+    sponsorAlertResolved: string;
+    sponsorGwNotFound: (id: number) => string;
   };
   faq: {
     pageTitle: string;
@@ -466,6 +477,20 @@ export const pagesEn: PagesMessages = {
     feesSubmit: "Apply fees on-chain",
     feesUpdated: "Fees updated on-chain. Refresh the squad page.",
     feesInvalid: "Enter valid non-negative numbers for all three fees (MOVE).",
+    sponsorSectionTitle: "Add to prize pool (sponsor)",
+    sponsorSectionHint:
+      "Send MOVE from your admin wallet to the prize vault and increase this gameweek’s on-chain prize pool by the same amount. Prize shares after «Calculate results» are computed from that pool, so do this before resolving the gameweek. Claims pay from the vault — as long as you add funds here, claim will not run out.",
+    sponsorGwLabel: "Gameweek ID",
+    sponsorAmountLabel: "Amount (MOVE)",
+    sponsorSubmit: "Add to prize pool",
+    sponsorSuccess: (gw, amountMove) =>
+      `Added ${amountMove} MOVE to GW ${gw} prize pool on-chain. If results are not calculated yet, the extra amount will be included in payouts.`,
+    sponsorInvalidGw: "Enter a valid gameweek number (integer ≥ 1).",
+    sponsorInvalidAmount: "Enter a positive MOVE amount.",
+    sponsorAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
+    sponsorAlertResolved:
+      "This gameweek is already RESOLVED — individual prize amounts are fixed on-chain. Sponsor only works before «Calculate results».",
+    sponsorGwNotFound: (id) => `GW ${id} not found in the contract.`,
   },
   faq: {
     pageTitle: "FAQ",
@@ -515,7 +540,8 @@ export const pagesEn: PagesMessages = {
             q: "Is it free to play?",
             a: [
               { type: "p", text: "No. Registering a squad costs a small entry fee in MOVE (the exact amount is shown on the Squad page)." },
-              { type: "p", text: "All entry fees from all players go straight into that gameweek’s prize pool — and the winners take it. The site does not skim a cut from your prize." },
+              { type: "p", text: "All entry fees from all players go into that gameweek’s prize pool, and winners are paid from it." },
+              { type: "p", text: "A small technical share is withheld to support and keep the project running." },
             ],
           },
           {
@@ -1115,6 +1141,20 @@ export const pagesUk: PagesMessages = {
     feesSubmit: "Застосувати внески в мережі",
     feesUpdated: "Внески оновлено on-chain. Онови сторінку вибору складу.",
     feesInvalid: "Введи коректні невід’ємні числа для всіх трьох полів (MOVE).",
+    sponsorSectionTitle: "Додати в призовий пул (спонсор)",
+    sponsorSectionHint:
+      "Перерахуй MOVE з гаманця адміна в prize vault — on-chain поле призового фонду цього туру збільшиться на ту саму суму. Частки призів після «Calculate results» рахуються з цього фонду, тож роби це до резолву туру. Клейм платить з vault — якщо сума тут узгоджена з пулом, при клеймі не «не вистачить» коштів.",
+    sponsorGwLabel: "Номер туру (GW)",
+    sponsorAmountLabel: "Сума (MOVE)",
+    sponsorSubmit: "Додати в пул",
+    sponsorSuccess: (gw, amountMove) =>
+      `On-chain додано ${amountMove} MOVE до призового пулу GW ${gw}. Якщо результати ще не пораховані — ця сума піде в виплати.`,
+    sponsorInvalidGw: "Введи коректний номер туру (ціле число ≥ 1).",
+    sponsorInvalidAmount: "Введи додатну суму в MOVE.",
+    sponsorAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
+    sponsorAlertResolved:
+      "Цей тур уже RESOLVED — індивідуальні призи зафіксовані в контракті. Спонсор лише до кроку «Calculate results».",
+    sponsorGwNotFound: (id) => `Тур ${id} не знайдено в контракті.`,
   },
   faq: {
     pageTitle: "Часті питання",
@@ -1171,7 +1211,8 @@ export const pagesUk: PagesMessages = {
             q: "Це безкоштовно?",
             a: [
               { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у MOVE (точна сума завжди видно на сторінці «Склад»)." },
-              { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — і саме його забирають переможці. Сайт не «забирає» собі частку від виграшу." },
+              { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — виплати переможцям виходять із нього." },
+              { type: "p", text: "З фонду утримується невелика технічна частка на підтримку й існування проєкту." },
             ],
           },
           {
