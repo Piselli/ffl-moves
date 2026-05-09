@@ -13,6 +13,24 @@ export const moduleFunction = (functionName: string): `${string}::${string}::${s
   return `${MODULE_ADDRESS}::${MODULE_NAME}::${functionName}` as `${string}::${string}::${string}`;
 };
 
+/** `false` if the RPC has no module or the entry is missing (stale publish vs this repo). */
+export async function hasAdminSponsorPrizePoolOnChain(): Promise<boolean> {
+  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
+  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
+  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
+    };
+    const funcs = data.abi?.exposed_functions ?? [];
+    return funcs.some((f) => f.is_entry && f.name === "admin_sponsor_prize_pool");
+  } catch {
+    return false;
+  }
+}
+
 // View function helpers
 export async function getConfig() {
   try {

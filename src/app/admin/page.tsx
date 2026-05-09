@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { client, moduleFunction, getConfig, getGameweek, findOpenGameweekFromChain, type ChainConfig, type GameweekSummary } from "@/lib/movement";
+import {
+  client,
+  moduleFunction,
+  getConfig,
+  getGameweek,
+  findOpenGameweekFromChain,
+  hasAdminSponsorPrizePoolOnChain,
+  type ChainConfig,
+  type GameweekSummary,
+} from "@/lib/movement";
 import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -22,6 +31,8 @@ export default function AdminPage() {
   const [openGameweek, setOpenGameweek] = useState<GameweekSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
+  const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
 
   // Form states
   const [newGameweekId, setNewGameweekId] = useState("");
@@ -48,8 +59,10 @@ export default function AdminPage() {
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
+    setSponsorTxAvailable(null);
     try {
-      const configData = await getConfig();
+      const [configData, sponsorOk] = await Promise.all([getConfig(), hasAdminSponsorPrizePoolOnChain()]);
+      setSponsorTxAvailable(sponsorOk);
       setConfig(configData);
       setCurrentGameweek(null);
       setOpenGameweek(null);
@@ -852,6 +865,11 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground mt-1">{ad.sponsorSectionHint}</p>
               </div>
             </div>
+            {sponsorTxAvailable === false && (
+              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
+                {ad.sponsorNotOnChain}
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{ad.sponsorGwLabel}</span>
@@ -877,7 +895,12 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={handleSponsorPrizePool}
-              disabled={isSubmitting || !sponsorGwId || !sponsorAmountMove}
+              disabled={
+                isSubmitting ||
+                !sponsorGwId ||
+                !sponsorAmountMove ||
+                sponsorTxAvailable !== true
+              }
               className="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-medium hover:from-cyan-500 hover:to-teal-500 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.sponsorSubmit}

@@ -238,6 +238,7 @@ export type PagesMessages = {
     sponsorAmountTooSmall: string;
     sponsorAlertResolved: string;
     sponsorGwNotFound: (id: number) => string;
+    sponsorNotOnChain: string;
   };
   faq: {
     pageTitle: string;
@@ -491,6 +492,8 @@ export const pagesEn: PagesMessages = {
     sponsorAlertResolved:
       "This gameweek is already RESOLVED — individual prize amounts are fixed on-chain. Sponsor only works before «Calculate results».",
     sponsorGwNotFound: (id) => `GW ${id} not found in the contract.`,
+    sponsorNotOnChain:
+      "This deployment’s on-chain module does not include the entry function admin_sponsor_prize_pool (the wallet cannot load its ABI). The source in this repo has it — you need to publish a Movement package upgrade to the same account so that function exists on-chain. Until then the prize pool only grows from entry fees at the configured %.",
   },
   faq: {
     pageTitle: "FAQ",
@@ -1155,6 +1158,8 @@ export const pagesUk: PagesMessages = {
     sponsorAlertResolved:
       "Цей тур уже RESOLVED — індивідуальні призи зафіксовані в контракті. Спонсор лише до кроку «Calculate results».",
     sponsorGwNotFound: (id) => `Тур ${id} не знайдено в контракті.`,
+    sponsorNotOnChain:
+      "У задеплоєному on-chain модулі немає entry-функції admin_sponsor_prize_pool (гаманець не бачить ABI). У коді репозиторію вона вже є — потрібно зробити оновлення пакета Movement на той самий акаунт, щоб функція з’явилася в мережі. Доки цього немає, призовий пул росте лише з внесків гравців за налаштованим відсотком.",
   },
   faq: {
     pageTitle: "Часті питання",
