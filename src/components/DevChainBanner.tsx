@@ -9,7 +9,8 @@ export function DevChainBanner() {
   if (process.env.NODE_ENV !== "development") return null;
 
   const isNightly = /movement\.nightly\.app|nightly\.app\/.*movement/i.test(MOVEMENT_RPC_URL);
-  const isDefaultTestnet3Module =
+  /** Old repo fallback — pairing with mainnet RPC is usually misconfigured. */
+  const isLegacyModule =
     MODULE_ADDRESS.toLowerCase() ===
     "0xc9f5444ab989c2a7ef73b1eab58b66947c4c5788e25d997d649c7d6ddfbeb5a1".toLowerCase();
 
@@ -20,7 +21,7 @@ export function DevChainBanner() {
       <span className="font-mono break-all">RPC {MOVEMENT_RPC_URL}</span>
       {" · "}
       <span className="font-mono break-all">MODULE {MODULE_ADDRESS}</span>
-      {(isNightly || (isDefaultTestnet3Module && MOVEMENT_RPC_URL.includes("mainnet"))) && (
+      {(isNightly || (isLegacyModule && MOVEMENT_RPC_URL.includes("mainnet"))) && (
         <div className="mt-1 font-medium text-amber-300">
           {m.devBanner.envHint}
         </div>

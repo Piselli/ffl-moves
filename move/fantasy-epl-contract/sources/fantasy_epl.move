@@ -892,7 +892,8 @@ module fantasy_epl_addr::fantasy_epl {
         };
     }
 
-    /// Calculate and publish results (oracle only)
+    /// Calculate and publish results (oracle only). `rank` is competition rank (1,2,2,4,…). Tied points share
+    /// the combined prize percentages for the ordinal slots they occupy, split with remainder octas to earliest in sort order.
     public entry fun calculate_results(
         sender: &signer,
         gameweek_id: u64,
@@ -996,32 +997,55 @@ module fantasy_epl_addr::fantasy_epl {
             i = i + 1;
         };
 
-        // Sort and assign ranks (simple bubble sort for MVP)
+        // Sort by points (descending), then assign competition ranks (1,2,2,4,…) and split prizes within ties.
         let n = vector::length(&points_list);
         let sorted_indices = get_sorted_indices(&points_list);
 
-        // Assign ranks and prizes
         let prize_pool = gameweek.prize_pool;
         i = 0;
         while (i < n) {
-            let idx = *vector::borrow(&sorted_indices, i);
-            let owner = *vector::borrow(&owners_list, idx);
-            let result = simple_map::borrow_mut(&mut team_results, &owner);
-            result.rank = i + 1;
-
-            // Check if this rank gets a prize
-            let j = 0;
-            let num_prize_ranks = vector::length(&prize_ranks);
-            while (j < num_prize_ranks) {
-                if (*vector::borrow(&prize_ranks, j) == i + 1) {
-                    let percentage = *vector::borrow(&prize_percentages, j);
-                    result.prize_amount = (prize_pool * percentage) / 100;
+            let run_start = i;
+            let leader_idx = *vector::borrow(&sorted_indices, run_start);
+            let leader_pts = *vector::borrow(&points_list, leader_idx);
+            let j = i + 1;
+            while (j < n) {
+                let idx_j = *vector::borrow(&sorted_indices, j);
+                let pts_j = *vector::borrow(&points_list, idx_j);
+                if (pts_j != leader_pts) {
                     break
                 };
                 j = j + 1;
             };
 
-            i = i + 1;
+            let tie_count = j - i;
+            let comp_rank = i + 1;
+
+            // Sum prize-table percentages for each ordinal slot this tie occupies (e.g. 4+5 => 8%+7%).
+            let sum_pct: u64 = 0;
+            let slot = comp_rank;
+            let end_slot = comp_rank + tie_count - 1;
+            while (slot <= end_slot) {
+                sum_pct = sum_pct + prize_percentage_for_rank(&prize_ranks, &prize_percentages, slot);
+                slot = slot + 1;
+            };
+
+            let group_total = (prize_pool * sum_pct) / 100;
+            let share_base = group_total / tie_count;
+            let share_rem = group_total % tie_count;
+
+            let t = 0;
+            while (t < tie_count) {
+                let sorted_pos = i + t;
+                let idx = *vector::borrow(&sorted_indices, sorted_pos);
+                let owner = *vector::borrow(&owners_list, idx);
+                let result = simple_map::borrow_mut(&mut team_results, &owner);
+                result.rank = comp_rank;
+                let extra = if (t < share_rem) { 1 } else { 0 };
+                result.prize_amount = share_base + extra;
+                t = t + 1;
+            };
+
+            i = j;
         };
 
         // Store results
@@ -1273,6 +1297,23 @@ module fantasy_epl_addr::fantasy_epl {
         let rating_sub: u64 = if (stats.rating > 0 && stats.rating < 60 && stats.minutes_played > 0) { 1 } else { 0 };
 
         (points, rating_add, rating_sub)
+    }
+
+    /// Looks up the prize pool percentage for an ordinal finishing rank (1 = first). Returns 0 if that rank is not in `prize_ranks`.
+    fun prize_percentage_for_rank(
+        prize_ranks: &vector<u64>,
+        prize_percentages: &vector<u64>,
+        rank: u64,
+    ): u64 {
+        let len = vector::length(prize_ranks);
+        let k = 0;
+        while (k < len) {
+            if (*vector::borrow(prize_ranks, k) == rank) {
+                return *vector::borrow(prize_percentages, k)
+            };
+            k = k + 1;
+        };
+        0
     }
 
     fun get_sorted_indices(points: &vector<u64>): vector<u64> {
@@ -1957,6 +1998,71 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(!claimed1 && !claimed2, 4);
         assert!(rank1 == 1 || rank2 == 1, 5); // Someone is rank 1
         assert!(prize1 > 0 || prize2 > 0, 6); // Someone has prize
+    }
+
+    // Two identical squads and stats → tied for 1st; prize slots 1+2 (60%+40%) merged and split 50/50.
+    #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
+    fun test_tie_splits_prize_between_ranks(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer,
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+        setup_test(aptos_framework, admin, user1, user2);
+
+        create_gameweek(admin, 1);
+        let (player_ids, positions, clubs) = create_test_team_data();
+        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user2, 1, player_ids, positions, clubs);
+        close_gameweek(admin, 1);
+
+        let (_, _, prize_pool, _) = get_gameweek(1);
+
+        // Same stats as test_full_gameweek_flow (covers all starters)
+        let all_player_ids = vector[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+        let all_positions = vector[0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 2, 3];
+        let all_minutes = vector[90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 0, 0, 0];
+        let all_goals = vector[0, 0, 0, 0, 0, 0, 1, 0, 2, 1, 0, 0, 0, 0];
+        let all_assists = vector[0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0];
+        let all_clean = vector[true, true, true, true, true, false, false, false, false, false, false, false, false, false];
+        let all_saves = vector[4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_pen_saved = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_pen_missed = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_own_goals = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_yellows = vector[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_reds = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let all_ratings = vector[75, 72, 68, 71, 70, 78, 82, 76, 91, 80, 74, 0, 0, 0];
+        let all_tackles = vector[0, 3, 5, 4, 2, 2, 1, 3, 0, 0, 1, 0, 0, 0];
+        let all_inter = vector[1, 2, 3, 2, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0];
+        let all_dribbles = vector[0, 0, 0, 0, 1, 2, 4, 2, 6, 3, 2, 0, 0, 0];
+        let all_fk_goals = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        submit_player_stats(
+            admin, 1,
+            all_player_ids, all_positions, all_minutes, all_goals, all_assists,
+            all_clean, all_saves, all_pen_saved, all_pen_missed,
+            all_own_goals, all_yellows, all_reds, all_ratings,
+            all_tackles, all_inter, all_dribbles, all_fk_goals,
+            vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vector[false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+        );
+
+        calculate_results(
+            admin, 1,
+            vector[],
+            vector[],
+            vector[1, 2],
+            vector[60, 40],
+        );
+
+        let (_, _, _, _, _, _, _, fp1, rank1, prize1, _) = get_team_result(@0x123, 1);
+        let (_, _, _, _, _, _, _, fp2, rank2, prize2, _) = get_team_result(@0x456, 1);
+
+        assert!(rank1 == 1 && rank2 == 1, 1);
+        assert!(fp1 == fp2, 2);
+        assert!(prize1 == prize2, 3);
+        assert!(prize1 + prize2 == (prize_pool * 100) / 100, 4);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]

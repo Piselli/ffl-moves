@@ -6,8 +6,9 @@ export const NETWORK = Network.CUSTOM;
 /** Dev fallback — production must set NEXT_PUBLIC_* (see .env.example). */
 const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
 /** Dev fallback package address — override on mainnet via env. */
+/** Documented package account; override with NEXT_PUBLIC_MODULE_ADDRESS in env. */
 const DEFAULT_MODULE_ADDRESS =
-  "0xc9f5444ab989c2a7ef73b1eab58b66947c4c5788e25d997d649c7d6ddfbeb5a1";
+  "0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47";
 
 /** Trims; returns undefined if missing/blank (so ?? fallback works). */
 function publicEnv(s: string | undefined): string | undefined {

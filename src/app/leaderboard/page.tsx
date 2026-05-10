@@ -96,7 +96,11 @@ export default function LeaderboardPage() {
           addresses.map((addr) => getTeamResult(addr, gwId)),
         );
         const validResults = results.filter((r): r is TeamResult => r !== null);
-        validResults.sort((a, b) => a.rank - b.rank);
+        validResults.sort((a, b) => {
+          if (a.rank !== b.rank) return a.rank - b.rank;
+          if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
+          return a.owner.localeCompare(b.owner);
+        });
         setLeaderboardData(validResults);
       } else if (gwData && gwData.status === "closed") {
         // Preview mode: compute scores client-side from on-chain stats
@@ -122,19 +126,34 @@ export default function LeaderboardPage() {
 
             scored.sort((a, b) => b.finalPoints - a.finalPoints);
 
-            const preview: TeamResult[] = scored.map((s, i) => ({
-              owner: s.owner,
-              basePoints: s.finalPoints,
-              ratingBonus: 0,
-              titleTriggered: false,
-              titleMultiplier: 1,
-              guildTriggered: false,
-              guildMultiplier: 1,
-              finalPoints: s.finalPoints,
-              rank: i + 1,
-              prizeAmount: 0,
-              claimed: false,
-            }));
+            const preview: TeamResult[] = [];
+            let row = 0;
+            while (row < scored.length) {
+              let next = row + 1;
+              while (
+                next < scored.length &&
+                scored[next].finalPoints === scored[row].finalPoints
+              ) {
+                next += 1;
+              }
+              const compRank = row + 1;
+              for (let k = row; k < next; k++) {
+                preview.push({
+                  owner: scored[k].owner,
+                  basePoints: scored[k].finalPoints,
+                  ratingBonus: 0,
+                  titleTriggered: false,
+                  titleMultiplier: 1,
+                  guildTriggered: false,
+                  guildMultiplier: 1,
+                  finalPoints: scored[k].finalPoints,
+                  rank: compRank,
+                  prizeAmount: 0,
+                  claimed: false,
+                });
+              }
+              row = next;
+            }
 
             setLeaderboardData(preview);
             setIsPreview(true);

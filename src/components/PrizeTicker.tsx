@@ -41,7 +41,12 @@ const fetchTickerData = unstable_cache(
           rank: r.value.rank,
           prizeAmount: r.value.prizeAmount,
         }))
-        .sort((a, b) => a.rank - b.rank)
+        .sort(
+          (a, b) =>
+            a.rank - b.rank ||
+            b.prizeAmount - a.prizeAmount ||
+            a.address.localeCompare(b.address),
+        )
         .slice(0, 10);
 
       if (!winners.length) return null;
