@@ -540,7 +540,7 @@ export default function AdminPage() {
         })
       );
 
-      const allPlayerIds = [...new Set(teams.flatMap((t) => t.team?.playerIds ?? []))];
+      const allPlayerIds = Array.from(new Set(teams.flatMap((t) => t.team?.playerIds ?? [])));
       const statsMap = await getGameweekStats(gw, allPlayerIds);
       const chainRecord: Record<string, Record<string, unknown>> = {};
       for (const [id, s] of Object.entries(statsMap)) {
