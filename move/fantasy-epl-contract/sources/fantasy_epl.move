@@ -1213,7 +1213,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     // Returns (base_points, rating_add, rating_sub).
-    // Numeric rules MUST match `src/lib/scoring-rules.ts` + `calculateFantasyPoints` / `ratingTierAdjustment` in `src/lib/scoring.ts` (same as homepage #scoring).
+    // Numeric rules MUST match `src/lib/scoring-rules.ts` + `calculateFantasyPoints` / `ratingTierAdjustment` in `src/lib/scoring.ts`.
     fun calculate_player_points(stats: &PlayerStats, position: u8): (u64, u64, u64) {
         let points: u64 = 0;
 

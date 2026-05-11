@@ -97,8 +97,6 @@ export type SiteMessages = {
     | "yellowCard",
     string
   >;
-  ratingTier: (min: string) => string;
-  lowRating: (threshold: string) => string;
   carousel: {
     slides: Array<{
       statusText: string;
@@ -241,8 +239,6 @@ const uk: SiteMessages = {
     penMiss: "Незабитий пенальті",
     yellowCard: "Жовта картка",
   },
-  ratingTier: (min) => `Рейтинг матчу ≥ ${min}`,
-  lowRating: (threshold) => `Низький рейтинг (<${threshold}, з хвилинами)`,
   carousel: {
     slides: [
       {
@@ -399,8 +395,6 @@ const en: SiteMessages = {
     penMiss: "Penalty miss",
     yellowCard: "Yellow card",
   },
-  ratingTier: (min) => `Match rating ≥ ${min}`,
-  lowRating: (threshold) => `Low rating (<${threshold}, with minutes)`,
   carousel: {
     slides: [
       {

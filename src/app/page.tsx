@@ -26,9 +26,6 @@ import {
   HAT_TRICK_BONUS,
   MINUTES_POINTS,
   PENALTY_SAVE_POINTS,
-  RATING_BONUS_TIERS,
-  RATING_SUB_POINTS,
-  RATING_SUB_THRESHOLD_TENTHS,
 } from "@/lib/scoring-rules";
 
 // ─── Hero deadline (first GW kickoff = registration close; copy from site messages) ───
@@ -438,14 +435,6 @@ function sumPositiveCardValues(gains: CardGain[]): number {
   return gains.filter((g) => !g.negative).reduce((s, g) => s + (g.value ?? 0), 0);
 }
 
-function buildRatingTierLabels(m: SiteMessages) {
-  return RATING_BONUS_TIERS.map((tier) => ({
-    label: m.ratingTier((tier.minTenths / 10).toFixed(1)),
-    pts: `+${tier.points}`,
-    color: "text-[#00f948]" as const,
-  }));
-}
-
 function buildUniversalBonuses(m: SiteMessages) {
   const g = m.scoringGains;
   return [
@@ -453,7 +442,6 @@ function buildUniversalBonuses(m: SiteMessages) {
     { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00f948]" },
     { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00f948]" },
     { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00f948]" },
-    ...buildRatingTierLabels(m),
   ];
 }
 
@@ -464,10 +452,6 @@ function buildUniversalPenalties(m: SiteMessages) {
     { label: g.ownGoal, pts: `−${DEDUCTIONS.ownGoal}` },
     { label: g.penMiss, pts: `−${DEDUCTIONS.penaltyMissed}` },
     { label: g.yellowCard, pts: `−${DEDUCTIONS.yellowCard}` },
-    {
-      label: m.lowRating((RATING_SUB_THRESHOLD_TENTHS / 10).toFixed(1)),
-      pts: `−${RATING_SUB_POINTS}`,
-    },
   ];
 }
 

@@ -212,6 +212,28 @@ export async function findHighestGameweekIdOnChain(
   return maxId;
 }
 
+/**
+ * Highest GW id where `owner` has registered a squad (scan down from chain tip).
+ * Used when `current` GW is already open but this wallet never registered it — show latest recap instead.
+ */
+export async function findLatestUserRegisteredGameweek(
+  owner: string,
+  configData: Awaited<ReturnType<typeof getConfig>>,
+): Promise<GameweekSummary | null> {
+  if (!configData) return null;
+  const hi = await findHighestGameweekIdOnChain(configData);
+  if (hi < 1) return null;
+  const ids: number[] = [];
+  for (let id = hi; id >= 1; id--) ids.push(id);
+  const regs = await mapInBatches(ids, 16, (id) => hasRegisteredTeam(owner, id));
+  for (let i = 0; i < ids.length; i++) {
+    if (!regs[i]) continue;
+    const g = await getGameweek(ids[i]);
+    if (g) return g;
+  }
+  return null;
+}
+
 /** Latest resolved GW at or below `highestId` — best default for the leaderboard after publishing results. */
 export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
   if (highestId < 1) return 0;
@@ -334,11 +356,20 @@ export async function getTeamResult(owner: string, gameweekId: number) {
   }
 }
 
-/** Normalize Move `vector<u8>` from view (array or Uint8Array). */
+/** Normalize Move `vector<u8>` from view (array, Uint8Array, or hex string "0x…"). */
 function viewU8Vector(raw: unknown): number[] {
   if (raw == null) return [];
   if (Array.isArray(raw)) return raw.map((x) => viewNum(x));
   if (raw instanceof Uint8Array) return Array.from(raw);
+  // Movement/Aptos SDK encodes vector<u8> as a hex string "0xABCD…"
+  if (typeof raw === "string" && /^0x[0-9a-fA-F]*$/.test(raw)) {
+    const hex = raw.slice(2);
+    const out: number[] = [];
+    for (let i = 0; i < hex.length; i += 2) {
+      out.push(parseInt(hex.slice(i, i + 2), 16));
+    }
+    return out;
+  }
   return [];
 }
 

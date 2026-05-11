@@ -32,9 +32,22 @@ export function squadPlayersFromChain(
 ): Player[] {
   const { playerIds, playerPositions } = chain;
   return playerIds.map((id, i) => {
+    const chainPosRaw = playerPositions[i];
+    const chainPosId = Number.isFinite(chainPosRaw)
+      ? Math.max(0, Math.min(3, Number(chainPosRaw)))
+      : undefined;
+
     const fromApi = catalogById.get(id);
-    if (fromApi) return fromApi;
-    const posId = Number.isFinite(playerPositions[i]) ? playerPositions[i]! : 2;
+    if (fromApi) {
+      if (chainPosId === undefined || fromApi.positionId === chainPosId) return fromApi;
+      return {
+        ...fromApi,
+        positionId: chainPosId,
+        position: positionFromChainU8(chainPosId),
+      };
+    }
+
+    const posId = chainPosId ?? 2;
     return placeholderPlayerFromChain(id, posId);
   });
 }

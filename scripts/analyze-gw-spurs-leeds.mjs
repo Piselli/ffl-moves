@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * GW analysis: leaderboard preview (chain stats), Spurs/Leeds in starting XI.
+ * GW analysis: leaderboard preview (chain stats), Spurs/Leeds with player names.
+ * Slots 1–11 = starting XI, 12–14 = bench (запасні), same as on-chain vector order.
  * Usage: node scripts/analyze-gw-spurs-leeds.mjs [gwId]
  * Defaults to chain current_gameweek from get_config if gw omitted.
  */
@@ -33,6 +34,8 @@ const env = { ...loadDotEnvLocal(), ...process.env };
 const RPC = (env.NEXT_PUBLIC_MOVEMENT_RPC_URL || env.NEXT_PUBLIC_APTOS_API || "").trim();
 const MODULE = (env.NEXT_PUBLIC_MODULE_ADDRESS || "").trim();
 const MODNAME = (env.NEXT_PUBLIC_MODULE_NAME || "fantasy_epl").trim();
+
+const POS_FPL = { 1: "ВР", 2: "ЗХ", 3: "ПЗ", 4: "НП" };
 
 const MINUTES_POINTS = { partial: 1, full: 2, minMinutesPartial: 1, minMinutesFull: 60 };
 const GOAL_POINTS = { GK: 10, DEF: 6, MID: 5, FWD: 5 };
@@ -199,8 +202,16 @@ async function main() {
 
   /** @type {Map<number, number>} FPL element id -> team id */
   const elementTeam = new Map();
+  /** @type {Map<number, { webName: string; team: number; pos: string }>} */
+  const elementMeta = new Map();
   for (const el of bootstrap.elements || []) {
     elementTeam.set(el.id, el.team);
+    const et = Number(el.element_type);
+    elementMeta.set(el.id, {
+      webName: String(el.web_name || `${el.first_name || ""} ${el.second_name || ""}`.trim() || `id${el.id}`),
+      team: el.team,
+      pos: POS_FPL[et] || "?",
+    });
   }
 
   const TOT_ID = 18;
@@ -261,20 +272,46 @@ async function main() {
 
   const rows = teams.map((t) => {
     let pts = 0;
-    const spurs = [];
-    const leeds = [];
-    for (let j = 0; j < 11 && j < t.playerIds.length; j++) {
+    /** @type {{ club: string; pid: number; name: string; teamShort: string; pos: string; slot: number; roleUk: string; isStarter: boolean }[]} */
+    const targetPlayers = [];
+    const n = t.playerIds.length;
+    for (let j = 0; j < n; j++) {
       const pid = t.playerIds[j];
       const positionId = t.playerPositions[j];
-      const s = statsById.get(pid);
-      pts += calculateFantasyPoints(positionId, s);
+      const isStarter = j < 11;
+      if (isStarter) {
+        const s = statsById.get(pid);
+        pts += calculateFantasyPoints(positionId, s);
+      }
       const tid = elementTeam.get(pid);
-      const short = tid != null ? teamById.get(tid) : "?";
-      if (tid === TOT_ID) spurs.push({ id: pid, slot: j + 1, short });
-      if (tid === LEE_ID) leeds.push({ id: pid, slot: j + 1, short });
+      if (tid !== TOT_ID && tid !== LEE_ID) continue;
+      const meta = elementMeta.get(pid);
+      const teamShort = tid != null ? teamById.get(tid) : "?";
+      const club = tid === TOT_ID ? "Spurs" : "Leeds";
+      targetPlayers.push({
+        club,
+        pid,
+        name: meta?.webName || `FPL#${pid}`,
+        teamShort: String(teamShort),
+        pos: meta?.pos || "?",
+        slot: j + 1,
+        roleUk: isStarter ? "СТАРТ (основний склад)" : "ЛАВКА (запасний)",
+        isStarter,
+      });
     }
-    const hasTarget = spurs.length > 0 || leeds.length > 0;
-    return { owner: t.owner, points: pts, spurs, leeds, hasTarget };
+    const spursStarters = targetPlayers.filter((p) => p.club === "Spurs" && p.isStarter);
+    const leedsStarters = targetPlayers.filter((p) => p.club === "Leeds" && p.isStarter);
+    const hasTargetInXi = spursStarters.length > 0 || leedsStarters.length > 0;
+    const hasTargetAny = targetPlayers.length > 0;
+    return {
+      owner: t.owner,
+      points: pts,
+      targetPlayers,
+      spursStarters,
+      leedsStarters,
+      hasTargetInXi,
+      hasTargetAny,
+    };
   });
 
   rows.sort((a, b) => b.points - a.points);
@@ -289,24 +326,31 @@ async function main() {
   console.log("");
   console.log("— Top 20 —");
   for (const r of rows.slice(0, 20)) {
+    const ss = r.spursStarters.length;
+    const ls = r.leedsStarters.length;
     console.log(
-      `#${r.rank} ${r.points} pts  ${r.owner.slice(0, 10)}…${r.owner.slice(-6)}  spurs:${r.spurs.length} leeds:${r.leeds.length}`,
+      `#${r.rank} ${r.points} pts  ${r.owner.slice(0, 10)}…${r.owner.slice(-6)}  spursXI:${ss} leedsXI:${ls}`,
     );
   }
   console.log("");
-  const withSpurs = rows.filter((r) => r.spurs.length > 0);
-  const withLeeds = rows.filter((r) => r.leeds.length > 0);
-  const withEither = rows.filter((r) => r.hasTarget);
-  console.log(`Wallets with ≥1 Spurs starter: ${withSpurs.length} / ${rows.length}`);
-  console.log(`Wallets with ≥1 Leeds starter: ${withLeeds.length} / ${rows.length}`);
-  console.log(`Wallets with Spurs OR Leeds in XI: ${withEither.length} / ${rows.length}`);
+  const withSpursXi = rows.filter((r) => r.spursStarters.length > 0);
+  const withLeedsXi = rows.filter((r) => r.leedsStarters.length > 0);
+  const withEitherXi = rows.filter((r) => r.hasTargetInXi);
+  const withAnyClub = rows.filter((r) => r.hasTargetAny);
+  console.log(`Гаманців із ≥1 Spurs у СТАРТІ (1–11): ${withSpursXi.length} / ${rows.length}`);
+  console.log(`Гаманців із ≥1 Leeds у СТАРТІ (1–11): ${withLeedsXi.length} / ${rows.length}`);
+  console.log(`Гаманців із Spurs або Leeds у старті: ${withEitherXi.length} / ${rows.length}`);
+  console.log(`Гаманців із Spurs/Leeds де-небудь (старт + лавка): ${withAnyClub.length} / ${rows.length}`);
   console.log("");
-  console.log("— All with Spurs or Leeds (rank, points, slots) —");
-  for (const r of rows.filter((x) => x.hasTarget).sort((a, b) => a.rank - b.rank)) {
-    const bits = [];
-    if (r.spurs.length) bits.push(`Spurs:${r.spurs.map((x) => `#${x.slot}`).join(",")}`);
-    if (r.leeds.length) bits.push(`Leeds:${r.leeds.map((x) => `#${x.slot}`).join(",")}`);
-    console.log(`#${r.rank}  ${r.points} pts  ${bits.join(" | ")}  ${r.owner}`);
+  console.log("— Детально: гравці Spurs / Leeds (ім'я, клуб, слот, старт чи лавка) —");
+  for (const r of rows.filter((x) => x.hasTargetAny).sort((a, b) => a.rank - b.rank)) {
+    console.log("");
+    console.log(`#${r.rank}  ${r.points} очок  ${r.owner}`);
+    for (const p of r.targetPlayers) {
+      console.log(
+        `   • ${p.name} (${p.teamShort}, ${p.pos}) — ${p.club} — слот ${p.slot}/14 — ${p.roleUk}`,
+      );
+    }
   }
 }
 

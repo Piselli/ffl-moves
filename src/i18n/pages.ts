@@ -69,6 +69,18 @@ export type PagesMessages = {
     fplStripSeeAll: string;
     fplStripLoadError: string;
     fplStripMatchCount: (n: number) => string;
+    /** Registered squad sidebar — scores list heading */
+    registeredScoresTitle: string;
+    /** Column heading above player names in the scores list */
+    registeredPlayerCol: string;
+    /** Label above starting XI total points */
+    registeredXiTotalLabel: string;
+    /** Shown when chain publishes official tour points (resolved GW) */
+    registeredOfficialTotalHint: string;
+    /** Sidebar footer — titles/guild multiplier applied after base + rating */
+    registeredMultiplierFooter: (factorLabel: string) => string;
+    /** Registered starter row — stats counted from auto-sub */
+    registeredViaSub: (name: string) => string;
   };
   fixtures: {
     back: string;
@@ -304,6 +316,12 @@ export const pagesEn: PagesMessages = {
     fplStripSeeAll: "Full schedule →",
     fplStripLoadError: "Could not load the FPL fixture list.",
     fplStripMatchCount: (n) => `${n} matches`,
+    registeredScoresTitle: "Gameweek scores",
+    registeredPlayerCol: "Player",
+    registeredXiTotalLabel: "Starting XI total",
+    registeredOfficialTotalHint: "Published tour total",
+    registeredMultiplierFooter: (factorLabel) => `Titles / guild ${factorLabel}`,
+    registeredViaSub: (name) => `→ ${name}`,
   },
   fixtures: {
     back: "Back",
@@ -970,6 +988,12 @@ export const pagesUk: PagesMessages = {
     fplStripSeeAll: "Усі матчі →",
     fplStripLoadError: "Не вдалося завантажити розклад FPL.",
     fplStripMatchCount: (n) => `${n} матчів`,
+    registeredScoresTitle: "Результати туру",
+    registeredPlayerCol: "Гравець",
+    registeredXiTotalLabel: "Разом (основа)",
+    registeredOfficialTotalHint: "Офіційний підсумок туру",
+    registeredMultiplierFooter: (factorLabel) => `Титули / гільдії ${factorLabel}`,
+    registeredViaSub: (name) => `→ ${name}`,
   },
   fixtures: {
     back: "Назад",

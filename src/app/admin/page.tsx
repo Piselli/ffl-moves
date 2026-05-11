@@ -399,6 +399,10 @@ export default function AdminPage() {
     }
   };
 
+  // Max players per submit_player_stats TX — keeps BCS payload under ~45 KB.
+  // Each player contributes ~152 bytes (17×u64 + 2×u8 + 2×bool); 300 × 152 ≈ 45 KB.
+  const STATS_BATCH_SIZE = 300;
+
   const handleSubmitStats = async () => {
     if (!connected || !account || !statsJson) return;
 
@@ -412,88 +416,102 @@ export default function AdminPage() {
         throw new Error("Invalid stats format. Need { gameweekId, players: [...] }");
       }
 
-      const n = stats.players.length;
-      if (n === 0) throw new Error("No players in JSON");
+      const allPlayers = stats.players;
+      if (allPlayers.length === 0) throw new Error("No players in JSON");
 
-      // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
-      const playerIds = stats.players.map((p) => {
-        const id = toU64Stat(p.playerId);
-        if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
-        return id;
-      });
-      const positions = stats.players.map((p) => {
-        const pos = toU64Stat(p.position);
-        if (pos > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
-        return pos;
-      });
-      const minutesPlayed = stats.players.map((p) => toU64Stat(p.minutesPlayed));
-      const goals = stats.players.map((p) => toU64Stat(p.goals));
-      const assists = stats.players.map((p) => toU64Stat(p.assists));
-      const cleanSheets = stats.players.map((p) => Boolean(p.cleanSheet));
-      const saves = stats.players.map((p) => toU64Stat(p.saves));
-      const penaltiesSaved = stats.players.map((p) => toU64Stat(p.penaltiesSaved));
-      const penaltiesMissed = stats.players.map((p) => toU64Stat(p.penaltiesMissed));
-      const ownGoals = stats.players.map((p) => toU64Stat(p.ownGoals));
-      const yellowCards = stats.players.map((p) => toU64Stat(p.yellowCards));
-      const redCards = stats.players.map((p) => toU64Stat(p.redCards));
-      const ratings = stats.players.map((p) => toU64Stat(p.rating));
-      const tackles = stats.players.map((p) => toU64Stat(p.tackles));
-      const interceptions = stats.players.map((p) => toU64Stat(p.interceptions));
-      const successfulDribbles = stats.players.map((p) => toU64Stat(p.successfulDribbles));
-      const freeKickGoals = stats.players.map((p) => toU64Stat(p.freeKickGoals));
-      const goalsConceded = stats.players.map((p) =>
-        toU64Stat(p.goalsConceded ?? p.goals_conceded),
+      const gwId = Number(stats.gameweekId);
+      const totalBatches = Math.ceil(allPlayers.length / STATS_BATCH_SIZE);
+
+      for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+        const batch = allPlayers.slice(batchIdx * STATS_BATCH_SIZE, (batchIdx + 1) * STATS_BATCH_SIZE);
+
+        // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
+        const playerIds = batch.map((p) => {
+          const id = toU64Stat(p.playerId);
+          if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
+          return id;
+        });
+        const positions = batch.map((p) => {
+          const pos = toU64Stat(p.position);
+          if (pos > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
+          return pos;
+        });
+        const minutesPlayed = batch.map((p) => toU64Stat(p.minutesPlayed));
+        const goals = batch.map((p) => toU64Stat(p.goals));
+        const assists = batch.map((p) => toU64Stat(p.assists));
+        const cleanSheets = batch.map((p) => Boolean(p.cleanSheet));
+        const saves = batch.map((p) => toU64Stat(p.saves));
+        const penaltiesSaved = batch.map((p) => toU64Stat(p.penaltiesSaved));
+        const penaltiesMissed = batch.map((p) => toU64Stat(p.penaltiesMissed));
+        const ownGoals = batch.map((p) => toU64Stat(p.ownGoals));
+        const yellowCards = batch.map((p) => toU64Stat(p.yellowCards));
+        const redCards = batch.map((p) => toU64Stat(p.redCards));
+        const ratings = batch.map((p) => toU64Stat(p.rating));
+        const tackles = batch.map((p) => toU64Stat(p.tackles));
+        const interceptions = batch.map((p) => toU64Stat(p.interceptions));
+        const successfulDribbles = batch.map((p) => toU64Stat(p.successfulDribbles));
+        const freeKickGoals = batch.map((p) => toU64Stat(p.freeKickGoals));
+        const goalsConceded = batch.map((p) =>
+          toU64Stat(p.goalsConceded ?? p.goals_conceded),
+        );
+        const fplBonus = batch.map((p) => {
+          const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
+          return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
+        });
+        const fplCleanSheet = batch.map((p) => {
+          const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
+          return Boolean(v === true || v === 1 || v === "1");
+        });
+
+        const transaction = await client.transaction.build.simple({
+          sender: account.address.toString(),
+          data: {
+            function: moduleFunction("submit_player_stats"),
+            typeArguments: [],
+            functionArguments: [
+              gwId,
+              playerIds,
+              positions,
+              minutesPlayed,
+              goals,
+              assists,
+              cleanSheets,
+              saves,
+              penaltiesSaved,
+              penaltiesMissed,
+              ownGoals,
+              yellowCards,
+              redCards,
+              ratings,
+              tackles,
+              interceptions,
+              successfulDribbles,
+              freeKickGoals,
+              goalsConceded,
+              fplBonus,
+              fplCleanSheet,
+            ],
+          },
+        });
+
+        const signResult = await signTransaction({ transactionOrPayload: transaction });
+        const pending = await client.transaction.submit.simple({
+          transaction,
+          senderAuthenticator: signResult.authenticator,
+        });
+        await client.waitForTransaction({
+          transactionHash: pending.hash,
+          options: { timeoutSecs: 90, checkSuccess: true },
+        });
+
+        console.log(`Stats batch ${batchIdx + 1}/${totalBatches} confirmed (${batch.length} players)`);
+      }
+
+      alert(
+        totalBatches > 1
+          ? `${ad.alertStatsSubmitted} (${totalBatches} batches, ${allPlayers.length} players)`
+          : ad.alertStatsSubmitted,
       );
-      const fplBonus = stats.players.map((p) => {
-        const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
-        return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
-      });
-      const fplCleanSheet = stats.players.map((p) => {
-        const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
-        return Boolean(v === true || v === 1 || v === "1");
-      });
-
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("submit_player_stats"),
-          typeArguments: [],
-          functionArguments: [
-            Number(stats.gameweekId),
-            playerIds,
-            positions,
-            minutesPlayed,
-            goals,
-            assists,
-            cleanSheets,
-            saves,
-            penaltiesSaved,
-            penaltiesMissed,
-            ownGoals,
-            yellowCards,
-            redCards,
-            ratings,
-            tackles,
-            interceptions,
-            successfulDribbles,
-            freeKickGoals,
-            goalsConceded,
-            fplBonus,
-            fplCleanSheet,
-          ],
-        },
-      });
-
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 90, checkSuccess: true },
-      });
-      alert(ad.alertStatsSubmitted);
     } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
       alert(ad.alertFailed(formatTxError(error)));

@@ -19,7 +19,7 @@ import {
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
-import { calculateFantasyPointsWithRating } from "@/lib/scoring";
+import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
 import { formatMOVE, cn, formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { TeamResult } from "@/lib/types";
@@ -108,7 +108,7 @@ export default function LeaderboardPage() {
         if (addresses.length > 0) {
           const teams = await Promise.all(addresses.map((addr) => getUserTeam(addr, gwId)));
           const allIds = new Set<number>();
-          teams.forEach((t) => t?.playerIds.slice(0, 11).forEach((id) => allIds.add(id)));
+          teams.forEach((t) => t?.playerIds.forEach((id) => allIds.add(id)));
           const stats = await getGameweekStats(gwId, Array.from(allIds));
 
           const hasAnyStats = Object.keys(stats).length > 0;
@@ -116,11 +116,10 @@ export default function LeaderboardPage() {
             const scored = addresses.map((owner, i) => {
               const team = teams[i];
               if (!team) return { owner, finalPoints: 0 };
-              const points = team.playerIds.slice(0, 11).reduce((sum, playerId, j) => {
-                const positionId = team.playerPositions?.[j] ?? 4;
-                const s = stats[playerId];
-                return sum + (s ? calculateFantasyPointsWithRating({ positionId }, s as Record<string, unknown>) : 0);
-              }, 0);
+              const points = previewTourPointsFromRegisteredTeam(
+                team,
+                stats as Record<string, Record<string, unknown>>,
+              );
               return { owner, finalPoints: points };
             });
 

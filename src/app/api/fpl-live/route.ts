@@ -143,20 +143,24 @@ export async function GET(request: Request) {
       );
     }
 
-    // Map FPL live stats → OraclePlayerStats format
+    // Map FPL live stats → OraclePlayerStats format.
+    // Include ALL selectable players — even 0-minute ones — so the contract's substitution
+    // logic fires correctly (minutes_played=0 in the stats map → contract looks for a bench
+    // replacement; player missing from the map entirely → no substitution attempted).
     const players: FplLiveMappedPlayer[] = [];
 
     for (const element of live.elements) {
       const s = element.stats;
-      if (!s || (s.minutes ?? 0) === 0) continue;
+      if (!s) continue;
 
       const mapping = fplIdToInternal.get(element.id);
       if (!mapping) continue;
 
+      const mins = s.minutes ?? 0;
       players.push({
         playerId: mapping.id,
         position: mapping.positionId,
-        minutesPlayed: s.minutes ?? 0,
+        minutesPlayed: mins,
         goals: s.goals_scored ?? 0,
         assists: s.assists ?? 0,
         // Oracle / chain: only GK+DEF store clean sheet for submit_player_stats
@@ -167,8 +171,10 @@ export async function GET(request: Request) {
         ownGoals: s.own_goals ?? 0,
         yellowCards: s.yellow_cards ?? 0,
         redCards: s.red_cards ?? 0,
-        // Match rating for Move/TS tiers is tenths (e.g. 75 = 7.5). FPL live does not expose that here — use neutral 60 (6.0): no +tier, no low-rating −1. Never put BPS in `rating` (wrong scale, double-counts with `bonus`).
-        rating: 60,
+        // Match rating in tenths (75 = 7.5). FPL live doesn't expose it — use neutral 60
+        // for played players (no tier bonus, no low-rating −1). Use 0 for non-played players
+        // so the contract correctly treats them as "no rating" (same as Move rating=0 guard).
+        rating: mins > 0 ? 60 : 0,
         bonus: Math.max(0, Math.min(3, Number(s.bonus ?? 0) || 0)),
         goalsConceded: Math.max(0, Number(s.goals_conceded ?? 0) || 0),
         fplCleanSheets: (s.clean_sheets ?? 0) > 0 ? 1 : 0,

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { FormationGrid } from "@/components/FormationGrid";
+import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
@@ -12,6 +13,7 @@ import {
   moduleFunction,
   getConfig,
   findActiveGameweekFromChain,
+  findLatestUserRegisteredGameweek,
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
@@ -21,6 +23,7 @@ import {
 } from "@/lib/movement";
 import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
@@ -127,8 +130,11 @@ function isCompleteRegisteredSnapshot(
 
 export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
-  const g = useSiteMessages().pages.gameweek;
-  const fx = useSiteMessages().pages.fixtures;
+  const siteMessages = useSiteMessages();
+  const g = siteMessages.pages.gameweek;
+  const fx = siteMessages.pages.fixtures;
+  const mr = siteMessages.pages.myResult;
+  const lt = siteMessages.pages.leaderboardTable;
   const { locale } = useSiteLocale();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
@@ -150,6 +156,34 @@ export default function GameweekPage() {
 
   const [fplSchedule, setFplSchedule] = useState<FplSchedulePayload | null>(null);
   const [fplScheduleReady, setFplScheduleReady] = useState(false);
+
+  const officialResolved = useMemo(() => {
+    if (teamResult == null || !registeredTeam) return null;
+    if (!isCompleteRegisteredSnapshot(registeredTeam)) return null;
+    const { starters, bench } = registeredTeam;
+    const breakdown = computeChainAlignedXiBreakdown(starters, bench, gameweekStats);
+    return { teamResult, breakdown };
+  }, [teamResult, registeredTeam, gameweekStats]);
+
+  const interimBreakdown = useMemo(() => {
+    if (teamResult != null) return null;
+    if (currentGameweek?.status !== "closed" && currentGameweek?.status !== "resolved") return null;
+    if (!registeredTeam || !isCompleteRegisteredSnapshot(registeredTeam)) return null;
+    if (Object.keys(gameweekStats).length === 0) return null;
+    const { starters, bench } = registeredTeam;
+    return computeChainAlignedXiBreakdown(starters, bench, gameweekStats);
+  }, [teamResult, currentGameweek?.status, registeredTeam, gameweekStats]);
+
+  const chainAlignedCopy = useMemo(
+    () =>
+      officialResolved || interimBreakdown
+        ? {
+            multiplierFooter: g.registeredMultiplierFooter,
+            viaSub: g.registeredViaSub,
+          }
+        : null,
+    [officialResolved, interimBreakdown, g],
+  );
 
   // Official FPL schedule for the active round (deadline + match list)
   useEffect(() => {
@@ -192,7 +226,20 @@ export default function GameweekPage() {
       const configData = await getConfig();
       setConfig(configData);
 
-      const gwData = await findActiveGameweekFromChain(configData);
+      const gwActive = await findActiveGameweekFromChain(configData);
+      let gwData = gwActive;
+
+      if (account?.address && gwData?.status === "open") {
+        const addr = account.address.toString();
+        const registeredForOpen = await hasRegisteredTeam(addr, gwData.id);
+        if (!registeredForOpen) {
+          const recapGw = await findLatestUserRegisteredGameweek(addr, configData);
+          if (recapGw && (recapGw.status === "closed" || recapGw.status === "resolved")) {
+            gwData = recapGw;
+          }
+        }
+      }
+
       setCurrentGameweek(gwData);
       setGameweekLoading(false);
 
@@ -208,7 +255,7 @@ export default function GameweekPage() {
         if (gwData.status === "closed" || gwData.status === "resolved") {
           const [chainTeam, res] = await Promise.all([
             getUserTeam(addr, targetGwId),
-            gwData.status === "resolved"
+            gwData.status === "closed" || gwData.status === "resolved"
               ? getTeamResult(addr, targetGwId)
               : Promise.resolve(null),
           ]);
@@ -218,20 +265,22 @@ export default function GameweekPage() {
             // User has a registered team — mark as registered
             setAlreadyRegistered(true);
 
-            // Try localStorage first, fall back to chain data
             const key = `ffl_team_v2_gw${targetGwId}_${addr}`;
-            const saved = localStorage.getItem(key);
-            let loadedFromStorage = false;
-            if (saved) {
-              try {
-                const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
-                if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
-                  setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
-                  loadedFromStorage = true;
-                }
-              } catch { /* ignore */ }
+            // Authoritative formation + positions come from chain (matches leaderboard / Move).
+            // Never prefer raw localStorage here — it keeps catalog positions and drifts from get_user_team.
+            if (players.length > 0) {
+              const catalog = new Map(players.map((p) => [p.id, p]));
+              await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
+              const teamPlayers = squadPlayersFromChain(
+                { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
+                catalog,
+              );
+              if (teamPlayers.length === FORMATION.TOTAL) {
+                const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
+                setRegisteredTeam(snapshot);
+                localStorage.setItem(key, JSON.stringify(snapshot));
+              }
             }
-            // localStorage miss — chain fallback happens in the separate useEffect below
 
             // Fetch stats for intermediate/final results
             const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
@@ -245,7 +294,6 @@ export default function GameweekPage() {
               setGameweekStats(stats as Record<string, Record<string, unknown>>);
             }
 
-            void loadedFromStorage; // suppress unused warning
           } else {
             // No team on chain → not registered
             setAlreadyRegistered(false);
@@ -271,12 +319,56 @@ export default function GameweekPage() {
       }
     }
     fetchData();
-  }, [account?.address]);
+  }, [account?.address, players.length]);
 
-  // Fallback: load team from chain when localStorage is empty or incomplete but players list is ready
+  // Closed/resolved: hydrate squad from chain once catalog is ready (covers wallet fetch before /api/players).
+  useEffect(() => {
+    if (!alreadyRegistered || !players.length || !account?.address || !config) return;
+    const st = currentGameweek?.status;
+    if (st !== "closed" && st !== "resolved") return;
+
+    const addr = account.address.toString();
+    const gwId = currentGameweek?.id ?? config.currentGameweek;
+    const key = `ffl_team_v2_gw${gwId}_${addr}`;
+
+    let cancelled = false;
+    async function syncFromChain() {
+      const chainTeam = await getUserTeam(addr, gwId);
+      if (cancelled || !chainTeam?.playerIds?.length) return;
+
+      const catalog = new Map(players.map((p) => [p.id, p]));
+      await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
+      const teamPlayers = squadPlayersFromChain(
+        { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
+        catalog,
+      );
+
+      if (teamPlayers.length === FORMATION.TOTAL) {
+        const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
+        setRegisteredTeam(teamSnapshot);
+        localStorage.setItem(key, JSON.stringify(teamSnapshot));
+      }
+    }
+    void syncFromChain();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    alreadyRegistered,
+    players,
+    account?.address,
+    config,
+    currentGameweek?.id,
+    currentGameweek?.status,
+  ]);
+
+  // Open GW (and legacy): load team from chain when localStorage is empty or incomplete
   useEffect(() => {
     const hasValidTeam = isCompleteRegisteredSnapshot(registeredTeam);
     if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
+    // Closed/resolved squads are synced from chain in the dedicated effect above.
+    const gwStatus = currentGameweek?.status;
+    if (gwStatus === "closed" || gwStatus === "resolved") return;
 
     const addr = account.address.toString();
     const cfg = config;
@@ -557,18 +649,14 @@ export default function GameweekPage() {
   }
 
   if (alreadyRegistered) {
-    const positionOrder = ["GK", "DEF", "MID", "FWD"];
-    const positionColors: Record<string, string> = {
-      GK: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-      DEF: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      MID: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-      FWD: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-    };
     const teamToShow = registeredTeam?.starters || [];
     const benchToShow = registeredTeam?.bench || [];
 
     const isPreviewMode = currentGameweek?.status === "closed";
     const hasStats = Object.keys(gameweekStats).length > 0;
+    const showScores =
+      currentGameweek?.status === "resolved" ||
+      (currentGameweek?.status === "closed" && hasStats);
 
     return (
       <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
@@ -593,6 +681,7 @@ export default function GameweekPage() {
             </p>
           </div>
         )}
+
         <GameweekFplRoundStrip
           ready={fplScheduleReady}
           schedule={fplSchedule}
@@ -600,8 +689,8 @@ export default function GameweekPage() {
           g={g}
           fx={fx}
         />
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+
+        <div className="flex items-center justify-between mb-6 mt-4 flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
@@ -617,63 +706,32 @@ export default function GameweekPage() {
           </a>
         </div>
 
-        {/* Starters */}
-        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
-          <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">{g.startersSection}</h2>
-          <div className="space-y-1">
-            {positionOrder.map((pos) => {
-              const posPlayers = teamToShow.filter((p) => p.position === pos);
-              if (!posPlayers.length) return null;
-              return (
-                <div key={pos}>
-                  {posPlayers.map((player) => {
-                    const points = calculatePlayerPoints(player);
-                    return (
-                      <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
-                          {player.position}
-                        </span>
-                        <div className="flex-1">
-                          <p className="text-white font-medium">{player.webName || player.name}</p>
-                          <p className="text-white/40 text-[10px]">{player.team}</p>
-                        </div>
-                        {(currentGameweek?.status === "resolved" || (currentGameweek?.status === "closed" && hasStats)) && (
-                          <div className="text-right">
-                            <span className={cn(
-                              "text-sm font-bold",
-                              points > 0 ? "text-emerald-400" : points < 0 ? "text-rose-400" : "text-white/40"
-                            )}>
-                              {points > 0 ? `+${points}` : points} pts
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Bench */}
-        {benchToShow.length > 0 && (
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 mb-4">
-            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">{g.benchSection}</h2>
-            <div className="space-y-1">
-              {benchToShow.map((player) => (
-                <div key={player.id} className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border w-10 text-center flex-shrink-0 ${positionColors[player.position]}`}>
-                    {player.position}
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{player.webName || player.name}</p>
-                    <p className="text-white/40 text-[10px]">{player.team}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {teamToShow.length > 0 && (
+          <RegisteredSquadShowcase
+            starters={teamToShow}
+            bench={benchToShow}
+            gameweekStats={gameweekStats}
+            showScores={showScores}
+            getPoints={calculatePlayerPoints}
+            posAbbrev={siteMessages.positionAbbrev}
+            benchAbbrev={siteMessages.recap.benchAbbrev}
+            startersHeading={g.startersSection}
+            benchSectionLabel={g.benchSection}
+            statsPendingHint={
+              !showScores && currentGameweek && currentGameweek.status !== "open"
+                ? mr.statsPending
+                : null
+            }
+            scoresSidebarTitle={g.registeredScoresTitle}
+            playerColLabel={g.registeredPlayerCol}
+            pointsColLabel={lt.colPoints}
+            xiTotalLabel={g.registeredXiTotalLabel}
+            officialTotalHint={g.registeredOfficialTotalHint}
+            publishedTourTotal={teamResult != null ? teamResult.finalPoints : null}
+            officialResolved={officialResolved}
+            interimBreakdown={interimBreakdown}
+            chainAlignedCopy={chainAlignedCopy}
+          />
         )}
 
       </div>
