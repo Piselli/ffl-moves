@@ -45,17 +45,22 @@ function minutesPlayed(stats: Record<string, unknown> | null): number {
   return Number.isFinite(m) ? m : 0;
 }
 
-/** Bench search order matches Move `find_substitute` (slots 11 → 13). */
+/** Bench search order matches Move `find_substitute` (slots 11 → 13). Each bench player may auto-sub at most once. */
 function findSubstitute(
   bench: Player[],
   positionId: number,
   gameweekStats: Record<string, Record<string, unknown>>,
+  consumedBenchPlayerIds: Set<number>,
 ): Player | null {
   for (const p of bench) {
     if (!p || p.positionId !== positionId) continue;
+    if (consumedBenchPlayerIds.has(p.id)) continue;
     const st = pickStats(gameweekStats, p.id);
     if (!st) continue;
-    if (minutesPlayed(st) > 0) return p;
+    if (minutesPlayed(st) > 0) {
+      consumedBenchPlayerIds.add(p.id);
+      return p;
+    }
   }
   return null;
 }
@@ -106,6 +111,7 @@ export function computeChainAlignedXiBreakdown(
   let totalBase = 0;
   let totalRatingAdd = 0;
   let totalRatingSub = 0;
+  const consumedBenchPlayerIds = new Set<number>();
 
   const xi = Math.min(starters.length, 11);
   for (let i = 0; i < xi; i++) {
@@ -135,7 +141,7 @@ export function computeChainAlignedXiBreakdown(
     const starterDisplayBase = calculateFantasyPoints({ positionId: posId }, starterStats);
 
     if (minutesPlayed(starterStats) === 0) {
-      const sub = findSubstitute(bench, posId, gameweekStats);
+      const sub = findSubstitute(bench, posId, gameweekStats, consumedBenchPlayerIds);
       const subStats = sub ? pickStats(gameweekStats, sub.id) : null;
       if (!sub || !subStats || minutesPlayed(subStats) === 0) {
         pushZero(starterDisplayBase);

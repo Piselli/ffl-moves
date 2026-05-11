@@ -1150,11 +1150,24 @@ module fantasy_epl_addr::fantasy_epl {
         else { MULTIPLIER_15 }
     }
 
+    fun init_bench_used_flags(): vector<bool> {
+        let bench_used = vector::empty<bool>();
+        let bi = 0;
+        while (bi < BENCH_SIZE) {
+            vector::push_back(&mut bench_used, false);
+            bi = bi + 1;
+        };
+        bench_used
+    }
+
     // Returns (base_points, rating_bonus_positive, rating_bonus_negative)
     fun calculate_team_points(team: &Team, stats: &SimpleMap<u64, PlayerStats>): (u64, u64, u64) {
         let total_base: u64 = 0;
         let total_rating_add: u64 = 0;
         let total_rating_sub: u64 = 0;
+
+        // Each bench slot may contribute at most once as an auto-sub (same as FPL-style logic).
+        let bench_used = init_bench_used_flags();
 
         // Calculate points for starting XI (first 11 players)
         let i = 0;
@@ -1168,7 +1181,7 @@ module fantasy_epl_addr::fantasy_epl {
                 // Check if player played, if not try substitute
                 if (player_stats.minutes_played == 0) {
                     // Find substitute of same position
-                    let sub_idx = find_substitute(team, position, stats, i);
+                    let sub_idx = find_substitute(team, position, stats, &mut bench_used);
                     if (sub_idx < TOTAL_SQUAD_SIZE) {
                         let sub_id = *vector::borrow(&team.player_ids, sub_idx);
                         if (simple_map::contains_key(stats, &sub_id)) {
@@ -1193,16 +1206,27 @@ module fantasy_epl_addr::fantasy_epl {
         (total_base, total_rating_add, total_rating_sub)
     }
 
-    fun find_substitute(team: &Team, position: u8, stats: &SimpleMap<u64, PlayerStats>, _starter_idx: u64): u64 {
-        // Look through bench (indices 11, 12, 13)
+    fun find_substitute(
+        team: &Team,
+        position: u8,
+        stats: &SimpleMap<u64, PlayerStats>,
+        bench_used: &mut vector<bool>,
+    ): u64 {
+        // Look through bench (indices 11, 12, 13); skip slots already consumed as auto-subs
         let i = STARTING_XI_SIZE;
         while (i < TOTAL_SQUAD_SIZE) {
+            let b = i - STARTING_XI_SIZE;
+            if (*vector::borrow(bench_used, b)) {
+                i = i + 1;
+                continue
+            };
             let sub_position = *vector::borrow(&team.player_positions, i);
             if (sub_position == position) {
                 let sub_id = *vector::borrow(&team.player_ids, i);
                 if (simple_map::contains_key(stats, &sub_id)) {
                     let sub_stats = simple_map::borrow(stats, &sub_id);
                     if (sub_stats.minutes_played > 0) {
+                        *vector::borrow_mut(bench_used, b) = true;
                         return i
                     };
                 };
