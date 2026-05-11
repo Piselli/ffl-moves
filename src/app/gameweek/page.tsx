@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { FormationGrid } from "@/components/FormationGrid";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
@@ -26,96 +25,11 @@ import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
-import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
-import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
-
-type FplSchedulePayload = {
-  gameweek: {
-    id: number;
-    name: string;
-    deadlineTime: string | null;
-    deadlineEpochMs?: number | null;
-    isCurrent: boolean;
-    isNext: boolean;
-  };
-  fixtures: Array<{
-    id: number;
-    kickoffTime: string | null;
-    teamH: { shortName: string };
-    teamA: { shortName: string };
-  }>;
-};
-
-function GameweekFplRoundStrip(props: {
-  ready: boolean;
-  schedule: FplSchedulePayload | null;
-  localeUk: boolean;
-  g: {
-    fplStripTitle: string;
-    fplStripSeeAll: string;
-    fplStripLoadError: string;
-    fplStripMatchCount: (n: number) => string;
-  };
-  fx: { deadlineLabel: string };
-}) {
-  const { ready, schedule, localeUk, g, fx } = props;
-  if (!ready) return null;
-  if (!schedule) {
-    return <p className="mb-4 text-xs text-amber-400/80">{g.fplStripLoadError}</p>;
-  }
-
-  const fplDeadlineFormatted = (() => {
-    const raw = resolveFplDeadlineRaw(schedule.gameweek);
-    if (raw == null || raw === "") return null;
-    return formatFplDeadlineLocale(raw, localeUk ? "uk" : "en");
-  })();
-
-  return (
-    <div className="mb-6 sm:mb-8 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-4 sm:px-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00f948]/85 mb-1">
-            {g.fplStripTitle}
-          </p>
-          <p className="text-sm font-display font-black text-white truncate">{schedule.gameweek.name}</p>
-          <p className="text-[10px] text-white/35 mt-0.5">
-            {g.fplStripMatchCount(schedule.fixtures.length)}
-          </p>
-        </div>
-        {fplDeadlineFormatted ? (
-          <div className="shrink-0 sm:text-right">
-            <p className="text-[9px] text-white/30 uppercase tracking-[0.18em] font-bold mb-0.5">
-              {fx.deadlineLabel}
-            </p>
-            <p className="text-sm font-display font-black text-white tabular-nums">{fplDeadlineFormatted}</p>
-          </div>
-        ) : null}
-      </div>
-      {schedule.fixtures.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {schedule.fixtures.slice(0, 12).map((m) => (
-            <span
-              key={m.id}
-              className="inline-flex items-center text-[10px] font-bold px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/75"
-            >
-              {m.teamH.shortName} v {m.teamA.shortName}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      <Link
-        href="/fixtures"
-        className="inline-block mt-3 text-[11px] font-bold text-[#00f948] hover:underline"
-      >
-        {g.fplStripSeeAll}
-      </Link>
-    </div>
-  );
-}
 
 // Hoisted constant: lives outside the component so the filteredPlayers `useMemo`
 // doesn't need to depend on it (avoids a react-hooks/exhaustive-deps warning).
@@ -132,10 +46,8 @@ export default function GameweekPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
   const siteMessages = useSiteMessages();
   const g = siteMessages.pages.gameweek;
-  const fx = siteMessages.pages.fixtures;
   const mr = siteMessages.pages.myResult;
   const lt = siteMessages.pages.leaderboardTable;
-  const { locale } = useSiteLocale();
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
@@ -153,9 +65,6 @@ export default function GameweekPage() {
   const [gameweekStats, setGameweekStats] = useState<Record<string, Record<string, unknown>>>({});
   const [teamResult, setTeamResult] = useState<TeamResult | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("players");
-
-  const [fplSchedule, setFplSchedule] = useState<FplSchedulePayload | null>(null);
-  const [fplScheduleReady, setFplScheduleReady] = useState(false);
 
   const officialResolved = useMemo(() => {
     if (teamResult == null || !registeredTeam) return null;
@@ -185,18 +94,6 @@ export default function GameweekPage() {
     [officialResolved, interimBreakdown, g],
   );
 
-  // Official FPL schedule for the active round (deadline + match list)
-  useEffect(() => {
-    fetch("/api/fixtures", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: FplSchedulePayload & { error?: string }) => {
-        if (!d.error && d.gameweek && Array.isArray(d.fixtures)) {
-          setFplSchedule(d);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setFplScheduleReady(true));
-  }, []);
   useEffect(() => {
     fetch("/api/players")
       .then(async (r) => {
@@ -682,15 +579,7 @@ export default function GameweekPage() {
           </div>
         )}
 
-        <GameweekFplRoundStrip
-          ready={fplScheduleReady}
-          schedule={fplSchedule}
-          localeUk={locale === "uk"}
-          g={g}
-          fx={fx}
-        />
-
-        <div className="flex items-center justify-between mb-6 mt-4 flex-wrap gap-4">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
@@ -836,14 +725,6 @@ export default function GameweekPage() {
             </p>
           </div>
         </div>
-
-        <GameweekFplRoundStrip
-          ready={fplScheduleReady}
-          schedule={fplSchedule}
-          localeUk={locale === "uk"}
-          g={g}
-          fx={fx}
-        />
       </div>
 
       {/* ── Desktop layout (2 columns) ────────────────────────────────────── */}
