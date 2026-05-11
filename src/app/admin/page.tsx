@@ -526,15 +526,58 @@ export default function AdminPage() {
     setIsSubmitting(true);
     try {
       const gw = Number(resultsGameweekId);
+
+      // Fetch all registered teams and compute points off-chain, then sort descending.
+      // The contract no longer sorts on-chain (removed O(n²) bubble sort to fit execution limits).
+      const { getGameweekTeams, getUserTeam, getGameweekStats } = await import("@/lib/movement");
+      const { previewTourPointsFromRegisteredTeam } = await import("@/lib/chainAlignedScoring");
+
+      const addresses = await getGameweekTeams(gw);
+      const teams = await Promise.all(
+        addresses.map(async (addr) => {
+          const team = await getUserTeam(addr, gw);
+          return { addr, team };
+        })
+      );
+
+      const allPlayerIds = [...new Set(teams.flatMap((t) => t.team?.playerIds ?? []))];
+      const statsMap = await getGameweekStats(gw, allPlayerIds);
+      const chainRecord: Record<string, Record<string, unknown>> = {};
+      for (const [id, s] of Object.entries(statsMap)) {
+        chainRecord[id] = s as Record<string, unknown>;
+      }
+
+      const { calculateFantasyPoints, ratingTierAdjustment } = await import("@/lib/scoring");
+
+      const scored = teams.map(({ addr, team }) => {
+        if (!team) return { addr, basePts: 0, finalPts: 0 };
+        // base = naive XI sum (no auto-sub, matches preview display)
+        let basePts = 0;
+        for (let i = 0; i < 11; i++) {
+          const pid = team.playerIds[i];
+          const posId = team.playerPositions[i] ?? 2;
+          const s = statsMap[pid] as Record<string, unknown> | undefined;
+          if (!s) continue;
+          const b = calculateFantasyPoints({ positionId: posId }, s);
+          const { add, sub } = ratingTierAdjustment(s);
+          basePts += Math.max(0, b + add - sub);
+        }
+        // preMultiplier uses auto-sub (chain-aligned)
+        const finalPts = previewTourPointsFromRegisteredTeam(team, chainRecord);
+        return { addr, basePts, finalPts };
+      });
+      scored.sort((a, b) => b.finalPts - a.finalPts);
+
       const transaction = await client.transaction.build.simple({
         sender: account.address.toString(),
         data: {
-          function: moduleFunction("calculate_results"),
+          function: moduleFunction("calculate_results_v3"),
           typeArguments: [],
           functionArguments: [
             gw,
-            [],
-            [],
+            scored.map((x) => x.addr),
+            scored.map((x) => x.basePts),
+            scored.map((x) => x.finalPts),
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             [30, 20, 15, 8, 7, 6, 5, 4, 3, 2],
           ],

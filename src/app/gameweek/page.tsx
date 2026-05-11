@@ -12,7 +12,6 @@ import {
   moduleFunction,
   getConfig,
   findActiveGameweekFromChain,
-  findLatestUserRegisteredGameweek,
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
@@ -124,18 +123,7 @@ export default function GameweekPage() {
       setConfig(configData);
 
       const gwActive = await findActiveGameweekFromChain(configData);
-      let gwData = gwActive;
-
-      if (account?.address && gwData?.status === "open") {
-        const addr = account.address.toString();
-        const registeredForOpen = await hasRegisteredTeam(addr, gwData.id);
-        if (!registeredForOpen) {
-          const recapGw = await findLatestUserRegisteredGameweek(addr, configData);
-          if (recapGw && (recapGw.status === "closed" || recapGw.status === "resolved")) {
-            gwData = recapGw;
-          }
-        }
-      }
+      const gwData = gwActive;
 
       setCurrentGameweek(gwData);
       setGameweekLoading(false);

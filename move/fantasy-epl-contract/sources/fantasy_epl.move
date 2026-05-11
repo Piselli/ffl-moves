@@ -1060,6 +1060,237 @@ module fantasy_epl_addr::fantasy_epl {
         });
     }
 
+    /// Optimised variant of calculate_results for large participant counts.
+    /// Accepts a pre-sorted owners vector (descending by final_points) computed off-chain by the
+    /// oracle, removing the O(n²) on-chain bubble sort that hits execution limits at ~100+ entries.
+    public entry fun calculate_results_v2(
+        sender: &signer,
+        gameweek_id: u64,
+        title_triggered_owners: vector<address>,
+        guild_triggered_owners: vector<address>,
+        prize_ranks: vector<u64>,
+        prize_percentages: vector<u64>,
+        sorted_owners: vector<address>,
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+
+        assert!(sender_addr == config.oracle, ENOT_ORACLE);
+
+        let registry = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+        let gameweek = table::borrow_mut(&mut registry.gameweeks, gameweek_id);
+        assert!(gameweek.status == STATUS_CLOSED, EGAMEWEEK_NOT_CLOSED);
+
+        let results_registry = borrow_global_mut<ResultsRegistry>(@fantasy_epl_addr);
+        assert!(!table::contains(&results_registry.results, gameweek_id), ERESULTS_ALREADY_CALCULATED);
+
+        let stats_registry = borrow_global<PlayerStatsRegistry>(@fantasy_epl_addr);
+        let gameweek_stats = table::borrow(&stats_registry.stats, gameweek_id);
+
+        // Calculate points for every registered team and store in a map.
+        let team_results: SimpleMap<address, TeamResult> = simple_map::new();
+        let teams = &gameweek.teams;
+        let num_teams = vector::length(teams);
+        let i = 0;
+
+        while (i < num_teams) {
+            let owner = *vector::borrow(teams, i);
+            let user_teams = borrow_global<UserTeams>(owner);
+            let team = table::borrow(&user_teams.teams, gameweek_id);
+
+            let (base_points, rating_add, rating_sub) = calculate_team_points(team, gameweek_stats);
+
+            let rating_bonus: u64;
+            let rating_bonus_negative: bool;
+            if (rating_add >= rating_sub) {
+                rating_bonus = rating_add - rating_sub;
+                rating_bonus_negative = false;
+            } else {
+                rating_bonus = rating_sub - rating_add;
+                rating_bonus_negative = true;
+            };
+
+            let title_triggered = vector::contains(&title_triggered_owners, &owner);
+            let title_multiplier = if (title_triggered && exists<UserTitle>(owner)) {
+                borrow_global<UserTitle>(owner).multiplier
+            } else {
+                0
+            };
+
+            let guild_triggered = vector::contains(&guild_triggered_owners, &owner);
+            let guild_multiplier = if (guild_triggered && exists<UserGuild>(owner)) {
+                borrow_global<UserGuild>(owner).multiplier
+            } else {
+                0
+            };
+
+            let pre_multiplier = if (!rating_bonus_negative) {
+                base_points + rating_bonus
+            } else {
+                if (base_points > rating_bonus) { base_points - rating_bonus } else { 0 }
+            };
+
+            let total_multiplier = 10000 + title_multiplier + guild_multiplier;
+            let final_points = (pre_multiplier * total_multiplier) / 10000;
+
+            simple_map::add(&mut team_results, owner, TeamResult {
+                owner,
+                base_points,
+                rating_bonus,
+                rating_bonus_negative,
+                title_triggered,
+                title_multiplier,
+                guild_triggered,
+                guild_multiplier,
+                final_points,
+                rank: 0,
+                prize_amount: 0,
+                claimed: false,
+            });
+
+            i = i + 1;
+        };
+
+        // Assign ranks using caller-supplied sort order (O(n) instead of O(n²)).
+        let n = vector::length(&sorted_owners);
+        let prize_pool = gameweek.prize_pool;
+        i = 0;
+        while (i < n) {
+            let leader_owner = *vector::borrow(&sorted_owners, i);
+            let leader_pts = simple_map::borrow(&team_results, &leader_owner).final_points;
+            let j = i + 1;
+            while (j < n) {
+                let pts_j = simple_map::borrow(&team_results, vector::borrow(&sorted_owners, j)).final_points;
+                if (pts_j != leader_pts) break;
+                j = j + 1;
+            };
+
+            let tie_count = j - i;
+            let comp_rank = i + 1;
+
+            let sum_pct: u64 = 0;
+            let slot = comp_rank;
+            while (slot <= comp_rank + tie_count - 1) {
+                sum_pct = sum_pct + prize_percentage_for_rank(&prize_ranks, &prize_percentages, slot);
+                slot = slot + 1;
+            };
+
+            let group_total = (prize_pool * sum_pct) / 100;
+            let share_base = group_total / tie_count;
+            let share_rem = group_total % tie_count;
+
+            let t = 0;
+            while (t < tie_count) {
+                let owner = *vector::borrow(&sorted_owners, i + t);
+                let result = simple_map::borrow_mut(&mut team_results, &owner);
+                result.rank = comp_rank;
+                result.prize_amount = share_base + (if (t < share_rem) { 1 } else { 0 });
+                t = t + 1;
+            };
+
+            i = j;
+        };
+
+        table::add(&mut results_registry.results, gameweek_id, team_results);
+        gameweek.status = STATUS_RESOLVED;
+
+        event::emit(ResultsPublished {
+            gameweek_id,
+            total_teams: num_teams,
+        });
+    }
+
+    /// Lightweight variant: all point computation is done off-chain by the trusted oracle.
+    /// The contract only stores results and assigns competition ranks — purely O(n) with no
+    /// cross-account storage reads, fitting comfortably within execution limits at any scale.
+    ///
+    /// Inputs must be parallel vectors of the same length, sorted descending by final_points.
+    /// title_triggered / guild_triggered are recorded for display but multipliers are already
+    /// baked into final_points by the caller.
+    public entry fun calculate_results_v3(
+        sender: &signer,
+        gameweek_id: u64,
+        sorted_owners: vector<address>,
+        sorted_base_points: vector<u64>,
+        sorted_final_points: vector<u64>,
+        prize_ranks: vector<u64>,
+        prize_percentages: vector<u64>,
+    ) acquires Config, GameweekRegistry, ResultsRegistry {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(sender_addr == config.oracle, ENOT_ORACLE);
+
+        let registry = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+        let gameweek = table::borrow_mut(&mut registry.gameweeks, gameweek_id);
+        assert!(gameweek.status == STATUS_CLOSED, EGAMEWEEK_NOT_CLOSED);
+
+        let results_registry = borrow_global_mut<ResultsRegistry>(@fantasy_epl_addr);
+        assert!(!table::contains(&results_registry.results, gameweek_id), ERESULTS_ALREADY_CALCULATED);
+
+        let n = vector::length(&sorted_owners);
+        assert!(vector::length(&sorted_base_points) == n, EINVALID_TEAM_SIZE);
+        assert!(vector::length(&sorted_final_points) == n, EINVALID_TEAM_SIZE);
+
+        let team_results: SimpleMap<address, TeamResult> = simple_map::new();
+        let prize_pool = gameweek.prize_pool;
+        let i = 0;
+
+        while (i < n) {
+            let leader_pts = *vector::borrow(&sorted_final_points, i);
+            let j = i + 1;
+            while (j < n) {
+                if (*vector::borrow(&sorted_final_points, j) != leader_pts) break;
+                j = j + 1;
+            };
+
+            let tie_count = j - i;
+            let comp_rank = i + 1;
+
+            let sum_pct: u64 = 0;
+            let slot = comp_rank;
+            while (slot <= comp_rank + tie_count - 1) {
+                sum_pct = sum_pct + prize_percentage_for_rank(&prize_ranks, &prize_percentages, slot);
+                slot = slot + 1;
+            };
+
+            let group_total = (prize_pool * sum_pct) / 100;
+            let share_base = group_total / tie_count;
+            let share_rem = group_total % tie_count;
+
+            let t = 0;
+            while (t < tie_count) {
+                let owner = *vector::borrow(&sorted_owners, i + t);
+                let base_pts = *vector::borrow(&sorted_base_points, i + t);
+                let final_pts = *vector::borrow(&sorted_final_points, i + t);
+                simple_map::add(&mut team_results, owner, TeamResult {
+                    owner,
+                    base_points: base_pts,
+                    rating_bonus: 0,
+                    rating_bonus_negative: false,
+                    title_triggered: false,
+                    title_multiplier: 0,
+                    guild_triggered: false,
+                    guild_multiplier: 0,
+                    final_points: final_pts,
+                    rank: comp_rank,
+                    prize_amount: share_base + (if (t < share_rem) { 1 } else { 0 }),
+                    claimed: false,
+                });
+                t = t + 1;
+            };
+
+            i = j;
+        };
+
+        table::add(&mut results_registry.results, gameweek_id, team_results);
+        gameweek.status = STATUS_RESOLVED;
+
+        event::emit(ResultsPublished {
+            gameweek_id,
+            total_teams: n,
+        });
+    }
+
     // ============ Helper Functions ============
 
     fun validate_formation(positions: &vector<u8>) {
@@ -2008,7 +2239,8 @@ module fantasy_epl_addr::fantasy_epl {
             vector[], // No title triggers for simplicity
             vector[], // No guild triggers
             vector[1, 2], // Prize ranks
-            vector[60, 40]  // Prize percentages
+            vector[60, 40],  // Prize percentages
+            vector[@0x123, @0x456], // pre-sorted (same squads → tied; order irrelevant)
         );
 
         // Verify gameweek resolved
@@ -2078,6 +2310,7 @@ module fantasy_epl_addr::fantasy_epl {
             vector[],
             vector[1, 2],
             vector[60, 40],
+            vector[@0x123, @0x456], // tied — order irrelevant
         );
 
         let (_, _, _, _, _, _, _, fp1, rank1, prize1, _) = get_team_result(@0x123, 1);
@@ -2135,7 +2368,8 @@ module fantasy_epl_addr::fantasy_epl {
             vector[],
             vector[],
             vector[1],
-            vector[100]
+            vector[100],
+            vector[@0x123], // only user1 registered
         );
 
         // Claim prize
@@ -2172,7 +2406,7 @@ module fantasy_epl_addr::fantasy_epl {
             vector[false],
         );
 
-        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100]);
+        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100], vector[@0x123]);
 
         claim_prize(user1, 1);
         claim_prize(user1, 1); // Should fail

@@ -80,7 +80,11 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
   for (const eid of ids) {
     const evFx = fixtures.filter((f) => f.event === eid);
     if (evFx.length === 0) continue;
-    if (evFx.some((f) => !f.finished)) return eid;
+    // Ignore postponed/rescheduled rows we hide from the UI (e.g. MCI–CRY in GW36);
+    // otherwise FPL keeps them `finished: false` and we never advance to the next GW.
+    const relevant = evFx.filter((f) => !EXCLUDED_FIXTURE_IDS.has(f.id));
+    if (relevant.length === 0) continue;
+    if (relevant.some((f) => !f.finished)) return eid;
   }
 
   const nextMeta = eventsMeta.find((e) => e.is_next);
