@@ -36,18 +36,18 @@ export function hasFplAtlas(): boolean {
   return data.count > 0 && Object.keys(data.frames).length > 0;
 }
 
-/** FPL headshot URL pattern: .../p{code}.png */
+/** FPL headshot URL pattern: .../p{code}.png | .jpg (bootstrap uses png; bundled fallback JSON uses jpg). */
 export function fplPhotoCodeFromUrl(url?: string | null): string | null {
   if (!url) return null;
-  const m = url.match(/\/p(\d+)\.png/i);
+  const m = url.match(/\/p(\d+)\.(?:png|jpg)\b/i);
   return m ? m[1] : null;
 }
 
-/** e.g. `p111234.png` or full PL URL → numeric FPL element code */
+/** e.g. `p111234.png` / `p111234.jpg` or full PL URL → numeric FPL element code */
 export function fplPhotoCodeFromFilenameOrUrl(s: string): number | null {
   const fromUrl = fplPhotoCodeFromUrl(s);
   if (fromUrl) return Number(fromUrl);
-  const m = s.match(/p(\d+)\.png/i);
+  const m = s.match(/p(\d+)\.(?:png|jpg)\b/i);
   return m ? Number(m[1]) : null;
 }
 
