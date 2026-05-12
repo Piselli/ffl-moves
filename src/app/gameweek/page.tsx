@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { FormationGrid } from "@/components/FormationGrid";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
@@ -41,8 +48,89 @@ function isCompleteRegisteredSnapshot(
   return t.starters.length === 11 && t.bench.length === FORMATION.BENCH;
 }
 
+/** Incomplete squad while GW is still open — separate from confirmed `ffl_team_v2_*` snapshots */
+function teamDraftStorageKey(gwId: number, addr: string) {
+  return `ffl_team_draft_v1_gw${gwId}_${addr}`;
+}
+
+type TeamDraftPayload = {
+  starterIds: (number | null)[];
+  benchIds: (number | null)[];
+};
+
+function lineupIdsFromDraft(
+  draft: TeamDraftPayload,
+  catalog: Map<number, Player>,
+): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
+  if (!Array.isArray(draft.starterIds) || draft.starterIds.length !== 11) return null;
+  if (!Array.isArray(draft.benchIds) || draft.benchIds.length !== FORMATION.BENCH) return null;
+  const starters = draft.starterIds.map((id) =>
+    typeof id !== "number" ? null : (catalog.get(id) ?? null),
+  );
+  const bench = draft.benchIds.map((id) =>
+    typeof id !== "number" ? null : (catalog.get(id) ?? null),
+  );
+  return { starters, bench };
+}
+
+function lineupIdsDraftPayload(
+  starters: (Player | null)[],
+  bench: (Player | null)[],
+): TeamDraftPayload {
+  return {
+    starterIds: starters.map((p) => (p ? p.id : null)),
+    benchIds: bench.map((p) => (p ? p.id : null)),
+  };
+}
+
+/** After chain confirms open GW & not registered — avoids hydrating draft before we know registration. */
+function tryHydrateTeamDraftFromStorage(
+  gwId: number,
+  addr: string,
+  playersCatalog: Player[],
+  setStarters: Dispatch<SetStateAction<(Player | null)[]>>,
+  setBench: Dispatch<SetStateAction<(Player | null)[]>>,
+) {
+  if (typeof window === "undefined" || playersCatalog.length === 0) return;
+
+  try {
+    const raw = window.localStorage.getItem(teamDraftStorageKey(gwId, addr));
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as TeamDraftPayload;
+    const catalog = new Map(playersCatalog.map((p) => [p.id, p]));
+    const restored = lineupIdsFromDraft(parsed, catalog);
+    if (!restored) return;
+    const hasAnyone = [...restored.starters, ...restored.bench].some(Boolean);
+    if (!hasAnyone) return;
+
+    const unique = new Set<number>();
+    let dupOrBad = false;
+    const registerId = (p: Player | null) => {
+      if (!p) return;
+      if (unique.has(p.id)) dupOrBad = true;
+      unique.add(p.id);
+    };
+    restored.starters.forEach(registerId);
+    restored.bench.forEach(registerId);
+
+    let clubViolation = false;
+    const counts: Record<number, number> = {};
+    Array.from(unique).forEach((id) => {
+      const p = catalog.get(id)!;
+      const n = (counts[p.teamId] = (counts[p.teamId] || 0) + 1);
+      if (n > MAX_PER_CLUB) clubViolation = true;
+    });
+    if (dupOrBad || clubViolation) return;
+
+    setStarters(restored.starters);
+    setBench(restored.bench);
+  } catch {
+    /* ignore corrupt draft */
+  }
+}
+
 export default function GameweekPage() {
-  const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
+  const { connected, account, signTransaction } = useWallet();
   const siteMessages = useSiteMessages();
   const g = siteMessages.pages.gameweek;
   const mr = siteMessages.pages.myResult;
@@ -64,6 +152,14 @@ export default function GameweekPage() {
   const [gameweekStats, setGameweekStats] = useState<Record<string, Record<string, unknown>>>({});
   const [teamResult, setTeamResult] = useState<TeamResult | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("players");
+
+  const walletIdentityRef = useRef<string | undefined>(undefined);
+  /**
+   * After a hard refresh starters/bench begin empty until fetch hydrates LS — we must NOT
+   * `removeItem` the draft during that gap. Once the user actually had lineup in RAM this
+   * session, clearing to empty intentionally removes the stale draft key.
+   */
+  const lineupTouchedNonEmptySessionRef = useRef(false);
 
   const officialResolved = useMemo(() => {
     if (teamResult == null || !registeredTeam) return null;
@@ -110,12 +206,19 @@ export default function GameweekPage() {
   }, []);
 
   useEffect(() => {
-    // Drop per-wallet state when the connected address changes/clears, so we don't
-    // briefly show the previous user's registered squad / result while the new wallet loads.
-    setAlreadyRegistered(false);
-    setRegisteredTeam(null);
-    setGameweekStats({});
-    setTeamResult(null);
+    const nextIdentity = account?.address?.toString();
+    const identityChanged = walletIdentityRef.current !== nextIdentity;
+    walletIdentityRef.current = nextIdentity;
+
+    if (identityChanged) {
+      setAlreadyRegistered(false);
+      setRegisteredTeam(null);
+      setGameweekStats({});
+      setTeamResult(null);
+      setStarters(Array(11).fill(null));
+      setBench(Array(FORMATION.BENCH).fill(null));
+      lineupTouchedNonEmptySessionRef.current = false;
+    }
     setGameweekLoading(true);
 
     async function fetchData() {
@@ -199,12 +302,70 @@ export default function GameweekPage() {
                 }
               } catch { /* ignore */ }
             }
+          } else {
+            tryHydrateTeamDraftFromStorage(targetGwId, addr, players, setStarters, setBench);
           }
         }
       }
     }
     fetchData();
   }, [account?.address, players.length]);
+
+  /** Tracks when current session has had at least one filled slot (avoids wiping draft on initial empty state). */
+  useEffect(() => {
+    if (starters.some(Boolean) || bench.some(Boolean)) {
+      lineupTouchedNonEmptySessionRef.current = true;
+    }
+  }, [starters, bench]);
+
+  /** If signing never settles (wallet closed without rejecting), `finally` won't run → unblock on disconnect. */
+  useEffect(() => {
+    if (!connected) setIsSubmitting(false);
+  }, [connected]);
+
+  /** Persist unfinished lineup for open GW before on-chain confirmation (refresh / tab switch). */
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !connected ||
+      !account?.address ||
+      !currentGameweek ||
+      currentGameweek.status !== "open" ||
+      gameweekLoading ||
+      playersLoading ||
+      players.length === 0 ||
+      alreadyRegistered
+    ) {
+      return;
+    }
+    const gwId = currentGameweek.id;
+    const addr = account.address.toString();
+    const key = teamDraftStorageKey(gwId, addr);
+    const draft = lineupIdsDraftPayload(starters, bench);
+    const isEmpty =
+      draft.starterIds.every((id) => id == null) && draft.benchIds.every((id) => id == null);
+    try {
+      if (isEmpty) {
+        if (lineupTouchedNonEmptySessionRef.current) {
+          window.localStorage.removeItem(key);
+        }
+      } else {
+        window.localStorage.setItem(key, JSON.stringify(draft));
+      }
+    } catch {
+      /* ignore quota / privacy mode */
+    }
+  }, [
+    connected,
+    account?.address,
+    currentGameweek,
+    gameweekLoading,
+    playersLoading,
+    players.length,
+    alreadyRegistered,
+    starters,
+    bench,
+  ]);
 
   // Closed/resolved: hydrate squad from chain once catalog is ready (covers wallet fetch before /api/players).
   useEffect(() => {
@@ -449,8 +610,17 @@ export default function GameweekPage() {
         },
       });
 
-      // Sign via the wallet extension
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
+      // Sign via the wallet extension. Some wallets leave the promise pending if the popup
+      // is closed without confirm — `finally` never runs and the CTA stays stuck. Race a timeout.
+      const signDeadlineMs = 4 * 60 * 1000;
+      const signResult = await Promise.race([
+        signTransaction({ transactionOrPayload: transaction }),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => {
+            reject(new Error("Wallet signing timed out. Close the wallet popup and tap Register again."));
+          }, signDeadlineMs);
+        }),
+      ]);
 
       // Submit to the configured Movement fullnode
       const pending = await client.transaction.submit.simple({
@@ -473,6 +643,11 @@ export default function GameweekPage() {
       if (account?.address && currentGameweek?.id) {
         const key = `ffl_team_v2_gw${currentGameweek.id}_${account.address.toString()}`;
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
+        try {
+          localStorage.removeItem(teamDraftStorageKey(currentGameweek.id, account.address.toString()));
+        } catch {
+          /* ignore */
+        }
       }
       setAlreadyRegistered(true);
     } catch (error: unknown) {
