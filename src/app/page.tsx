@@ -872,15 +872,21 @@ export default function Home() {
     fetchOnChainData();
   }, []);
 
-  // FPL only — never tie this to on-chain `openGameweekId` (chain can lag on an old GW and break deadline + labels).
+  // FPL schedule + deadline: default pick follows unfinished fixtures. When the chain already opened
+  // the next registration GW while FPL still shows live matches in the previous slate, pass it so
+  // deadline/fixtures match the on-chain tour (see `/api/fixtures?registrationGw=`).
   useEffect(() => {
-    fetch("/api/fixtures", { cache: "no-store" })
+    const qs =
+      openGameweekId != null && Number.isFinite(openGameweekId) && openGameweekId >= 1
+        ? `?registrationGw=${openGameweekId}`
+        : "";
+    fetch(`/api/fixtures${qs}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d: FixturesApiPayload & { error?: string }) => {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});
-  }, []);
+  }, [openGameweekId]);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
   const steps = [

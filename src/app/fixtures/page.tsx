@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
 
 type Fixture = {
   id: number;
@@ -53,9 +54,29 @@ export default function FixturesPage() {
   const [data, setData] = useState<FixturesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [registrationGwId, setRegistrationGwId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/fixtures", { cache: "no-store" })
+    let cancelled = false;
+    (async () => {
+      try {
+        const cfg = await getConfig();
+        const gw = cfg ? await findActiveGameweekFromChain(cfg) : null;
+        if (!cancelled && gw?.id != null && Number.isFinite(gw.id)) setRegistrationGwId(gw.id);
+      } catch {
+        /* keep null — API falls back to FPL-only pick */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const qs =
+      registrationGwId != null && registrationGwId >= 1 ? `?registrationGw=${registrationGwId}` : "";
+    fetch(`/api/fixtures${qs}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(true);
@@ -63,7 +84,7 @@ export default function FixturesPage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [registrationGwId]);
 
   const groups = data ? groupByDate(data.fixtures, localeTag, fx.dateTbc) : {};
   const totalMatches = data?.fixtures.length ?? 0;

@@ -101,6 +101,29 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
   return ids[ids.length - 1]!;
 }
 
+/**
+ * FPL "live" pick stays on the earliest GW that still has unfinished *displayed* fixtures.
+ * On-chain registration can open the next GW while that slate is still playing — pass
+ * `registrationGw` from `findActiveGameweekFromChain` so deadline/fixtures match the squad tour.
+ * If the chain lags behind FPL, `registrationGw <= fplPick` and we keep the FPL pick.
+ */
+function mergeRegistrationEventPreference(
+  fplPick: number,
+  registrationGw: number | null,
+  eventsMeta: BootstrapLite["events"],
+): number {
+  if (
+    registrationGw == null ||
+    !Number.isFinite(registrationGw) ||
+    registrationGw < 1 ||
+    registrationGw <= fplPick
+  ) {
+    return fplPick;
+  }
+  const exists = eventsMeta.some((e) => e.id === registrationGw);
+  return exists ? registrationGw : fplPick;
+}
+
 function teamSafe(map: TeamMap, id: number) {
   return (
     map[id] ?? {
@@ -253,7 +276,12 @@ function bootstrapFallbackSchedule(): NextResponse {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const regRaw = searchParams.get("registrationGw");
+  const parsedReg = regRaw != null ? parseInt(regRaw, 10) : NaN;
+  const registrationGw = Number.isFinite(parsedReg) && parsedReg >= 1 ? parsedReg : null;
+
   const allRaw = await loadLiveFixtureRows();
 
   if (!allRaw) {
@@ -262,7 +290,8 @@ export async function GET() {
 
   try {
     const teamMap = buildTeamMap(bootstrapLite.teams);
-    const hintedId = pickTargetEventId(allRaw, bootstrapLite.events);
+    const fplPick = pickTargetEventId(allRaw, bootstrapLite.events);
+    const hintedId = mergeRegistrationEventPreference(fplPick, registrationGw, bootstrapLite.events);
 
     const resolved = resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, hintedId);
 
