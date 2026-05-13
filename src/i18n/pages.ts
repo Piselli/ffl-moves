@@ -174,9 +174,11 @@ export type PagesMessages = {
     colManager: string;
     colPoints: string;
     colPrize: string;
+    colStatus: string;
     fundSplit: string;
     you: string;
     claimed: string;
+    notClaimed: string;
   };
   nickname: {
     errEmpty: string;
@@ -418,9 +420,11 @@ export const pagesEn: PagesMessages = {
     colManager: "Manager",
     colPoints: "Pts",
     colPrize: "Prize",
+    colStatus: "Status",
     fundSplit: "Pool split",
     you: "You",
-    claimed: "Claimed ✓",
+    claimed: "Claimed",
+    notClaimed: "Not claimed",
   },
   nickname: {
     errEmpty: "Enter a nickname",
@@ -1090,9 +1094,11 @@ export const pagesUk: PagesMessages = {
     colManager: "Менеджер",
     colPoints: "Очки",
     colPrize: "Приз",
+    colStatus: "Статус",
     fundSplit: "Розподіл фонду",
     you: "Ви",
-    claimed: "Отримано ✓",
+    claimed: "Отримано",
+    notClaimed: "Не отримано",
   },
   nickname: {
     errEmpty: "Введи нікнейм",

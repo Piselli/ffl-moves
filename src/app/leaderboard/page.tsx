@@ -442,7 +442,7 @@ export default function LeaderboardPage() {
 
 
       {/* Leaderboard Table */}
-      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-x-auto">
         {leaderboardData.length > 0 ? (
           <LeaderboardTable
             results={leaderboardData}

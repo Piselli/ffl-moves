@@ -1,8 +1,7 @@
 "use client";
 
 import { TeamResult } from "@/lib/types";
-import { shortenAddress, formatMOVE } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { formatMOVE, cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -18,6 +17,44 @@ const rankColor: Record<number, string> = {
   3: "text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.4)]",
 };
 
+function StatusBadge({
+  hasPrize,
+  claimed,
+  claimedLabel,
+  notClaimedLabel,
+}: {
+  hasPrize: boolean;
+  claimed: boolean;
+  claimedLabel: string;
+  notClaimedLabel: string;
+}) {
+  if (!hasPrize) {
+    return <span className="text-white/20 text-xs tabular-nums">—</span>;
+  }
+
+  if (claimed) {
+    return (
+      <div className="flex items-center justify-end gap-2">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.55)]">
+          <svg className="h-2.5 w-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wide text-emerald-400">{claimedLabel}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14]">
+        <span className="text-[10px] font-black leading-none text-white/35 pb-px">−</span>
+      </span>
+      <span className="text-xs font-bold uppercase tracking-wide text-white/35">{notClaimedLabel}</span>
+    </div>
+  );
+}
+
 export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps) {
   const { getNickname } = useNickname();
   const lt = useSiteMessages().pages.leaderboardTable;
@@ -27,8 +64,8 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
   const headPts = lt.colPoints;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="overflow-x-auto min-w-0">
+      <table className="w-full border-separate border-spacing-0">
         <thead>
           <tr className="border-b border-white/[0.06]">
             {(
@@ -80,27 +117,43 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                 </div>
               </div>
             </th>
+            <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30 text-right whitespace-nowrap">
+              {lt.colStatus}
+            </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/[0.04]">
+        <tbody>
           {results.map((result, idx) => {
             const isUser = currentUser === result.owner;
             const medal = rankMedal[result.rank];
             const rColor = rankColor[result.rank];
             const isTop3 = result.rank <= 3;
+            const hasPrize = result.prizeAmount > 0;
+            const claimedGlow = Boolean(result.claimed && hasPrize);
 
             return (
               <tr
                 key={result.owner}
                 className={cn(
-                  "group transition-colors duration-150",
-                  isUser
-                    ? "bg-[#00f948]/[0.04] hover:bg-[#00f948]/[0.07]"
-                    : "hover:bg-white/[0.03]"
+                  "group transition-colors duration-200 border-b border-white/[0.05]",
+                  claimedGlow &&
+                    cn(
+                      "relative bg-emerald-500/[0.09]",
+                      /* inner edge + readable fill; outer ring/glow stays inside row padding visually */
+                      "shadow-[inset_0_0_0_1px_rgba(74,222,128,0.42),inset_0_0_40px_-18px_rgba(0,249,72,0.07),0_0_26px_-6px_rgba(0,249,72,0.38)]",
+                    ),
+                  !claimedGlow &&
+                    isUser &&
+                    "bg-[#00f948]/[0.04] hover:bg-[#00f948]/[0.072]",
+                  !claimedGlow &&
+                    !isUser &&
+                    "hover:bg-white/[0.035]",
+                  /* slightly separate “card” rhythm like a dense leaderboard */
+                  "last:border-b-0",
                 )}
               >
                 {/* Rank */}
-                <td className="py-4 px-4">
+                <td className="py-4 px-4 align-middle first:rounded-l-xl">
                   {medal ? (
                     <span className="text-xl">{medal}</span>
                   ) : (
@@ -111,21 +164,25 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                 </td>
 
                 {/* Manager */}
-                <td className="py-4 px-4">
+                <td className="py-4 px-4 align-middle">
                   <div className="flex items-center gap-2.5">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0",
-                      isTop3
-                        ? "bg-gradient-to-br from-white/20 to-white/5 border border-white/15"
-                        : "bg-white/[0.05] border border-white/[0.08]"
-                    )}>
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0",
+                        isTop3
+                          ? "bg-gradient-to-br from-white/20 to-white/5 border border-white/15"
+                          : "bg-white/[0.05] border border-white/[0.08]",
+                      )}
+                    >
                       {String(idx + 1)}
                     </div>
-                    <div>
-                      <p className={cn(
-                        "font-mono text-sm font-medium",
-                        isUser ? "text-[#00f948]" : "text-white/80"
-                      )}>
+                    <div className="min-w-0">
+                      <p
+                        className={cn(
+                          "font-mono text-sm font-medium truncate",
+                          isUser ? "text-[#00f948]" : "text-white/85",
+                        )}
+                      >
                         {getNickname(result.owner)}
                       </p>
                       {isUser && (
@@ -137,31 +194,45 @@ export function LeaderboardTable({ results, currentUser }: LeaderboardTableProps
                   </div>
                 </td>
 
-                <td className="py-4 px-4 text-right align-top">
-                  <span className={cn(
-                    "font-display font-black text-xl tabular-nums",
-                    rColor || (isUser ? "text-[#00f948]" : "text-white")
-                  )}>
+                <td className="py-4 px-4 text-right align-middle tabular-nums">
+                  <span
+                    className={cn(
+                      "font-display font-black text-xl",
+                      /* Top medals keep metallics; other ranks pick up warm “fantasy totals” accent */
+                      isTop3
+                        ? rColor || (isUser ? "text-[#00f948]" : "text-white")
+                        : "text-[#fcd34d] drop-shadow-[0_0_12px_rgba(251,191,36,0.2)]",
+                    )}
+                  >
                     {result.finalPoints}
                   </span>
                 </td>
 
                 {/* Prize */}
-                <td className="py-4 px-4 text-right">
-                  {result.prizeAmount > 0 ? (
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="font-display font-black text-sm text-emerald-400 tabular-nums">
-                        {formatMOVE(result.prizeAmount)} MOVE
-                      </span>
-                      {result.claimed && (
-                        <span className="text-[9px] font-bold text-emerald-400/50 uppercase tracking-wider">
-                          {lt.claimed}
-                        </span>
+                <td className="py-4 px-4 text-right align-middle whitespace-nowrap">
+                  {hasPrize ? (
+                    <span
+                      className={cn(
+                        "font-display font-black text-sm tabular-nums",
+                        result.claimed
+                          ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.35)]"
+                          : "text-white/72",
                       )}
-                    </div>
+                    >
+                      {formatMOVE(result.prizeAmount)} MOVE
+                    </span>
                   ) : (
                     <span className="text-white/20 text-sm">—</span>
                   )}
+                </td>
+
+                <td className="py-4 px-4 align-middle text-right whitespace-nowrap last:rounded-r-xl">
+                  <StatusBadge
+                    hasPrize={hasPrize}
+                    claimed={result.claimed}
+                    claimedLabel={lt.claimed}
+                    notClaimedLabel={lt.notClaimed}
+                  />
                 </td>
               </tr>
             );
