@@ -204,6 +204,22 @@ function resolveFormattedFixtures(
   return null;
 }
 
+/**
+ * When `registrationGw` is ahead of FPL’s unfinished slate, only that GW’s rows count.
+ * Otherwise `resolveFormattedFixtures` falls through to `is_next` (e.g. GW36) and we show the wrong deadline/matches.
+ */
+function resolveFormattedFixturesForRegistrationGw(
+  allRaw: FplFixtureRaw[],
+  teamMap: TeamMap,
+  eventsMeta: BootstrapLite["events"],
+  registrationEventId: number,
+): { eventId: number; meta: EventMeta; fixtures: ReturnType<typeof formatFixturesForEvent> } | null {
+  const meta = resolveEventMeta(eventsMeta, registrationEventId);
+  if (!meta) return null;
+  const fixtures = formatFixturesForEvent(allRaw, registrationEventId, teamMap);
+  return fixtures.length > 0 ? { eventId: registrationEventId, meta, fixtures } : null;
+}
+
 async function fetchFplFixtureRows(url: string): Promise<FplFixtureRaw[] | null> {
   try {
     const fixturesRes = await fetch(url, FETCH_INIT);
@@ -293,7 +309,15 @@ export async function GET(request: Request) {
     const fplPick = pickTargetEventId(allRaw, bootstrapLite.events);
     const hintedId = mergeRegistrationEventPreference(fplPick, registrationGw, bootstrapLite.events);
 
-    const resolved = resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, hintedId);
+    const chainAhead =
+      registrationGw != null &&
+      Number.isFinite(registrationGw) &&
+      registrationGw > fplPick &&
+      hintedId === registrationGw;
+
+    const resolved = chainAhead
+      ? resolveFormattedFixturesForRegistrationGw(allRaw, teamMap, bootstrapLite.events, hintedId)
+      : resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, hintedId);
 
     let targetMeta: EventMeta;
     let formattedFixtures: ReturnType<typeof formatFixturesForEvent>;
