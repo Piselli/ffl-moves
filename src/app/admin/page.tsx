@@ -9,6 +9,7 @@ import {
   getGameweek,
   findOpenGameweekFromChain,
   hasAdminSponsorPrizePoolOnChain,
+  hasAdminWithdrawPrizeVaultOnChain,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
@@ -18,6 +19,17 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
+}
+
+/** Normalize pasted Movement / Aptos account address for transactions (32-byte hex). */
+function normalizeMoveAccountAddress(raw: string): string | null {
+  let t = raw.trim();
+  if (!t) return null;
+  if (!/^0x/i.test(t)) t = `0x${t}`;
+  if (!/^0x[0-9a-fA-F]+$/.test(t)) return null;
+  const hex = t.slice(2);
+  if (hex.length < 1 || hex.length > 64) return null;
+  return `0x${hex.padStart(64, "0")}`;
 }
 
 export default function AdminPage() {
@@ -33,6 +45,7 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
   const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
+  const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
 
   // Form states
   const [newGameweekId, setNewGameweekId] = useState("");
@@ -43,6 +56,8 @@ export default function AdminPage() {
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
   const [sponsorGwId, setSponsorGwId] = useState("");
   const [sponsorAmountMove, setSponsorAmountMove] = useState("");
+  const [withdrawRecipient, setWithdrawRecipient] = useState("");
+  const [withdrawAmountMove, setWithdrawAmountMove] = useState("");
   const [feeEntryMove, setFeeEntryMove] = useState("");
   const [feeTitleMove, setFeeTitleMove] = useState("");
   const [feeGuildMove, setFeeGuildMove] = useState("");
@@ -60,9 +75,15 @@ export default function AdminPage() {
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
     setSponsorTxAvailable(null);
+    setWithdrawTxAvailable(null);
     try {
-      const [configData, sponsorOk] = await Promise.all([getConfig(), hasAdminSponsorPrizePoolOnChain()]);
+      const [configData, sponsorOk, withdrawOk] = await Promise.all([
+        getConfig(),
+        hasAdminSponsorPrizePoolOnChain(),
+        hasAdminWithdrawPrizeVaultOnChain(),
+      ]);
       setSponsorTxAvailable(sponsorOk);
+      setWithdrawTxAvailable(withdrawOk);
       setConfig(configData);
       setCurrentGameweek(null);
       setOpenGameweek(null);
@@ -359,6 +380,47 @@ export default function AdminPage() {
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to sponsor prize pool:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleWithdrawPrizeVault = async () => {
+    if (!connected) return;
+
+    const recipient = normalizeMoveAccountAddress(withdrawRecipient || "");
+    if (!recipient) {
+      alert(ad.withdrawInvalidRecipient);
+      return;
+    }
+
+    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
+    const amt = parseMove(withdrawAmountMove || "");
+    if (!Number.isFinite(amt) || amt <= 0) {
+      alert(ad.withdrawInvalidAmount);
+      return;
+    }
+    const octas = moveToOctas(amt);
+    if (octas < 1) {
+      alert(ad.withdrawAmountTooSmall);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_withdraw_prize_vault"),
+          typeArguments: [],
+          functionArguments: [recipient, String(octas)],
+        },
+      });
+      alert(ad.withdrawSuccess(recipient, formatMOVE(octas)));
+      setWithdrawAmountMove("");
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to withdraw prize vault:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -965,6 +1027,70 @@ export default function AdminPage() {
               className="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-medium hover:from-cyan-500 hover:to-teal-500 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.sponsorSubmit}
+            </button>
+          </div>
+        )}
+
+        {/* Withdraw prize vault (Admin) — liquidity only; does not edit prize_pool / claims */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6 border border-orange-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">{ad.withdrawSectionTitle}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{ad.withdrawSectionHint}</p>
+              </div>
+            </div>
+            {withdrawTxAvailable === false && (
+              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
+                {ad.withdrawNotOnChain}
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <label className="flex flex-col gap-1 sm:col-span-2">
+                <span className="text-xs text-muted-foreground">{ad.withdrawRecipientLabel}</span>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={withdrawRecipient}
+                  onChange={(e) => setWithdrawRecipient(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 border border-border font-mono text-sm"
+                  placeholder="0x…"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.withdrawAmountLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={withdrawAmountMove}
+                  onChange={(e) => setWithdrawAmountMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 border border-border"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleWithdrawPrizeVault}
+              disabled={
+                isSubmitting ||
+                !withdrawRecipient.trim() ||
+                !withdrawAmountMove ||
+                withdrawTxAvailable !== true
+              }
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-700 text-white rounded-xl font-medium hover:from-orange-500 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50"
+            >
+              {isSubmitting ? "..." : ad.withdrawSubmit}
             </button>
           </div>
         )}

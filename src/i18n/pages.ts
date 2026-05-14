@@ -253,6 +253,16 @@ export type PagesMessages = {
     sponsorAlertResolved: string;
     sponsorGwNotFound: (id: number) => string;
     sponsorNotOnChain: string;
+    withdrawSectionTitle: string;
+    withdrawSectionHint: string;
+    withdrawRecipientLabel: string;
+    withdrawAmountLabel: string;
+    withdrawSubmit: string;
+    withdrawSuccess: (recipient: string, amountMove: string) => string;
+    withdrawInvalidRecipient: string;
+    withdrawInvalidAmount: string;
+    withdrawAmountTooSmall: string;
+    withdrawNotOnChain: string;
   };
   faq: {
     pageTitle: string;
@@ -516,6 +526,19 @@ export const pagesEn: PagesMessages = {
     sponsorGwNotFound: (id) => `GW ${id} not found in the contract.`,
     sponsorNotOnChain:
       "This deployment’s on-chain module does not include the entry function admin_sponsor_prize_pool (the wallet cannot load its ABI). The source in this repo has it — you need to publish a Movement package upgrade to the same account so that function exists on-chain. Until then the prize pool only grows from entry fees at the configured %.",
+    withdrawSectionTitle: "Withdraw from prize vault",
+    withdrawSectionHint:
+      "Moves MOVE from the shared prize vault to any address (admin only). Does not change on-chain prize_pool fields or claim flags — leave enough balance for pending claim_prize calls or winners’ claims will fail.",
+    withdrawRecipientLabel: "Recipient address (0x…)",
+    withdrawAmountLabel: "Amount (MOVE)",
+    withdrawSubmit: "Withdraw from vault",
+    withdrawSuccess: (recipient, amountMove) =>
+      `Sent ${amountMove} MOVE from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawInvalidRecipient: "Enter a valid Movement address (0x + hex).",
+    withdrawInvalidAmount: "Enter a positive MOVE amount.",
+    withdrawAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
+    withdrawNotOnChain:
+      "This deployment’s module has no admin_withdraw_prize_vault entry on-chain. Upgrade the published package from this repo so the function appears in the ABI.",
   },
   faq: {
     pageTitle: "FAQ",
@@ -1190,6 +1213,19 @@ export const pagesUk: PagesMessages = {
     sponsorGwNotFound: (id) => `Тур ${id} не знайдено в контракті.`,
     sponsorNotOnChain:
       "У задеплоєному on-chain модулі немає entry-функції admin_sponsor_prize_pool (гаманець не бачить ABI). У коді репозиторію вона вже є — потрібно зробити оновлення пакета Movement на той самий акаунт, щоб функція з’явилася в мережі. Доки цього немає, призовий пул росте лише з внесків гравців за налаштованим відсотком.",
+    withdrawSectionTitle: "Вивести з призового vault",
+    withdrawSectionHint:
+      "Переказує MOVE зі спільного prize vault на будь-яку адресу (лише адмін). Не змінює on-chain поля prize_pool і не знімає незаклеймлені призи в обліку — лишай у vault достатньо ліквідності під очікувані claim_prize, інакше клейми впадуть через нестачу балансу.",
+    withdrawRecipientLabel: "Адреса отримувача (0x…)",
+    withdrawAmountLabel: "Сума (MOVE)",
+    withdrawSubmit: "Вивести з vault",
+    withdrawSuccess: (recipient, amountMove) =>
+      `З vault відправлено ${amountMove} MOVE → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawInvalidRecipient: "Введи коректну адресу Movement (0x + hex).",
+    withdrawInvalidAmount: "Введи додатну суму в MOVE.",
+    withdrawAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
+    withdrawNotOnChain:
+      "У задеплоєному модулі on-chain немає entry admin_withdraw_prize_vault. Онови пакет із цього репозиторію, щоб функція з’явилася в ABI.",
   },
   faq: {
     pageTitle: "Часті питання",

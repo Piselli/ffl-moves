@@ -89,3 +89,23 @@ export const FORMATION = {
 
 // Max players per club
 export const MAX_PER_CLUB = 3;
+
+/** Ecosystem / docs entry (homepage sponsor link). */
+export const MOVEMENT_NETWORK_SITE_URL = "https://movementnetwork.xyz";
+
+/**
+ * Extra MOVE credited to Movement Network on the homepage hero (marketing copy next to the live pool).
+ * Does not change on-chain reads — the displayed pool total remains the contract value.
+ *
+ * Set `NEXT_PUBLIC_MOVEMENT_SPONSOR_BOOST_MOVE=0` in env to hide the line. If unset, defaults to 15_000.
+ */
+export function movementSponsorBoostDisplay(): number | null {
+  const raw = publicEnv(process.env.NEXT_PUBLIC_MOVEMENT_SPONSOR_BOOST_MOVE);
+  if (raw === "0") return null;
+  if (raw != null) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.floor(n);
+  }
+  return 15_000;
+}

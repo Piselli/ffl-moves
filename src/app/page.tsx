@@ -1,10 +1,12 @@
 "use client";
 
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
-import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence, animate } from "framer-motion";
+import { useRef, useEffect, useState, useMemo, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
+import { MOVEMENT_NETWORK_SITE_URL, movementSponsorBoostDisplay } from "@/lib/constants";
 import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { GwRecapSection } from "@/components/GwRecapSection";
@@ -12,7 +14,7 @@ import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { PrizeTickerInline } from "@/components/PrizeTickerInline";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
-import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import type { SiteMessages } from "@/i18n/messages";
 import {
   ASSIST_POINTS,
@@ -75,13 +77,13 @@ function HeroDeadlinePlaque({
         </p>
         <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{gwId}</p>
       </div>
-      <p className="mt-auto w-full min-w-0 max-w-full overflow-x-clip text-left whitespace-nowrap font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-xl md:text-2xl leading-none [font-variant-numeric:lining-nums] tracking-tight sm:tracking-normal">
+      <p className="mt-auto w-full min-w-0 max-w-full text-left whitespace-nowrap font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-lg md:text-xl leading-none [font-variant-numeric:lining-nums] tracking-tight">
         {!timeLeft ? (
           <span className="text-white/20 animate-pulse">—</span>
         ) : expired ? (
           <span className="text-white/50">{copy.deadlinePassed}</span>
         ) : (
-          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline justify-start gap-x-px sm:gap-x-0.5 md:gap-x-1">
+          <span className="inline-flex min-w-0 max-w-full flex-nowrap items-baseline justify-start gap-x-px sm:gap-x-0.5">
             <span className="shrink-0 tabular-nums">{String(timeLeft.d).padStart(2, "0")}{copy.daySuffix}</span>
             <span className="shrink-0 text-white/40 text-[0.85em]" aria-hidden>
               :
@@ -162,6 +164,264 @@ function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
         </motion.span>
       )}
     </span>
+  );
+}
+
+function formatHeroPoolMove(n: number, locale: "uk" | "en"): string {
+  if (!Number.isFinite(n)) return "—";
+  const loc = locale === "uk" ? "uk-UA" : "en-US";
+  const rounded = Number(n.toFixed(2));
+  const whole = Math.round(rounded);
+  if (Math.abs(rounded - whole) < 1e-6) {
+    return whole.toLocaleString(loc);
+  }
+  return rounded.toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+const HERO_POOL_SETTLE_MS = 750;
+const MOVE_TOKEN_BURST_N = 8;
+/** Must match token motion so the pool “fills” as marks arrive. */
+const POOL_FILL_DURATION_SEC = 2.18;
+
+const MOVEMENT_MARK_LUM_MASK_STYLE: React.CSSProperties = {
+  WebkitMaskImage: "url(/brands/movement-mark.png)",
+  WebkitMaskSize: "contain",
+  WebkitMaskRepeat: "no-repeat",
+  WebkitMaskPosition: "center",
+  maskImage: "url(/brands/movement-mark.png)",
+  maskSize: "contain",
+  maskRepeat: "no-repeat",
+  maskPosition: "center",
+  maskMode: "luminance",
+};
+
+function MovementMarkToken({ sizeClass = "h-9 w-9 sm:h-10 sm:w-10" }: { sizeClass?: string }) {
+  return (
+    <div
+      className={`relative isolate shrink-0 ${sizeClass}`}
+      aria-hidden
+    >
+      {/* Outer rim — milled brass + Movement-yellow accent */}
+      <div
+        className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg_at_50%_50%,#6b4f0a_0deg,#e8c54a_42deg,#f7e08a_72deg,#c9a227_118deg,#7a5a12_168deg,#3d2a06_220deg,#a67c1a_280deg,#5c4308_330deg,#6b4f0a_360deg)] shadow-[0_0_20px_-2px_rgba(245,233,66,0.42),0_3px_14px_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.55),inset_0_2px_3px_rgba(255,245,200,0.45),inset_0_-3px_6px_rgba(0,0,0,0.55)]"
+      />
+      <div
+        className="pointer-events-none absolute inset-px rounded-full opacity-90 mix-blend-overlay bg-[radial-gradient(circle_at_32%_22%,rgba(255,255,255,0.55),transparent_42%)]"
+      />
+      {/* Inner face */}
+      <div
+        className="absolute inset-[10%] rounded-full shadow-[inset_0_3px_8px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.65)] bg-[radial-gradient(ellipse_90%_85%_at_35%_28%,#fff9ec_0%,#f0d68a_38%,#d4a84b_62%,#a9781a_88%,#6b4608_100%)]"
+      />
+      {/* Specular (under mark so the glyph stays crisp) */}
+      <div
+        className="pointer-events-none absolute inset-[10%] z-[1] rounded-full opacity-[0.42] mix-blend-soft-light bg-[radial-gradient(ellipse_55%_40%_at_30%_24%,rgba(255,255,255,0.95),transparent_72%)]"
+      />
+      {/* Black mark from brand PNG (luminance mask: bright yellow = glyph, black = cut out) */}
+      <div className="absolute inset-[17%] z-[2] flex items-center justify-center">
+        <div
+          className="h-[54%] w-[74%] max-h-[55%] max-w-[78%] shrink-0 bg-[#141312] opacity-[0.94] sm:h-[56%] sm:w-[76%]"
+          style={MOVEMENT_MARK_LUM_MASK_STYLE}
+        />
+      </div>
+    </div>
+  );
+}
+
+function HeroMovementTokenFlight({
+  runId,
+  targetRef,
+}: {
+  runId: number;
+  targetRef: React.RefObject<HTMLElement | null>;
+}) {
+  const [geom, setGeom] = useState<{
+    target: { cx: number; cy: number };
+    origins: Array<{ x: number; y: number; rot: number }>;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = targetRef.current;
+    if (!el || typeof window === "undefined") return;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width * 0.58;
+    const cy = r.top + r.height * 0.38;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const origins = Array.from({ length: MOVE_TOKEN_BURST_N }, (_, i) => ({
+      x: (i * 97) % Math.max(100, w * 0.38),
+      y: h * 0.48 + (i % 5) * 22,
+      rot: -18 + ((i * 13) % 36),
+    }));
+    setGeom({ target: { cx, cy }, origins });
+  }, [runId, targetRef]);
+
+  if (typeof document === "undefined" || geom == null) return null;
+
+  return createPortal(
+    <div className="pointer-events-none fixed inset-0 z-[200]" aria-hidden>
+      {geom.origins.map((o, i) => (
+        <motion.div
+          key={`${runId}-${i}`}
+          className="absolute will-change-transform"
+          style={{ left: o.x, top: o.y }}
+          initial={{ opacity: 0, scale: 0.4, rotate: o.rot, filter: "blur(4px)" }}
+          animate={{
+            opacity: [0, 1, 1],
+            scale: [0.4, 1, 0.98],
+            rotate: [o.rot, 0, 0],
+            x: geom.target.cx - o.x - 20,
+            y: geom.target.cy - o.y - 20,
+            filter: ["blur(4px)", "blur(0px)", "blur(0px)"],
+          }}
+          transition={{
+            duration: 1.52,
+            delay: i * 0.1,
+            ease: [0.21, 0.94, 0.26, 1],
+            times: [0, 0.18, 1],
+          }}
+        >
+          <MovementMarkToken sizeClass="h-[2.35rem] w-[2.35rem] sm:h-10 sm:w-10" />
+        </motion.div>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
+function HeroPrizePoolFigure({
+  prizePool,
+  sponsorBoostMOVE,
+  dataLoading,
+}: {
+  prizePool: number | null;
+  sponsorBoostMOVE: number | null;
+  dataLoading: boolean;
+}) {
+  const { locale } = useSiteLocale();
+  const loc = locale === "uk" ? "uk" : "en";
+  const targetRef = useRef<HTMLSpanElement>(null);
+
+  const [displayed, setDisplayed] = useState<number | null>(null);
+  const [phase, setPhase] = useState<"idle" | "settled" | "flying" | "done">("idle");
+  const [runId, setRunId] = useState(0);
+  const [landPulse, setLandPulse] = useState(false);
+  const fillPaintRef = useRef(0);
+
+  const base = useMemo(() => {
+    if (prizePool == null || sponsorBoostMOVE == null || sponsorBoostMOVE <= 0) return null;
+    const b = prizePool - sponsorBoostMOVE;
+    return b > 1e-6 ? b : null;
+  }, [prizePool, sponsorBoostMOVE]);
+
+  /** Reserve width for longest formatted value + “$MOVE” so the figure doesn’t reflow while counting up. */
+  const poolAmountMinWidthCh = useMemo(() => {
+    if (prizePool == null) return undefined;
+    const hi = formatHeroPoolMove(prizePool, loc);
+    const lo = base != null ? formatHeroPoolMove(base, loc) : hi;
+    return `${Math.max(lo.length, hi.length) + 5}ch` as const;
+  }, [prizePool, base, loc]);
+
+  useEffect(() => {
+    if (dataLoading) {
+      setDisplayed(null);
+      setPhase("idle");
+      setLandPulse(false);
+      return;
+    }
+    if (prizePool == null) {
+      setDisplayed(null);
+      setPhase("idle");
+      return;
+    }
+    if (base == null) {
+      setDisplayed(prizePool);
+      setPhase("done");
+      setLandPulse(false);
+      return;
+    }
+    setDisplayed(base);
+    setPhase("settled");
+    setLandPulse(false);
+    const t = window.setTimeout(() => {
+      setRunId((r) => r + 1);
+      setPhase("flying");
+    }, HERO_POOL_SETTLE_MS);
+    return () => window.clearTimeout(t);
+  }, [dataLoading, prizePool, base]);
+
+  useEffect(() => {
+    if (phase !== "flying" || base == null || prizePool == null) return;
+    fillPaintRef.current = 0;
+    setDisplayed(base);
+    let cancelled = false;
+    const c = animate(base, prizePool, {
+      duration: POOL_FILL_DURATION_SEC,
+      ease: [0.17, 1, 0.28, 1],
+      onUpdate: (v) => {
+        if (cancelled) return;
+        const now = performance.now();
+        if (now - fillPaintRef.current < 28 && v < prizePool - 1e-6) return;
+        fillPaintRef.current = now;
+        setDisplayed(v);
+      },
+      onComplete: () => {
+        if (cancelled) return;
+        setDisplayed(prizePool);
+        setPhase("done");
+        setLandPulse(true);
+        window.setTimeout(() => setLandPulse(false), 480);
+      },
+    });
+    return () => {
+      cancelled = true;
+      c.stop();
+    };
+  }, [phase, base, prizePool, runId]);
+
+  if (dataLoading) {
+    return <span className="text-white/20 animate-pulse">—</span>;
+  }
+  if (prizePool == null) {
+    return <span className="text-white/20">N/A</span>;
+  }
+  if (displayed == null) {
+    return <span className="text-white/20 animate-pulse">—</span>;
+  }
+
+  return (
+    <>
+      <motion.span
+        key={phase}
+        ref={targetRef}
+        className="inline-flex max-w-full flex-none flex-nowrap items-baseline gap-x-[0.18em] whitespace-nowrap will-change-[transform,filter] origin-left"
+        style={poolAmountMinWidthCh != null ? { minWidth: poolAmountMinWidthCh } : undefined}
+        animate={
+          phase === "flying"
+            ? {
+                scale: [1, 1.008, 1],
+                filter: [
+                  "drop-shadow(0 0 0px rgba(245,233,66,0))",
+                  "drop-shadow(0 0 16px rgba(245,233,66,0.32))",
+                  "drop-shadow(0 0 0px rgba(245,233,66,0))",
+                ],
+              }
+            : landPulse
+              ? { scale: [1, 1.04, 1], filter: "drop-shadow(0 0 14px rgba(245,233,66,0.22))" }
+              : { scale: 1, filter: "drop-shadow(0 0 0px rgba(245,233,66,0))" }
+        }
+        transition={
+          phase === "flying"
+            ? { repeat: Infinity, duration: 0.62, ease: [0.42, 0, 0.58, 1] }
+            : { duration: 0.52, ease: [0.22, 1, 0.36, 1] }
+        }
+      >
+        <span className="shrink-0 tabular-nums drop-shadow-[0_0_28px_rgba(245,233,66,0.08)]">
+          {formatHeroPoolMove(displayed, loc)}
+        </span>
+        <span className="shrink-0 text-white/95">$MOVE</span>
+      </motion.span>
+      {phase === "flying" ? <HeroMovementTokenFlight runId={runId} targetRef={targetRef} /> : null}
+    </>
   );
 }
 
@@ -825,6 +1085,12 @@ type FixturesApiPayload = {
 
 export default function Home() {
   const m = useSiteMessages();
+  const { locale } = useSiteLocale();
+  const sponsorBoostMove = useMemo(() => movementSponsorBoostDisplay(), []);
+  const sponsorAmountFormatted =
+    sponsorBoostMove != null
+      ? sponsorBoostMove.toLocaleString(locale === "uk" ? "uk-UA" : "en-US")
+      : "";
   const positionCards = useMemo(() => buildPositionCards(m), [m]);
   const universalBonuses = useMemo(() => buildUniversalBonuses(m), [m]);
   const universalPenalties = useMemo(() => buildUniversalPenalties(m), [m]);
@@ -1005,15 +1271,16 @@ export default function Home() {
 
           {/* ── Bottom/Left: Stats & CTAs ─────────────────────────────────────── */}
           <div className="flex flex-col items-start gap-8">
-            {/* Live on-chain stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.4 }}
-              className="grid w-full max-w-2xl min-w-0 grid-cols-3 gap-2 sm:gap-4"
-            >
-            <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
-              <div className="mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
+            <div className="flex w-full max-w-2xl min-w-0 flex-col gap-2 sm:gap-2.5">
+              {/* Live on-chain stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.4 }}
+                className="grid w-full min-w-0 grid-cols-[minmax(0,1.22fr)_minmax(0,0.89fr)_minmax(0,0.89fr)] gap-1.5 min-[400px]:gap-2 sm:gap-3 md:gap-4"
+              >
+            <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col items-start self-stretch overflow-visible rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2.5 md:px-6">
+              <div className="relative z-10 mb-0.5 min-w-0 w-full space-y-px sm:mb-1 sm:space-y-0.5">
                 <p className="text-[7px] font-bold uppercase leading-[1.2] tracking-[0.06em] text-white/40 sm:text-[9px] sm:tracking-[0.12em] md:tracking-[0.2em]">
                   {m.home.statPrizePool}
                 </p>
@@ -1021,14 +1288,12 @@ export default function Home() {
                   <p className="text-[6px] font-bold uppercase tracking-wider text-white/25 sm:text-[8px]">GW{statsGwLabel}</p>
                 ) : null}
               </div>
-              <p className="mt-auto w-full min-w-0 font-display text-base font-black tabular-nums text-white min-[380px]:text-lg sm:text-2xl md:text-3xl leading-none">
-                {dataLoading ? (
-                  <span className="text-white/20 animate-pulse">—</span>
-                ) : prizePool !== null ? (
-                  <Counter to={prizePool} suffix=" MOVE" decimals={1} />
-                ) : (
-                  <span className="text-white/20">N/A</span>
-                )}
+              <p className="relative z-10 mt-auto w-full min-w-0 font-display text-[0.9375rem] font-black tabular-nums tracking-tight text-white min-[380px]:text-base sm:text-xl md:text-[1.5rem] lg:text-[1.65rem] leading-none">
+                <HeroPrizePoolFigure
+                  prizePool={prizePool}
+                  sponsorBoostMOVE={sponsorBoostMove}
+                  dataLoading={dataLoading}
+                />
               </p>
             </div>
             <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
@@ -1051,7 +1316,7 @@ export default function Home() {
               </p>
             </div>
             {fixturesData?.gameweek?.deadlineTime ? (
-              <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2">
+              <div className="flex h-full min-h-0 min-w-0 flex-col items-start self-stretch overflow-visible rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2 shadow-lg shadow-black/20 backdrop-blur-sm sm:rounded-xl sm:px-5 sm:py-2.5">
                 <HeroDeadlinePlaque
                   targetTime={fixturesData.gameweek.deadlineTime}
                   gwId={Number(fixturesData.gameweek.id)}
@@ -1063,7 +1328,34 @@ export default function Home() {
             )}
           </motion.div>
 
-          {/* CTAs */}
+            {/* Movement — one-line credit */}
+            {!dataLoading && sponsorBoostMove != null ? (
+              <motion.a
+                href={MOVEMENT_NETWORK_SITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={m.home.movementSponsorFootline.replace("{amount}", sponsorAmountFormatted)}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="group inline-flex w-full max-w-2xl min-w-0 items-center gap-2.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 transition-[border-color,background-color] duration-300 hover:border-[#f5e942]/28 hover:bg-white/[0.05] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5e942]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F12] sm:gap-3 sm:px-4 sm:py-3"
+              >
+                <img
+                  src="/brands/movement-mark.png"
+                  alt=""
+                  width={32}
+                  height={12}
+                  className="h-3.5 w-auto shrink-0 object-contain opacity-90 group-hover:opacity-100 sm:h-4"
+                  decoding="async"
+                />
+                <span className="min-w-0 flex-1 text-left text-pretty text-[9px] font-medium leading-snug text-white/50 sm:text-[10px]">
+                  {m.home.movementSponsorFootline.replace("{amount}", sponsorAmountFormatted)}
+                </span>
+              </motion.a>
+            ) : null}
+            </div>
+
+            {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

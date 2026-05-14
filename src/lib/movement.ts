@@ -31,6 +31,24 @@ export async function hasAdminSponsorPrizePoolOnChain(): Promise<boolean> {
   }
 }
 
+/** `false` if the RPC module ABI has no `admin_withdraw_prize_vault` entry. */
+export async function hasAdminWithdrawPrizeVaultOnChain(): Promise<boolean> {
+  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
+  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
+  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
+    };
+    const funcs = data.abi?.exposed_functions ?? [];
+    return funcs.some((f) => f.is_entry && f.name === "admin_withdraw_prize_vault");
+  } catch {
+    return false;
+  }
+}
+
 // View function helpers
 export async function getConfig() {
   try {
