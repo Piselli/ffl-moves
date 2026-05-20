@@ -97,7 +97,7 @@ export const MOVEMENT_NETWORK_SITE_URL = "https://movementnetwork.xyz";
  * Extra MOVE credited to Movement Network on the homepage hero (marketing copy next to the live pool).
  * Does not change on-chain reads — the displayed pool total remains the contract value.
  *
- * Set `NEXT_PUBLIC_MOVEMENT_SPONSOR_BOOST_MOVE=0` in env to hide the line. If unset, defaults to 15_000.
+ * Set `NEXT_PUBLIC_MOVEMENT_SPONSOR_BOOST_MOVE=0` in env to hide the line. If unset, defaults to 30_000.
  */
 export function movementSponsorBoostDisplay(): number | null {
   const raw = publicEnv(process.env.NEXT_PUBLIC_MOVEMENT_SPONSOR_BOOST_MOVE);
@@ -107,5 +107,5 @@ export function movementSponsorBoostDisplay(): number | null {
     if (!Number.isFinite(n) || n <= 0) return null;
     return Math.floor(n);
   }
-  return 15_000;
+  return 30_000;
 }

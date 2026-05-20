@@ -461,9 +461,9 @@ export default function AdminPage() {
     }
   };
 
-  // Max players per submit_player_stats TX — keeps BCS payload under ~45 KB.
-  // Each player contributes ~152 bytes (17×u64 + 2×u8 + 2×bool); 300 × 152 ≈ 45 KB.
-  const STATS_BATCH_SIZE = 300;
+  // Smaller batches avoid Movement mainnet EXECUTION_LIMIT_REACHED on submit_player_stats (max_gas cap 2M).
+  // Each player contributes ~152 bytes in vectors; 100 × 152 ≈ 15 KB.
+  const STATS_BATCH_SIZE = 100;
 
   const handleSubmitStats = async () => {
     if (!connected || !account || !statsJson) return;

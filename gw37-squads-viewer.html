@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GW37 — топ-21 склади</title>
+  <style>
+    :root {
+      --bg: #0f1219;
+      --card: #171b24;
+      --border: #2a3142;
+      --text: #e8eaef;
+      --muted: #8b92a5;
+      --accent: #6ee7b7;
+      --sub: #422006;
+      --sub-b: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      font-size: 15px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+    h1 { font-size: 1.35rem; font-weight: 700; margin: 0 0 0.35rem; }
+    .lead { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; }
+    .toolbar {
+      position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(180deg, var(--bg) 85%, transparent);
+      padding: 0.75rem 0 1rem; margin: 0 0 0.5rem;
+    }
+    #q {
+      width: 100%; padding: 0.65rem 0.85rem; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--card); color: var(--text);
+      font-size: 1rem; margin-bottom: 0.75rem;
+    }
+    #q::placeholder { color: var(--muted); }
+    .toc {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+    }
+    .toc-link {
+      font-size: 0.8rem; padding: 0.35rem 0.55rem; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border); color: var(--accent);
+      text-decoration: none;
+    }
+    .toc-link:hover { border-color: var(--accent); }
+    .team {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 1rem 1.1rem 1.15rem; margin-bottom: 1rem;
+    }
+    .team.hidden { display: none; }
+    .team-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.65rem;
+    }
+    .team-head h2 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .rank { color: var(--muted); font-weight: 500; }
+    .pts { color: var(--accent); font-weight: 800; }
+    .pts-label { color: var(--muted); font-weight: 500; font-size: 0.9em; }
+    .wallet { font-size: 0.72rem; color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th {
+      text-align: left; font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--muted); padding: 0.35rem 0.5rem 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    th.num { text-align: right; }
+    td {
+      padding: 0.5rem 0.75rem 0.5rem 0; vertical-align: top;
+      border-bottom: 1px solid var(--border);
+    }
+    td.num { text-align: right; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr.row-sub td { background: rgba(251, 191, 36, 0.08); }
+    .sub-note { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+    .bench-block { margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); }
+    .bench-title { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 0.4rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chip {
+      font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 999px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    }
+    .chip small { color: var(--muted); margin-left: 0.2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GW37 — топ-21</h1>
+    <p class="lead">Mainnet · тур: <strong>closed</strong> · режим: <strong>preview</strong>. «База» — очки зарахованого гравця в слоті (до множників титулу/гільдії).</p>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Пошук: гравець, місце #, очки…" autocomplete="off" />
+      <nav class="toc" aria-label="Швидкі посилання"><a class="toc-link" href="#team-1">#1 · 66</a><a class="toc-link" href="#team-2">#2 · 66</a><a class="toc-link" href="#team-3">#3 · 63</a><a class="toc-link" href="#team-4">#4 · 59</a><a class="toc-link" href="#team-5">#5 · 59</a><a class="toc-link" href="#team-6">#6 · 58</a><a class="toc-link" href="#team-7">#7 · 56</a><a class="toc-link" href="#team-8">#8 · 56</a><a class="toc-link" href="#team-9">#9 · 56</a><a class="toc-link" href="#team-10">#10 · 53</a><a class="toc-link" href="#team-11">#11 · 53</a><a class="toc-link" href="#team-12">#12 · 52</a><a class="toc-link" href="#team-13">#13 · 52</a><a class="toc-link" href="#team-14">#14 · 52</a><a class="toc-link" href="#team-15">#15 · 52</a><a class="toc-link" href="#team-16">#16 · 51</a><a class="toc-link" href="#team-17">#17 · 51</a><a class="toc-link" href="#team-18">#18 · 51</a><a class="toc-link" href="#team-19">#19 · 51</a><a class="toc-link" href="#team-20">#20 · 51</a><a class="toc-link" href="#team-21">#21 · 50</a></nav>
+    </div>
+    <section id="teams">
+<article class="team" id="team-1" data-search="0x52b001f448fb5b1a3fd0e37ebbf107258dc2a47a06080bcdc39852cb59a1d260 raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) bassey (ful)bassey (ful) tete (ful)tete (ful) szoboszlai (liv) [автозаміна]reed (ful) b.fernandes (mun)b.fernandes (mun) mbeumo (mun)mbeumo (mun) haaland (mci)haaland (mci) watkins (avl)watkins (avl) beto (eve)beto (eve) szoboszlai (liv) cherki (mci) doku (mci)">
+  <header class="team-head">
+    <h2><span class="rank">#1</span> <span class="pts">66</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x52b001f448fb5b1a3fd0e37ebbf107258dc2a47a06080bcdc39852cb59a1d260">0x52b001…a1d260</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Bassey (FUL)</td><td class="num">2</td></tr><tr class=""><td>5</td><td>Tete (FUL)</td><td class="num">0</td></tr><tr class="row-sub"><td>6</td><td>Szoboszlai (LIV) <span class="sub-note">замість Reed (FUL)</span></td><td class="num">9</td></tr><tr class=""><td>7</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>8</td><td>Mbeumo (MUN)</td><td class="num">7</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Beto (EVE)</td><td class="num">2</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Szoboszlai (LIV) — 9 pts за GW">Szoboszlai <small>9</small></span><span class="chip" title="Cherki (MCI) — 0 pts за GW">Cherki <small>0</small></span><span class="chip" title="Doku (MCI) — 0 pts за GW">Doku <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-2" data-search="0x698c5644a8ab25a2f3f4a8051713e2603092481f9ff4c54cc84967286d870268 raya (ars)raya (ars) gabriel (ars)gabriel (ars) senesi (bou)senesi (bou) guéhi (mci)guéhi (mci) saliba (ars)saliba (ars) b.fernandes (mun)b.fernandes (mun) anderson (nfo) [автозаміна]doku (mci) dewsbury-hall (eve)dewsbury-hall (eve) haaland (mci)haaland (mci) watkins (avl)watkins (avl) calvert-lewin (lee)calvert-lewin (lee) anderson (nfo) casemiro (mun) rayan (bou)">
+  <header class="team-head">
+    <h2><span class="rank">#2</span> <span class="pts">66</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x698c5644a8ab25a2f3f4a8051713e2603092481f9ff4c54cc84967286d870268">0x698c56…870268</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Senesi (BOU)</td><td class="num">0</td></tr><tr class=""><td>4</td><td>Guéhi (MCI)</td><td class="num">0</td></tr><tr class=""><td>5</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>6</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>7</td><td>Anderson (NFO) <span class="sub-note">замість Doku (MCI)</span></td><td class="num">10</td></tr><tr class=""><td>8</td><td>Dewsbury-Hall (EVE)</td><td class="num">2</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Calvert-Lewin (LEE)</td><td class="num">8</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Anderson (NFO) — 10 pts за GW">Anderson <small>10</small></span><span class="chip" title="Casemiro (MUN) — 1 pts за GW">Casemiro <small>1</small></span><span class="chip" title="Rayan (BOU) — 0 pts за GW">Rayan <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-3" data-search="0x30ebd0cdb2b08de200f67089a59048c3c9657eb7bf005a8717aaa9f0554b1307 raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) maguire (mun)maguire (mun) mazraoui (mun)mazraoui (mun) rogers (avl)rogers (avl) b.fernandes (mun) [автозаміна]foden (mci) semenyo (mci)semenyo (mci) watkins (avl)watkins (avl) thiago (bre)thiago (bre) bowen (whu)bowen (whu) cherki (mci) b.fernandes (mun) richarlison (tot)">
+  <header class="team-head">
+    <h2><span class="rank">#3</span> <span class="pts">63</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x30ebd0cdb2b08de200f67089a59048c3c9657eb7bf005a8717aaa9f0554b1307">0x30ebd0…4b1307</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Maguire (MUN)</td><td class="num">1</td></tr><tr class=""><td>5</td><td>Mazraoui (MUN)</td><td class="num">0</td></tr><tr class=""><td>6</td><td>Rogers (AVL)</td><td class="num">12</td></tr><tr class="row-sub"><td>7</td><td>B.Fernandes (MUN) <span class="sub-note">замість Foden (MCI)</span></td><td class="num">9</td></tr><tr class=""><td>8</td><td>Semenyo (MCI)</td><td class="num">0</td></tr><tr class=""><td>9</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>10</td><td>Thiago (BRE)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>Bowen (WHU)</td><td class="num">2</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Cherki (MCI) — 0 pts за GW">Cherki <small>0</small></span><span class="chip" title="B.Fernandes (MUN) — 9 pts за GW">B.Fernandes <small>9</small></span><span class="chip" title="Richarlison (TOT) — 0 pts за GW">Richarlison <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-4" data-search="0x77e3d3b82e77b7d66c537cef8d2c56ef05e52384dfa67366026b66d4530e9c80 raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) tarkowski (eve) [автозаміна]o&#39;reilly (mci) o&#39;brien (eve)o&#39;brien (eve) stach (lee) [автозаміна]doku (mci) o.dango (bre)o.dango (bre) wilson (ful)wilson (ful) beto (eve) [автозаміна]haaland (mci) thiago (bre)thiago (bre) osula (new)osula (new) stach (lee) tarkowski (eve) beto (eve)">
+  <header class="team-head">
+    <h2><span class="rank">#4</span> <span class="pts">59</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x77e3d3b82e77b7d66c537cef8d2c56ef05e52384dfa67366026b66d4530e9c80">0x77e3d3…0e9c80</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class="row-sub"><td>4</td><td>Tarkowski (EVE) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>5</td><td>O&#39;Brien (EVE)</td><td class="num">0</td></tr><tr class="row-sub"><td>6</td><td>Stach (LEE) <span class="sub-note">замість Doku (MCI)</span></td><td class="num">3</td></tr><tr class=""><td>7</td><td>O.Dango (BRE)</td><td class="num">15</td></tr><tr class=""><td>8</td><td>Wilson (FUL)</td><td class="num">1</td></tr><tr class="row-sub"><td>9</td><td>Beto (EVE) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>10</td><td>Thiago (BRE)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>Osula (NEW)</td><td class="num">15</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Stach (LEE) — 3 pts за GW">Stach <small>3</small></span><span class="chip" title="Tarkowski (EVE) — 1 pts за GW">Tarkowski <small>1</small></span><span class="chip" title="Beto (EVE) — 2 pts за GW">Beto <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-5" data-search="0xfa01f04208e83dae4520a6e831bb2fb78cb07af954e42ada4e17810ecc1d9db6 raya (ars)raya (ars) gabriel (ars)gabriel (ars) senesi (bou)senesi (bou) guéhi (mci)guéhi (mci) tarkowski (eve)tarkowski (eve) b.fernandes (mun)b.fernandes (mun) anderson (nfo) [автозаміна]doku (mci) dewsbury-hall (eve)dewsbury-hall (eve) haaland (mci)haaland (mci) watkins (avl)watkins (avl) calvert-lewin (lee)calvert-lewin (lee) anderson (nfo) casemiro (mun) rayan (bou)">
+  <header class="team-head">
+    <h2><span class="rank">#5</span> <span class="pts">59</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xfa01f04208e83dae4520a6e831bb2fb78cb07af954e42ada4e17810ecc1d9db6">0xfa01f0…1d9db6</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Senesi (BOU)</td><td class="num">0</td></tr><tr class=""><td>4</td><td>Guéhi (MCI)</td><td class="num">0</td></tr><tr class=""><td>5</td><td>Tarkowski (EVE)</td><td class="num">1</td></tr><tr class=""><td>6</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>7</td><td>Anderson (NFO) <span class="sub-note">замість Doku (MCI)</span></td><td class="num">10</td></tr><tr class=""><td>8</td><td>Dewsbury-Hall (EVE)</td><td class="num">2</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Calvert-Lewin (LEE)</td><td class="num">8</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Anderson (NFO) — 10 pts за GW">Anderson <small>10</small></span><span class="chip" title="Casemiro (MUN) — 1 pts за GW">Casemiro <small>1</small></span><span class="chip" title="Rayan (BOU) — 0 pts за GW">Rayan <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-6" data-search="0xd2d162d35e9bb1ce41663246ad63d5d8b8fa5ad233bc7626956b5a22f6586eeb henderson (cry)henderson (cry) van hecke (bha) [автозаміна]o&#39;reilly (mci) lacroix (cry)lacroix (cry) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) hinshelwood (bha) [автозаміна]cherki (mci) saka (ars)saka (ars) b.fernandes (mun)b.fernandes (mun) watkins (avl) [автозаміна]haaland (mci) welbeck (bha)welbeck (bha) mateta (cry)mateta (cry) watkins (avl) van hecke (bha) hinshelwood (bha)">
+  <header class="team-head">
+    <h2><span class="rank">#6</span> <span class="pts">58</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xd2d162d35e9bb1ce41663246ad63d5d8b8fa5ad233bc7626956b5a22f6586eeb">0xd2d162…586eeb</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Henderson (CRY)</td><td class="num">0</td></tr><tr class="row-sub"><td>2</td><td>Van Hecke (BHA) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>3</td><td>Lacroix (CRY)</td><td class="num">2</td></tr><tr class=""><td>4</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>5</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class="row-sub"><td>6</td><td>Hinshelwood (BHA) <span class="sub-note">замість Cherki (MCI)</span></td><td class="num">3</td></tr><tr class=""><td>7</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>9</td><td>Watkins (AVL) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">17</td></tr><tr class=""><td>10</td><td>Welbeck (BHA)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>Mateta (CRY)</td><td class="num">1</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Watkins (AVL) — 17 pts за GW">Watkins <small>17</small></span><span class="chip" title="Van Hecke (BHA) — 2 pts за GW">Van Hecke <small>2</small></span><span class="chip" title="Hinshelwood (BHA) — 3 pts за GW">Hinshelwood <small>3</small></span></div></div>
+</article>
+
+<article class="team" id="team-7" data-search="0xcd29f5777124c8c95f8c8fac9e0627cad1808195ccacc77aaa26084959b98943 donnarumma (mci)donnarumma (mci) shaw (mun)shaw (mun) maguire (mun)maguire (mun) saliba (ars)saliba (ars) cash (avl)cash (avl) saka (ars) [автозаміна]rodrigo (mci) rice (ars)rice (ars) b.fernandes (mun)b.fernandes (mun) watkins (avl)watkins (avl) welbeck (bha) [автозаміна]haaland (mci) bowen (whu)bowen (whu) saka (ars) m.salah (liv) welbeck (bha)">
+  <header class="team-head">
+    <h2><span class="rank">#7</span> <span class="pts">56</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xcd29f5777124c8c95f8c8fac9e0627cad1808195ccacc77aaa26084959b98943">0xcd29f5…b98943</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Donnarumma (MCI)</td><td class="num">0</td></tr><tr class=""><td>2</td><td>Shaw (MUN)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Maguire (MUN)</td><td class="num">1</td></tr><tr class=""><td>4</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>5</td><td>Cash (AVL)</td><td class="num">0</td></tr><tr class="row-sub"><td>6</td><td>Saka (ARS) <span class="sub-note">замість Rodrigo (MCI)</span></td><td class="num">8</td></tr><tr class=""><td>7</td><td>Rice (ARS)</td><td class="num">3</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>9</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class="row-sub"><td>10</td><td>Welbeck (BHA) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>11</td><td>Bowen (WHU)</td><td class="num">2</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Saka (ARS) — 8 pts за GW">Saka <small>8</small></span><span class="chip" title="M.Salah (LIV) — 1 pts за GW">M.Salah <small>1</small></span><span class="chip" title="Welbeck (BHA) — 2 pts за GW">Welbeck <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-8" data-search="0x93595cdf24f06f0e0b623d9f0d4302b260b22c73b039d8a7121d9da9b792e552 raya (ars)raya (ars) calafiori (ars)calafiori (ars) gabriel (ars)gabriel (ars) guéhi (mci)guéhi (mci) matheus n. (mci)matheus n. (mci) ndiaye (eve) [автозаміна]bernardo (mci) caicedo (che)caicedo (che) wharton (cry)wharton (cry) calvert-lewin (lee)calvert-lewin (lee) welbeck (bha) [автозаміна]isak (liv) watkins (avl)watkins (avl) ndiaye (eve) welbeck (bha) cucurella (che)">
+  <header class="team-head">
+    <h2><span class="rank">#8</span> <span class="pts">56</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x93595cdf24f06f0e0b623d9f0d4302b260b22c73b039d8a7121d9da9b792e552">0x93595c…92e552</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Calafiori (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>4</td><td>Guéhi (MCI)</td><td class="num">0</td></tr><tr class=""><td>5</td><td>Matheus N. (MCI)</td><td class="num">0</td></tr><tr class="row-sub"><td>6</td><td>Ndiaye (EVE) <span class="sub-note">замість Bernardo (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>7</td><td>Caicedo (CHE)</td><td class="num">0</td></tr><tr class=""><td>8</td><td>Wharton (CRY)</td><td class="num">9</td></tr><tr class=""><td>9</td><td>Calvert-Lewin (LEE)</td><td class="num">8</td></tr><tr class="row-sub"><td>10</td><td>Welbeck (BHA) <span class="sub-note">замість Isak (LIV)</span></td><td class="num">2</td></tr><tr class=""><td>11</td><td>Watkins (AVL)</td><td class="num">17</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Ndiaye (EVE) — 2 pts за GW">Ndiaye <small>2</small></span><span class="chip" title="Welbeck (BHA) — 2 pts за GW">Welbeck <small>2</small></span><span class="chip" title="Cucurella (CHE) — 0 pts за GW">Cucurella <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-9" data-search="0x1efe7878aa62c5055caf040ec5dd3d15bc5bc6da8aba80aeb3f284df72fed78d lammens (mun)lammens (mun) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) maguire (mun)maguire (mun) mykolenko (eve) [автозаміна]o&#39;reilly (mci) rogers (avl)rogers (avl) saka (ars)saka (ars) semenyo (mci)semenyo (mci) watkins (avl)watkins (avl) thiago (bre) [автозаміна]haaland (mci) richarlison (tot)richarlison (tot) thiago (bre) palmer (che) mykolenko (eve)">
+  <header class="team-head">
+    <h2><span class="rank">#9</span> <span class="pts">56</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x1efe7878aa62c5055caf040ec5dd3d15bc5bc6da8aba80aeb3f284df72fed78d">0x1efe78…fed78d</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Lammens (MUN)</td><td class="num">1</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Maguire (MUN)</td><td class="num">1</td></tr><tr class="row-sub"><td>5</td><td>Mykolenko (EVE) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>6</td><td>Rogers (AVL)</td><td class="num">12</td></tr><tr class=""><td>7</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class=""><td>8</td><td>Semenyo (MCI)</td><td class="num">0</td></tr><tr class=""><td>9</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class="row-sub"><td>10</td><td>Thiago (BRE) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>11</td><td>Richarlison (TOT)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Thiago (BRE) — 2 pts за GW">Thiago <small>2</small></span><span class="chip" title="Palmer (CHE) — 0 pts за GW">Palmer <small>0</small></span><span class="chip" title="Mykolenko (EVE) — 1 pts за GW">Mykolenko <small>1</small></span></div></div>
+</article>
+
+<article class="team" id="team-10" data-search="0xfa26c6ccb1bf0aa785439105cde285ff8510d2505c5b603f4b6b183e68270811 raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) mykolenko (eve)mykolenko (eve) maguire (mun)maguire (mun) b.fernandes (mun)b.fernandes (mun) schade (bre) [автозаміна]doku (mci) semenyo (mci)semenyo (mci) welbeck (bha) [автозаміна]haaland (mci) thiago (bre)thiago (bre) watkins (avl)watkins (avl) tarkowski (eve) schade (bre) welbeck (bha)">
+  <header class="team-head">
+    <h2><span class="rank">#10</span> <span class="pts">53</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xfa26c6ccb1bf0aa785439105cde285ff8510d2505c5b603f4b6b183e68270811">0xfa26c6…270811</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Mykolenko (EVE)</td><td class="num">1</td></tr><tr class=""><td>5</td><td>Maguire (MUN)</td><td class="num">1</td></tr><tr class=""><td>6</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>7</td><td>Schade (BRE) <span class="sub-note">замість Doku (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>8</td><td>Semenyo (MCI)</td><td class="num">0</td></tr><tr class="row-sub"><td>9</td><td>Welbeck (BHA) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>10</td><td>Thiago (BRE)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>Watkins (AVL)</td><td class="num">17</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Tarkowski (EVE) — 1 pts за GW">Tarkowski <small>1</small></span><span class="chip" title="Schade (BRE) — 1 pts за GW">Schade <small>1</small></span><span class="chip" title="Welbeck (BHA) — 2 pts за GW">Welbeck <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-11" data-search="0x1f0da681303bdc616d438c0acc59b42c65007e6ae42712c1b130e2e44331a3e5 raya (ars)raya (ars) khusanov (mci)khusanov (mci) gabriel (ars)gabriel (ars) truffert (bou)truffert (bou) virgil (liv)virgil (liv) szoboszlai (liv)szoboszlai (liv) saka (ars)saka (ars) b.fernandes (mun)b.fernandes (mun) thiago (bre) [автозаміна]abraham (avl) kostoulas (bha)kostoulas (bha) haaland (mci)haaland (mci) rúben (mci) thiago (bre) bruno g. (new)">
+  <header class="team-head">
+    <h2><span class="rank">#11</span> <span class="pts">53</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x1f0da681303bdc616d438c0acc59b42c65007e6ae42712c1b130e2e44331a3e5">0x1f0da6…31a3e5</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Khusanov (MCI)</td><td class="num">0</td></tr><tr class=""><td>3</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>4</td><td>Truffert (BOU)</td><td class="num">0</td></tr><tr class=""><td>5</td><td>Virgil (LIV)</td><td class="num">12</td></tr><tr class=""><td>6</td><td>Szoboszlai (LIV)</td><td class="num">9</td></tr><tr class=""><td>7</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>9</td><td>Thiago (BRE) <span class="sub-note">замість Abraham (AVL)</span></td><td class="num">2</td></tr><tr class=""><td>10</td><td>Kostoulas (BHA)</td><td class="num">1</td></tr><tr class=""><td>11</td><td>Haaland (MCI)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Rúben (MCI) — 0 pts за GW">Rúben <small>0</small></span><span class="chip" title="Thiago (BRE) — 2 pts за GW">Thiago <small>2</small></span><span class="chip" title="Bruno G. (NEW) — 2 pts за GW">Bruno G. <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-12" data-search="0x79065533bd4e3ed76a1e87b673e6339a7699cf7e9efa1d9404712dce3c6b092a verbruggen (bha)verbruggen (bha) gabriel (ars)gabriel (ars) digne (avl) [автозаміна]o&#39;reilly (mci) van hecke (bha)van hecke (bha) lacroix (cry)lacroix (cry) saka (ars)saka (ars) b.fernandes (mun)b.fernandes (mun) cherki (mci)cherki (mci) haaland (mci)haaland (mci) welbeck (bha)welbeck (bha) watkins (avl)watkins (avl) abraham (avl) merino (ars) digne (avl)">
+  <header class="team-head">
+    <h2><span class="rank">#12</span> <span class="pts">52</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x79065533bd4e3ed76a1e87b673e6339a7699cf7e9efa1d9404712dce3c6b092a">0x790655…6b092a</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Verbruggen (BHA)</td><td class="num">2</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class="row-sub"><td>3</td><td>Digne (AVL) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">4</td></tr><tr class=""><td>4</td><td>Van Hecke (BHA)</td><td class="num">2</td></tr><tr class=""><td>5</td><td>Lacroix (CRY)</td><td class="num">2</td></tr><tr class=""><td>6</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class=""><td>7</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>8</td><td>Cherki (MCI)</td><td class="num">0</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Welbeck (BHA)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>Watkins (AVL)</td><td class="num">17</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Abraham (AVL) — 0 pts за GW">Abraham <small>0</small></span><span class="chip" title="Merino (ARS) — 0 pts за GW">Merino <small>0</small></span><span class="chip" title="Digne (AVL) — 4 pts за GW">Digne <small>4</small></span></div></div>
+</article>
+
+<article class="team" id="team-13" data-search="0x29d40aa6ead205dc22bd7b4754c88db9cbea02688a518065f09e0c1b0d964b7f raya (ars)raya (ars) tarkowski (eve) [автозаміна]gvardiol (mci) gabriel (ars)gabriel (ars) pedro porro (tot)pedro porro (tot) saliba (ars)saliba (ars) m.salah (liv)m.salah (liv) j.gomes (wol) [автозаміна]palmer (che) b.fernandes (mun)b.fernandes (mun) wood (nfo) [автозаміна]haaland (mci) watkins (avl)watkins (avl) isak (liv)isak (liv) tarkowski (eve) j.gomes (wol) wood (nfo)">
+  <header class="team-head">
+    <h2><span class="rank">#13</span> <span class="pts">52</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x29d40aa6ead205dc22bd7b4754c88db9cbea02688a518065f09e0c1b0d964b7f">0x29d40a…964b7f</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class="row-sub"><td>2</td><td>Tarkowski (EVE) <span class="sub-note">замість Gvardiol (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>3</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>4</td><td>Pedro Porro (TOT)</td><td class="num">0</td></tr><tr class=""><td>5</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>6</td><td>M.Salah (LIV)</td><td class="num">1</td></tr><tr class="row-sub"><td>7</td><td>J.Gomes (WOL) <span class="sub-note">замість Palmer (CHE)</span></td><td class="num">2</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>9</td><td>Wood (NFO) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Isak (LIV)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Tarkowski (EVE) — 1 pts за GW">Tarkowski <small>1</small></span><span class="chip" title="J.Gomes (WOL) — 2 pts за GW">J.Gomes <small>2</small></span><span class="chip" title="Wood (NFO) — 2 pts за GW">Wood <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-14" data-search="0xeb248c76baf844b8f5101cd62d403e9318d75f4d61b8e58b2a89c1cc5a299101 raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) digne (avl)digne (avl) konsa (avl)konsa (avl) rogers (avl)rogers (avl) kluivert (bou)kluivert (bou) rayan (bou)rayan (bou) awoniyi (nfo)awoniyi (nfo) isidor (sun) [автозаміна]lucca (nfo) brobbey (sun) [автозаміна]richarlison (tot) isidor (sun) brobbey (sun) de cuyper (bha)">
+  <header class="team-head">
+    <h2><span class="rank">#14</span> <span class="pts">52</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xeb248c76baf844b8f5101cd62d403e9318d75f4d61b8e58b2a89c1cc5a299101">0xeb248c…299101</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Digne (AVL)</td><td class="num">4</td></tr><tr class=""><td>5</td><td>Konsa (AVL)</td><td class="num">1</td></tr><tr class=""><td>6</td><td>Rogers (AVL)</td><td class="num">12</td></tr><tr class=""><td>7</td><td>Kluivert (BOU)</td><td class="num">0</td></tr><tr class=""><td>8</td><td>Rayan (BOU)</td><td class="num">0</td></tr><tr class=""><td>9</td><td>Awoniyi (NFO)</td><td class="num">1</td></tr><tr class="row-sub"><td>10</td><td>Isidor (SUN) <span class="sub-note">замість Lucca (NFO)</span></td><td class="num">6</td></tr><tr class="row-sub"><td>11</td><td>Brobbey (SUN) <span class="sub-note">замість Richarlison (TOT)</span></td><td class="num">8</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Isidor (SUN) — 6 pts за GW">Isidor <small>6</small></span><span class="chip" title="Brobbey (SUN) — 8 pts за GW">Brobbey <small>8</small></span><span class="chip" title="De Cuyper (BHA) — 2 pts за GW">De Cuyper <small>2</small></span></div></div>
+</article>
+
+<article class="team" id="team-15" data-search="0x2d9e2e429fecf088618bd4e95100c9c39daf9514cec096ab4a1e1b9c93abc47e raya (ars)raya (ars) lewis-skelly (ars)lewis-skelly (ars) mosquera (ars) [автозаміна]matheus n. (mci) martinez (mun)martinez (mun) dalot (mun)dalot (mun) rogers (avl)rogers (avl) b.fernandes (mun)b.fernandes (mun) mcginn (avl) [автозаміна]mitoma (bha) thiago (bre)thiago (bre) calvert-lewin (lee)calvert-lewin (lee) isak (liv)isak (liv) evanilson (bou) mcginn (avl) mosquera (ars)">
+  <header class="team-head">
+    <h2><span class="rank">#15</span> <span class="pts">52</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x2d9e2e429fecf088618bd4e95100c9c39daf9514cec096ab4a1e1b9c93abc47e">0x2d9e2e…abc47e</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Lewis-Skelly (ARS)</td><td class="num">1</td></tr><tr class="row-sub"><td>3</td><td>Mosquera (ARS) <span class="sub-note">замість Matheus N. (MCI)</span></td><td class="num">6</td></tr><tr class=""><td>4</td><td>Martinez (MUN)</td><td class="num">1</td></tr><tr class=""><td>5</td><td>Dalot (MUN)</td><td class="num">1</td></tr><tr class=""><td>6</td><td>Rogers (AVL)</td><td class="num">12</td></tr><tr class=""><td>7</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>8</td><td>McGinn (AVL) <span class="sub-note">замість Mitoma (BHA)</span></td><td class="num">6</td></tr><tr class=""><td>9</td><td>Thiago (BRE)</td><td class="num">2</td></tr><tr class=""><td>10</td><td>Calvert-Lewin (LEE)</td><td class="num">8</td></tr><tr class=""><td>11</td><td>Isak (LIV)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Evanilson (BOU) — 0 pts за GW">Evanilson <small>0</small></span><span class="chip" title="McGinn (AVL) — 6 pts за GW">McGinn <small>6</small></span><span class="chip" title="Mosquera (ARS) — 6 pts за GW">Mosquera <small>6</small></span></div></div>
+</article>
+
+<article class="team" id="team-16" data-search="0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb raya (ars)raya (ars) gabriel (ars)gabriel (ars) saliba (ars)saliba (ars) lewis-potter (bre) [автозаміна]mazraoui (mun) maguire (mun)maguire (mun) schade (bre) [автозаміна]doku (mci) semenyo (mci)semenyo (mci) b.fernandes (mun)b.fernandes (mun) watkins (avl) [автозаміна]haaland (mci) thiago (bre)thiago (bre) joão pedro (che)joão pedro (che) lewis-potter (bre) schade (bre) watkins (avl)">
+  <header class="team-head">
+    <h2><span class="rank">#16</span> <span class="pts">51</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb">0x1f23a0…12d3cb</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class="row-sub"><td>4</td><td>Lewis-Potter (BRE) <span class="sub-note">замість Mazraoui (MUN)</span></td><td class="num">1</td></tr><tr class=""><td>5</td><td>Maguire (MUN)</td><td class="num">1</td></tr><tr class="row-sub"><td>6</td><td>Schade (BRE) <span class="sub-note">замість Doku (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>7</td><td>Semenyo (MCI)</td><td class="num">0</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class="row-sub"><td>9</td><td>Watkins (AVL) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">17</td></tr><tr class=""><td>10</td><td>Thiago (BRE)</td><td class="num">2</td></tr><tr class=""><td>11</td><td>João Pedro (CHE)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Lewis-Potter (BRE) — 1 pts за GW">Lewis-Potter <small>1</small></span><span class="chip" title="Schade (BRE) — 1 pts за GW">Schade <small>1</small></span><span class="chip" title="Watkins (AVL) — 17 pts за GW">Watkins <small>17</small></span></div></div>
+</article>
+
+<article class="team" id="team-17" data-search="0xc40d711f94276d4b11a5ff701b249448df5252e969008653980e34c0408a1589 raya (ars)raya (ars) saliba (ars)saliba (ars) gvardiol (mci)gvardiol (mci) trippier (new)trippier (new) o&#39;reilly (mci)o&#39;reilly (mci) m.salah (liv)m.salah (liv) saka (ars)saka (ars) b.fernandes (mun) [автозаміна]palmer (che) haaland (mci)haaland (mci) isak (liv)isak (liv) watkins (avl)watkins (avl) gordon (new) pickford (eve) b.fernandes (mun)">
+  <header class="team-head">
+    <h2><span class="rank">#17</span> <span class="pts">51</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xc40d711f94276d4b11a5ff701b249448df5252e969008653980e34c0408a1589">0xc40d71…8a1589</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>3</td><td>Gvardiol (MCI)</td><td class="num">0</td></tr><tr class=""><td>4</td><td>Trippier (NEW)</td><td class="num">2</td></tr><tr class=""><td>5</td><td>O&#39;Reilly (MCI)</td><td class="num">0</td></tr><tr class=""><td>6</td><td>M.Salah (LIV)</td><td class="num">1</td></tr><tr class=""><td>7</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class="row-sub"><td>8</td><td>B.Fernandes (MUN) <span class="sub-note">замість Palmer (CHE)</span></td><td class="num">9</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Isak (LIV)</td><td class="num">0</td></tr><tr class=""><td>11</td><td>Watkins (AVL)</td><td class="num">17</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Gordon (NEW) — 0 pts за GW">Gordon <small>0</small></span><span class="chip" title="Pickford (EVE) — 1 pts за GW">Pickford <small>1</small></span><span class="chip" title="B.Fernandes (MUN) — 9 pts за GW">B.Fernandes <small>9</small></span></div></div>
+</article>
+
+<article class="team" id="team-18" data-search="0xc799a551b6832427ff050c655a305af73abc9323e5cce4508f712ac93c95f1b6 leno (ful)leno (ful) muñoz (cry) [автозаміна]o&#39;reilly (mci) khusanov (mci)khusanov (mci) mavropanos (whu)mavropanos (whu) pedro porro (tot)pedro porro (tot) gibbs-white (nfo)gibbs-white (nfo) groß (bha) [автозаміна]cherki (mci) okafor (lee)okafor (lee) bowen (whu)bowen (whu) watkins (avl)watkins (avl) osula (new)osula (new) groß (bha) muñoz (cry) mateta (cry)">
+  <header class="team-head">
+    <h2><span class="rank">#18</span> <span class="pts">51</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xc799a551b6832427ff050c655a305af73abc9323e5cce4508f712ac93c95f1b6">0xc799a5…95f1b6</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Leno (FUL)</td><td class="num">2</td></tr><tr class="row-sub"><td>2</td><td>Muñoz (CRY) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">4</td></tr><tr class=""><td>3</td><td>Khusanov (MCI)</td><td class="num">0</td></tr><tr class=""><td>4</td><td>Mavropanos (WHU)</td><td class="num">1</td></tr><tr class=""><td>5</td><td>Pedro Porro (TOT)</td><td class="num">0</td></tr><tr class=""><td>6</td><td>Gibbs-White (NFO)</td><td class="num">7</td></tr><tr class="row-sub"><td>7</td><td>Groß (BHA) <span class="sub-note">замість Cherki (MCI)</span></td><td class="num">3</td></tr><tr class=""><td>8</td><td>Okafor (LEE)</td><td class="num">0</td></tr><tr class=""><td>9</td><td>Bowen (WHU)</td><td class="num">2</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Osula (NEW)</td><td class="num">15</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Groß (BHA) — 3 pts за GW">Groß <small>3</small></span><span class="chip" title="Muñoz (CRY) — 4 pts за GW">Muñoz <small>4</small></span><span class="chip" title="Mateta (CRY) — 1 pts за GW">Mateta <small>1</small></span></div></div>
+</article>
+
+<article class="team" id="team-19" data-search="0xa068815251f77494382e9a422b15563c2f1e917a1abd12648c6b1c9f7b080b9d raya (ars)raya (ars) gabriel (ars)gabriel (ars) h.bueno (wol) [автозаміна]gvardiol (mci) dunk (bha)dunk (bha) tarkowski (eve)tarkowski (eve) saka (ars)saka (ars) b.fernandes (mun)b.fernandes (mun) mcneil (eve)mcneil (eve) haaland (mci)haaland (mci) watkins (avl)watkins (avl) isak (liv)isak (liv) joão pedro (che) h.bueno (wol) gordon (new)">
+  <header class="team-head">
+    <h2><span class="rank">#19</span> <span class="pts">51</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xa068815251f77494382e9a422b15563c2f1e917a1abd12648c6b1c9f7b080b9d">0xa06881…080b9d</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class="row-sub"><td>3</td><td>H.Bueno (WOL) <span class="sub-note">замість Gvardiol (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>4</td><td>Dunk (BHA)</td><td class="num">2</td></tr><tr class=""><td>5</td><td>Tarkowski (EVE)</td><td class="num">1</td></tr><tr class=""><td>6</td><td>Saka (ARS)</td><td class="num">8</td></tr><tr class=""><td>7</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>8</td><td>McNeil (EVE)</td><td class="num">1</td></tr><tr class=""><td>9</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>10</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>11</td><td>Isak (LIV)</td><td class="num">0</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="João Pedro (CHE) — 0 pts за GW">João Pedro <small>0</small></span><span class="chip" title="H.Bueno (WOL) — 1 pts за GW">H.Bueno <small>1</small></span><span class="chip" title="Gordon (NEW) — 0 pts за GW">Gordon <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-20" data-search="0x7ac1b89415607050d262b1fc8d0585674cb122db037c7d3ae752962763dd3691 a.becker (liv)a.becker (liv) pedro porro (tot)pedro porro (tot) saliba (ars)saliba (ars) virgil (liv)virgil (liv) udogie (tot)udogie (tot) rice (ars) [автозаміна]palmer (che) m.salah (liv) [автозаміна]rodrigo (mci) b.fernandes (mun)b.fernandes (mun) watkins (avl)watkins (avl) haaland (mci)haaland (mci) mateta (cry)mateta (cry) rice (ars) m.salah (liv) van de ven (tot)">
+  <header class="team-head">
+    <h2><span class="rank">#20</span> <span class="pts">51</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0x7ac1b89415607050d262b1fc8d0585674cb122db037c7d3ae752962763dd3691">0x7ac1b8…dd3691</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>A.Becker (LIV)</td><td class="num">0</td></tr><tr class=""><td>2</td><td>Pedro Porro (TOT)</td><td class="num">0</td></tr><tr class=""><td>3</td><td>Saliba (ARS)</td><td class="num">8</td></tr><tr class=""><td>4</td><td>Virgil (LIV)</td><td class="num">12</td></tr><tr class=""><td>5</td><td>Udogie (TOT)</td><td class="num">0</td></tr><tr class="row-sub"><td>6</td><td>Rice (ARS) <span class="sub-note">замість Palmer (CHE)</span></td><td class="num">3</td></tr><tr class="row-sub"><td>7</td><td>M.Salah (LIV) <span class="sub-note">замість Rodrigo (MCI)</span></td><td class="num">1</td></tr><tr class=""><td>8</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>9</td><td>Watkins (AVL)</td><td class="num">17</td></tr><tr class=""><td>10</td><td>Haaland (MCI)</td><td class="num">0</td></tr><tr class=""><td>11</td><td>Mateta (CRY)</td><td class="num">1</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Rice (ARS) — 3 pts за GW">Rice <small>3</small></span><span class="chip" title="M.Salah (LIV) — 1 pts за GW">M.Salah <small>1</small></span><span class="chip" title="Van de Ven (TOT) — 0 pts за GW">Van de Ven <small>0</small></span></div></div>
+</article>
+
+<article class="team" id="team-21" data-search="0xc934f20787c282067450cb7f02d132aff904c7004dacce937fa257c0c818489e raya (ars)raya (ars) gabriel (ars)gabriel (ars) calafiori (ars)calafiori (ars) muñoz (cry) [автозаміна]o&#39;reilly (mci) james (che)james (che) o&#39;riley (bha)o&#39;riley (bha) b.fernandes (mun)b.fernandes (mun) doku (mci)doku (mci) bowen (whu) [автозаміна]haaland (mci) joão pedro (che)joão pedro (che) watkins (avl)watkins (avl) muñoz (cry) palmer (che) bowen (whu)">
+  <header class="team-head">
+    <h2><span class="rank">#21</span> <span class="pts">50</span> <span class="pts-label">очок</span></h2>
+    <code class="wallet" title="0xc934f20787c282067450cb7f02d132aff904c7004dacce937fa257c0c818489e">0xc934f2…18489e</code>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Слот</th><th>Зараховано</th><th class="num">База</th></tr></thead>
+      <tbody><tr class=""><td>1</td><td>Raya (ARS)</td><td class="num">6</td></tr><tr class=""><td>2</td><td>Gabriel (ARS)</td><td class="num">6</td></tr><tr class=""><td>3</td><td>Calafiori (ARS)</td><td class="num">6</td></tr><tr class="row-sub"><td>4</td><td>Muñoz (CRY) <span class="sub-note">замість O&#39;Reilly (MCI)</span></td><td class="num">4</td></tr><tr class=""><td>5</td><td>James (CHE)</td><td class="num">0</td></tr><tr class=""><td>6</td><td>O&#39;Riley (BHA)</td><td class="num">0</td></tr><tr class=""><td>7</td><td>B.Fernandes (MUN)</td><td class="num">9</td></tr><tr class=""><td>8</td><td>Doku (MCI)</td><td class="num">0</td></tr><tr class="row-sub"><td>9</td><td>Bowen (WHU) <span class="sub-note">замість Haaland (MCI)</span></td><td class="num">2</td></tr><tr class=""><td>10</td><td>João Pedro (CHE)</td><td class="num">0</td></tr><tr class=""><td>11</td><td>Watkins (AVL)</td><td class="num">17</td></tr></tbody>
+    </table>
+  </div>
+  <div class="bench-block"><span class="bench-title">Лава</span><div class="chips"><span class="chip" title="Muñoz (CRY) — 4 pts за GW">Muñoz <small>4</small></span><span class="chip" title="Palmer (CHE) — 0 pts за GW">Palmer <small>0</small></span><span class="chip" title="Bowen (WHU) — 2 pts за GW">Bowen <small>2</small></span></div></div>
+</article></section>
+  </div>
+  <script>
+    document.getElementById("q").addEventListener("input", function () {
+      var q = this.value.trim().toLowerCase();
+      document.querySelectorAll(".team").forEach(function (card) {
+        var hay = card.getAttribute("data-search") || "";
+        if (!q || hay.indexOf(q) !== -1) card.classList.remove("hidden");
+        else card.classList.add("hidden");
+      });
+    });
+  </script>
+</body>
+</html>
