@@ -447,6 +447,12 @@ export default function LeaderboardPage() {
           <LeaderboardTable
             results={leaderboardData}
             currentUser={account?.address?.toString()}
+            gameweekId={selectedGameweek}
+            isPreview={isPreview}
+            showSquadView={
+              currentGameweek?.status === "resolved" ||
+              (currentGameweek?.status === "closed" && isPreview)
+            }
           />
         ) : (
           <div className="py-10 text-center">

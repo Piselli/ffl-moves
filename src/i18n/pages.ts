@@ -179,6 +179,12 @@ export type PagesMessages = {
     you: string;
     claimed: string;
     notClaimed: string;
+    colSquad: string;
+    viewSquad: string;
+    hideSquad: string;
+    viewSquadHint: string;
+    squadLoading: string;
+    squadLoadError: string;
   };
   nickname: {
     errEmpty: string;
@@ -435,6 +441,12 @@ export const pagesEn: PagesMessages = {
     you: "You",
     claimed: "Claimed",
     notClaimed: "Not claimed",
+    colSquad: "Squad",
+    viewSquad: "View",
+    hideSquad: "Hide",
+    viewSquadHint: "Tap to view squad",
+    squadLoading: "Loading squad…",
+    squadLoadError: "Could not load squad.",
   },
   nickname: {
     errEmpty: "Enter a nickname",
@@ -1122,6 +1134,12 @@ export const pagesUk: PagesMessages = {
     you: "Ви",
     claimed: "Отримано",
     notClaimed: "Не отримано",
+    colSquad: "Склад",
+    viewSquad: "Переглянути",
+    hideSquad: "Згорнути",
+    viewSquadHint: "Натисни — побачиш склад",
+    squadLoading: "Завантажуємо склад…",
+    squadLoadError: "Не вдалось завантажити склад.",
   },
   nickname: {
     errEmpty: "Введи нікнейм",
