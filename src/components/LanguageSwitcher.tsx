@@ -9,16 +9,16 @@ const OPTIONS: { code: SiteLocale; short: string }[] = [
 ];
 
 /** Compact EN/UA toggle — sits in the nav next to wallet controls. */
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ embedded = false }: { embedded?: boolean }) {
   const { locale, setLocale } = useSiteLocale();
   const aria = useSiteMessages().pages.languageSwitcherAria;
 
+  const groupClass = embedded
+    ? "flex shrink-0"
+    : "flex shrink-0 rounded-xl border border-white/10 bg-black/30 p-0.5 backdrop-blur-sm";
+
   return (
-    <div
-      role="group"
-      aria-label={aria}
-      className="flex shrink-0 rounded-xl border border-white/10 bg-black/30 p-0.5 backdrop-blur-sm"
-    >
+    <div role="group" aria-label={aria} className={groupClass}>
       {OPTIONS.map(({ code, short }) => {
         const active = locale === code;
         return (

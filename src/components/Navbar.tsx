@@ -11,6 +11,9 @@ import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { useNickname } from "@/hooks/useNickname";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityCluster";
+import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
+import { SOCIAL_X_URL } from "@/lib/constants";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 
 export function Navbar() {
@@ -145,9 +148,12 @@ export function Navbar() {
             <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
             <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
           </div>
-          <div className="hidden md:flex flex-1 justify-end items-center gap-3 px-3 sm:px-5 py-2 rounded-xl border border-white/10 text-xs font-semibold bg-white/5 text-white/30">
-            <LanguageSwitcher />
-            <span>{m.nav.loading}</span>
+          <div className="hidden md:flex flex-1 justify-end items-center gap-3">
+            <NavUtilityCluster>
+              <LanguageSwitcher embedded />
+              <NavUtilityDivider />
+              <span className="px-2 py-1.5 text-[10px] font-semibold text-white/30">{m.nav.loading}</span>
+            </NavUtilityCluster>
           </div>
         </nav>
       </div>
@@ -160,7 +166,7 @@ export function Navbar() {
       className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0 transition-all duration-500"
     >
       <nav
-        className={`flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
+        className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
           scrolled
             ? "bg-black/60 backdrop-blur-2xl border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
             : "bg-black/40 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
@@ -177,7 +183,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative flex flex-col items-center px-4 py-2 rounded-lg group"
+                className="relative flex flex-col items-center px-3 xl:px-4 py-2 rounded-lg group"
               >
                 <span
                   className={`text-[11px] font-black tracking-widest uppercase transition-all duration-200 ${
@@ -220,9 +226,61 @@ export function Navbar() {
           />
         )}
 
-        {/* ── Right: Mobile menu + Wallet ────────────────────────────── */}
-        <div className="relative flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0" ref={dropdownRef}>
-          <LanguageSwitcher />
+        {/* ── Right: utility cluster + mobile menu + wallet ─────────── */}
+        <div className="relative flex items-center gap-1.5 shrink-0 min-w-0" ref={dropdownRef}>
+          <NavUtilityCluster>
+            <LanguageSwitcher embedded />
+            <NavUtilityDivider />
+            <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
+            {connected && account ? (
+              <>
+                <NavUtilityDivider />
+                <button
+                  onClick={() => setShowNicknameModal(true)}
+                  className="hidden sm:inline-flex items-center gap-1.5 max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none min-w-0 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.06] group"
+                  title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse shadow-[0_0_6px_rgba(0,249,72,0.8)] shrink-0" />
+                  <span className="text-[10px] xl:text-[11px] text-[#00f948] font-black font-display uppercase tracking-wider truncate">
+                    {myNickname ?? shortenAddress(account.address.toString())}
+                  </span>
+                </button>
+                <button
+                  onClick={disconnect}
+                  aria-label={m.nav.disconnect}
+                  title={m.nav.disconnect}
+                  className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-red-400/75 transition-colors hover:bg-red-500/10 hover:text-red-400 shrink-0"
+                >
+                  <span className="xl:hidden text-[10px] font-display font-bold uppercase tracking-wider">
+                    {m.nav.disconnectShort}
+                  </span>
+                  <span className="hidden xl:inline text-[10px] font-display font-bold uppercase tracking-wider">
+                    {m.nav.disconnect}
+                  </span>
+                </button>
+              </>
+            ) : (
+              <>
+                <NavUtilityDivider />
+                <button
+                  id="wallet-connect-btn"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setConnectHint(null);
+                    if (connectHintTimerRef.current) {
+                      clearTimeout(connectHintTimerRef.current);
+                      connectHintTimerRef.current = null;
+                    }
+                    setShowWalletList(!showWalletList);
+                  }}
+                  className="rounded-lg px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-[#00f948] transition-colors hover:bg-[#00f948]/15 whitespace-nowrap"
+                >
+                  <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
+                  <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
+                </button>
+              </>
+            )}
+          </NavUtilityCluster>
           <button
             type="button"
             aria-expanded={mobileMenuOpen}
@@ -243,53 +301,7 @@ export function Navbar() {
               </svg>
             )}
           </button>
-          {connected && account ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Nickname / address pill — click to edit */}
-              <button
-                onClick={() => setShowNicknameModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-[#00f948]/40 hover:bg-white/[0.08] transition-all duration-200 group"
-                title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
-                <span className="text-xs text-[#00f948] font-black font-display uppercase tracking-wider">
-                  {myNickname ?? shortenAddress(account.address.toString())}
-                </span>
-                {/* Edit icon */}
-                <svg className="w-3 h-3 text-white/20 group-hover:text-[#00f948]/60 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-              {/* Disconnect */}
-              <button
-                onClick={disconnect}
-                className="px-2.5 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-display font-bold uppercase tracking-wider border border-red-500/20 text-red-400/70 hover:border-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 whitespace-nowrap"
-              >
-                {m.nav.disconnect}
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Connect button */}
-              <button
-                id="wallet-connect-btn"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setConnectHint(null);
-                  if (connectHintTimerRef.current) {
-                    clearTimeout(connectHintTimerRef.current);
-                    connectHintTimerRef.current = null;
-                  }
-                  setShowWalletList(!showWalletList);
-                }}
-                className="relative group px-2.5 py-2 min-[400px]:px-4 min-[400px]:py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] min-[400px]:text-xs font-display font-black uppercase tracking-wide min-[400px]:tracking-wider text-[#00f948] bg-[#00f948]/10 border border-[#00f948]/30 hover:border-[#00f948]/60 hover:bg-[#00f948]/20 hover:shadow-[0_0_20px_rgba(0,249,72,0.4)] transition-all duration-300 focus:outline-none whitespace-nowrap"
-              >
-                <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
-                <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
-              </button>
-
-              {/* Wallet dropdown */}
-              {showWalletList && (
+          {showWalletList && !connected ? (
                 <div className="absolute right-0 top-full z-[60] mt-3 sm:mt-4 w-[min(18rem,calc(100vw-2rem))] sm:w-72 rounded-2xl bg-[#0D0F12]/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-4 border-b border-white/[0.06] bg-white/[0.02]">
                     <p className="text-sm font-display font-black uppercase tracking-wider text-white">
@@ -350,9 +362,7 @@ export function Navbar() {
                     ) : null}
                   </div>
                 </div>
-              )}
-            </>
-          )}
+          ) : null}
         </div>
       </nav>
 
@@ -381,6 +391,24 @@ export function Navbar() {
                 {m.nav.soon}
               </span>
             </span>
+          </div>
+          <div className="mt-1 border-t border-white/[0.06] pt-1 px-1">
+            <a
+              href={SOCIAL_X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={m.nav.socialXAria}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-display font-black uppercase tracking-widest text-white/70 bg-[#00f948]/[0.06] border border-[#00f948]/20 hover:bg-[#00f948]/10 hover:text-white transition-colors"
+            >
+              <span className="flex min-w-0 flex-col gap-0.5 normal-case tracking-normal">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#00f948]/80">
+                  {m.communityStrip.badge}
+                </span>
+                <span className="truncate text-xs font-semibold text-white/80">{m.footer.socialHintShort}</span>
+              </span>
+              <XLogo className="h-4 w-4 shrink-0 opacity-70" />
+            </a>
           </div>
         </div>
       ) : null}

@@ -93,6 +93,10 @@ export const MAX_PER_CLUB = 3;
 /** Ecosystem / docs entry (homepage sponsor link). */
 export const MOVEMENT_NETWORK_SITE_URL = "https://movementnetwork.xyz";
 
+/** Official X (Twitter) profile — news, updates, support DMs. */
+export const SOCIAL_X_URL = "https://x.com/MoveMatchxyz";
+export const SOCIAL_X_HANDLE = "@MoveMatchxyz";
+
 /**
  * Extra MOVE credited to Movement Network on the homepage hero (marketing copy next to the live pool).
  * Does not change on-chain reads — the displayed pool total remains the contract value.

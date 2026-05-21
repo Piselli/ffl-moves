@@ -16,6 +16,7 @@ export type SiteMessages = {
     changeNickname: string;
     setNickname: string;
     disconnect: string;
+    disconnectShort: string;
     walletShort: string;
     connectWallet: string;
     chooseWallet: string;
@@ -26,6 +27,17 @@ export type SiteMessages = {
     noWalletsHint: string;
     connectHintNightly: string;
     connectHintFailed: string;
+    socialXAria: string;
+  };
+  footer: {
+    socialHint: string;
+    socialHintShort: string;
+    socialAria: string;
+  };
+  communityStrip: {
+    label: string;
+    badge: string;
+    aria: string;
   };
   devBanner: {
     envHint: string;
@@ -155,6 +167,7 @@ const uk: SiteMessages = {
     changeNickname: "Змінити нікнейм",
     setNickname: "Встановити нікнейм",
     disconnect: "Від'єднати",
+    disconnectShort: "Вийти",
     walletShort: "Гаманець",
     connectWallet: "Підключити гаманець",
     chooseWallet: "Обери гаманець",
@@ -168,6 +181,17 @@ const uk: SiteMessages = {
       "Схоже, Nightly не відкрився або не встановлено. Завантаж Nightly за посиланням нижче й спробуй підключити знову.",
     connectHintFailed:
       "Не вдалося підключити гаманець. Перевір, чи встановлено Nightly, або скористайся посиланнями нижче.",
+    socialXAria: "MoveMatch на X (Twitter) — новини та підтримка",
+  },
+  footer: {
+    socialHint: "Новини туру, оновлення й підтримка — підписуйся на нас у X (Twitter).",
+    socialHintShort: "Новини та підтримка в X",
+    socialAria: "MoveMatch на X (Twitter)",
+  },
+  communityStrip: {
+    label: "Новини та підтримка на",
+    badge: "Спільнота",
+    aria: "MoveMatch на X (Twitter) — новини та підтримка",
   },
   devBanner: {
     envHint:
@@ -314,6 +338,7 @@ const en: SiteMessages = {
     changeNickname: "Change nickname",
     setNickname: "Set nickname",
     disconnect: "Disconnect",
+    disconnectShort: "Out",
     walletShort: "Wallet",
     connectWallet: "Connect wallet",
     chooseWallet: "Choose a wallet",
@@ -326,6 +351,17 @@ const en: SiteMessages = {
       "Nightly may not have opened or isn’t installed. Download Nightly via the link below and try again.",
     connectHintFailed:
       "Could not connect the wallet. Check that Nightly is installed or use the links below.",
+    socialXAria: "MoveMatch on X (Twitter) — news and support",
+  },
+  footer: {
+    socialHint: "Gameweek news, updates, and support — follow us on X (Twitter).",
+    socialHintShort: "News & support on X",
+    socialAria: "MoveMatch on X (Twitter)",
+  },
+  communityStrip: {
+    label: "News & support on",
+    badge: "Community",
+    aria: "MoveMatch on X (Twitter) — news and support",
   },
   devBanner: {
     envHint:

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { SOCIAL_X_URL } from "@/lib/constants";
+import { XLogo } from "@/components/SocialLinkX";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
 // ─── Category icons (small inline SVGs — match the site’s look) ──────────────
@@ -428,16 +430,13 @@ export default function FaqPage() {
             <p className="text-sm text-white/50 leading-relaxed max-w-xl">{faq.contactBody}</p>
           </div>
           <a
-            href={faq.contactHref}
+            href={SOCIAL_X_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-display font-black uppercase tracking-widest text-sm bg-[#00f948] text-black hover:brightness-110 transition-all shadow-[0_0_24px_rgba(0,249,72,0.25)] shrink-0"
           >
             {faq.contactCta}
-            {/* X (Twitter) logo */}
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
-            </svg>
+            <XLogo className="w-4 h-4" />
           </a>
         </motion.div>
 

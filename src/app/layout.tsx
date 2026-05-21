@@ -3,6 +3,7 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navbar } from "@/components/Navbar";
+import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: siteTitle,
     description: siteDescription,
+    site: "@MoveMatchxyz",
   },
 };
 
@@ -58,6 +60,7 @@ export default function RootLayout({
               <DevChainBanner />
               <Navbar />
               <main className="relative z-10">{children}</main>
+              <SiteFooter />
             </div>
           </WalletProvider>
         </LocaleProvider>
