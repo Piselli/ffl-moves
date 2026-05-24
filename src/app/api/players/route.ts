@@ -85,12 +85,11 @@ export async function GET() {
       teamMap[t.id] = t.name;
     }
 
-    // Filter players: must be selectable and not loaned out
-    // Use official FPL element id as `id` everywhere (on-chain register_team, stats, display).
-    // Never use filtered-array index — it drifts from FPL ids and breaks name ↔ chain mapping.
+    // Do not filter on can_select — FPL sets can_select=false for every player after the
+    // season closes, which would return an empty catalog and break squad/result views.
     const players = data.elements
       .filter(
-        (el: { can_select?: boolean; status?: string }) => Boolean(el.can_select) && el.status !== "u",
+        (el: { status?: string }) => el.status !== "u",
       )
       .map((el: Record<string, unknown>) => {
         const elementType = Number(el.element_type);

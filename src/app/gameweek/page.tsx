@@ -192,12 +192,13 @@ export default function GameweekPage() {
   useEffect(() => {
     fetch("/api/players")
       .then(async (r) => {
+        if (!r.ok) throw new Error("players api unavailable");
         const data = await r.json();
-        if (r.ok && Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setPlayers(data as Player[]);
           return;
         }
-        throw new Error("players api unavailable or empty");
+        throw new Error("players api invalid response");
       })
       .catch(() => {
         import("@/data/players.json").then((m) => setPlayers(m.default as Player[]));
@@ -256,18 +257,16 @@ export default function GameweekPage() {
             const key = `ffl_team_v2_gw${targetGwId}_${addr}`;
             // Authoritative formation + positions come from chain (matches leaderboard / Move).
             // Never prefer raw localStorage here — it keeps catalog positions and drifts from get_user_team.
-            if (players.length > 0) {
-              const catalog = new Map(players.map((p) => [p.id, p]));
-              await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
-              const teamPlayers = squadPlayersFromChain(
-                { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
-                catalog,
-              );
-              if (teamPlayers.length === FORMATION.TOTAL) {
-                const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
-                setRegisteredTeam(snapshot);
-                localStorage.setItem(key, JSON.stringify(snapshot));
-              }
+            const catalog = new Map(players.map((p) => [p.id, p]));
+            await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
+            const teamPlayers = squadPlayersFromChain(
+              { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
+              catalog,
+            );
+            if (teamPlayers.length === FORMATION.TOTAL) {
+              const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
+              setRegisteredTeam(snapshot);
+              localStorage.setItem(key, JSON.stringify(snapshot));
             }
 
             // Fetch stats for intermediate/final results
@@ -367,9 +366,9 @@ export default function GameweekPage() {
     bench,
   ]);
 
-  // Closed/resolved: hydrate squad from chain once catalog is ready (covers wallet fetch before /api/players).
+  // Closed/resolved: hydrate squad from chain once wallet/GW are known (catalog may be empty — resolve via FPL ids).
   useEffect(() => {
-    if (!alreadyRegistered || !players.length || !account?.address || !config) return;
+    if (!alreadyRegistered || !account?.address || !config) return;
     const st = currentGameweek?.status;
     if (st !== "closed" && st !== "resolved") return;
 
@@ -411,7 +410,7 @@ export default function GameweekPage() {
   // Open GW (and legacy): load team from chain when localStorage is empty or incomplete
   useEffect(() => {
     const hasValidTeam = isCompleteRegisteredSnapshot(registeredTeam);
-    if (!alreadyRegistered || hasValidTeam || !players.length || !account?.address || !config) return;
+    if (!alreadyRegistered || hasValidTeam || !account?.address || !config) return;
     // Closed/resolved squads are synced from chain in the dedicated effect above.
     const gwStatus = currentGameweek?.status;
     if (gwStatus === "closed" || gwStatus === "resolved") return;

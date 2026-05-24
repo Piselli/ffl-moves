@@ -112,9 +112,9 @@ export async function GET(request: Request) {
       FplFixtureRow[],
     ];
 
-    const selectableElements = bootstrap.elements.filter(
-      (el) => Boolean(el.can_select) && el.status !== "u",
-    );
+    // Do not filter on can_select — FPL sets can_select=false for every player
+    // after the season closes, which would yield zero mapped players for the final GW.
+    const selectableElements = bootstrap.elements.filter((el) => el.status !== "u");
 
     const fplIdToInternal = new Map<number, { id: number; positionId: number }>();
     selectableElements.forEach((el) => {

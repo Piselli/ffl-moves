@@ -234,6 +234,7 @@ export default function MyResultPage() {
 
         if (!playersRes.ok) throw new Error(mr.errPlayersLoad);
         const allPlayers: Player[] = await playersRes.json();
+        if (!Array.isArray(allPlayers)) throw new Error(mr.errPlayersLoad);
         const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
         await mergeFplCatalogForChainIds(playerMap, userTeam.playerIds);
 

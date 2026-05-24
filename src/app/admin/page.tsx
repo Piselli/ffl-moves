@@ -165,6 +165,10 @@ export default function AdminPage() {
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
+      } else if (result.players.length === 0) {
+        setFetchError(
+          `No player stats returned for GW${fetchGameweek}. FPL returned fixtures but no mappable players — try again or paste JSON manually.`,
+        );
       }
 
       if (result.players.length > 0) {

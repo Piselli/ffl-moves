@@ -45,7 +45,8 @@ async function main() {
     fixturesRes.json(),
   ]);
 
-  const selectableElements = bootstrap.elements.filter((el) => el.can_select && el.status !== "u");
+  // can_select is false for all players once the season ends; status !== "u" excludes loaned-out only.
+  const selectableElements = bootstrap.elements.filter((el) => el.status !== "u");
 
   const fplIdToInternal = new Map();
   selectableElements.forEach((el) => {

@@ -33,10 +33,9 @@ async function main() {
     teamMap[t.id] = t.name;
   }
 
-  // Filter and transform players
-  // Only include players that are selectable (can_select) and not on loan (status !== 'u')
+  // Only include players in the league (not loaned out). can_select is false for all after season end.
   const players = data.elements
-    .filter((el) => el.can_select && el.status !== "u")
+    .filter((el) => el.status !== "u")
     .map((el) => ({
       id: el.id,
       fplId: el.id,
