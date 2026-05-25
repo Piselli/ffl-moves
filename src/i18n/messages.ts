@@ -51,8 +51,6 @@ export type SiteMessages = {
     heroSub2: string;
     heroSub3: string;
     statPrizePool: string;
-    /** Single-line credit under stats; interpolate `{amount}`. */
-    movementSponsorFootline: string;
     statParticipants: string;
     statRegistered: string;
     ctaStart: string;
@@ -206,8 +204,6 @@ const uk: SiteMessages = {
     heroSub2: "Збери 11 стартовиків і 3 запасних.",
     heroSub3: "Чим точніший твій вибір, тим більше MOVE на гаманець.",
     statPrizePool: "Призовий фонд цього туру",
-    movementSponsorFootline:
-      "+{amount} $MOVE додано до призового пулу завдяки Movement Network",
     statParticipants: "Учасників у цьому турі",
     statRegistered: "зареєстрованих складів",
     ctaStart: "Почати змагатись",
@@ -376,8 +372,6 @@ const en: SiteMessages = {
     heroSub2: "Pick 11 starters and 3 subs.",
     heroSub3: "The sharper your picks, the more MOVE lands in your wallet.",
     statPrizePool: "This gameweek prize pool",
-    movementSponsorFootline:
-      "+{amount} $MOVE added to the prize pool by Movement Network",
     statParticipants: "Players this gameweek",
     statRegistered: "registered squads",
     ctaStart: "Start competing",
