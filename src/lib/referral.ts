@@ -124,7 +124,7 @@ export async function getStats(): Promise<ReferralStat[]> {
   if (redis) {
     codes = (await redis.smembers(CODES_KEY)) ?? [];
   } else {
-    codes = [...mem.keys()];
+    codes = Array.from(mem.keys());
   }
 
   const stats: ReferralStat[] = await Promise.all(
