@@ -1,14 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Oswald } from "next/font/google";
+import { Inter, Oswald, Sofia_Sans_Condensed, Anton } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { ReferralCapture } from "@/components/ReferralCapture";
 
 const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
+const wcHero  = Sofia_Sans_Condensed({
+  subsets: ["latin", "cyrillic"],
+  weight: ["600", "900"],
+  variable: "--font-wc-hero",
+});
+// Poster-grade masthead face for the World Cup wordmark (official-tournament feel).
+const wcDisplay = Anton({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-wc-display",
+});
 
 const siteTitle = "MOVEMATCH — Premier League fantasy on Movement";
 const siteDescription =
@@ -53,9 +65,10 @@ export default function RootLayout({
       <head>
         <link rel="preload" href="/sprites/fpl-players.webp" as="image" type="image/webp" />
       </head>
-      <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${oswald.variable} ${wcHero.variable} ${wcDisplay.variable} font-sans antialiased`}>
         <LocaleProvider>
           <WalletProvider>
+            <ReferralCapture />
             <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
               <Navbar />

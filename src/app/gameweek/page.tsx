@@ -27,6 +27,7 @@ import {
   type GameweekSummary,
 } from "@/lib/movement";
 import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
+import { trackReferralConversion } from "@/lib/referralClient";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
@@ -649,6 +650,9 @@ export default function GameweekPage() {
         }
       }
       setAlreadyRegistered(true);
+
+      // Attribute this registration to the referral code the visitor arrived with.
+      trackReferralConversion(account?.address?.toString() ?? null);
     } catch (error: unknown) {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Error type:", typeof error);
