@@ -14,6 +14,7 @@ type ReferralStat = {
 
 type StatsResponse = {
   durable: boolean;
+  health?: { configured: boolean; reachable: boolean; error: string | null };
   totals: { clicks: number; signups: number; conversionRate: number };
   codes: ReferralStat[];
 };
@@ -209,11 +210,30 @@ export default function ReferralDashboardPage() {
           </div>
 
           {!data.durable && (
-            <p className="text-amber-400/80 text-xs mb-4">
-              ⚠ Зберігання in-memory (дані скидаються при перезапуску). Для проду задайте
-              <code className="mx-1">UPSTASH_REDIS_REST_URL</code> та
-              <code className="mx-1">UPSTASH_REDIS_REST_TOKEN</code>.
-            </p>
+            <div className="text-amber-400/90 text-xs mb-4 space-y-1">
+              {data.health?.configured && !data.health?.reachable ? (
+                <>
+                  <p>
+                    ⚠ Upstash налаштований, але <b>недоступний</b> — дані пишуться в in-memory (нестійко).
+                  </p>
+                  {data.health?.error && (
+                    <p className="text-amber-300/70">
+                      Помилка Redis: <code className="break-all">{data.health.error}</code>
+                    </p>
+                  )}
+                  <p className="text-white/40">
+                    Перевір, що в <code>UPSTASH_REDIS_REST_URL</code> саме REST-адреса (<code>https://…upstash.io</code>),
+                    а в <code>UPSTASH_REDIS_REST_TOKEN</code> — REST-токен (не <code>rediss://…</code>).
+                  </p>
+                </>
+              ) : (
+                <p>
+                  ⚠ Зберігання in-memory (дані скидаються при перезапуску). Для проду задайте
+                  <code className="mx-1">UPSTASH_REDIS_REST_URL</code> та
+                  <code className="mx-1">UPSTASH_REDIS_REST_TOKEN</code>.
+                </p>
+              )}
+            </div>
           )}
 
           {data.codes.length === 0 ? (

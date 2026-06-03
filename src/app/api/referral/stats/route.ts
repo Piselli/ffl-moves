@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStats, isReferralStoreDurable } from "@/lib/referral";
+import { getStats, isReferralStoreDurable, getReferralHealth } from "@/lib/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
-  const stats = await getStats();
+  const [stats, health] = await Promise.all([getStats(), getReferralHealth()]);
   const totals = stats.reduce(
     (acc, s) => {
       acc.clicks += s.clicks;
@@ -41,7 +41,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     {
-      durable: isReferralStoreDurable(),
+      durable: isReferralStoreDurable() && health.reachable,
+      health,
       totals: {
         ...totals,
         conversionRate: totals.clicks > 0 ? totals.signups / totals.clicks : 0,

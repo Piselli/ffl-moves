@@ -30,9 +30,43 @@ const hasUpstash =
 
 const redis = hasUpstash ? Redis.fromEnv() : null;
 
-/** Whether durable storage is configured. Surfaced in the admin dashboard. */
+/** Last error from a Redis call (surfaced in the dashboard for debugging). */
+let lastRedisError: string | null = null;
+
+/** Whether durable storage is configured (env vars present). */
 export function isReferralStoreDurable(): boolean {
   return hasUpstash;
+}
+
+/**
+ * Run a Redis operation, capturing failures instead of throwing so callers can
+ * gracefully fall back to the in-memory store.
+ */
+async function tryRedis<T>(fn: () => Promise<T>): Promise<{ ok: true; value: T } | { ok: false }> {
+  if (!redis) return { ok: false };
+  try {
+    const value = await fn();
+    lastRedisError = null;
+    return { ok: true, value };
+  } catch (e) {
+    lastRedisError = e instanceof Error ? e.message : String(e);
+    return { ok: false };
+  }
+}
+
+/** Health probe for the admin dashboard: is Redis configured and actually reachable? */
+export async function getReferralHealth(): Promise<{
+  configured: boolean;
+  reachable: boolean;
+  error: string | null;
+}> {
+  if (!redis) return { configured: false, reachable: false, error: null };
+  try {
+    await redis.ping();
+    return { configured: true, reachable: true, error: null };
+  } catch (e) {
+    return { configured: true, reachable: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** Normalize a referral code: lowercase, trim, strict charset, capped length. */
@@ -80,18 +114,18 @@ const k = {
   first: (c: string) => `ref:firstseen:${c}`,
 };
 
-/** Record a link click for `code`. Returns silently on bad input. */
+/** Record a link click for `code`. Falls back to in-memory if Redis fails. */
 export async function recordClick(code: string): Promise<void> {
   const now = Date.now();
-  if (redis) {
-    const p = redis.pipeline();
+  const r = await tryRedis(async () => {
+    const p = redis!.pipeline();
     p.sadd(CODES_KEY, code);
     p.incr(k.clicks(code));
     p.set(k.last(code), now);
     p.setnx(k.first(code), now);
     await p.exec();
-    return;
-  }
+  });
+  if (r.ok) return;
   const e = memEntry(code);
   e.clicks += 1;
   e.last = now;
@@ -104,33 +138,40 @@ export async function recordClick(code: string): Promise<void> {
 export async function recordConversion(code: string, wallet: string | null): Promise<void> {
   const now = Date.now();
   const w = normalizeWallet(wallet) ?? `anon:${now}`;
-  if (redis) {
-    const p = redis.pipeline();
+  const r = await tryRedis(async () => {
+    const p = redis!.pipeline();
     p.sadd(CODES_KEY, code);
     p.sadd(k.wallets(code), w);
     p.set(k.last(code), now);
     p.setnx(k.first(code), now);
     await p.exec();
-    return;
-  }
+  });
+  if (r.ok) return;
   const e = memEntry(code);
   e.wallets.add(w);
   e.last = now;
 }
 
+function memStats(): ReferralStat[] {
+  return Array.from(mem.entries()).map(([code, e]) => ({
+    code,
+    clicks: e.clicks,
+    signups: e.wallets.size,
+    conversionRate: e.clicks > 0 ? e.wallets.size / e.clicks : 0,
+    firstSeen: e.first,
+    lastActivity: e.last,
+  }));
+}
+
 /** All referral codes, with click/signup counters. Sorted by signups desc, then clicks desc. */
 export async function getStats(): Promise<ReferralStat[]> {
-  let codes: string[];
-  if (redis) {
-    codes = (await redis.smembers(CODES_KEY)) ?? [];
-  } else {
-    codes = Array.from(mem.keys());
-  }
+  const codesResult = await tryRedis(async () => (await redis!.smembers(CODES_KEY)) ?? []);
 
-  const stats: ReferralStat[] = await Promise.all(
-    codes.map(async (code) => {
-      if (redis) {
-        const p = redis.pipeline();
+  let stats: ReferralStat[];
+  if (codesResult.ok) {
+    stats = await Promise.all(
+      codesResult.value.map(async (code) => {
+        const p = redis!.pipeline();
         p.get<number>(k.clicks(code));
         p.scard(k.wallets(code));
         p.get<number>(k.first(code));
@@ -148,18 +189,11 @@ export async function getStats(): Promise<ReferralStat[]> {
           firstSeen: firstRaw != null ? Number(firstRaw) : null,
           lastActivity: lastRaw != null ? Number(lastRaw) : null,
         };
-      }
-      const e = memEntry(code);
-      return {
-        code,
-        clicks: e.clicks,
-        signups: e.wallets.size,
-        conversionRate: e.clicks > 0 ? e.wallets.size / e.clicks : 0,
-        firstSeen: e.first,
-        lastActivity: e.last,
-      };
-    }),
-  );
+      }),
+    );
+  } else {
+    stats = memStats();
+  }
 
   return stats.sort((a, b) => b.signups - a.signups || b.clicks - a.clicks);
 }
