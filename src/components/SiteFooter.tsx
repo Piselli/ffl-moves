@@ -1,11 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 export function SiteFooter() {
   const m = useSiteMessages();
+
+  // Discreet shortcut to the referral dashboard — only shown to people who have
+  // already signed into it on this device (the key is saved in localStorage).
+  // Keeps the link invisible to regular visitors.
+  const [showReferrals, setShowReferrals] = useState(false);
+  useEffect(() => {
+    try {
+      setShowReferrals(!!localStorage.getItem("fflmove_ref_admin_key"));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   return (
     <footer className="relative z-10 border-t border-white/[0.06] bg-[#0A0C0F]/80">
@@ -25,6 +38,14 @@ export function SiteFooter() {
           >
             {m.nav.faq}
           </Link>
+          {showReferrals && (
+            <Link
+              href="/admin/referrals"
+              className="text-xs font-bold uppercase tracking-widest text-emerald-400/50 hover:text-emerald-400/90 transition-colors"
+            >
+              Referrals
+            </Link>
+          )}
         </div>
       </div>
     </footer>
