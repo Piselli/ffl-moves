@@ -1,14 +1,31 @@
 /**
  * API-Sports Football Data Integration
- * Fetches real EPL match stats for oracle submission
+ * Fetches real match stats for oracle submission (EPL + World Cup).
  */
+
+import { WC_LEAGUE_ID, WC_SEASON, getWorldCupRound } from "./worldcup";
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const EPL_LEAGUE_ID = 39;
 const SEASON = 2025; // 2025/2026 EPL season
 
-// Player data from our local JSON (we'll load this)
-let playerMappings: Map<number, { id: number; position: string }> | null = null;
+/**
+ * Competition descriptor — lets one fetcher serve both EPL (FPL-id catalog) and the
+ * World Cup (API-Sports-id catalog). `rounds` are the API-Sports `round` strings to pull.
+ */
+interface CompetitionStatsConfig {
+  leagueId: number;
+  season: number;
+  /** Public JSON catalog with an `apiId` -> internal `id` mapping. */
+  mappingsUrl: string;
+  /** API-Sports round names that make up this tour. */
+  rounds: string[];
+  /** Tour / gameweek id reported back in the result. */
+  resultGameweekId: number;
+}
+
+// Player apiId -> internal mapping, cached per catalog url.
+const playerMappingsByUrl = new Map<string, Map<number, { id: number; position: string }>>();
 
 interface ApiFixture {
   fixture: { id: number; status: { short: string } };
@@ -58,26 +75,28 @@ export interface GameweekStatsResult {
   errors: string[];
 }
 
-async function loadPlayerMappings(): Promise<Map<number, { id: number; position: string }>> {
-  if (playerMappings) return playerMappings;
+async function loadPlayerMappings(
+  url = "/data/players.json",
+): Promise<Map<number, { id: number; position: string }>> {
+  const cached = playerMappingsByUrl.get(url);
+  if (cached) return cached;
 
+  const mappings = new Map<number, { id: number; position: string }>();
   try {
-    const response = await fetch("/data/players.json");
+    const response = await fetch(url);
     const players = await response.json();
-    playerMappings = new Map();
 
     for (const player of players) {
       if (player.apiId) {
         // We only need the original position string here; downstream code converts to a positionId.
-        playerMappings.set(player.apiId, { id: player.id, position: player.position });
+        mappings.set(player.apiId, { id: player.id, position: player.position });
       }
     }
-
-    return playerMappings;
   } catch (error) {
     console.error("Failed to load player mappings:", error);
-    return new Map();
   }
+  playerMappingsByUrl.set(url, mappings);
+  return mappings;
 }
 
 function mapApiPosition(pos: string): number {
@@ -88,12 +107,17 @@ function mapApiPosition(pos: string): number {
   return 2;
 }
 
-export async function fetchGameweekStats(
+/**
+ * Generic API-Sports stats fetcher. Pulls every completed fixture across `cfg.rounds`,
+ * then per-player stats per fixture, mapping API-Sports ids to internal ids via the
+ * competition catalog. Works for any league/season (EPL regular season, World Cup, ...).
+ */
+async function fetchStatsForCompetition(
   apiKey: string,
-  gameweekNumber: number
+  cfg: CompetitionStatsConfig,
 ): Promise<GameweekStatsResult> {
   const result: GameweekStatsResult = {
-    gameweekId: gameweekNumber,
+    gameweekId: cfg.resultGameweekId,
     players: [],
     fixtures: [],
     errors: [],
@@ -105,53 +129,53 @@ export async function fetchGameweekStats(
   }
 
   const headers = { "x-apisports-key": apiKey };
-  const mappings = await loadPlayerMappings();
+  const mappings = await loadPlayerMappings(cfg.mappingsUrl);
 
   try {
-    // 1. Get fixtures for the round
-    const round = `Regular Season - ${gameweekNumber}`;
-    const fixturesUrl = `${API_BASE_URL}/fixtures?league=${EPL_LEAGUE_ID}&season=${SEASON}&round=${encodeURIComponent(round)}`;
+    // 1. Collect completed fixtures across every round in this tour.
+    const completedFixtures: ApiFixture[] = [];
+    for (const round of cfg.rounds) {
+      const fixturesUrl = `${API_BASE_URL}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&round=${encodeURIComponent(round)}`;
+      const fixturesRes = await fetch(fixturesUrl, { headers });
 
-    const fixturesRes = await fetch(fixturesUrl, { headers });
-
-    // Check for rate limiting
-    if (fixturesRes.status === 429) {
-      result.errors.push("API rate limit exceeded. Free tier allows 100 requests/day. Try again tomorrow.");
-      return result;
-    }
-
-    if (!fixturesRes.ok) {
-      result.errors.push(`API request failed: ${fixturesRes.status} ${fixturesRes.statusText}`);
-      return result;
-    }
-
-    const fixturesData = await fixturesRes.json();
-
-    // Check for API-level errors (including rate limits in response body)
-    if (fixturesData.errors && Object.keys(fixturesData.errors).length > 0) {
-      const errorMessages = Object.entries(fixturesData.errors)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join("; ");
-
-      if (errorMessages.toLowerCase().includes("rate") || errorMessages.toLowerCase().includes("limit")) {
-        result.errors.push(`Rate limit exceeded: ${errorMessages}. Free tier allows 100 requests/day.`);
-      } else {
-        result.errors.push(`API Error: ${errorMessages}`);
+      if (fixturesRes.status === 429) {
+        result.errors.push("API rate limit exceeded. Free tier allows 100 requests/day. Try again tomorrow.");
+        return result;
       }
-      return result;
-    }
+      if (!fixturesRes.ok) {
+        result.errors.push(`API request failed for round "${round}": ${fixturesRes.status} ${fixturesRes.statusText}`);
+        continue;
+      }
 
-    const fixtures: ApiFixture[] = fixturesData.response || [];
-    const completedFixtures = fixtures.filter(
-      (f) => f.fixture.status.short === "FT" || f.fixture.status.short === "AET"
-    );
+      const fixturesData = await fixturesRes.json();
+      if (fixturesData.errors && Object.keys(fixturesData.errors).length > 0) {
+        const errorMessages = Object.entries(fixturesData.errors)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join("; ");
+        if (errorMessages.toLowerCase().includes("rate") || errorMessages.toLowerCase().includes("limit")) {
+          result.errors.push(`Rate limit exceeded: ${errorMessages}. Free tier allows 100 requests/day.`);
+          return result;
+        }
+        result.errors.push(`API Error (round "${round}"): ${errorMessages}`);
+        continue;
+      }
+
+      const fixtures: ApiFixture[] = fixturesData.response || [];
+      for (const f of fixtures) {
+        if (f.fixture.status.short === "FT" || f.fixture.status.short === "AET") {
+          completedFixtures.push(f);
+        }
+      }
+      // Be gentle with the rate limit between round queries.
+      if (cfg.rounds.length > 1) await new Promise((resolve) => setTimeout(resolve, 300));
+    }
 
     if (completedFixtures.length === 0) {
-      result.errors.push(`No completed fixtures found for Gameweek ${gameweekNumber}`);
+      result.errors.push(`No completed fixtures found for tour ${cfg.resultGameweekId}`);
       return result;
     }
 
-    // Track clean sheets
+    // Track clean sheets across all fixtures in the tour.
     const cleanSheetTeams = new Set<number>();
     for (const fixture of completedFixtures) {
       result.fixtures.push(`${fixture.teams.home.name} vs ${fixture.teams.away.name}`);
@@ -159,7 +183,7 @@ export async function fetchGameweekStats(
       if (fixture.goals.away === 0) cleanSheetTeams.add(fixture.teams.home.id);
     }
 
-    // 2. Get player stats for each fixture
+    // 2. Per-player stats per fixture.
     for (const fixture of completedFixtures) {
       try {
         const statsUrl = `${API_BASE_URL}/fixtures/players?fixture=${fixture.fixture.id}`;
@@ -177,7 +201,7 @@ export async function fetchGameweekStats(
             if (!stats || !stats.games.minutes) continue;
 
             const mapping = mappings.get(playerData.player.id);
-            if (!mapping) continue; // Skip players not in our database
+            if (!mapping) continue; // Skip players not in our catalog
 
             const positionId =
               mapping.position === "GK" ? 0 :
@@ -218,10 +242,51 @@ export async function fetchGameweekStats(
       }
     }
   } catch (error) {
-    result.errors.push(`Failed to fetch gameweek stats: ${error}`);
+    result.errors.push(`Failed to fetch stats: ${error}`);
   }
 
   return result;
+}
+
+export async function fetchGameweekStats(
+  apiKey: string,
+  gameweekNumber: number
+): Promise<GameweekStatsResult> {
+  return fetchStatsForCompetition(apiKey, {
+    leagueId: EPL_LEAGUE_ID,
+    season: SEASON,
+    mappingsUrl: "/data/players.json",
+    rounds: [`Regular Season - ${gameweekNumber}`],
+    resultGameweekId: gameweekNumber,
+  });
+}
+
+/**
+ * World Cup oracle stats for one tour id (group matchday or knockout round).
+ * Uses the API-Sports World Cup league/season and the WC catalog (apiId mapping).
+ * FPL-only fields (bonus, goals_conceded) are not produced here — the admin submit
+ * defaults them to 0 for WC; match ratings from API-Sports are real (better than EPL/FPL).
+ */
+export async function fetchWorldCupRoundStats(
+  apiKey: string,
+  tourId: number,
+): Promise<GameweekStatsResult> {
+  const round = getWorldCupRound(tourId);
+  if (!round) {
+    return {
+      gameweekId: tourId,
+      players: [],
+      fixtures: [],
+      errors: [`Unknown World Cup tour id ${tourId}.`],
+    };
+  }
+  return fetchStatsForCompetition(apiKey, {
+    leagueId: WC_LEAGUE_ID,
+    season: WC_SEASON,
+    mappingsUrl: "/data/wc-players.json",
+    rounds: round.apiRounds,
+    resultGameweekId: tourId,
+  });
 }
 
 /**

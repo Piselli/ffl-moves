@@ -152,6 +152,28 @@
   100% { transform: rotateX(55deg) translateY(-5%) scale(1.1) translateZ(0px); }
 }
 
+/* Trophy — gentle float + an orbiting specular shine */
+@keyframes wcFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+@keyframes wcShine {
+  0%   { transform: translateX(-120%) rotate(8deg); opacity: 0; }
+  45%  { opacity: 0.85; }
+  55%  { opacity: 0.85; }
+  100% { transform: translateX(120%) rotate(8deg); opacity: 0; }
+}
+
+@keyframes wcGlowPulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50%      { opacity: 0.9; transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-anim { animation: none !important; }
+}
+
 /* Animated gradient border for premium elements */
 @keyframes spin-slow {
   to {

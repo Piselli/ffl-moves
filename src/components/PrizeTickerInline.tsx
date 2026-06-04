@@ -8,17 +8,23 @@ import {
   getGameweekTeams,
   getTeamResult,
 } from "@/lib/movement";
+import {
+  findLatestResolvedWorldCupTourId,
+  getWorldCupRound,
+  isWorldCupCampaignActive,
+} from "@/lib/worldcup";
 import { formatMOVE, shortenAddress } from "@/lib/utils";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Winner = { address: string; rank: number; prizeAmount: number };
 type TickerData = { gwId: number; winners: Winner[] };
 
-const SESSION_KEY = "prize_ticker_v1";
+const sessionKey = () => (isWorldCupCampaignActive() ? "prize_ticker_wc_v1" : "prize_ticker_v1");
 const CACHE_TTL = 5 * 60 * 1000; // 5 min — same as server-side revalidate
 
 function readCache(): TickerData | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(sessionKey());
     if (!raw) return null;
     const { data, ts } = JSON.parse(raw) as { data: TickerData; ts: number };
     if (Date.now() - ts > CACHE_TTL) return null;
@@ -30,23 +36,11 @@ function readCache(): TickerData | null {
 
 function writeCache(data: TickerData) {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ data, ts: Date.now() }));
+    sessionStorage.setItem(sessionKey(), JSON.stringify({ data, ts: Date.now() }));
   } catch {}
 }
 
-async function fetchWinners(): Promise<TickerData | null> {
-  const cached = readCache();
-  if (cached) return cached;
-
-  const cfg = await getConfig();
-  if (!cfg) return null;
-
-  const highestId = await findHighestGameweekIdOnChain(cfg);
-  if (!highestId) return null;
-
-  const resolvedGwId = await findLatestResolvedGameweekId(highestId);
-  if (!resolvedGwId) return null;
-
+async function fetchWinnersForTour(resolvedGwId: number): Promise<TickerData | null> {
   const addresses = await getGameweekTeams(resolvedGwId);
   if (!addresses.length) return null;
 
@@ -71,14 +65,36 @@ async function fetchWinners(): Promise<TickerData | null> {
     .slice(0, 10);
 
   if (!winners.length) return null;
-  const result = { gwId: resolvedGwId, winners };
-  writeCache(result);
+  return { gwId: resolvedGwId, winners };
+}
+
+async function fetchWinners(): Promise<TickerData | null> {
+  const cached = readCache();
+  if (cached) return cached;
+
+  let resolvedGwId = 0;
+  if (isWorldCupCampaignActive()) {
+    resolvedGwId = await findLatestResolvedWorldCupTourId();
+  } else {
+    const cfg = await getConfig();
+    if (!cfg) return null;
+    const highestId = await findHighestGameweekIdOnChain(cfg);
+    if (!highestId) return null;
+    resolvedGwId = await findLatestResolvedGameweekId(highestId);
+  }
+  if (!resolvedGwId) return null;
+
+  const result = await fetchWinnersForTour(resolvedGwId);
+  if (result) writeCache(result);
   return result;
 }
 
 const RANK_ACCENT: Record<number, string> = { 1: "#00f948", 2: "#a3e635", 3: "#86efac" };
 
 export function PrizeTickerInline() {
+  const m = useSiteMessages();
+  const wc = m.pages.worldCup;
+  const wcCampaign = isWorldCupCampaignActive();
   const [data, setData] = useState<TickerData | null>(null);
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
 
@@ -96,6 +112,11 @@ export function PrizeTickerInline() {
 
   if (!data) return null;
 
+  const round = getWorldCupRound(data.gwId);
+  const tickerLabel = wcCampaign && round
+    ? m.home.prizeTickerWc(wc.roundName(round.key))
+    : `GW ${data.gwId} prizes`;
+
   const displayName = (addr: string) =>
     nicknames[addr.toLowerCase()] ?? shortenAddress(addr);
 
@@ -109,7 +130,7 @@ export function PrizeTickerInline() {
       <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center gap-2 pl-4 pr-10 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/95 to-transparent pointer-events-none">
         <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] shadow-[0_0_5px_rgba(0,249,72,0.9)] animate-pulse shrink-0" />
         <span className="text-[10px] font-black font-display uppercase tracking-[0.12em] text-white/45 whitespace-nowrap">
-          GW {data.gwId} prizes
+          {tickerLabel}
         </span>
       </div>
 

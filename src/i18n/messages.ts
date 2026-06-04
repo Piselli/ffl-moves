@@ -8,6 +8,7 @@ export type SiteMessages = {
     leaderboard: string;
     fixtures: string;
     faq: string;
+    worldCup: string;
     talents: string;
     soon: string;
     loading: string;
@@ -54,6 +55,40 @@ export type SiteMessages = {
     statParticipants: string;
     statRegistered: string;
     ctaStart: string;
+    wcPromoBadge: string;
+    wcPromoTitleMain: string;
+    wcPromoTitleYear: string;
+    wcHeroEyebrow: string;
+    wcHeroTitle: string;
+    wcHeroLiveStatus: string;
+    wcHeroTitleLine1: string;
+    wcHeroTitleLine2: string;
+    wcHeroLede: string;
+    wcHeroHostsLabel: string;
+    wcPromoDesc: string;
+    wcPromoCta: string;
+    wcPromoHosts: string;
+    wcPromoStagePath: string;
+    wcPromoFootnote: (rounds: number) => string;
+    wcHeroTagline: string;
+    wcScaleNations: string;
+    wcScaleCities: string;
+    wcScaleCountries: string;
+    wcScaleMatches: string;
+    wcScaleTrophy: string;
+    wcHeroKicker: string;
+    wcKickoffLabel: string;
+    wcKickoffMeta: string;
+    wcKickoffUnitD: string;
+    wcKickoffUnitH: string;
+    wcKickoffUnitM: string;
+    wcKickoffUnitS: string;
+    wcFeaturedLabel: string;
+    statPrizePoolWc: string;
+    statRegisteredWc: string;
+    ctaStartWc: string;
+    eplPausedNote: string;
+    prizeTickerWc: (roundName: string) => string;
     howItWorks: string;
     step1Sub: string;
     step1Title: string;
@@ -85,7 +120,13 @@ export type SiteMessages = {
     daySuffix: string;
     hourSuffix: string;
     minSuffix: string;
+    secSuffix: string;
     matchday: string;
+    heroCarouselWcTab: string;
+    heroCarouselAplTab: string;
+    heroCarouselAria: string;
+    heroCarouselPrev: string;
+    heroCarouselNext: string;
     carouselMarqueePts: string;
     /** Interpolate `{n}` with GK_SAVE_BATCH */
     scoringSavesEvery: string;
@@ -157,6 +198,7 @@ const uk: SiteMessages = {
     leaderboard: "Лідерборд",
     fixtures: "Матчі",
     faq: "FAQ",
+    worldCup: "Чемпіонат світу",
     talents: "Таланти",
     soon: "soon",
     loading: "Завантаження…",
@@ -207,6 +249,41 @@ const uk: SiteMessages = {
     statParticipants: "Учасників у цьому турі",
     statRegistered: "зареєстрованих складів",
     ctaStart: "Почати змагатись",
+    wcPromoBadge: "Новий івент",
+    wcPromoTitleMain: "Фентезі Чемпіонат світу",
+    wcPromoTitleYear: "2026",
+    wcHeroEyebrow: "WORLD CUP · 2026",
+    wcHeroTitle: "Фентезі",
+    wcHeroLiveStatus: "Фентезі-сезон відкрито",
+    wcHeroTitleLine1: "Чемпіонат",
+    wcHeroTitleLine2: "Світу",
+    wcHeroLede:
+      "48 націй, 16 міст, один трофей. Збирай склад і вигравай MOVE.",
+    wcHeroHostsLabel: "Господарі",
+    wcPromoDesc: "Збери збірну зі зірок. Вигравай MOVE у кожному раунді.",
+    wcPromoCta: "Перейти до ЧС",
+    wcPromoHosts: "США · Мексика · Канада",
+    wcPromoStagePath: "Група → Фінал",
+    wcPromoFootnote: (rounds) => `${rounds} раундів · on-chain призовий фонд`,
+    wcHeroTagline: "Збери команду, яка досягне результату",
+    wcScaleNations: "збірних",
+    wcScaleCities: "міст-господарів",
+    wcScaleCountries: "країни",
+    wcScaleMatches: "матчів",
+    wcScaleTrophy: "трофей",
+    wcHeroKicker: "Головна подія сезону",
+    wcKickoffLabel: "Старт ЧС",
+    wcKickoffMeta: "11 черв 2026 · Мехіко",
+    wcKickoffUnitD: "днів",
+    wcKickoffUnitH: "год",
+    wcKickoffUnitM: "хв",
+    wcKickoffUnitS: "сек",
+    wcFeaturedLabel: "На турнірі",
+    statPrizePoolWc: "Призовий фонд раунду",
+    statRegisteredWc: "Гравці в раунді",
+    ctaStartWc: "Зібрати склад ЧС",
+    eplPausedNote: "АПЛ повернеться після завершення Чемпіонату світу",
+    prizeTickerWc: (roundName) => `ЧС · ${roundName} · призи`,
     howItWorks: "Як це працює",
     step1Sub: "01 — Твій склад, твоя тактика",
     step1Title: "Весь склад АПЛ — твій вибір",
@@ -242,7 +319,13 @@ const uk: SiteMessages = {
     daySuffix: "д",
     hourSuffix: "г",
     minSuffix: "хв",
+    secSuffix: "с",
     matchday: "Тур",
+    heroCarouselWcTab: "ЧС 2026",
+    heroCarouselAplTab: "АПЛ",
+    heroCarouselAria: "Головний слайдер",
+    heroCarouselPrev: "Попередній слайд",
+    heroCarouselNext: "Наступний слайд",
     carouselMarqueePts: "ОЧК",
     scoringSavesEvery: "Кожні {n} сейви",
     scoringConcededGoal: "Пропущений гол (×{n})",
@@ -326,6 +409,7 @@ const en: SiteMessages = {
     leaderboard: "Leaderboard",
     fixtures: "Fixtures",
     faq: "FAQ",
+    worldCup: "World Cup",
     talents: "Talents",
     soon: "soon",
     loading: "Loading…",
@@ -375,6 +459,41 @@ const en: SiteMessages = {
     statParticipants: "Players this gameweek",
     statRegistered: "registered squads",
     ctaStart: "Start competing",
+    wcPromoBadge: "New event",
+    wcPromoTitleMain: "Fantasy World Cup",
+    wcPromoTitleYear: "2026",
+    wcHeroEyebrow: "WORLD CUP · 2026",
+    wcHeroTitle: "Fantasy",
+    wcHeroLiveStatus: "Fantasy season is live",
+    wcHeroTitleLine1: "World Cup",
+    wcHeroTitleLine2: "",
+    wcHeroLede:
+      "48 nations, 16 cities, one trophy. Draft your squad and win MOVE.",
+    wcHeroHostsLabel: "Hosts",
+    wcPromoDesc: "Build your national-team XI. Win MOVE every round.",
+    wcPromoCta: "Enter the World Cup",
+    wcPromoHosts: "USA · México · Canada",
+    wcPromoStagePath: "Group → Final",
+    wcPromoFootnote: (rounds) => `${rounds} rounds · on-chain prize pool`,
+    wcHeroTagline: "Build a squad that delivers",
+    wcScaleNations: "nations",
+    wcScaleCities: "host cities",
+    wcScaleCountries: "countries",
+    wcScaleMatches: "matches",
+    wcScaleTrophy: "trophy",
+    wcHeroKicker: "The main event of the season",
+    wcKickoffLabel: "Kickoff",
+    wcKickoffMeta: "11 Jun 2026 · México City",
+    wcKickoffUnitD: "Days",
+    wcKickoffUnitH: "Hrs",
+    wcKickoffUnitM: "Min",
+    wcKickoffUnitS: "Sec",
+    wcFeaturedLabel: "At the Cup",
+    statPrizePoolWc: "Round prize pool",
+    statRegisteredWc: "Players this round",
+    ctaStartWc: "Build World Cup squad",
+    eplPausedNote: "Premier League returns after the World Cup",
+    prizeTickerWc: (roundName) => `WC · ${roundName} · prizes`,
     howItWorks: "How it works",
     step1Sub: "01 — Your squad, your tactics",
     step1Title: "The whole PL player pool — your call",
@@ -410,7 +529,13 @@ const en: SiteMessages = {
     daySuffix: "d",
     hourSuffix: "h",
     minSuffix: "m",
+    secSuffix: "s",
     matchday: "Matchday",
+    heroCarouselWcTab: "World Cup 2026",
+    heroCarouselAplTab: "Premier League",
+    heroCarouselAria: "Home hero carousel",
+    heroCarouselPrev: "Previous slide",
+    heroCarouselNext: "Next slide",
     carouselMarqueePts: "PTS",
     scoringSavesEvery: "Every {n} saves",
     scoringConcededGoal: "Goal conceded (×{n})",

@@ -30,6 +30,77 @@ export type FaqCategory = {
 /** All non-home strings: gameweek, fixtures, leaderboard, my-result, modals, tables, admin alerts, faq. */
 export type PagesMessages = {
   languageSwitcherAria: string;
+  worldCup: {
+    badge: string;
+    landingTitle: string;
+    landingSubtitle: string;
+    playCta: string;
+    leaderboardCta: string;
+    navSquad: string;
+    navLeaderboard: string;
+    stageGroup: string;
+    stageKnockout: string;
+    /** Human label for a tour by its round key (md1, r32, …). */
+    roundName: (key: string) => string;
+    roundsTitle: string;
+    roundsSubtitle: string;
+    statusUpcoming: string;
+    statusOpen: string;
+    statusClosed: string;
+    statusResolved: string;
+    squadTitle: string;
+    pickHint: string;
+    maxThreeNation: string;
+    nationFilterAll: string;
+    catalogEmptyTitle: string;
+    catalogEmptyHint: string;
+    noActiveTourTitle: string;
+    noActiveTourHint: string;
+    leaderboardTitle: string;
+    leaderboardEmptyTitle: string;
+    leaderboardEmptyHint: string;
+    backToHub: string;
+    howItWorksTitle: string;
+    howStep1: string;
+    howStep2: string;
+    howStep3: string;
+    howDemoPoolTitle: string;
+    howDemoPoolMore: string;
+    hubLiveBadge: string;
+    hubSubNavOverview: string;
+    hubPrizePoolLabel: string;
+    hubEntriesLabel: string;
+    hubUntilDeadline: string;
+    hubPrizeTeaserTitle: string;
+    hubPrizeTeaserDesc: string;
+    hubStagePath: string;
+    hubHostsLabel: string;
+    prizeBadge: string;
+    prizeTitle: string;
+    prizeDesc: string;
+    prizePoolNowLabel: string;
+    prizeShareSuffix: string;
+    prizeClaimNote: string;
+    prizeEmptyHint: string;
+    prizeRankLabel: (rank: number) => string;
+    /** Fixtures / results board. */
+    fx: {
+      title: string;
+      subtitle: string;
+      loading: string;
+      deadlineLabel: string;
+      emptyTitle: string;
+      emptyHint: string;
+      groupLabel: (letter: string) => string;
+      statusUpcoming: string;
+      statusLive: string;
+      statusFinished: string;
+      tbd: string;
+      timeTbc: string;
+      seeAll: string;
+      teaserTitle: string;
+    };
+  };
   gameweek: {
     registerErrorPrefix: string;
     connectTitle: string;
@@ -292,8 +363,103 @@ export type PagesMessages = {
   };
 };
 
+const WC_ROUND_NAMES_EN: Record<string, string> = {
+  md1: "Group Stage · Matchday 1",
+  md2: "Group Stage · Matchday 2",
+  md3: "Group Stage · Matchday 3",
+  r32: "Round of 32",
+  r16: "Round of 16",
+  qf: "Quarter-finals",
+  sf: "Semi-finals",
+  final: "Final",
+};
+
+const WC_ROUND_NAMES_UK: Record<string, string> = {
+  md1: "Груповий етап · Тур 1",
+  md2: "Груповий етап · Тур 2",
+  md3: "Груповий етап · Тур 3",
+  r32: "1/16 фіналу",
+  r16: "1/8 фіналу",
+  qf: "1/4 фіналу",
+  sf: "Півфінали",
+  final: "Фінал",
+};
+
 export const pagesEn: PagesMessages = {
   languageSwitcherAria: "Site language",
+  worldCup: {
+    badge: "World Cup 2026",
+    landingTitle: "Fantasy World Cup",
+    landingSubtitle:
+      "Build a squad of national-team stars, score from real World Cup matches, and share the on-chain prize pool — round after round, from the group stage to the final.",
+    playCta: "Build your squad",
+    leaderboardCta: "Leaderboard",
+    navSquad: "Squad",
+    navLeaderboard: "Leaderboard",
+    stageGroup: "Group stage",
+    stageKnockout: "Knockout",
+    roundName: (key) => WC_ROUND_NAMES_EN[key] ?? key,
+    roundsTitle: "Tournament rounds",
+    roundsSubtitle: "Each round is its own contest: pick a squad, matches play, top managers split the pool.",
+    statusUpcoming: "Soon",
+    statusOpen: "Open",
+    statusClosed: "Closed",
+    statusResolved: "Finished",
+    squadTitle: "World Cup · Squad selection",
+    pickHint: "Pick 11 starters + 3 bench. Max 3 players from one nation.",
+    maxThreeNation: "Max 3 from one nation",
+    nationFilterAll: "All nations",
+    catalogEmptyTitle: "Squads not published yet",
+    catalogEmptyHint:
+      "National-team rosters are still being finalized. The player list opens here as soon as squads are confirmed.",
+    noActiveTourTitle: "No open round right now",
+    noActiveTourHint: "Registration for the next World Cup round will open before kickoff. Check back soon.",
+    leaderboardTitle: "World Cup · Leaderboard",
+    leaderboardEmptyTitle: "No results yet",
+    leaderboardEmptyHint: "Results appear after a round is played and published on-chain.",
+    backToHub: "← World Cup",
+    howItWorksTitle: "How it works",
+    howStep1: "Pick 11 + 3 from real World Cup squads before the round deadline.",
+    howStep2: "Earn points from real match actions — goals, assists, clean sheets, ratings.",
+    howStep3: "Top 10 of each round split the MOVE prize pool. Claim on the leaderboard.",
+    howDemoPoolTitle: "Player pool",
+    howDemoPoolMore: "+ hundreds more from every squad",
+    hubLiveBadge: "Live on-chain",
+    hubSubNavOverview: "Overview",
+    hubPrizePoolLabel: "Round prize pool",
+    hubEntriesLabel: "Squads registered",
+    hubUntilDeadline: "Until round deadline",
+    hubPrizeTeaserTitle: "Top 10 split the pool",
+    hubPrizeTeaserDesc:
+      "Every World Cup round is its own contest. When matches finish, the top 10 managers claim MOVE straight from the leaderboard.",
+    hubStagePath: "Group → Final",
+    hubHostsLabel: "USA · México · Canada",
+    prizeBadge: "Prize pool",
+    prizeTitle: "Top 10 split the pool",
+    prizeDesc:
+      "Every entry fee flows into the round's on-chain pool. When the matches are settled, the ten best managers take their cut — paid out in MOVE, claimable straight from the leaderboard.",
+    prizePoolNowLabel: "Current round pool",
+    prizeShareSuffix: "of pool",
+    prizeClaimNote: "Payouts are on-chain — winners claim on the leaderboard",
+    prizeEmptyHint: "The pool grows with every squad registered. Splits below update live as entries come in.",
+    prizeRankLabel: (rank) => `#${rank}`,
+    fx: {
+      title: "Match schedule",
+      subtitle: "Every World Cup fixture — kickoff times, live scores and results, round by round.",
+      loading: "Loading fixtures…",
+      deadlineLabel: "Round deadline (1st kickoff)",
+      emptyTitle: "Fixtures not available yet",
+      emptyHint: "The schedule for this round will appear here once it is published.",
+      groupLabel: (letter) => `Group ${letter}`,
+      statusUpcoming: "Upcoming",
+      statusLive: "Live",
+      statusFinished: "FT",
+      tbd: "TBD",
+      timeTbc: "TBC",
+      seeAll: "All matches",
+      teaserTitle: "Match schedule",
+    },
+  },
   gameweek: {
     registerErrorPrefix: "Registration error:",
     connectTitle: "Pick your squad",
@@ -987,6 +1153,79 @@ export const pagesEn: PagesMessages = {
 
 export const pagesUk: PagesMessages = {
   languageSwitcherAria: "Мова сайту",
+  worldCup: {
+    badge: "Чемпіонат світу 2026",
+    landingTitle: "Фентезі Чемпіонат світу",
+    landingSubtitle:
+      "Збери склад із зірок збірних, набирай очки з реальних матчів ЧС і ділíть on-chain призовий фонд — раунд за раундом, від групового етапу до фіналу.",
+    playCta: "Зібрати склад",
+    leaderboardCta: "Лідерборд",
+    navSquad: "Склад",
+    navLeaderboard: "Лідерборд",
+    stageGroup: "Груповий етап",
+    stageKnockout: "Плей-оф",
+    roundName: (key) => WC_ROUND_NAMES_UK[key] ?? key,
+    roundsTitle: "Раунди турніру",
+    roundsSubtitle: "Кожен раунд — окремий конкурс: збираєш склад, грають матчі, топ-менеджери ділять фонд.",
+    statusUpcoming: "Скоро",
+    statusOpen: "Відкрито",
+    statusClosed: "Закрито",
+    statusResolved: "Завершено",
+    squadTitle: "Чемпіонат світу · Вибір складу",
+    pickHint: "Обери 11 в основі + 3 запасних. Максимум 3 гравці з однієї збірної.",
+    maxThreeNation: "Максимум 3 з однієї збірної",
+    nationFilterAll: "Усі збірні",
+    catalogEmptyTitle: "Склади ще не опубліковані",
+    catalogEmptyHint:
+      "Заявки збірних ще фіналізуються. Список гравців з’явиться тут одразу після підтвердження складів.",
+    noActiveTourTitle: "Зараз немає відкритого раунду",
+    noActiveTourHint: "Реєстрація на наступний раунд ЧС відкриється перед стартом матчів. Зазирни трохи згодом.",
+    leaderboardTitle: "Чемпіонат світу · Лідерборд",
+    leaderboardEmptyTitle: "Результатів поки немає",
+    leaderboardEmptyHint: "Результати з’являються після того, як раунд зіграно й опубліковано on-chain.",
+    backToHub: "← Чемпіонат світу",
+    howItWorksTitle: "Як це працює",
+    howStep1: "Обери 11 + 3 з реальних складів збірних до дедлайну раунду.",
+    howStep2: "Набирай очки за реальні дії в матчах — голи, асисти, сухі пари, рейтинги.",
+    howStep3: "Топ-10 кожного раунду ділять призовий фонд MOVE. Забирай на лідерборді.",
+    howDemoPoolTitle: "Пул гравців",
+    howDemoPoolMore: "+ сотні інших з усіх збірних",
+    hubLiveBadge: "Live on-chain",
+    hubSubNavOverview: "Огляд",
+    hubPrizePoolLabel: "Призовий фонд раунду",
+    hubEntriesLabel: "Зареєстровано складів",
+    hubUntilDeadline: "До дедлайну раунду",
+    hubPrizeTeaserTitle: "Топ-10 ділять фонд",
+    hubPrizeTeaserDesc:
+      "Кожен раунд ЧС — окремий конкурс. Після матчів топ-10 менеджерів забирають MOVE прямо з лідерборду.",
+    hubStagePath: "Група → Фінал",
+    hubHostsLabel: "США · Мексика · Канада",
+    prizeBadge: "Призовий фонд",
+    prizeTitle: "Топ-10 ділять фонд",
+    prizeDesc:
+      "Кожен внесок за участь іде в on-chain фонд раунду. Після завершення матчів десять найкращих менеджерів забирають свою частку — у MOVE, прямо з лідерборду.",
+    prizePoolNowLabel: "Поточний фонд раунду",
+    prizeShareSuffix: "від фонду",
+    prizeClaimNote: "Виплати on-chain — переможці забирають на лідерборді",
+    prizeEmptyHint: "Фонд росте з кожним зареєстрованим складом. Розподіл нижче оновлюється наживо.",
+    prizeRankLabel: (rank) => `#${rank}`,
+    fx: {
+      title: "Розклад матчів",
+      subtitle: "Усі матчі Чемпіонату світу — час початку, живі рахунки та результати, тур за туром.",
+      loading: "Завантаження матчів…",
+      deadlineLabel: "Дедлайн раунду (1-й матч)",
+      emptyTitle: "Матчі поки недоступні",
+      emptyHint: "Розклад цього раунду з’явиться тут після публікації.",
+      groupLabel: (letter) => `Група ${letter}`,
+      statusUpcoming: "Скоро",
+      statusLive: "Live",
+      statusFinished: "FT",
+      tbd: "TBD",
+      timeTbc: "TBC",
+      seeAll: "Усі матчі",
+      teaserTitle: "Розклад матчів",
+    },
+  },
   gameweek: {
     registerErrorPrefix: "Помилка реєстрації:",
     connectTitle: "Вибір складу",

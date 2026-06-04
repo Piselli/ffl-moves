@@ -1,6 +1,10 @@
 export interface Player {
   id: number;
   fplId?: number;
+  /** API-Sports player id — used by the World Cup catalog/oracle mapping. */
+  apiId?: number;
+  /** API-Sports team id — World Cup national team. */
+  apiTeamId?: number;
   name: string;
   webName?: string;
   team: string;

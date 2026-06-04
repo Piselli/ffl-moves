@@ -14,7 +14,8 @@ import {
   type GameweekSummary,
 } from "@/lib/movement";
 import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
-import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { fetchGameweekStats, fetchGameweekStatsFPL, fetchWorldCupRoundStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { WC_ROUNDS } from "@/lib/worldcup";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function normAddr(a: string | undefined | null): string {
@@ -63,7 +64,9 @@ export default function AdminPage() {
   const [feeGuildMove, setFeeGuildMove] = useState("");
 
   // API states
-  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
+  const [dataSource, setDataSource] = useState<"fpl" | "api-sports" | "wc">("fpl");
+  // World Cup tour id selected for stats fetching (defaults to the first round).
+  const [wcTourId, setWcTourId] = useState<number>(WC_ROUNDS[0].tourId);
   const [apiKey, setApiKey] = useState("");
   const [fetchGameweek, setFetchGameweek] = useState("");
   const [isFetchingApi, setIsFetchingApi] = useState(false);
@@ -150,8 +153,8 @@ export default function AdminPage() {
   };
 
   const handleFetchFromApi = async () => {
-    if (!fetchGameweek) return;
-    if (dataSource === "api-sports" && !apiKey) return;
+    if (dataSource !== "wc" && !fetchGameweek) return;
+    if ((dataSource === "api-sports" || dataSource === "wc") && !apiKey) return;
 
     setIsFetchingApi(true);
     setFetchError("");
@@ -161,7 +164,9 @@ export default function AdminPage() {
       const result: GameweekStatsResult =
         dataSource === "fpl"
           ? await fetchGameweekStatsFPL(parseInt(fetchGameweek))
-          : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
+          : dataSource === "wc"
+            ? await fetchWorldCupRoundStats(apiKey, wcTourId)
+            : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
@@ -180,7 +185,7 @@ export default function AdminPage() {
         setFetchedFixtures(result.fixtures);
       }
 
-      if (dataSource === "api-sports") {
+      if (dataSource === "api-sports" || dataSource === "wc") {
         await handleCheckApiStatus();
       }
     } catch (error: unknown) {
@@ -1197,7 +1202,19 @@ export default function AdminPage() {
                 )}
               >
                 <span className="block font-bold">API-Sports</span>
-                <span className="block text-[10px] mt-0.5 opacity-70">100 req/day &middot; Needs key</span>
+                <span className="block text-[10px] mt-0.5 opacity-70">EPL &middot; 100 req/day &middot; Needs key</span>
+              </button>
+              <button
+                onClick={() => setDataSource("wc")}
+                className={cn(
+                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                  dataSource === "wc"
+                    ? "bg-[#00f948]/20 text-[#00f948] border-[#00f948]/30 shadow-lg shadow-[#00f948]/10"
+                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
+                )}
+              >
+                <span className="block font-bold">World Cup</span>
+                <span className="block text-[10px] mt-0.5 opacity-70">API-Sports &middot; Needs key</span>
               </button>
             </div>
 
@@ -1220,9 +1237,21 @@ export default function AdminPage() {
               </p>
             )}
 
+            {dataSource === "wc" && (
+              <p className="text-muted-foreground text-sm mb-4">
+                Fetch FIFA World Cup 2026 stats from API-Sports (league 1) for the selected tour. Submits to the
+                matching on-chain tour id (10001+). Build the player catalog first with{" "}
+                <code className="text-[#00f948]">npm run wc:players</code>.
+                <br />
+                <span className="text-xs text-muted-foreground/60">
+                  Provides: goals, assists, saves, clean sheets, cards, penalties, real match ratings, tackles/interceptions/dribbles.
+                </span>
+              </p>
+            )}
+
             <div className="space-y-4">
-              {/* API Key Input — only for API-Sports */}
-              {dataSource === "api-sports" && (
+              {/* API Key Input — for API-Sports and World Cup */}
+              {(dataSource === "api-sports" || dataSource === "wc") && (
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">API Key</label>
                   <div className="flex gap-3">
@@ -1256,25 +1285,47 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Gameweek Input */}
+              {/* Round / Gameweek selector */}
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">Gameweek to Fetch</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  {dataSource === "wc" ? "World Cup tour to fetch" : "Gameweek to Fetch"}
+                </label>
                 <div className="flex gap-3">
-                  <input
-                    type="number"
-                    placeholder="e.g., 23"
-                    value={fetchGameweek}
-                    onChange={(e) => setFetchGameweek(e.target.value)}
-                    className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
-                  />
+                  {dataSource === "wc" ? (
+                    <select
+                      value={wcTourId}
+                      onChange={(e) => setWcTourId(Number(e.target.value))}
+                      className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00f948] border border-border"
+                    >
+                      {WC_ROUNDS.map((r) => (
+                        <option key={r.tourId} value={r.tourId} className="bg-[#0D0F12]">
+                          {r.tourId} · {r.key.toUpperCase()} ({r.stage})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="number"
+                      placeholder="e.g., 23"
+                      value={fetchGameweek}
+                      onChange={(e) => setFetchGameweek(e.target.value)}
+                      className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
+                    />
+                  )}
                   <button
                     onClick={handleFetchFromApi}
-                    disabled={(dataSource === "api-sports" && !apiKey) || !fetchGameweek || isFetchingApi}
+                    disabled={
+                      ((dataSource === "api-sports" || dataSource === "wc") && !apiKey) ||
+                      (dataSource !== "wc" && !fetchGameweek) ||
+                      isFetchingApi
+                    }
                     className={cn(
                       "px-6 py-3 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
                       dataSource === "fpl"
                         ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 shadow-emerald-500/25"
-                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25"
+                        : dataSource === "wc"
+                          ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[#00f948]/25"
+                          : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25"
                     )}
                   >
                     {isFetchingApi ? (
@@ -1282,8 +1333,12 @@ export default function AdminPage() {
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Fetching...
                       </span>
+                    ) : dataSource === "fpl" ? (
+                      "Fetch from FPL"
+                    ) : dataSource === "wc" ? (
+                      "Fetch World Cup"
                     ) : (
-                      dataSource === "fpl" ? "Fetch from FPL" : "Fetch from API-Sports"
+                      "Fetch from API-Sports"
                     )}
                   </button>
                 </div>

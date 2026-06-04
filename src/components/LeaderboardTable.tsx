@@ -20,6 +20,13 @@ interface LeaderboardTableProps {
   isPreview?: boolean;
   /** When true, top-10 rows can expand to show full squad */
   showSquadView?: boolean;
+  /** Player catalog endpoint for squad expansion (default `/api/players` = FPL/EPL). */
+  catalogUrl?: string;
+  /**
+   * Use FPL-specific resolution for squad expansion (resolve missing ids via FPL and
+   * enrich on-chain stats with FPL live). Off for non-EPL competitions (e.g. World Cup).
+   */
+  fplEnrichment?: boolean;
 }
 
 type LoadedSquad = {
@@ -95,6 +102,8 @@ export function LeaderboardTable({
   gameweekId = 0,
   isPreview = false,
   showSquadView = false,
+  catalogUrl = "/api/players",
+  fplEnrichment = true,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
@@ -129,7 +138,7 @@ export function LeaderboardTable({
       setLoadErrorOwner(null);
       try {
         const [playersRes, chainTeam, chainResult] = await Promise.all([
-          fetch("/api/players").then((r) => (r.ok ? r.json() : Promise.reject(new Error("players")))),
+          fetch(catalogUrl).then((r) => (r.ok ? r.json() : Promise.reject(new Error("players")))),
           getUserTeam(owner, gameweekId),
           isPreview ? Promise.resolve(null) : getTeamResult(owner, gameweekId),
         ]);
@@ -137,7 +146,7 @@ export function LeaderboardTable({
         if (!chainTeam?.playerIds?.length) throw new Error("no team");
 
         const catalog = new Map((playersRes as Player[]).map((p) => [p.id, p]));
-        await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
+        if (fplEnrichment) await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
 
         const squad = squadPlayersFromChain(
           { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
@@ -150,18 +159,20 @@ export function LeaderboardTable({
           chainTeam.playerIds,
         )) as Record<string, Record<string, unknown>>;
 
-        try {
-          const fpl = await fetch(`/api/fpl-live?gw=${gameweekId}`).then((r) =>
-            r.ok ? r.json() : null,
-          );
-          if (fpl?.players) {
-            stats = enrichStatsMapWithFplPlayers(
-              stats as Record<string, unknown>,
-              fpl.players,
-            ) as Record<string, Record<string, unknown>>;
+        if (fplEnrichment) {
+          try {
+            const fpl = await fetch(`/api/fpl-live?gw=${gameweekId}`).then((r) =>
+              r.ok ? r.json() : null,
+            );
+            if (fpl?.players) {
+              stats = enrichStatsMapWithFplPlayers(
+                stats as Record<string, unknown>,
+                fpl.players,
+              ) as Record<string, Record<string, unknown>>;
+            }
+          } catch {
+            /* chain-only */
           }
-        } catch {
-          /* chain-only */
         }
 
         squadCacheRef.current.set(owner, {
@@ -177,7 +188,7 @@ export function LeaderboardTable({
         setLoadingOwner(null);
       }
     },
-    [gameweekId, isPreview],
+    [gameweekId, isPreview, catalogUrl, fplEnrichment],
   );
 
   const toggleRow = useCallback(

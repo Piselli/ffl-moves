@@ -59,6 +59,8 @@ module.exports = {
       fontFamily: {
         sans: ['"Inter"', 'sans-serif'],
         display: ['"Outfit"', '"Inter"', 'sans-serif'],
+        'wc-hero': ['var(--font-wc-hero)', '"Sofia Sans Condensed"', 'sans-serif'],
+        'wc-display': ['var(--font-wc-display)', '"Anton"', '"Arial Narrow"', 'sans-serif'],
       },
       animation: {
         'spin-slow': 'spin-slow 4s linear infinite',

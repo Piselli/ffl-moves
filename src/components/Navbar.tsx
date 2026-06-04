@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
@@ -19,12 +20,22 @@ import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 export function Navbar() {
   const m = useSiteMessages();
   const { locale } = useSiteLocale();
-  const navLinks = [
-    { href: "/gameweek", label: m.nav.squad },
-    { href: "/leaderboard", label: m.nav.leaderboard },
-    { href: "/fixtures", label: m.nav.fixtures },
-    { href: "/faq", label: m.nav.faq },
-  ];
+  const wcCampaign = isWorldCupCampaignActive();
+  const navLinks = wcCampaign
+    ? [
+        { href: "/world-cup", label: m.nav.worldCup, featured: true },
+        { href: "/world-cup/squad", label: m.nav.squad },
+        { href: "/world-cup/fixtures", label: m.nav.fixtures },
+        { href: "/world-cup/leaderboard", label: m.nav.leaderboard },
+        { href: "/faq", label: m.nav.faq },
+      ]
+    : [
+        { href: "/gameweek", label: m.nav.squad },
+        { href: "/leaderboard", label: m.nav.leaderboard },
+        { href: "/fixtures", label: m.nav.fixtures },
+        { href: "/world-cup", label: m.nav.worldCup },
+        { href: "/faq", label: m.nav.faq },
+      ];
   const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
   const [showWalletList, setShowWalletList] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,6 +48,7 @@ export function Navbar() {
   const connectedRef = useRef(false);
   const connectHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
+  const cinematicHeroTop = wcCampaign && pathname === "/" && !scrolled;
 
   const address = account?.address?.toString() ?? null;
   const { setNickname, hasNickname, myNickname } = useNickname(address);
@@ -169,7 +181,9 @@ export function Navbar() {
         className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
           scrolled
             ? "bg-black/60 backdrop-blur-2xl border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
-            : "bg-black/40 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+            : cinematicHeroTop
+              ? "bg-white/[0.04] backdrop-blur-2xl border-white/[0.07] shadow-[0_12px_48px_rgba(0,0,0,0.35)]"
+              : "bg-black/40 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
         }`}
       >
         {/* ── Left: Logo ──────────────────────────────── */}
@@ -178,7 +192,11 @@ export function Navbar() {
         {/* ── Center: Nav Links ───────────────────────── */}
         <div className="hidden md:flex items-center gap-1 shrink-0">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive =
+              link.href === "/world-cup"
+                ? pathname === "/world-cup"
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const featured = "featured" in link && link.featured;
             return (
               <Link
                 key={link.href}
@@ -189,7 +207,9 @@ export function Navbar() {
                   className={`text-[11px] font-black tracking-widest uppercase transition-all duration-200 ${
                     isActive
                       ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-                      : "text-white/40 group-hover:text-white/90"
+                      : featured
+                        ? "text-[#00f948]/90 group-hover:text-[#00f948]"
+                        : "text-white/40 group-hover:text-white/90"
                   }`}
                 >
                   {link.label}
@@ -369,14 +389,22 @@ export function Navbar() {
       {mobileMenuOpen ? (
         <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-[#0D0F12]/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden p-2 space-y-0.5">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive =
+              link.href === "/world-cup"
+                ? pathname === "/world-cup"
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const featured = "featured" in link && link.featured;
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest transition-colors ${
-                  isActive ? "bg-white/[0.08] text-white" : "text-white/60 hover:bg-white/[0.05] hover:text-white"
+                  isActive
+                    ? "bg-white/[0.08] text-white"
+                    : featured
+                      ? "text-[#00f948]/80 hover:bg-white/[0.05]"
+                      : "text-white/60 hover:bg-white/[0.05] hover:text-white"
                 }`}
               >
                 {link.label}

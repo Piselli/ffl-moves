@@ -8,11 +8,14 @@ interface FormationGridProps {
   starters: (Player | null)[];
   bench?: (Player | null)[];
   onPlayerClick?: (index: number, isBench: boolean) => void;
+  /** Static preview — no clicks or hover scale (e.g. marketing demo). */
+  readOnly?: boolean;
 }
 
 export function FormationGrid({
   starters,
   onPlayerClick,
+  readOnly = false,
 }: FormationGridProps) {
   // Formation: 4-3-3
   // Index 0: GK
@@ -46,11 +49,13 @@ export function FormationGrid({
       return (
         <div
           key={`slot-${isBench ? "bench" : "start"}-${index}`}
-          onClick={() => onPlayerClick?.(index, isBench)}
+          onClick={readOnly ? undefined : () => onPlayerClick?.(index, isBench)}
           className={cn(
-            "w-20 h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105",
+            "w-20 h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all",
+            !readOnly && "cursor-pointer hover:scale-105",
             positionColors[position],
-            "bg-black/20 backdrop-blur-sm hover:bg-black/30"
+            "bg-black/20 backdrop-blur-sm",
+            !readOnly && "hover:bg-black/30",
           )}
         >
           <span className="text-sm font-medium">{position}</span>
@@ -62,8 +67,8 @@ export function FormationGrid({
     return (
       <div
         key={`slot-${isBench ? "bench" : "start"}-${index}`}
-        onClick={() => onPlayerClick?.(index, isBench)}
-        className="w-20 h-24 transition-all hover:scale-105"
+        onClick={readOnly ? undefined : () => onPlayerClick?.(index, isBench)}
+        className={cn("w-20 h-24 transition-all", !readOnly && "cursor-pointer hover:scale-105")}
       >
         <PlayerCard
           player={player}
