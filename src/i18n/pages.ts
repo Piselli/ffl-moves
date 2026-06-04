@@ -83,6 +83,8 @@ export type PagesMessages = {
     prizeClaimNote: string;
     prizeEmptyHint: string;
     prizeRankLabel: (rank: number) => string;
+    /** Heading above the payout distribution chart. */
+    prizeDistribution: string;
     /** Fixtures / results board. */
     fx: {
       title: string;
@@ -443,6 +445,7 @@ export const pagesEn: PagesMessages = {
     prizeClaimNote: "Payouts are on-chain — winners claim on the leaderboard",
     prizeEmptyHint: "The pool grows with every squad registered. Splits below update live as entries come in.",
     prizeRankLabel: (rank) => `#${rank}`,
+    prizeDistribution: "Prize split",
     fx: {
       title: "Match schedule",
       subtitle: "Every World Cup fixture — kickoff times, live scores and results, round by round.",
@@ -1209,6 +1212,7 @@ export const pagesUk: PagesMessages = {
     prizeClaimNote: "Виплати on-chain — переможці забирають на лідерборді",
     prizeEmptyHint: "Фонд росте з кожним зареєстрованим складом. Розподіл нижче оновлюється наживо.",
     prizeRankLabel: (rank) => `#${rank}`,
+    prizeDistribution: "Розподіл призів",
     fx: {
       title: "Розклад матчів",
       subtitle: "Усі матчі Чемпіонату світу — час початку, живі рахунки та результати, тур за туром.",
