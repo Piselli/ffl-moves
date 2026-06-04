@@ -302,9 +302,9 @@ export function WorldCupEventHub() {
 
   return (
     <div className="relative z-10">
-      {/* ── Cinematic hero — sits flush on the shared WC stage (one uniform surface) ── */}
-      <section className="relative">
-        <div className="relative z-20 mx-auto max-w-5xl px-4 pb-12 pt-28 text-center sm:px-6 sm:pt-32">
+      {/* ── Cinematic hero — fills the first screen so the page reads one section at a time ── */}
+      <section className="relative flex min-h-[100svh] flex-col">
+        <div className="relative z-20 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 pb-28 pt-28 text-center sm:px-6">
           <motion.div {...fade} transition={{ duration: 0.55, ease: EASE_OUT }} className="flex flex-col items-center">
             {/* Live badge */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00f948]/30 bg-[#00f948]/[0.08] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#00f948]">
@@ -379,10 +379,36 @@ export function WorldCupEventHub() {
             </div>
           </motion.div>
         </div>
+
+        {/* Scroll affordance — tells the visitor there's "How it works" below */}
+        <button
+          type="button"
+          onClick={() =>
+            document
+              .getElementById("wc-how-it-works")
+              ?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" })
+          }
+          aria-label={wc.howItWorksTitle}
+          className="group absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 text-white/40 transition-colors hover:text-white/75"
+        >
+          <span className="font-wc-hero text-[10px] font-bold uppercase tracking-[0.22em]">{wc.howItWorksTitle}</span>
+          <motion.span
+            animate={reduceMotion ? undefined : { y: [0, 5, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 transition-colors group-hover:border-[#00f948]/45"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </motion.span>
+        </button>
       </section>
 
       {/* ── How it works ── */}
-      <section className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14">
+      <section
+        id="wc-how-it-works"
+        className="relative mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14"
+      >
         <WcSectionEyebrow>{wc.badge}</WcSectionEyebrow>
         <h2 className="mt-4 font-wc-display text-3xl uppercase leading-[0.95] tracking-tight text-white sm:text-4xl">
           {wc.howItWorksTitle}
