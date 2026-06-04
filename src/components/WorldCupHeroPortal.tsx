@@ -137,7 +137,7 @@ export function WorldCupHeroPortal() {
         aria-hidden
       />
 
-      <div className="relative z-20 mx-auto flex min-h-[min(100dvh,920px)] w-full max-w-[1440px] flex-col justify-center px-4 pb-16 pt-11 sm:px-6 sm:pb-14 lg:px-8">
+      <div className="relative z-20 mx-auto flex min-h-[min(100dvh,920px)] w-full max-w-[1440px] flex-col justify-center px-4 pb-16 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8">
         {/* ── Crown: live badge + official wordmark ── */}
         <motion.div {...fade(0.04)} className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00f948]/30 bg-[#00f948]/[0.08] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#00f948]">
