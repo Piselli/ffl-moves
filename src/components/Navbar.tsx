@@ -153,7 +153,7 @@ export function Navbar() {
   // Skeleton for SSR — mirror mobile row (menu + wallet) so layout does not jump at hydration
   if (!mounted) {
     return (
-      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0">
+      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-7xl px-2 sm:px-0">
         <nav className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:hidden">
@@ -175,7 +175,7 @@ export function Navbar() {
   return (
     <div
       ref={navShellRef}
-      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-6xl px-2 sm:px-0 transition-all duration-500"
+      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-7xl px-2 sm:px-0 transition-all duration-500"
     >
       <nav
         className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
@@ -190,7 +190,7 @@ export function Navbar() {
         <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
 
         {/* ── Center: Nav Links ───────────────────────── */}
-        <div className="hidden md:flex items-center gap-1 shrink-0">
+        <div className="hidden md:flex items-center gap-0.5 lg:gap-1 shrink-0">
           {navLinks.map((link) => {
             const isActive =
               link.href === "/world-cup"
@@ -201,7 +201,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative flex flex-col items-center px-3 xl:px-4 py-2 rounded-lg group"
+                className="relative flex flex-col items-center px-2.5 xl:px-3 py-2 rounded-lg group"
               >
                 <span
                   className={`text-[11px] font-black tracking-widest uppercase transition-all duration-200 ${
@@ -223,7 +223,7 @@ export function Navbar() {
             );
           })}
           {/* Таланти — coming soon, non-clickable */}
-          <div className="relative flex flex-col items-center px-4 py-2 rounded-lg cursor-not-allowed select-none">
+          <div className="relative flex flex-col items-center px-2.5 py-2 rounded-lg cursor-not-allowed select-none">
             <div className="relative">
               <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
                 {m.nav.talents}
