@@ -63,7 +63,7 @@ export type PagesMessages = {
     howItWorksTitle: string;
     howStep1: string;
     howStep2: string;
-    howStep3: string;
+    howStep3: (symbol: string) => string;
     howDemoPoolTitle: string;
     howDemoPoolMore: string;
     hubLiveBadge: string;
@@ -72,12 +72,12 @@ export type PagesMessages = {
     hubEntriesLabel: string;
     hubUntilDeadline: string;
     hubPrizeTeaserTitle: string;
-    hubPrizeTeaserDesc: string;
+    hubPrizeTeaserDesc: (symbol: string) => string;
     hubStagePath: string;
     hubHostsLabel: string;
     prizeBadge: string;
     prizeTitle: string;
-    prizeDesc: string;
+    prizeDesc: (symbol: string) => string;
     prizePoolNowLabel: string;
     prizeShareSuffix: string;
     prizeClaimNote: string;
@@ -124,6 +124,7 @@ export type PagesMessages = {
     pickPlayersHint: string;
     maxThreeHint: string;
     entryFeeLabel: string;
+    entryFeeUsdcxHint: string;
     entryShort: string;
     benchTitle: (n: number, max: number) => string;
     benchSlotEmpty: (idx: number) => string;
@@ -170,7 +171,7 @@ export type PagesMessages = {
     emptyScheduleHint: string;
   };
   leaderboard: {
-    claimSuccess: string;
+    claimSuccess: (symbol: string) => string;
     claimFail: (msg: string) => string;
     loading: string;
     seasonTag: string;
@@ -189,7 +190,7 @@ export type PagesMessages = {
     detailsLink: string;
     colRank: string;
     colPoints: string;
-    colPrizeMove: string;
+    colPrize: (symbol: string) => string;
     claim: string;
     claiming: string;
     claimed: string;
@@ -314,32 +315,32 @@ export type PagesMessages = {
     closeGwButtonLabel: (gw: number) => string;
     feesSectionTitle: string;
     feesSectionHint: string;
-    feesEntryLabel: string;
+    feesEntryLabel: (symbol: string) => string;
     feesTitleLabel: string;
     feesGuildLabel: string;
     feesSubmit: string;
     feesUpdated: string;
     feesInvalid: string;
     sponsorSectionTitle: string;
-    sponsorSectionHint: string;
+    sponsorSectionHint: (symbol: string) => string;
     sponsorGwLabel: string;
-    sponsorAmountLabel: string;
+    sponsorAmountLabel: (symbol: string) => string;
     sponsorSubmit: string;
-    sponsorSuccess: (gw: number, amountMove: string) => string;
+    sponsorSuccess: (gw: number, amountLabel: string) => string;
     sponsorInvalidGw: string;
-    sponsorInvalidAmount: string;
+    sponsorInvalidAmount: (symbol: string) => string;
     sponsorAmountTooSmall: string;
     sponsorAlertResolved: string;
     sponsorGwNotFound: (id: number) => string;
     sponsorNotOnChain: string;
     withdrawSectionTitle: string;
-    withdrawSectionHint: string;
+    withdrawSectionHint: (symbol: string) => string;
     withdrawRecipientLabel: string;
-    withdrawAmountLabel: string;
+    withdrawAmountLabel: (symbol: string) => string;
     withdrawSubmit: string;
-    withdrawSuccess: (recipient: string, amountMove: string) => string;
+    withdrawSuccess: (recipient: string, amountLabel: string) => string;
     withdrawInvalidRecipient: string;
-    withdrawInvalidAmount: string;
+    withdrawInvalidAmount: (symbol: string) => string;
     withdrawAmountTooSmall: string;
     withdrawNotOnChain: string;
   };
@@ -423,7 +424,7 @@ export const pagesEn: PagesMessages = {
     howItWorksTitle: "How it works",
     howStep1: "Pick 11 + 3 from real World Cup squads before the round deadline.",
     howStep2: "Earn points from real match actions — goals, assists, clean sheets, ratings.",
-    howStep3: "Top 10 of each round split the MOVE prize pool. Claim on the leaderboard.",
+    howStep3: (symbol) => `Top 10 of each round split the ${symbol} prize pool. Claim on the leaderboard.`,
     howDemoPoolTitle: "Player pool",
     howDemoPoolMore: "+ hundreds more from every squad",
     hubLiveBadge: "Live on-chain",
@@ -433,13 +434,13 @@ export const pagesEn: PagesMessages = {
     hubUntilDeadline: "Until round deadline",
     hubPrizeTeaserTitle: "Top 10 split the pool",
     hubPrizeTeaserDesc:
-      "Every World Cup round is its own contest. When matches finish, the top 10 managers claim MOVE straight from the leaderboard.",
+      (symbol) => `Every World Cup round is its own contest. When matches finish, the top 10 managers claim ${symbol} straight from the leaderboard.`,
     hubStagePath: "Group → Final",
     hubHostsLabel: "USA · México · Canada",
     prizeBadge: "Prize pool",
     prizeTitle: "Top 10 split the pool",
     prizeDesc:
-      "Every entry fee flows into the round's on-chain pool. When the matches are settled, the ten best managers take their cut — paid out in MOVE, claimable straight from the leaderboard.",
+      (symbol) => `Every entry fee flows into the round's on-chain pool. When the matches are settled, the ten best managers take their cut — paid out in ${symbol}, claimable straight from the leaderboard.`,
     prizePoolNowLabel: "Current round pool",
     prizeShareSuffix: "of pool",
     prizeClaimNote: "Payouts are on-chain — winners claim on the leaderboard",
@@ -478,12 +479,13 @@ export const pagesEn: PagesMessages = {
     statusResolved: "finished",
     unavailableGwSuffix: (gw, statusLabel) => ` GW ${gw} — ${statusLabel}.`,
     submitRegistering: "Registering…",
-    submitConfirm: (fee) => `Confirm squad · ${fee} MOVE`,
+    submitConfirm: (feeLabel) => `Confirm squad · ${feeLabel}`,
     submitNeedPlayers: (picked: number, max: number) => `Pick ${max} players (${picked}/${max})`,
     headerTitle: (gw) => `GW ${gw} · Squad selection`,
     pickPlayersHint: "Pick 11 players. Max 3 from the same club.",
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
+    entryFeeUsdcxHint: "Need USDCx? How to bridge USDC →",
     entryShort: "Entry",
     benchTitle: (n, max) => `Bench (${n}/${max})`,
     benchSlotEmpty: (idx) => `Sub ${idx + 1}`,
@@ -526,7 +528,7 @@ export const pagesEn: PagesMessages = {
       "Live match list from FPL did not load from this server — only the deadline from cache is shown. Refresh or try again shortly.",
   },
   leaderboard: {
-    claimSuccess: "Claim complete: MOVE was sent to your wallet (check balance in wallet / explorer).",
+    claimSuccess: (symbol) => `Claim complete: ${symbol} was sent to your wallet (check balance in wallet / explorer).`,
     claimFail: (msg) => `Could not claim: ${msg}`,
     loading: "Loading data…",
     seasonTag: "Season 2024/25",
@@ -545,7 +547,7 @@ export const pagesEn: PagesMessages = {
     detailsLink: "Details →",
     colRank: "Rank",
     colPoints: "Points",
-    colPrizeMove: "Prize (MOVE)",
+    colPrize: (symbol) => `Prize (${symbol})`,
     claim: "Claim",
     claiming: "...",
     claimed: "✓ Claimed",
@@ -682,25 +684,25 @@ export const pagesEn: PagesMessages = {
     sectionTitleWhenOpen: "Close registration",
     sectionTitleWhenClosed: "Re-open gameweek",
     closeGwButtonLabel: (gw) => `Close GW ${gw}`,
-    feesSectionTitle: "Registration & title fees (MOVE)",
+    feesSectionTitle: "Fees: squad (USDCx) & titles (MOVE)",
     feesSectionHint:
-      "Updates on-chain entry_fee, title_fee, and guild_fee (octas). Squad page reads these values from get_config — republishing the package alone does not change an existing deployment.",
-    feesEntryLabel: "Squad registration",
+      "Updates on-chain entry_fee (USDCx micro-units), title_fee, and guild_fee (MOVE octas). Squad page reads these values from get_config — republishing the package alone does not change an existing deployment.",
+    feesEntryLabel: (symbol) => `Squad registration (${symbol})`,
     feesTitleLabel: "Title purchase",
     feesGuildLabel: "Guild",
     feesSubmit: "Apply fees on-chain",
     feesUpdated: "Fees updated on-chain. Refresh the squad page.",
-    feesInvalid: "Enter valid non-negative numbers for all three fees (MOVE).",
+    feesInvalid: "Enter valid non-negative numbers for all three fees (entry in USDCx, title/guild in MOVE).",
     sponsorSectionTitle: "Add to prize pool (sponsor)",
-    sponsorSectionHint:
-      "Send MOVE from your admin wallet to the prize vault and increase this gameweek’s on-chain prize pool by the same amount. Prize shares after «Calculate results» are computed from that pool, so do this before resolving the gameweek. Claims pay from the vault — as long as you add funds here, claim will not run out.",
+    sponsorSectionHint: (symbol) =>
+      `Send ${symbol} from your admin wallet to the prize vault and increase this gameweek’s on-chain prize pool by the same amount. Prize shares after «Calculate results» are computed from that pool, so do this before resolving the gameweek. Claims pay from the vault — as long as you add funds here, claim will not run out.`,
     sponsorGwLabel: "Gameweek ID",
-    sponsorAmountLabel: "Amount (MOVE)",
+    sponsorAmountLabel: (symbol) => `Amount (${symbol})`,
     sponsorSubmit: "Add to prize pool",
-    sponsorSuccess: (gw, amountMove) =>
-      `Added ${amountMove} MOVE to GW ${gw} prize pool on-chain. If results are not calculated yet, the extra amount will be included in payouts.`,
+    sponsorSuccess: (gw, amountLabel) =>
+      `Added ${amountLabel} to GW ${gw} prize pool on-chain. If results are not calculated yet, the extra amount will be included in payouts.`,
     sponsorInvalidGw: "Enter a valid gameweek number (integer ≥ 1).",
-    sponsorInvalidAmount: "Enter a positive MOVE amount.",
+    sponsorInvalidAmount: (symbol) => `Enter a positive ${symbol} amount.`,
     sponsorAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
     sponsorAlertResolved:
       "This gameweek is already RESOLVED — individual prize amounts are fixed on-chain. Sponsor only works before «Calculate results».",
@@ -708,15 +710,15 @@ export const pagesEn: PagesMessages = {
     sponsorNotOnChain:
       "This deployment’s on-chain module does not include the entry function admin_sponsor_prize_pool (the wallet cannot load its ABI). The source in this repo has it — you need to publish a Movement package upgrade to the same account so that function exists on-chain. Until then the prize pool only grows from entry fees at the configured %.",
     withdrawSectionTitle: "Withdraw from prize vault",
-    withdrawSectionHint:
-      "Moves MOVE from the shared prize vault to any address (admin only). Does not change on-chain prize_pool fields or claim flags — leave enough balance for pending claim_prize calls or winners’ claims will fail.",
+    withdrawSectionHint: (symbol) =>
+      `Moves ${symbol} from the shared prize vault to any address (admin only). Does not change on-chain prize_pool fields or claim flags — leave enough balance for pending claim_prize calls or winners’ claims will fail.`,
     withdrawRecipientLabel: "Recipient address (0x…)",
-    withdrawAmountLabel: "Amount (MOVE)",
+    withdrawAmountLabel: (symbol) => `Amount (${symbol})`,
     withdrawSubmit: "Withdraw from vault",
-    withdrawSuccess: (recipient, amountMove) =>
-      `Sent ${amountMove} MOVE from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawSuccess: (recipient, amountLabel) =>
+      `Sent ${amountLabel} from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
     withdrawInvalidRecipient: "Enter a valid Movement address (0x + hex).",
-    withdrawInvalidAmount: "Enter a positive MOVE amount.",
+    withdrawInvalidAmount: (symbol) => `Enter a positive ${symbol} amount.`,
     withdrawAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
     withdrawNotOnChain:
       "This deployment’s module has no admin_withdraw_prize_vault entry on-chain. Upgrade the published package from this repo so the function appears in the ABI.",
@@ -758,7 +760,7 @@ export const pagesEn: PagesMessages = {
                   "Before each gameweek you build a squad from real EPL players.",
                   "Those players play real Premier League matches.",
                   "Their on-pitch actions (goals, assists, saves, etc.) earn you points.",
-                  "The top 10 managers of the gameweek share a prize pool, paid in MOVE crypto.",
+                  "The top 10 managers of the gameweek share a prize pool, paid in USDCx.",
                 ],
               },
               { type: "p", text: "No betting on match outcomes — it is a skill contest about reading football, not a lottery." },
@@ -768,7 +770,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-free",
             q: "Is it free to play?",
             a: [
-              { type: "p", text: "No. Registering a squad costs a small entry fee in MOVE (the exact amount is shown on the Squad page)." },
+              { type: "p", text: "No. Registering a squad costs a small entry fee in USDCx (the exact amount is shown on the Squad page)." },
               { type: "p", text: "All entry fees from all players go into that gameweek’s prize pool, and winners are paid from it." },
               { type: "p", text: "A small technical share is withheld to support and keep the project running." },
             ],
@@ -777,7 +779,7 @@ export const pagesEn: PagesMessages = {
             id: "can-i-actually-win",
             q: "Can I really win something?",
             a: [
-              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you automatically receive a share of the prize pool in MOVE on your wallet." },
+              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you automatically receive a share of the prize pool in USDCx on your wallet." },
               { type: "p", text: "How much depends on your final rank and how many people entered the round." },
             ],
           },
@@ -909,25 +911,29 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "what-is-movement",
-            q: "What is Movement and what is MOVE?",
+            q: "What is Movement and what is USDCx?",
             a: [
               { type: "p", text: "Movement is a blockchain network (think of it like the internet, but for crypto)." },
-              { type: "p", text: "MOVE is its native coin, like the dollar in the US. On MOVEMATCH you pay entry fees and receive prizes in MOVE." },
+              { type: "p", text: "USDCx is USDC on Movement (Circle xReserve). On MOVEMATCH you pay squad entry fees and receive prizes in USDCx — a stablecoin pegged to the US dollar." },
             ],
           },
           {
             id: "how-to-get-move",
-            q: "How do I get MOVE to start playing?",
+            q: "How do I get USDCx to start playing?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "Sign up at a crypto exchange (e.g. MEXC, Gate.io, KuCoin).",
-                  "Top up your account with a card or with other crypto.",
-                  "Buy MOVE.",
-                  "Withdraw MOVE to your Nightly wallet address — make sure you pick the Movement network!",
-                  "Once MOVE arrives in your wallet (a few minutes), open MOVEMATCH and register your squad.",
+                  "Install Nightly from nightly.app and create a wallet on Movement.",
+                  "Get USDC on Ethereum (or another supported chain) — buy on an exchange or swap inside your wallet.",
+                  "In Nightly, bridge USDC to your Movement address via Circle xReserve. USDCx appears automatically — no separate mint step.",
+                  "Check your balance: you need at least 5 USDCx to register one squad (plus a tiny amount of MOVE for network gas on title purchases only).",
+                  "Open MOVEMATCH → Connect wallet → Squad page → Confirm squad and sign in Nightly.",
                 ],
+              },
+              {
+                type: "p",
+                text: "Step-by-step with screenshots: movementnetwork.xyz/article/introducing-usdcx-movements-native-usdc-backed-stablecoin — or use the «How to get USDCx» link in the wallet menu on this site.",
               },
             ],
           },
@@ -936,7 +942,7 @@ export const pagesEn: PagesMessages = {
             q: "Is it safe to connect my wallet to the site?",
             a: [
               { type: "p", text: "Yes. “Connect wallet” is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
-              { type: "p", text: "You always sign inside the Nightly window. The site never sees your seed phrase or private key, and cannot move a single MOVE without your explicit signature." },
+              { type: "p", text: "You always sign inside the Nightly window. The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
               { type: "p", text: "Simple rule of thumb: always check the URL — only use the official MOVEMATCH address." },
             ],
           },
@@ -946,15 +952,15 @@ export const pagesEn: PagesMessages = {
             a: [
               { type: "p", text: "A smart contract is a program that runs automatically on a blockchain with no middlemen. Its code is open and cannot be silently changed." },
               { type: "p", text: "On MOVEMATCH the contract handles taking your entry fee into the pool, locking your squad so even the developers cannot tamper with it, and paying out the top 10." },
-              { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your MOVE." },
+              { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your USDCx." },
             ],
           },
           {
             id: "why-claim",
             q: "Why do I need to press “Claim” to receive a prize?",
             a: [
-              { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves MOVE from the contract to your address." },
-              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in Nightly → MOVE lands on your wallet. You can do this whenever you want." },
+              { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves USDCx from the contract to your address." },
+              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in Nightly → USDCx lands on your wallet. You can do this whenever you want." },
             ],
           },
         ],
@@ -973,7 +979,7 @@ export const pagesEn: PagesMessages = {
                 items: [
                   "1. Install Nightly from nightly.app.",
                   "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Buy a small amount of MOVE on an exchange (e.g. MEXC) and withdraw it to your Movement address.",
+                  "3. Bridge USDC to Movement (or buy USDC and withdraw to your Movement address) so you have USDCx in Nightly.",
                   "4. On MOVEMATCH press “Connect wallet” and pick Nightly.",
                   "5. Open the Squad page and pick 11 starters + 3 bench players.",
                   "6. Press “Confirm squad” and sign the transaction in Nightly.",
@@ -986,7 +992,7 @@ export const pagesEn: PagesMessages = {
             id: "entry-cost",
             q: "How much does one gameweek entry cost?",
             a: [
-              { type: "p", text: "The exact entry fee is shown on the Squad page (line “Registration fee”). It is a small MOVE amount — usually a few dollars worth is enough to try the game." },
+              { type: "p", text: "The exact entry fee is shown on the Squad page (line “Registration fee”). It is 5 USDCx per gameweek — a small stablecoin amount to try the game." },
             ],
           },
           {
@@ -1032,7 +1038,7 @@ export const pagesEn: PagesMessages = {
             q: "When and how do I get my prize?",
             a: [
               { type: "p", text: "After the last match of the round the admin closes the gameweek, stats go to the contract, and final ranks and prizes are computed." },
-              { type: "p", text: "Once the round is published as Resolved (usually within a day), a Claim button appears next to your result on the Leaderboard. Press it — and MOVE lands on your wallet." },
+              { type: "p", text: "Once the round is published as Resolved (usually within a day), a Claim button appears next to your result on the Leaderboard. Press it — and USDCx lands on your wallet." },
             ],
           },
         ],
@@ -1089,9 +1095,9 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "convert-to-fiat",
-            q: "How do I cash out MOVE back to normal money?",
+            q: "How do I cash out USDCx back to normal money?",
             a: [
-              { type: "p", text: "Through the same exchange you used to buy. Send MOVE from your wallet to your exchange account, sell for USDT/USDC or fiat, and withdraw to your bank card." },
+              { type: "p", text: "USDCx is already a dollar-pegged stablecoin. Bridge it back to your exchange or bank via Circle xReserve, or swap to fiat on an exchange that supports USDC withdrawals." },
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
@@ -1123,7 +1129,7 @@ export const pagesEn: PagesMessages = {
             q: "What if I lose my Nightly seed phrase?",
             a: [
               { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Nightly nor MOVEMATCH have access to it." },
-              { type: "p", text: "If the seed is lost, the wallet (and any MOVE in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
+              { type: "p", text: "If the seed is lost, the wallet (and any funds in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
             ],
           },
         ],
@@ -1190,7 +1196,7 @@ export const pagesUk: PagesMessages = {
     howItWorksTitle: "Як це працює",
     howStep1: "Обери 11 + 3 з реальних складів збірних до дедлайну раунду.",
     howStep2: "Набирай очки за реальні дії в матчах — голи, асисти, сухі пари, рейтинги.",
-    howStep3: "Топ-10 кожного раунду ділять призовий фонд MOVE. Забирай на лідерборді.",
+    howStep3: (symbol) => `Топ-10 кожного раунду ділять призовий фонд ${symbol}. Забирай на лідерборді.`,
     howDemoPoolTitle: "Пул гравців",
     howDemoPoolMore: "+ сотні інших з усіх збірних",
     hubLiveBadge: "Live on-chain",
@@ -1200,13 +1206,13 @@ export const pagesUk: PagesMessages = {
     hubUntilDeadline: "До дедлайну раунду",
     hubPrizeTeaserTitle: "Топ-10 ділять фонд",
     hubPrizeTeaserDesc:
-      "Кожен раунд ЧС — окремий конкурс. Після матчів топ-10 менеджерів забирають MOVE прямо з лідерборду.",
+      (symbol) => `Кожен раунд ЧС — окремий конкурс. Після матчів топ-10 менеджерів забирають ${symbol} прямо з лідерборду.`,
     hubStagePath: "Група → Фінал",
     hubHostsLabel: "США · Мексика · Канада",
     prizeBadge: "Призовий фонд",
     prizeTitle: "Топ-10 ділять фонд",
     prizeDesc:
-      "Кожен внесок за участь іде в on-chain фонд раунду. Після завершення матчів десять найкращих менеджерів забирають свою частку — у MOVE, прямо з лідерборду.",
+      (symbol) => `Кожен внесок за участь іде в on-chain фонд раунду. Після завершення матчів десять найкращих менеджерів забирають свою частку — у ${symbol}, прямо з лідерборду.`,
     prizePoolNowLabel: "Поточний фонд раунду",
     prizeShareSuffix: "від фонду",
     prizeClaimNote: "Виплати on-chain — переможці забирають на лідерборді",
@@ -1245,12 +1251,13 @@ export const pagesUk: PagesMessages = {
     statusResolved: "завершено",
     unavailableGwSuffix: (gw, statusLabel) => ` Тур ${gw} — ${statusLabel}.`,
     submitRegistering: "Реєстрація...",
-    submitConfirm: (fee) => `Підтвердити склад · ${fee} MOVE`,
+    submitConfirm: (feeLabel) => `Підтвердити склад · ${feeLabel}`,
     submitNeedPlayers: (picked: number, max: number) => `Обери ${max} гравців (${picked}/${max})`,
     headerTitle: (gw) => `Тур ${gw} · Вибір складу`,
     pickPlayersHint: "Обери 11 гравців. Максимум 3 з однієї команди.",
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
+    entryFeeUsdcxHint: "Потрібен USDCx? Як отримати →",
     entryShort: "Внесок",
     benchTitle: (n, max) => `Запасні (${n}/${max})`,
     benchSlotEmpty: (idx) => `Запасний ${idx + 1}`,
@@ -1293,7 +1300,7 @@ export const pagesUk: PagesMessages = {
       "Живий список матчів з FPL із цього сервера не підвантажився — показано лише дедлайн із кешу. Онови сторінку або спробуй за хвилину.",
   },
   leaderboard: {
-    claimSuccess: "Клейм виконано: MOVE надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).",
+    claimSuccess: (symbol) => `Клейм виконано: ${symbol} надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).`,
     claimFail: (msg) => `Не вдалося заклеймити: ${msg}`,
     loading: "Завантаження даних...",
     seasonTag: "Сезон 2024/25",
@@ -1312,7 +1319,7 @@ export const pagesUk: PagesMessages = {
     detailsLink: "Детальніше →",
     colRank: "Місце",
     colPoints: "Очки",
-    colPrizeMove: "Приз (MOVE)",
+    colPrize: (symbol) => `Приз (${symbol})`,
     claim: "Отримати",
     claiming: "...",
     claimed: "✓ Отримано",
@@ -1449,25 +1456,25 @@ export const pagesUk: PagesMessages = {
     sectionTitleWhenOpen: "Закрити реєстрацію",
     sectionTitleWhenClosed: "Повторно відкрити тур",
     closeGwButtonLabel: (gw) => `Закрити GW ${gw}`,
-    feesSectionTitle: "Внески: реєстрація складу та титули (MOVE)",
+    feesSectionTitle: "Внески: склад (USDCx) та титули (MOVE)",
     feesSectionHint:
-      "Оновлює on-chain entry_fee, title_fee та guild_fee (у найменших одиницях). Сторінка вибору складу бере суми з get_config — лише зміна коду пакета не змінює вже задеплоєний контракт.",
-    feesEntryLabel: "Реєстрація складу",
+      "Оновлює on-chain entry_fee (мікро-одиниці USDCx), title_fee та guild_fee (октаси MOVE). Сторінка вибору складу бере суми з get_config — лише зміна коду пакета не змінює вже задеплоєний контракт.",
+    feesEntryLabel: (symbol) => `Реєстрація складу (${symbol})`,
     feesTitleLabel: "Купівля титулу",
     feesGuildLabel: "Гільдія",
     feesSubmit: "Застосувати внески в мережі",
     feesUpdated: "Внески оновлено on-chain. Онови сторінку вибору складу.",
-    feesInvalid: "Введи коректні невід’ємні числа для всіх трьох полів (MOVE).",
+    feesInvalid: "Введи коректні невід’ємні числа для всіх трьох полів (внесок у USDCx, титули/гільдія в MOVE).",
     sponsorSectionTitle: "Додати в призовий пул (спонсор)",
-    sponsorSectionHint:
-      "Перерахуй MOVE з гаманця адміна в prize vault — on-chain поле призового фонду цього туру збільшиться на ту саму суму. Частки призів після «Calculate results» рахуються з цього фонду, тож роби це до резолву туру. Клейм платить з vault — якщо сума тут узгоджена з пулом, при клеймі не «не вистачить» коштів.",
+    sponsorSectionHint: (symbol) =>
+      `Перерахуй ${symbol} з гаманця адміна в prize vault — on-chain поле призового фонду цього туру збільшиться на ту саму суму. Частки призів після «Calculate results» рахуються з цього фонду, тож роби це до резолву туру. Клейм платить з vault — якщо сума тут узгоджена з пулом, при клеймі не «не вистачить» коштів.`,
     sponsorGwLabel: "Номер туру (GW)",
-    sponsorAmountLabel: "Сума (MOVE)",
+    sponsorAmountLabel: (symbol) => `Сума (${symbol})`,
     sponsorSubmit: "Додати в пул",
-    sponsorSuccess: (gw, amountMove) =>
-      `On-chain додано ${amountMove} MOVE до призового пулу GW ${gw}. Якщо результати ще не пораховані — ця сума піде в виплати.`,
+    sponsorSuccess: (gw, amountLabel) =>
+      `On-chain додано ${amountLabel} до призового пулу GW ${gw}. Якщо результати ще не пораховані — ця сума піде в виплати.`,
     sponsorInvalidGw: "Введи коректний номер туру (ціле число ≥ 1).",
-    sponsorInvalidAmount: "Введи додатну суму в MOVE.",
+    sponsorInvalidAmount: (symbol) => `Введи додатну суму в ${symbol}.`,
     sponsorAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
     sponsorAlertResolved:
       "Цей тур уже RESOLVED — індивідуальні призи зафіксовані в контракті. Спонсор лише до кроку «Calculate results».",
@@ -1475,15 +1482,15 @@ export const pagesUk: PagesMessages = {
     sponsorNotOnChain:
       "У задеплоєному on-chain модулі немає entry-функції admin_sponsor_prize_pool (гаманець не бачить ABI). У коді репозиторію вона вже є — потрібно зробити оновлення пакета Movement на той самий акаунт, щоб функція з’явилася в мережі. Доки цього немає, призовий пул росте лише з внесків гравців за налаштованим відсотком.",
     withdrawSectionTitle: "Вивести з призового vault",
-    withdrawSectionHint:
-      "Переказує MOVE зі спільного prize vault на будь-яку адресу (лише адмін). Не змінює on-chain поля prize_pool і не знімає незаклеймлені призи в обліку — лишай у vault достатньо ліквідності під очікувані claim_prize, інакше клейми впадуть через нестачу балансу.",
+    withdrawSectionHint: (symbol) =>
+      `Переказує ${symbol} зі спільного prize vault на будь-яку адресу (лише адмін). Не змінює on-chain поля prize_pool і не знімає незаклеймлені призи в обліку — лишай у vault достатньо ліквідності під очікувані claim_prize, інакше клейми впадуть через нестачу балансу.`,
     withdrawRecipientLabel: "Адреса отримувача (0x…)",
-    withdrawAmountLabel: "Сума (MOVE)",
+    withdrawAmountLabel: (symbol) => `Сума (${symbol})`,
     withdrawSubmit: "Вивести з vault",
-    withdrawSuccess: (recipient, amountMove) =>
-      `З vault відправлено ${amountMove} MOVE → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawSuccess: (recipient, amountLabel) =>
+      `З vault відправлено ${amountLabel} → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
     withdrawInvalidRecipient: "Введи коректну адресу Movement (0x + hex).",
-    withdrawInvalidAmount: "Введи додатну суму в MOVE.",
+    withdrawInvalidAmount: (symbol) => `Введи додатну суму в ${symbol}.`,
     withdrawAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
     withdrawNotOnChain:
       "У задеплоєному модулі on-chain немає entry admin_withdraw_prize_vault. Онови пакет із цього репозиторію, щоб функція з’явилася в ABI.",
@@ -1532,7 +1539,7 @@ export const pagesUk: PagesMessages = {
                   "Перед кожним туром ти збираєш свій склад із реальних футболістів АПЛ.",
                   "Ці футболісти грають у реальних матчах туру.",
                   "За їхні дії на полі (голи, асисти, сейви тощо) тобі нараховуються очки.",
-                  "Топ-10 менеджерів за очками ділять призовий фонд у криптовалюті MOVE.",
+                  "Топ-10 менеджерів за очками ділять призовий фонд у USDCx.",
                 ],
               },
               { type: "p", text: "Жодних ставок на матчі — це змагання за вміння аналізувати футбол, а не лотерея." },
@@ -1542,7 +1549,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-free",
             q: "Це безкоштовно?",
             a: [
-              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у MOVE (точна сума завжди видно на сторінці «Склад»)." },
+              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDCx (точна сума завжди видно на сторінці «Склад»)." },
               { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — виплати переможцям виходять із нього." },
               { type: "p", text: "З фонду утримується невелика технічна частка на підтримку й існування проєкту." },
             ],
@@ -1551,7 +1558,7 @@ export const pagesUk: PagesMessages = {
             id: "can-i-actually-win",
             q: "Чи я справді можу щось виграти?",
             a: [
-              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі автоматично нараховується частка призового фонду в токенах MOVE — їх потім можна забрати на свій гаманець." },
+              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі автоматично нараховується частка призового фонду в USDCx — їх потім можна забрати на свій гаманець." },
               { type: "p", text: "Розмір виграшу залежить від місця і від кількості учасників туру." },
             ],
           },
@@ -1683,25 +1690,29 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "what-is-movement",
-            q: "Що таке Movement і MOVE?",
+            q: "Що таке Movement і USDCx?",
             a: [
               { type: "p", text: "Movement — це блокчейн-мережа (як інтернет, тільки для криптовалют)." },
-              { type: "p", text: "MOVE — основна «монета» цієї мережі, як гривня в Україні чи долар у США. На MOVEMATCH ти платиш внески і отримуєш виграш у MOVE." },
+              { type: "p", text: "USDCx — це USDC у мережі Movement (Circle xReserve). На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx — стейблкоїні, прив’язаному до долара США." },
             ],
           },
           {
             id: "how-to-get-move",
-            q: "Як отримати MOVE, щоб зіграти?",
+            q: "Як отримати USDCx, щоб зіграти?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "Зареєструйся на криптобіржі (наприклад MEXC, Gate.io, KuCoin).",
-                  "Поповни рахунок з банківської карти або криптою.",
-                  "Купи MOVE.",
-                  "Виведи MOVE на адресу свого Nightly-гаманця — ВАЖЛИВО обрати мережу Movement.",
-                  "Коли MOVE дійшли в гаманець (зазвичай кілька хвилин) — заходь на MOVEMATCH і реєструй склад.",
+                  "Встанови Nightly з nightly.app і створи гаманець у Movement.",
+                  "Отримай USDC в Ethereum (або іншій підтримуваній мережі) — купи на біржі або обміняй у гаманці.",
+                  "У Nightly зроби брідж USDC на свою Movement-адресу через Circle xReserve. USDCx з’явиться автоматично — окремий крок мінту не потрібен.",
+                  "Перевір баланс: для одного складу потрібно щонайменше 5 USDCx (плюс трохи MOVE лише на газ для покупки титулів, якщо будеш).",
+                  "Заходь на MOVEMATCH → Підключи гаманець → Склад → Підтверди і підпиши в Nightly.",
                 ],
+              },
+              {
+                type: "p",
+                text: "Покроково з поясненнями: movementnetwork.xyz/article/introducing-usdcx-movements-native-usdc-backed-stablecoin — або посилання «Як отримати USDCx» у меню гаманця на сайті.",
               },
             ],
           },
@@ -1710,7 +1721,7 @@ export const pagesUk: PagesMessages = {
             q: "Чи безпечно підключати гаманець до сайту?",
             a: [
               { type: "p", text: "Так. «Підключити гаманець» — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
-              { type: "p", text: "Підпис ти даєш сам у вікні Nightly. Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного MOVE." },
+              { type: "p", text: "Підпис ти даєш сам у вікні Nightly. Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
               { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу MOVEMATCH." },
             ],
           },
@@ -1720,15 +1731,15 @@ export const pagesUk: PagesMessages = {
             a: [
               { type: "p", text: "Смарт-контракт — це програма, яка автоматично виконується в блокчейні без посередників. Її код відкритий і його не можна непомітно змінити." },
               { type: "p", text: "У MOVEMATCH контракт відповідає за: прийом твого внеску у фонд, фіксацію складу так, що ніхто (навіть розробники) не зможе його підмінити, і виплату призів топ-10." },
-              { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїми MOVE." },
+              { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїм USDCx." },
             ],
           },
           {
             id: "why-claim",
             q: "Чому я маю натискати «Claim», щоб забрати виграш?",
             a: [
-              { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок MOVE з контракту на твою адресу." },
-              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у Nightly → MOVE падає на гаманець. Зробити це можна в будь-який зручний момент." },
+              { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок USDCx з контракту на твою адресу." },
+              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у Nightly → USDCx падає на гаманець. Зробити це можна в будь-який зручний момент." },
             ],
           },
         ],
@@ -1747,7 +1758,7 @@ export const pagesUk: PagesMessages = {
                 items: [
                   "1. Встанови гаманець Nightly з nightly.app.",
                   "2. Створи акаунт у Nightly і збережи seed-фразу на папері.",
-                  "3. Купи трохи MOVE на біржі (наприклад MEXC) і виведи на свою Movement-адресу.",
+                  "3. Зроби брідж USDC у Movement (або купи USDC і виведи на Movement-адресу), щоб у Nightly був USDCx.",
                   "4. На MOVEMATCH натисни «Підключити гаманець», обери Nightly.",
                   "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
                   "6. Натисни «Підтвердити склад» і підпиши транзакцію в Nightly.",
@@ -1760,7 +1771,7 @@ export const pagesUk: PagesMessages = {
             id: "entry-cost",
             q: "Скільки коштує вхід в один тур?",
             a: [
-              { type: "p", text: "Конкретний внесок видно на сторінці «Склад» (рядок «Вартість реєстрації»). Це невелика сума в MOVE — для пробного входу зазвичай досить кількох доларів еквіваленту." },
+              { type: "p", text: "Конкретний внесок видно на сторінці «Склад» (рядок «Вартість реєстрації»). Це 5 USDCx за тур — невелика стабільна сума для пробного входу." },
             ],
           },
           {
@@ -1806,7 +1817,7 @@ export const pagesUk: PagesMessages = {
             q: "Коли і як я отримую виграш?",
             a: [
               { type: "p", text: "Після останнього матчу туру адміністрація закриває тур, статистика подається в смарт-контракт, обчислюються остаточні місця і призи." },
-              { type: "p", text: "Як тільки тур опубліковано як Resolved (зазвичай протягом доби), на сторінці «Лідерборд» поряд з твоїм результатом з'являється кнопка «Claim». Натискаєш — і MOVE приходить на гаманець." },
+              { type: "p", text: "Як тільки тур опубліковано як Resolved (зазвичай протягом доби), на сторінці «Лідерборд» поряд з твоїм результатом з'являється кнопка «Claim». Натискаєш — і USDCx приходить на гаманець." },
             ],
           },
         ],
@@ -1863,9 +1874,9 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "convert-to-fiat",
-            q: "Як вивести MOVE назад у звичайні гроші?",
+            q: "Як вивести USDCx у звичайні гроші?",
             a: [
-              { type: "p", text: "Через ту ж біржу, що ти використовував для покупки. Переказуєш MOVE з гаманця на свій акаунт біржі, продаєш за USDT/USDC або за фіат, і виводиш на банківську карту." },
+              { type: "p", text: "USDCx уже прив’язаний до долара. Зроби брідж назад через Circle xReserve на біржу або банк, або продай USDC за фіат на біржі, що підтримує вивід." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
             ],
           },
@@ -1897,7 +1908,7 @@ export const pagesUk: PagesMessages = {
             q: "А якщо я втратив seed-фразу від Nightly?",
             a: [
               { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Nightly, ні MOVEMATCH не мають доступу до неї." },
-              { type: "p", text: "Якщо seed утрачено — гаманець (і MOVE на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
+              { type: "p", text: "Якщо seed утрачено — гаманець (і кошти на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
             ],
           },
         ],

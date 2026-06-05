@@ -1,0 +1,81 @@
+# USDCx entry fee — live deployment
+
+Squad registration and prizes use **USDCx** (Circle xReserve USDC on Movement, 6 decimals).
+**5 USDCx** per entry = `5_000_000` on-chain.
+
+Title & guild fees **stay MOVE** (`/titles` page unchanged).
+
+## What changed
+
+| Layer | Change |
+|-------|--------|
+| Contract | `entry_fee_asset` + `usdc_metadata_addr` on `Config`; FA transfers for entry / prize vault / claim |
+| Admin entry | `set_entry_fee_asset(asset, usdc_metadata, entry_fee)` |
+| View | `get_entry_fee_asset()` → `(u8, address)` |
+| Frontend | `src/lib/entryFee.ts` — formatting; default asset USDCx |
+| UI | Squad, leaderboards, homepage, WC, tickers, FAQ, admin sponsor/withdraw |
+| Provider | `PrizeAssetProvider` in layout — one `getConfig` fetch |
+
+## Go live checklist
+
+### 1. Tests & build
+
+```bash
+npm run move:test
+npm run build
+```
+
+### 2. Publish contract upgrade
+
+Publish upgraded package to the same module account (see `move/MAINNET_CHECKLIST.txt`).
+
+New deploys init with USDCx defaults. **Existing deployments** must call admin (step 3).
+
+### 3. Enable on-chain (admin wallet)
+
+**Testnet** metadata:
+
+`0x63f169ba69623ba6ccf34620857644feb46d0f87e1d7bbcf8c071d30c3d94bd6`
+
+**Mainnet** metadata:
+
+`0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e`
+
+```bash
+movement move run \
+  --function-id '<MODULE>::fantasy_epl::set_entry_fee_asset' \
+  --args u8:1 address:<USDCX_METADATA> u64:5000000
+```
+
+### 4. Migrate prize vault (if switching mid-season)
+
+Withdraw remaining MOVE from the prize vault (admin `admin_withdraw_prize_vault`), then sponsor USDCx before resolving the next gameweek.
+
+### 5. Frontend deploy
+
+- No preview env vars required.
+- Redeploy site (reads `get_entry_fee_asset` from chain; falls back to USDCx if view missing).
+
+### 6. Verify
+
+- Squad page shows **5.00 USDCx** registration fee.
+- Test registration with USDCx in Nightly wallet.
+- Sponsor / claim / withdraw use USDCx in admin.
+
+## Roll back to MOVE
+
+```bash
+movement move run \
+  --function-id '<MODULE>::fantasy_epl::set_entry_fee_asset' \
+  --args u8:0 address:0x0 u64:30000000000
+```
+
+(`30000000000` = 300 MOVE octas.)
+
+Frontend will follow chain once `get_entry_fee_asset` returns `0`.
+
+## Notes
+
+- Users need **USDCx** in wallet (bridge USDC → Movement via Circle xReserve).
+- Prize pool + claims use the **same asset** as entry fees.
+- `NEXT_PUBLIC_PREVIEW_USDCX_ENTRY_FEE` removed — no longer used.

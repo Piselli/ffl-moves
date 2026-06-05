@@ -10,7 +10,8 @@ import {
   getWorldCupTourSummaries,
 } from "@/lib/worldcup";
 import type { GameweekSummary } from "@/lib/movement";
-import { formatMOVE, cn } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { WcHowItWorksDemo } from "@/components/wc/WcHowItWorksDemo";
 import { WcPitchLinesSvg } from "@/components/wc/WcDecor";
@@ -80,11 +81,12 @@ function PrizeBreakdown({
 }) {
   const m = useSiteMessages();
   const wc = m.pages.worldCup;
+  const prize = usePrizeAsset();
   const reduceMotion = useReducedMotion();
   const hasPool = !loading && prizePool != null && prizePool > 0;
 
   const amount = (share: number): string | null =>
-    hasPool ? formatMOVE((prizePool! * share) / 100) : null;
+    hasPool ? prize.formatUnits((prizePool! * share) / 100) : null;
 
   const ranks = PRIZE_SHARES.map((share, i) => ({ rank: i + 1, share }));
   const maxShare = PRIZE_SHARES[0];
@@ -102,7 +104,7 @@ function PrizeBreakdown({
           <h2 className="mt-4 font-wc-display text-3xl uppercase leading-[0.95] tracking-tight text-white sm:text-4xl">
             {wc.prizeTitle}
           </h2>
-          <p className="mt-2 max-w-xl text-sm text-white/45">{wc.prizeDesc}</p>
+          <p className="mt-2 max-w-xl text-sm text-white/45">{wc.prizeDesc(prize.symbol)}</p>
         </div>
         <Link
           href="/world-cup/leaderboard"
@@ -135,11 +137,11 @@ function PrizeBreakdown({
               {loading ? (
                 <span className="animate-pulse text-white/20">—</span>
               ) : hasPool ? (
-                formatMOVE(prizePool!)
+                prize.formatUnits(prizePool!)
               ) : (
                 <span className="text-white/25">—</span>
               )}
-              <span className="ml-1.5 text-sm text-white/40">MOVE</span>
+              <span className="ml-1.5 text-sm text-white/40">{prize.symbol}</span>
             </p>
             {!hasPool && !loading ? (
               <p className="mt-3 text-xs leading-relaxed text-white/35">{wc.prizeEmptyHint}</p>
@@ -179,7 +181,7 @@ function PrizeBreakdown({
                   <div
                     key={rank}
                     className="group flex h-full flex-1 flex-col items-center justify-end"
-                    title={amt ? `${wc.prizeRankLabel(rank)} · ${share}% · ${amt} MOVE` : `${wc.prizeRankLabel(rank)} · ${share}%`}
+                    title={amt ? `${wc.prizeRankLabel(rank)} · ${share}% · ${amt} ${prize.symbol}` : `${wc.prizeRankLabel(rank)} · ${share}%`}
                   >
                     <span
                       className={cn(
@@ -229,6 +231,7 @@ function PrizeBreakdown({
 }
 
 export function WorldCupEventHub() {
+  const prize = usePrizeAsset();
   const m = useSiteMessages();
   const wc = m.pages.worldCup;
   const hm = m.home;
@@ -298,7 +301,7 @@ export function WorldCupEventHub() {
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
-  const howSteps = [wc.howStep1, wc.howStep2, wc.howStep3];
+  const howSteps = [wc.howStep1, wc.howStep2, wc.howStep3(prize.symbol)];
 
   return (
     <div className="relative z-10">
@@ -347,8 +350,8 @@ export function WorldCupEventHub() {
               <HeroStat
                 label={hm.statPrizePoolWc}
                 meta={statRound ? wc.roundName(statRound.key) : undefined}
-                value={loading ? null : hasStatPool ? formatMOVE(statPool!) : <span className="text-white/30">—</span>}
-                suffix={hasStatPool ? "MOVE" : undefined}
+                value={loading ? null : hasStatPool ? prize.formatUnits(statPool!) : <span className="text-white/30">—</span>}
+                suffix={hasStatPool ? prize.symbol : undefined}
               />
               <HeroStat
                 label={hm.statRegisteredWc}
@@ -481,7 +484,7 @@ export function WorldCupEventHub() {
                   <p className="mt-2 min-h-[14px] text-[10px] text-white/40">
                     {summary && !loading ? (
                       <>
-                        <span className="font-bold tabular-nums text-[#00f948]">{formatMOVE(summary.prizePool)}</span> ·{" "}
+                        <span className="font-bold tabular-nums text-[#00f948]">{prize.formatUnits(summary.prizePool)}</span> ·{" "}
                         <span className="tabular-nums">{summary.totalEntries}</span>
                       </>
                     ) : null}

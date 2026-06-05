@@ -5,7 +5,8 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats, findActiveGameweekFromChain } from "@/lib/movement";
-import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -123,6 +124,7 @@ function PlayerResultCard({
 }
 
 export default function MyResultPage() {
+  const prize = usePrizeAsset();
   const { connected, account } = useWallet();
   const address = account?.address?.toString() ?? null;
   const { myNickname } = useNickname(address);
@@ -382,7 +384,7 @@ export default function MyResultPage() {
                   },
                   {
                     label: mr.prizeLabel,
-                    value: result.prizeAmount > 0 ? `${formatMOVE(result.prizeAmount)} MOVE` : "—",
+                    value: result.prizeAmount > 0 ? prize.formatLabel(result.prizeAmount) : "—",
                     accent: result.prizeAmount > 0,
                   },
                   {

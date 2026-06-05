@@ -20,7 +20,8 @@ import {
   type GameweekSummary,
 } from "@/lib/movement";
 import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
-import { formatMOVE, cn, formatTxError } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn, formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -28,6 +29,7 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 export default function LeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
   const lb = useSiteMessages().pages.leaderboard;
+  const prize = usePrizeAsset();
   const [config, setConfig] = useState<ChainConfig | null>(null);
   /** Upper bound for tour dropdown; can exceed `config.currentGameweek` if pointer lags. */
   const [pickerMaxGw, setPickerMaxGw] = useState(0);
@@ -200,7 +202,7 @@ export default function LeaderboardPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 30, checkSuccess: true },
       });
-      alert(lb.claimSuccess);
+      alert(lb.claimSuccess(prize.symbol));
       // setSelectedGameweek(gameweekId) here is a no-op (same value) — React skips state updates,
       // so the leaderboard would never reflect `claimed: true` until the user changes the dropdown.
       // Re-run the fetch directly instead.
@@ -302,9 +304,9 @@ export default function LeaderboardPage() {
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.poolLabel}</span>
             <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent tabular-nums">
-              {formatMOVE(currentGameweek.prizePool)}
+              {prize.formatUnits(currentGameweek.prizePool)}
             </span>
-            <span className="text-white/30 text-xs">MOVE</span>
+            <span className="text-white/30 text-xs">{prize.symbol}</span>
           </div>
 
           <div className="w-px h-5 bg-white/[0.08]" />
@@ -401,8 +403,8 @@ export default function LeaderboardPage() {
                 className: "text-white",
               },
               {
-                label: lb.colPrizeMove,
-                value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—",
+                label: lb.colPrize(prize.symbol),
+                value: userResult.prizeAmount > 0 ? prize.formatUnits(userResult.prizeAmount) : "—",
                 className: "text-emerald-400",
               },
             ].map(({ label, value, className }) => (

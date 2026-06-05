@@ -9,7 +9,8 @@ import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { FORMATION } from "@/lib/constants";
 import { Player, TeamResult } from "@/lib/types";
-import { formatMOVE, cn } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -111,6 +112,7 @@ export function LeaderboardTable({
   const posAbbrev = siteMessages.positionAbbrev;
   const benchAbbrev = siteMessages.recap.benchAbbrev;
   const { getNickname } = useNickname();
+  const prize = usePrizeAsset();
 
   const [expandedOwner, setExpandedOwner] = useState<string | null>(null);
   const [loadingOwner, setLoadingOwner] = useState<string | null>(null);
@@ -366,7 +368,7 @@ export function LeaderboardTable({
                             : "text-white/72",
                         )}
                       >
-                        {formatMOVE(result.prizeAmount)} MOVE
+                        {prize.formatLabel(result.prizeAmount)}
                       </span>
                     ) : (
                       <span className="text-white/20 text-sm">—</span>

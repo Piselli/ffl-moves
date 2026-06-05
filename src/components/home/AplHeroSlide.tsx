@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function HeroDeadlinePlaque({
@@ -148,19 +149,8 @@ function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
   );
 }
 
-function formatHeroPoolMove(n: number, locale: "uk" | "en"): string {
-  if (!Number.isFinite(n)) return "—";
-  const loc = locale === "uk" ? "uk-UA" : "en-US";
-  const rounded = Number(n.toFixed(2));
-  const whole = Math.round(rounded);
-  if (Math.abs(rounded - whole) < 1e-6) {
-    return whole.toLocaleString(loc);
-  }
-  return rounded.toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-}
-
 export function AplHeroSlide({
-  prizePool,
+  prizePoolRaw,
   tourEntryCount,
   dataLoading,
   statsGwLabel,
@@ -170,7 +160,7 @@ export function AplHeroSlide({
   locale,
   eventPaused = false,
 }: {
-  prizePool: number | null;
+  prizePoolRaw: number | null;
   tourEntryCount: number | null;
   dataLoading: boolean;
   statsGwLabel: number | null;
@@ -181,6 +171,7 @@ export function AplHeroSlide({
   eventPaused?: boolean;
 }) {
   const m = useSiteMessages();
+  const prize = usePrizeAsset();
   const loc = locale === "uk" ? "uk" : "en";
   const deadlineCopy = {
     untilDeadline: m.home.untilDeadline,
@@ -227,7 +218,7 @@ export function AplHeroSlide({
             <br />
             {m.home.heroSub2}
             <br />
-            {m.home.heroSub3}
+            {m.home.heroSub3(prize.symbol)}
           </motion.p>
         </div>
 
@@ -264,12 +255,12 @@ export function AplHeroSlide({
               <p className="relative z-10 mt-auto w-full min-w-0 font-display text-[0.9375rem] font-black tabular-nums tracking-tight text-white min-[380px]:text-base sm:text-xl md:text-[1.5rem] lg:text-[1.65rem] leading-none">
                 {dataLoading ? (
                   <span className="text-white/20 animate-pulse">—</span>
-                ) : prizePool == null ? (
+                ) : prizePoolRaw == null ? (
                   <span className="text-white/20">N/A</span>
                 ) : (
                   <span className="inline-flex max-w-full flex-none flex-nowrap items-baseline gap-x-[0.18em] whitespace-nowrap">
-                    <span className="shrink-0 tabular-nums">{formatHeroPoolMove(prizePool, loc)}</span>
-                    <span className="shrink-0 text-white/95">$MOVE</span>
+                    <span className="shrink-0 tabular-nums">{prize.formatHero(prizePoolRaw, locale)}</span>
+                    <span className="shrink-0 text-white/95">{prize.symbol}</span>
                   </span>
                 )}
               </p>

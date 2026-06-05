@@ -21,7 +21,8 @@ import {
   getWorldCupRound,
 } from "@/lib/worldcup";
 import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
-import { formatMOVE, cn, formatTxError } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -30,6 +31,7 @@ export default function WorldCupLeaderboardPage() {
   const msgs = useSiteMessages();
   const lb = msgs.pages.leaderboard;
   const wc = msgs.pages.worldCup;
+  const prize = usePrizeAsset();
 
   const [availableTours, setAvailableTours] = useState<GameweekSummary[]>([]);
   const [currentTour, setCurrentTour] = useState<GameweekSummary | null>(null);
@@ -165,7 +167,7 @@ export default function WorldCupLeaderboardPage() {
         transactionHash: pending.hash,
         options: { timeoutSecs: 30, checkSuccess: true },
       });
-      alert(lb.claimSuccess);
+      alert(lb.claimSuccess(prize.symbol));
       await fetchTourData(tourId);
     } catch (error: unknown) {
       alert(lb.claimFail(formatTxError(error)));
@@ -254,9 +256,9 @@ export default function WorldCupLeaderboardPage() {
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.poolLabel}</span>
             <span className="text-xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent tabular-nums">
-              {formatMOVE(currentTour.prizePool)}
+              {prize.formatUnits(currentTour.prizePool)}
             </span>
-            <span className="text-white/30 text-xs">MOVE</span>
+            <span className="text-white/30 text-xs">{prize.symbol}</span>
           </div>
           <div className="w-px h-5 bg-white/[0.08]" />
           <div className="flex items-baseline gap-1.5">
@@ -289,7 +291,7 @@ export default function WorldCupLeaderboardPage() {
                   userResult.rank === 1 ? "text-[#FFD700]" : userResult.rank === 2 ? "text-[#E2E8F0]" : userResult.rank === 3 ? "text-[#F59E0B]" : "text-white",
               },
               { label: lb.colPoints, value: String(userResult.finalPoints), className: "text-white" },
-              { label: lb.colPrizeMove, value: userResult.prizeAmount > 0 ? formatMOVE(userResult.prizeAmount) : "—", className: "text-emerald-400" },
+              { label: lb.colPrize(prize.symbol), value: userResult.prizeAmount > 0 ? prize.formatUnits(userResult.prizeAmount) : "—", className: "text-emerald-400" },
             ].map(({ label, value, className }) => (
               <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-3 text-center">
                 <p className={cn("text-2xl font-display font-black tabular-nums", className)}>{value}</p>

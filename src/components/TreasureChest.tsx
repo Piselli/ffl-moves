@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 
 type Particle = {
   id: number;
@@ -28,6 +29,7 @@ function buildParticles(): Particle[] {
 }
 
 export function TreasureChest() {
+  const prize = usePrizeAsset();
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function TreasureChest() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/chest.png"
-          alt="MOVE Treasure Chest"
+          alt={`${prize.symbol} Treasure Chest`}
           className="w-full h-auto object-contain relative z-10"
           style={{
             filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.5))",

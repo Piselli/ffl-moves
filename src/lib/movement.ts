@@ -50,15 +50,41 @@ export async function hasAdminWithdrawPrizeVaultOnChain(): Promise<boolean> {
 }
 
 // View function helpers
-export async function getConfig() {
+/** `null` when the deployed package has no `get_entry_fee_asset` view yet. */
+export async function getEntryFeeAssetOnChain(): Promise<{
+  asset: number;
+  usdcMetadata: string;
+} | null> {
   try {
     const result = await client.view({
       payload: {
-        function: moduleFunction("get_config"),
+        function: moduleFunction("get_entry_fee_asset"),
         typeArguments: [],
         functionArguments: [],
       },
     });
+    return {
+      asset: viewNum(result[0]),
+      usdcMetadata: String(result[1] ?? "0x0"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getConfig() {
+  try {
+    const [configResult, entryAsset] = await Promise.all([
+      client.view({
+        payload: {
+          function: moduleFunction("get_config"),
+          typeArguments: [],
+          functionArguments: [],
+        },
+      }),
+      getEntryFeeAssetOnChain(),
+    ]);
+    const result = configResult;
     return {
       admins: result[0] as string[],  // Now returns array of admins
       oracle: result[1] as string,
@@ -67,6 +93,8 @@ export async function getConfig() {
       guildFee: viewNum(result[4]),
       prizePoolPercent: viewNum(result[5]),
       currentGameweek: viewNum(result[6]),
+      entryFeeAsset: entryAsset?.asset ?? 1,
+      usdcMetadataAddr: entryAsset?.usdcMetadata ?? "0x0",
     };
   } catch (e) {
     console.error("Failed to get config:", e);

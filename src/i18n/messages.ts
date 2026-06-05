@@ -50,7 +50,7 @@ export type SiteMessages = {
     heroLine3: string;
     heroSub1: string;
     heroSub2: string;
-    heroSub3: string;
+    heroSub3: (symbol: string) => string;
     statPrizePool: string;
     statParticipants: string;
     statRegistered: string;
@@ -63,9 +63,9 @@ export type SiteMessages = {
     wcHeroLiveStatus: string;
     wcHeroTitleLine1: string;
     wcHeroTitleLine2: string;
-    wcHeroLede: string;
+    wcHeroLede: (symbol: string) => string;
     wcHeroHostsLabel: string;
-    wcPromoDesc: string;
+    wcPromoDesc: (symbol: string) => string;
     wcPromoCta: string;
     wcPromoHosts: string;
     wcPromoStagePath: string;
@@ -165,7 +165,7 @@ export type SiteMessages = {
     stepBadge: string;
     titleLine1: string;
     titleLine2: string;
-    subtitle: string;
+    subtitle: (symbol: string) => string;
     colPosition: string;
     colShare: string;
   };
@@ -244,7 +244,7 @@ const uk: SiteMessages = {
     heroLine3: "Час на цьому заробити",
     heroSub1: "Аналізуй форму гравців і розклад туру.",
     heroSub2: "Збери 11 стартовиків і 3 запасних.",
-    heroSub3: "Чим точніший твій вибір, тим більше MOVE на гаманець.",
+    heroSub3: (symbol) => `Чим точніший твій вибір, тим більше ${symbol} на гаманець.`,
     statPrizePool: "Призовий фонд цього туру",
     statParticipants: "Учасників у цьому турі",
     statRegistered: "зареєстрованих складів",
@@ -258,9 +258,9 @@ const uk: SiteMessages = {
     wcHeroTitleLine1: "Чемпіонат",
     wcHeroTitleLine2: "Світу",
     wcHeroLede:
-      "48 націй, 16 міст, один трофей. Збирай склад і вигравай MOVE.",
+      (symbol) => `48 націй, 16 міст, один трофей. Збирай склад і вигравай ${symbol}.`,
     wcHeroHostsLabel: "Господарі",
-    wcPromoDesc: "Збери збірну зі зірок. Вигравай MOVE у кожному раунді.",
+    wcPromoDesc: (symbol) => `Збери збірну зі зірок. Вигравай ${symbol} у кожному раунді.`,
     wcPromoCta: "Перейти до ЧС",
     wcPromoHosts: "США · Мексика · Канада",
     wcPromoStagePath: "Група → Фінал",
@@ -383,7 +383,7 @@ const uk: SiteMessages = {
     titleLine1: "РОЗДІЛИ",
     titleLine2: "ПРИЗОВИЙ ПУЛ",
     subtitle:
-      "Топ-10 менеджерів туру ділять призовий пул. Закінчився тур — MOVE токени надходять на гаманець автоматично.",
+      (symbol) => `Топ-10 менеджерів туру ділять призовий пул. Закінчився тур — ${symbol} надходять на гаманець після клейму на лідерборді.`,
     colPosition: "Позиція",
     colShare: "Розподіл",
   },
@@ -454,7 +454,7 @@ const en: SiteMessages = {
     heroLine3: "Time to earn from it",
     heroSub1: "Study player form and the gameweek schedule.",
     heroSub2: "Pick 11 starters and 3 subs.",
-    heroSub3: "The sharper your picks, the more MOVE lands in your wallet.",
+    heroSub3: (symbol) => `The sharper your picks, the more ${symbol} lands in your wallet.`,
     statPrizePool: "This gameweek prize pool",
     statParticipants: "Players this gameweek",
     statRegistered: "registered squads",
@@ -468,9 +468,9 @@ const en: SiteMessages = {
     wcHeroTitleLine1: "World Cup",
     wcHeroTitleLine2: "",
     wcHeroLede:
-      "48 nations, 16 cities, one trophy. Draft your squad and win MOVE.",
+      (symbol) => `48 nations, 16 cities, one trophy. Draft your squad and win ${symbol}.`,
     wcHeroHostsLabel: "Hosts",
-    wcPromoDesc: "Build your national-team XI. Win MOVE every round.",
+    wcPromoDesc: (symbol) => `Build your national-team XI. Win ${symbol} every round.`,
     wcPromoCta: "Enter the World Cup",
     wcPromoHosts: "USA · México · Canada",
     wcPromoStagePath: "Group → Final",
@@ -593,7 +593,7 @@ const en: SiteMessages = {
     titleLine1: "SPLIT THE",
     titleLine2: "PRIZE POOL",
     subtitle:
-      "The top 10 managers of the gameweek share the pool. When the round ends, MOVE is sent to wallets automatically.",
+      (symbol) => `The top 10 managers of the gameweek share the pool. When the round ends, claim ${symbol} on the leaderboard.`,
     colPosition: "Rank",
     colShare: "Share",
   },

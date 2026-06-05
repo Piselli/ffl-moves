@@ -9,7 +9,6 @@ import {
   getWorldCupRound,
   isWorldCupCampaignActive,
 } from "@/lib/worldcup";
-import { octasToMOVE } from "@/lib/utils";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { GwRecapSection } from "@/components/GwRecapSection";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
@@ -19,6 +18,10 @@ import { HomeHeroCarousel } from "@/components/home/HomeHeroCarousel";
 import { AplHeroSlide } from "@/components/home/AplHeroSlide";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { DEFAULT_ENTRY_FEE_RAW } from "@/lib/entryFee";
+import { ENTRY_FEE_MOVE } from "@/lib/constants";
+import { moveToOctas } from "@/lib/utils";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import type { SiteMessages } from "@/i18n/messages";
 import {
@@ -703,9 +706,11 @@ export default function Home() {
   const universalPenalties = useMemo(() => buildUniversalPenalties(m), [m]);
 
   const { connected } = useWallet();
+  const prize = usePrizeAsset();
 
   // Live on-chain data (open gameweek only — pool + entries are for this tour, not all-time)
-  const [prizePool, setPrizePool] = useState<number | null>(null);
+  /** Raw on-chain prize pool units (USDCx micro-units). */
+  const [prizePoolRaw, setPrizePoolRaw] = useState<number | null>(null);
   const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
   const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
   const [activeRoundKey, setActiveRoundKey] = useState<string | null>(null);
@@ -725,7 +730,7 @@ export default function Home() {
         if (wcCampaign) {
           const tour = await findActiveWorldCupTourFromChain();
           if (tour) {
-            setPrizePool(octasToMOVE(tour.prizePool));
+            setPrizePoolRaw(tour.prizePool);
             setTourEntryCount(tour.totalEntries);
             setOpenGameweekId(tour.id);
             const round = getWorldCupRound(tour.id);
@@ -735,7 +740,7 @@ export default function Home() {
           const cfg = await getConfig();
           const gw = await findActiveGameweekFromChain(cfg);
           if (gw) {
-            setPrizePool(octasToMOVE(gw.prizePool));
+            setPrizePoolRaw(gw.prizePool);
             setTourEntryCount(gw.totalEntries);
             setOpenGameweekId(gw.id);
           }
@@ -779,41 +784,53 @@ export default function Home() {
   }, [openGameweekId, wcCampaign]);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
-  const steps = [
-    {
-      num: "01",
-      title: "Збери склад",
-      desc: "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Будь-який гравець, жодних обмежень бюджету.",
-      accent: "from-[#00f948] to-[#0077FF]",
-      icon: (
-        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-    },
-    {
-      num: "02",
-      title: "Зареєструй склад",
-      desc: "Зафіксуй свій вибір смарт-контрактом на блокчейні Movement. Це незмінний запис — ніхто не зможе підробити результат.",
-      accent: "from-[#8B5CF6] to-[#EC4899]",
-      icon: (
-        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
-    },
-    {
-      num: "03",
-      title: "Перемагай",
-      desc: "Гравці забивають, асистують і захищають в реальних матчах — ти автоматично отримуєш MOVE токени на гаманець.",
-      accent: "from-[#00f948] to-[#00bcd4]",
-      icon: (
-        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-    },
-  ];
+  const steps = useMemo(
+    () => [
+      {
+        num: "01",
+        title: locale === "uk" ? "Збери склад" : "Build your squad",
+        desc:
+          locale === "uk"
+            ? "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Будь-який гравець, жодних обмежень бюджету."
+            : "Pick 11 players from the Premier League for the current gameweek. Any player, no budget cap.",
+        accent: "from-[#00f948] to-[#0077FF]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      },
+      {
+        num: "02",
+        title: locale === "uk" ? "Зареєструй склад" : "Register on-chain",
+        desc:
+          locale === "uk"
+            ? `Сплати ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} і зафіксуй склад смарт-контрактом на Movement.`
+            : `Pay ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} and lock your squad on Movement.`,
+        accent: "from-[#8B5CF6] to-[#EC4899]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+      },
+      {
+        num: "03",
+        title: locale === "uk" ? "Перемагай" : "Win prizes",
+        desc:
+          locale === "uk"
+            ? `Топ-10 туру ділять призовий пул у ${prize.symbol}. Забери виграш на лідерборді після публікації результатів.`
+            : `Top 10 split the prize pool in ${prize.symbol}. Claim on the leaderboard after results are published.`,
+        accent: "from-[#00f948] to-[#00bcd4]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        ),
+      },
+    ],
+    [locale, prize],
+  );
 
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
@@ -849,7 +866,7 @@ export default function Home() {
       {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
       {wcCampaign ? (
         <HomeHeroCarousel
-          prizePool={prizePool}
+          prizePoolRaw={prizePoolRaw}
           tourEntryCount={tourEntryCount}
           dataLoading={dataLoading}
           roundLabel={statsRoundLabel}
@@ -865,7 +882,7 @@ export default function Home() {
         />
       ) : (
         <AplHeroSlide
-          prizePool={prizePool}
+          prizePoolRaw={prizePoolRaw}
           tourEntryCount={tourEntryCount}
           dataLoading={dataLoading}
           statsGwLabel={statsGwLabel}
@@ -1025,7 +1042,7 @@ export default function Home() {
             className="relative z-10 w-full mx-auto flex flex-col items-center"
           >
             {/* Content: Left=Chest, Right=Table */}
-            <RewardsLeaderboardTable totalPool={prizePool} />
+            <RewardsLeaderboardTable totalPoolRaw={prizePoolRaw} />
           </motion.div>
         </section>
           

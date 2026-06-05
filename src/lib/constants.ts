@@ -40,8 +40,21 @@ export const MODULE_ADDRESS =
 
 export const MODULE_NAME = publicEnv(process.env.NEXT_PUBLIC_MODULE_NAME) ?? "fantasy_epl";
 
-// Entry fee in MOVE (for display / docs; on-chain value comes from contract config)
+/** @deprecated Legacy MOVE entry — prizes & registration use USDCx since 2026. */
 export const ENTRY_FEE_MOVE = 300;
+
+/** Squad registration entry fee in USDC (on-chain: 5_000_000 micro-units). */
+export const ENTRY_FEE_USDCX = 5;
+
+/** Circle USDCx metadata (Fungible Asset) — see move/USDCX_ENTRY_FEE_PREP.md */
+export const USDCX_METADATA_MAINNET =
+  "0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e";
+export const USDCX_METADATA_TESTNET =
+  "0x63f169ba69623ba6ccf34620857644feb46d0f87e1d7bbcf8c071d30c3d94bd6";
+
+export function usdcxMetadataForRpc(rpcUrl: string): string {
+  return rpcUrl.includes("mainnet") ? USDCX_METADATA_MAINNET : USDCX_METADATA_TESTNET;
+}
 
 /** First gameweek shown in leaderboard UI (earlier weeks were test / internal). */
 export const MIN_PUBLIC_LEADERBOARD_GW = 35;

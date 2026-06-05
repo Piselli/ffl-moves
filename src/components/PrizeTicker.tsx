@@ -7,6 +7,7 @@ import {
   getGameweekTeams,
   getTeamResult,
 } from "@/lib/movement";
+import { getPrizeDisplayFromChain } from "@/lib/prizeAssetServer";
 import { PrizeTickerStrip, type TickerWinner } from "./PrizeTickerStrip";
 
 const fetchTickerData = unstable_cache(
@@ -61,8 +62,8 @@ const fetchTickerData = unstable_cache(
 );
 
 async function PrizeTickerData() {
-  const data = await fetchTickerData();
-  return <PrizeTickerStrip data={data} />;
+  const [data, prizeDisplay] = await Promise.all([fetchTickerData(), getPrizeDisplayFromChain()]);
+  return <PrizeTickerStrip data={data} prizeDisplay={prizeDisplay} />;
 }
 
 /** Always renders a 36px fixed strip at top-0. Suspense fallback keeps layout stable while data loads. */

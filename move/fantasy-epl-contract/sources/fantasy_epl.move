@@ -9,6 +9,9 @@ module fantasy_epl_addr::fantasy_epl {
     use aptos_framework::coin;
     use aptos_framework::account;
     use aptos_framework::aptos_coin::AptosCoin;
+    use aptos_framework::object::{Self, Object};
+    use aptos_framework::fungible_asset::Metadata;
+    use aptos_framework::primary_fungible_store;
     use aptos_std::table::{Self, Table};
     use aptos_std::simple_map::{Self, SimpleMap};
 
@@ -44,8 +47,13 @@ module fantasy_epl_addr::fantasy_epl {
     const EZERO_SPONSOR_AMOUNT: u64 = 26;
     /// admin_sponsor_prize_pool: cannot sponsor a gameweek that is already RESOLVED
     const ESPONSOR_GAMEWEEK_RESOLVED: u64 = 27;
+    const EINVALID_ENTRY_FEE_ASSET: u64 = 28;
+    const EINVALID_USDC_METADATA: u64 = 29;
 
     // ============ Constants ============
+    /// Entry-fee / prize-pool denomination (title & guild fees stay MOVE).
+    const ENTRY_FEE_ASSET_MOVE: u8 = 0;
+    const ENTRY_FEE_ASSET_USDCX: u8 = 1;
     // Gameweek status
     const STATUS_OPEN: u8 = 0;
     const STATUS_CLOSED: u8 = 1;
@@ -75,6 +83,11 @@ module fantasy_epl_addr::fantasy_epl {
     const TOTAL_SQUAD_SIZE: u64 = 14;
     const MAX_PER_CLUB: u64 = 3;
 
+    /// Circle USDCx metadata on Movement mainnet (Fungible Asset).
+    const USDCX_METADATA_MAINNET: address = @0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e;
+    /// Default squad entry fee: 5 USDCx (6 decimals).
+    const DEFAULT_ENTRY_FEE_USDCX: u64 = 5_000_000;
+
     // Formation 4-3-3
     const REQUIRED_GK: u64 = 1;
     const REQUIRED_DEF: u64 = 4;
@@ -87,11 +100,13 @@ module fantasy_epl_addr::fantasy_epl {
     struct Config has key {
         admins: vector<address>,  // Multiple admins supported
         oracle: address,
-        entry_fee: u64,           // In octas (1 APT = 10^8 octas)
+        entry_fee: u64,           // MOVE octas (10^8) or USDCx micro-units (10^6)
         title_fee: u64,
         guild_fee: u64,
         prize_pool_percent: u64,  // Percentage of entry fee to prize vault (e.g., 80 = 80%)
         current_gameweek: u64,
+        entry_fee_asset: u8,      // ENTRY_FEE_ASSET_MOVE (default) or ENTRY_FEE_ASSET_USDCX
+        usdc_metadata_addr: address,
     }
 
     /// Registry of all gameweeks
@@ -282,6 +297,51 @@ module fantasy_epl_addr::fantasy_epl {
         }
     }
 
+    fun entry_fee_uses_usdcx(config: &Config): bool {
+        config.entry_fee_asset == ENTRY_FEE_ASSET_USDCX
+    }
+
+    fun usdc_metadata_object(config: &Config): Object<Metadata> {
+        object::address_to_object<Metadata>(config.usdc_metadata_addr)
+    }
+
+    fun transfer_entry_asset_from(
+        config: &Config,
+        from: &signer,
+        to: address,
+        amount: u64,
+    ) {
+        if (entry_fee_uses_usdcx(config)) {
+            let metadata = usdc_metadata_object(config);
+            primary_fungible_store::transfer(from, metadata, to, amount);
+        } else {
+            coin::transfer<AptosCoin>(from, to, amount);
+        };
+    }
+
+    fun transfer_entry_asset_from_signer(
+        config: &Config,
+        from: &signer,
+        to: address,
+        amount: u64,
+    ) {
+        if (entry_fee_uses_usdcx(config)) {
+            let metadata = usdc_metadata_object(config);
+            primary_fungible_store::transfer(from, metadata, to, amount);
+        } else {
+            coin::transfer<AptosCoin>(from, to, amount);
+        };
+    }
+
+    fun entry_asset_vault_balance(config: &Config, vault_addr: address): u64 {
+        if (entry_fee_uses_usdcx(config)) {
+            let metadata = usdc_metadata_object(config);
+            primary_fungible_store::balance(vault_addr, metadata)
+        } else {
+            coin::balance<AptosCoin>(vault_addr)
+        }
+    }
+
     // ============ Initialization ============
 
     fun init_module(sender: &signer) {
@@ -293,11 +353,13 @@ module fantasy_epl_addr::fantasy_epl {
         move_to(sender, Config {
             admins,
             oracle: sender_addr,  // Initially deployer is also oracle
-            entry_fee: 300_00000000,  // 300 MOVE default
-            title_fee: 50000000,   // 0.5 APT
-            guild_fee: 50000000,   // 0.5 APT
+            entry_fee: DEFAULT_ENTRY_FEE_USDCX,
+            title_fee: 50000000,   // 0.5 MOVE — title purchase
+            guild_fee: 50000000,   // 0.5 MOVE — guild purchase
             prize_pool_percent: 80,
             current_gameweek: 0,
+            entry_fee_asset: ENTRY_FEE_ASSET_USDCX,
+            usdc_metadata_addr: USDCX_METADATA_MAINNET,
         });
 
         move_to(sender, GameweekRegistry {
@@ -455,6 +517,27 @@ module fantasy_epl_addr::fantasy_epl {
         config.guild_fee = guild_fee;
     }
 
+    /// Switch squad registration + prize pool between MOVE and USDCx (admin only).
+    /// `asset`: ENTRY_FEE_ASSET_MOVE (0) or ENTRY_FEE_ASSET_USDCX (1).
+    /// USDCx `entry_fee` uses 6 decimals (5 USDC = 5_000_000). Title/guild fees stay MOVE.
+    public entry fun set_entry_fee_asset(
+        sender: &signer,
+        asset: u8,
+        usdc_metadata: address,
+        entry_fee: u64,
+    ) acquires Config {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global_mut<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(asset == ENTRY_FEE_ASSET_MOVE || asset == ENTRY_FEE_ASSET_USDCX, EINVALID_ENTRY_FEE_ASSET);
+        if (asset == ENTRY_FEE_ASSET_USDCX) {
+            assert!(usdc_metadata != @0x0, EINVALID_USDC_METADATA);
+        };
+        config.entry_fee_asset = asset;
+        config.usdc_metadata_addr = usdc_metadata;
+        config.entry_fee = entry_fee;
+    }
+
     /// Update share of entry fees that goes to the prize pool (admin only). `new_percent` is 0–100.
     public entry fun set_prize_pool_percent(
         sender: &signer,
@@ -519,11 +602,11 @@ module fantasy_epl_addr::fantasy_epl {
 
         let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
         let vault_addr = account::get_signer_capability_address(&auth.cap);
-        let bal = coin::balance<AptosCoin>(vault_addr);
+        let bal = entry_asset_vault_balance(config, vault_addr);
         assert!(bal >= amount, EINSUFFICIENT_VAULT_BALANCE);
 
         let treasury = account::create_signer_with_capability(&auth.cap);
-        coin::transfer<AptosCoin>(&treasury, recipient, amount);
+        transfer_entry_asset_from_signer(config, &treasury, recipient, amount);
 
         event::emit(PrizeVaultWithdrawn {
             admin: sender_addr,
@@ -552,7 +635,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(gameweek.status != STATUS_RESOLVED, ESPONSOR_GAMEWEEK_RESOLVED);
 
         let vault_addr = fee_recipient_addr();
-        coin::transfer<AptosCoin>(sender, vault_addr, amount_octas);
+        transfer_entry_asset_from(config, sender, vault_addr, amount_octas);
         gameweek.prize_pool = gameweek.prize_pool + amount_octas;
 
         event::emit(PrizePoolSponsored {
@@ -599,13 +682,13 @@ module fantasy_epl_addr::fantasy_epl {
         let house_leg = fee - prize_leg;
         if (exists<TreasuryAuth>(@fantasy_epl_addr)) {
             if (prize_leg > 0) {
-                coin::transfer<AptosCoin>(sender, fee_recipient_addr(), prize_leg);
+                transfer_entry_asset_from(config, sender, fee_recipient_addr(), prize_leg);
             };
             if (house_leg > 0) {
-                coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, house_leg);
+                transfer_entry_asset_from(config, sender, @fantasy_epl_addr, house_leg);
             };
         } else {
-            coin::transfer<AptosCoin>(sender, @fantasy_epl_addr, fee);
+            transfer_entry_asset_from(config, sender, @fantasy_epl_addr, fee);
         };
 
         // Update prize pool (same accounting as before: share of full entry fee)
@@ -754,7 +837,7 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun claim_prize(
         sender: &signer,
         gameweek_id: u64,
-    ) acquires GameweekRegistry, ResultsRegistry, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, ResultsRegistry, TreasuryAuth {
         let sender_addr = signer::address_of(sender);
 
         // Check gameweek is resolved
@@ -777,9 +860,10 @@ module fantasy_epl_addr::fantasy_epl {
         result.claimed = true;
 
         assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
         let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
         let treasury = account::create_signer_with_capability(&auth.cap);
-        coin::transfer<AptosCoin>(&treasury, sender_addr, amount);
+        transfer_entry_asset_from_signer(config, &treasury, sender_addr, amount);
 
         event::emit(PrizeClaimed {
             owner: sender_addr,
@@ -1622,6 +1706,12 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[view]
+    public fun get_entry_fee_asset(): (u8, address) acquires Config {
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        (config.entry_fee_asset, config.usdc_metadata_addr)
+    }
+
+    #[view]
     public fun get_gameweek(gameweek_id: u64): (u64, u8, u64, u64) acquires GameweekRegistry {
         let registry = borrow_global<GameweekRegistry>(@fantasy_epl_addr);
         let gameweek = table::borrow(&registry.gameweeks, gameweek_id);
@@ -1827,6 +1917,8 @@ module fantasy_epl_addr::fantasy_epl {
         // Initialize the module
         init_module(admin);
         register_treasury_for_claims(admin);
+        // Unit tests pay entry in AptosCoin — production default is USDCx.
+        set_entry_fee_asset(admin, ENTRY_FEE_ASSET_MOVE, @0x0, 300_00000000);
     }
 
     #[test_only]

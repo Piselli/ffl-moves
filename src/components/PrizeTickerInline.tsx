@@ -13,7 +13,8 @@ import {
   getWorldCupRound,
   isWorldCupCampaignActive,
 } from "@/lib/worldcup";
-import { formatMOVE, shortenAddress } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { shortenAddress } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Winner = { address: string; rank: number; prizeAmount: number };
@@ -92,6 +93,7 @@ async function fetchWinners(): Promise<TickerData | null> {
 const RANK_ACCENT: Record<number, string> = { 1: "#00f948", 2: "#a3e635", 3: "#86efac" };
 
 export function PrizeTickerInline() {
+  const prize = usePrizeAsset();
   const m = useSiteMessages();
   const wc = m.pages.worldCup;
   const wcCampaign = isWorldCupCampaignActive();
@@ -156,7 +158,7 @@ export function PrizeTickerInline() {
                 border: "1px solid rgba(0,249,72,0.18)",
               }}
             >
-              {formatMOVE(w.prizeAmount)} MOVE
+              {prize.formatLabel(w.prizeAmount)}
             </span>
             <span className="text-white/10 mx-1">·</span>
           </span>

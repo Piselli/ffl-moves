@@ -13,6 +13,8 @@ import {
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, fetchWorldCupRoundStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import {
@@ -42,6 +44,7 @@ export default function AdminPage() {
   const m = useSiteMessages();
   const ad = m.pages.admin;
   const wc = m.pages.worldCup;
+  const prize = usePrizeAsset();
 
   const [config, setConfig] = useState<ChainConfig | null>(null);
   /** `get_gameweek(config.current_gameweek)` — покажчик у конфігу (може відставати). */
@@ -152,10 +155,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!config) return;
-    setFeeEntryMove(formatMOVE(config.entryFee));
+    setFeeEntryMove(prize.formatUnits(config.entryFee));
     setFeeTitleMove(formatMOVE(config.titleFee));
     setFeeGuildMove(formatMOVE(config.guildFee));
-  }, [config]);
+  }, [config, prize.asset]);
 
   const handleCheckApiStatus = async () => {
     if (!apiKey) return;
@@ -393,10 +396,10 @@ export default function AdminPage() {
     const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
     const amt = parseMove(sponsorAmountMove || "");
     if (!Number.isFinite(amt) || amt <= 0) {
-      alert(ad.sponsorInvalidAmount);
+      alert(ad.sponsorInvalidAmount(prize.symbol));
       return;
     }
-    const octas = moveToOctas(amt);
+    const octas = displayAmountToRaw(amt, prize.asset);
     if (octas < 1) {
       alert(ad.sponsorAmountTooSmall);
       return;
@@ -421,7 +424,7 @@ export default function AdminPage() {
           functionArguments: [String(idNum), String(octas)],
         },
       });
-      alert(ad.sponsorSuccess(idNum, formatMOVE(octas)));
+      alert(ad.sponsorSuccess(idNum, prize.formatLabel(octas)));
       setSponsorAmountMove("");
       await loadChainConfig();
     } catch (error: unknown) {
@@ -444,10 +447,10 @@ export default function AdminPage() {
     const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
     const amt = parseMove(withdrawAmountMove || "");
     if (!Number.isFinite(amt) || amt <= 0) {
-      alert(ad.withdrawInvalidAmount);
+      alert(ad.withdrawInvalidAmount(prize.symbol));
       return;
     }
-    const octas = moveToOctas(amt);
+    const octas = displayAmountToRaw(amt, prize.asset);
     if (octas < 1) {
       alert(ad.withdrawAmountTooSmall);
       return;
@@ -462,7 +465,7 @@ export default function AdminPage() {
           functionArguments: [recipient, String(octas)],
         },
       });
-      alert(ad.withdrawSuccess(recipient, formatMOVE(octas)));
+      alert(ad.withdrawSuccess(recipient, prize.formatLabel(octas)));
       setWithdrawAmountMove("");
       await loadChainConfig();
     } catch (error: unknown) {
@@ -491,7 +494,7 @@ export default function AdminPage() {
           function: moduleFunction("set_fees"),
           typeArguments: [],
           functionArguments: [
-            String(moveToOctas(entry)),
+            String(displayAmountToRaw(entry, prize.asset)),
             String(moveToOctas(title)),
             String(moveToOctas(guild)),
           ],
@@ -1127,7 +1130,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Sponsor prize pool (Admin) — MOVE to vault + on-chain pool before GW is RESOLVED */}
+        {/* Sponsor prize pool (Admin) — USDCx to vault + on-chain pool before GW is RESOLVED */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6 border border-cyan-500/15">
             <div className="flex items-center gap-3 mb-4">
@@ -1138,7 +1141,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">{ad.sponsorSectionTitle}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{ad.sponsorSectionHint}</p>
+                <p className="text-sm text-muted-foreground mt-1">{ad.sponsorSectionHint(prize.symbol)}</p>
               </div>
             </div>
             {sponsorTxAvailable === false && (
@@ -1158,7 +1161,7 @@ export default function AdminPage() {
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.sponsorAmountLabel}</span>
+                <span className="text-xs text-muted-foreground">{ad.sponsorAmountLabel(prize.symbol)}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1200,7 +1203,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">{ad.withdrawSectionTitle}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{ad.withdrawSectionHint}</p>
+                <p className="text-sm text-muted-foreground mt-1">{ad.withdrawSectionHint(prize.symbol)}</p>
               </div>
             </div>
             {withdrawTxAvailable === false && (
@@ -1222,7 +1225,7 @@ export default function AdminPage() {
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.withdrawAmountLabel}</span>
+                <span className="text-xs text-muted-foreground">{ad.withdrawAmountLabel(prize.symbol)}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1269,7 +1272,7 @@ export default function AdminPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.feesEntryLabel}</span>
+                <span className="text-xs text-muted-foreground">{ad.feesEntryLabel(prize.symbol)}</span>
                 <input
                   type="text"
                   inputMode="decimal"

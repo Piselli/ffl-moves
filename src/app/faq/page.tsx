@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_URL } from "@/lib/constants";
 import { XLogo } from "@/components/SocialLinkX";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { adaptFaqCopy } from "@/lib/entryFee";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
 // ─── Category icons (small inline SVGs — match the site’s look) ──────────────
@@ -65,16 +67,28 @@ function CategoryIcon({ id, className }: { id: FaqCategoryId; className?: string
 }
 
 // ─── Single answer block (paragraph or bullet list) ──────────────────────────
-function AnswerBlock({ block }: { block: FaqAnswerBlock }) {
+function AnswerBlock({
+  block,
+  prizeSymbol,
+  entrySymbol,
+}: {
+  block: FaqAnswerBlock;
+  prizeSymbol: string;
+  entrySymbol: string;
+}) {
   if (block.type === "p") {
-    return <p className="text-white/65 leading-relaxed text-[15px]">{block.text}</p>;
+    return (
+      <p className="text-white/65 leading-relaxed text-[15px]">
+        {adaptFaqCopy(block.text, prizeSymbol, entrySymbol)}
+      </p>
+    );
   }
   return (
     <ul className="space-y-2">
       {block.items.map((it, i) => (
         <li key={i} className="flex items-start gap-3 text-white/65 leading-relaxed text-[15px]">
           <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#00f948] shrink-0 shadow-[0_0_6px_rgba(0,249,72,0.7)]" />
-          <span>{it}</span>
+          <span>{adaptFaqCopy(it, prizeSymbol, entrySymbol)}</span>
         </li>
       ))}
     </ul>
@@ -87,11 +101,15 @@ function FaqRow({
   catId,
   isOpen,
   onToggle,
+  prizeSymbol,
+  entrySymbol,
 }: {
   item: FaqItem;
   catId: FaqCategoryId;
   isOpen: boolean;
   onToggle: () => void;
+  prizeSymbol: string;
+  entrySymbol: string;
 }) {
   const anchorId = `${catId}--${item.id}`;
   return (
@@ -136,7 +154,7 @@ function FaqRow({
           >
             <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/[0.05]">
               {item.a.map((block, i) => (
-                <AnswerBlock key={i} block={block} />
+                <AnswerBlock key={i} block={block} prizeSymbol={prizeSymbol} entrySymbol={entrySymbol} />
               ))}
             </div>
           </motion.div>
@@ -157,6 +175,7 @@ function flattenAnswerText(blocks: FaqAnswerBlock[]): string {
 export default function FaqPage() {
   const m = useSiteMessages();
   const faq = m.pages.faq;
+  const prize = usePrizeAsset();
 
   const [query, setQuery] = useState("");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
@@ -406,6 +425,8 @@ export default function FaqPage() {
                         catId={cat.id}
                         isOpen={openIds.has(key)}
                         onToggle={() => toggleItem(key)}
+                        prizeSymbol={prize.symbol}
+                        entrySymbol={prize.symbol}
                       />
                     );
                   })}

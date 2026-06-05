@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatMOVE, shortenAddress } from "@/lib/utils";
+import type { PrizeDisplay } from "@/lib/entryFee";
+import { createPrizeDisplay } from "@/lib/entryFee";
+import { shortenAddress } from "@/lib/utils";
 
 export type TickerWinner = {
   address: string;
@@ -11,6 +13,7 @@ export type TickerWinner = {
 
 type Props = {
   data: { gwId: number; winners: TickerWinner[] } | null;
+  prizeDisplay?: PrizeDisplay;
 };
 
 const RANK_COLORS: Record<number, string> = {
@@ -19,7 +22,7 @@ const RANK_COLORS: Record<number, string> = {
   3: "#86efac",
 };
 
-export function PrizeTickerStrip({ data }: Props) {
+export function PrizeTickerStrip({ data, prizeDisplay = createPrizeDisplay(0) }: Props) {
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -82,7 +85,7 @@ export function PrizeTickerStrip({ data }: Props) {
                 border: "1px solid rgba(0,249,72,0.2)",
               }}
             >
-              {formatMOVE(w.prizeAmount)} MOVE
+              {prizeDisplay.formatLabel(w.prizeAmount)}
             </span>
             <span className="text-white/15 text-xs">·</span>
           </span>

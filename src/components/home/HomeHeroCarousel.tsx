@@ -12,7 +12,7 @@ const WC_INDEX = 0;
 const APL_INDEX = 1;
 
 export function HomeHeroCarousel({
-  prizePool,
+  prizePoolRaw,
   tourEntryCount,
   dataLoading,
   statsGwLabel,
@@ -22,7 +22,7 @@ export function HomeHeroCarousel({
   locale,
   aplPaused = false,
 }: {
-  prizePool: number | null;
+  prizePoolRaw: number | null;
   tourEntryCount: number | null;
   dataLoading: boolean;
   roundLabel: string | null;
@@ -90,7 +90,7 @@ export function HomeHeroCarousel({
         </div>
         <div className="w-full shrink-0 snap-center snap-always">
           <AplHeroSlide
-            prizePool={aplPaused ? null : prizePool}
+            prizePoolRaw={aplPaused ? null : prizePoolRaw}
             tourEntryCount={aplPaused ? null : tourEntryCount}
             dataLoading={aplPaused ? false : dataLoading}
             statsGwLabel={statsGwLabel}

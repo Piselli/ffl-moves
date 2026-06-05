@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { WC_ROUNDS } from "@/lib/worldcup";
 import { WcGrassStripeBg, WcHostNationBars, WcPitchLinesSvg } from "@/components/wc/WcDecor";
@@ -10,6 +11,7 @@ const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export function WorldCupPromoBanner() {
   const m = useSiteMessages().home;
+  const prize = usePrizeAsset();
   const reduceMotion = useReducedMotion();
   const roundCount = WC_ROUNDS.length;
 
@@ -65,7 +67,7 @@ export function WorldCupPromoBanner() {
                 </motion.div>
 
                 <motion.p variants={item} className="max-w-xl text-sm leading-relaxed text-white/50 sm:text-[15px]">
-                  {m.wcPromoDesc}
+                  {m.wcPromoDesc(prize.symbol)}
                 </motion.p>
 
                 <motion.div variants={item} className="flex flex-wrap items-center gap-3 sm:hidden">

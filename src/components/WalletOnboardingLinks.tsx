@@ -3,6 +3,7 @@
 import {
   MOVEMENT_WALLET_WELCOME_GUIDE_URL,
   NIGHTLY_DOWNLOAD_URL,
+  USDCX_GUIDE_URL,
 } from "@/lib/walletNightly";
 
 const linkClass =
@@ -20,10 +21,12 @@ export function WalletOnboardingLinks({
       ? {
           nightly: "Завантажити Nightly",
           movement: "Офіційний гайд Movement",
+          usdcx: "Як отримати USDCx",
         }
       : {
           nightly: "Download Nightly",
           movement: "Official Movement guide",
+          usdcx: "How to get USDCx",
         };
 
   return (
@@ -40,10 +43,19 @@ export function WalletOnboardingLinks({
         href={MOVEMENT_WALLET_WELCOME_GUIDE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        title={locale === "uk" ? "Nightly, MOVE, брідж — матеріали Movement" : "Nightly, MOVE, bridge — from Movement"}
+        title={locale === "uk" ? "Nightly, USDCx, брідж — матеріали Movement" : "Nightly, USDCx, bridge — from Movement"}
         className={`${linkClass} border-white/15 bg-white/[0.04] text-white/80 hover:text-white hover:bg-white/[0.08] hover:border-white/25`}
       >
         {t.movement}
+      </a>
+      <a
+        href={USDCX_GUIDE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={locale === "uk" ? "Брідж USDC → USDCx у Nightly" : "Bridge USDC → USDCx in Nightly"}
+        className={`${linkClass} border-sky-400/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 hover:border-sky-400/50`}
+      >
+        {t.usdcx}
       </a>
     </div>
   );

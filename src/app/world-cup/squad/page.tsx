@@ -25,7 +25,8 @@ import {
   type GameweekSummary,
 } from "@/lib/movement";
 import { findActiveWorldCupTourFromChain, getWorldCupRound } from "@/lib/worldcup";
-import { formatMOVE, cn, getErrorMessage } from "@/lib/utils";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
@@ -166,6 +167,12 @@ export default function WorldCupSquadPage() {
         : null,
     [officialResolved, interimBreakdown, g],
   );
+
+  const prize = usePrizeAsset();
+  const entryFeeLabel = useMemo(() => {
+    if (entryFee == null) return "—";
+    return prize.formatLabel(entryFee);
+  }, [entryFee, prize]);
 
   // WC player catalog (API-Sports based), fallback to bundled JSON.
   useEffect(() => {
@@ -648,7 +655,7 @@ export default function WorldCupSquadPage() {
       {isSubmitting
         ? g.submitRegistering
         : isTeamComplete
-          ? g.submitConfirm(formatMOVE(entryFee || 0))
+          ? g.submitConfirm(entryFeeLabel)
           : g.submitNeedPlayers(totalCount, FORMATION.TOTAL)}
     </button>
   );
@@ -671,8 +678,16 @@ export default function WorldCupSquadPage() {
           <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
             <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
-              {entryFee != null ? formatMOVE(entryFee) : "—"} MOVE
+              {entryFeeLabel}
             </p>
+            {prize.asset === "usdcx" && (
+              <Link
+                href="/faq#web3-101--how-to-get-move"
+                className="text-[10px] text-sky-400/80 hover:text-sky-300 mt-1.5 block transition-colors"
+              >
+                {g.entryFeeUsdcxHint}
+              </Link>
+            )}
           </div>
         </div>
         <div className="lg:hidden flex items-center justify-between mb-4">
@@ -682,7 +697,15 @@ export default function WorldCupSquadPage() {
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>
-            <p className="text-base font-display font-black text-[#00f948]">{entryFee != null ? formatMOVE(entryFee) : "—"} MOVE</p>
+            <p className="text-base font-display font-black text-[#00f948]">{entryFeeLabel}</p>
+            {prize.asset === "usdcx" && (
+              <Link
+                href="/faq#web3-101--how-to-get-move"
+                className="text-[9px] text-sky-400/80 hover:text-sky-300 mt-0.5 block transition-colors"
+              >
+                {g.entryFeeUsdcxHint}
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { TreasureChest } from "@/components/TreasureChest";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { formatRewardPlaceEn, formatRewardPlaceUk } from "@/i18n/messages";
 
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
@@ -18,18 +19,6 @@ const PRIZE_TIERS = [
   { rank: 9, pct: 3 },
   { rank: 10, pct: 2 },
 ];
-
-/**
- * Compact MOVE display for the homepage rewards table (`12.5K`, `7.50`).
- * Distinct from `lib/utils.ts` `formatMOVE(octas)` which converts octas → MOVE
- * with two decimals; this one already takes a MOVE-denominated number.
- */
-function formatPrizeMoveCompact(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
-  if (n < 1 && n > 0) return n.toFixed(2);
-  if (!Number.isInteger(n)) return n.toFixed(2);
-  return n.toLocaleString("en-US");
-}
 
 /* ── Row styles ────────────────────────────────────────────────────────────── */
 const VIP_STYLES = {
@@ -63,11 +52,17 @@ const VIP_STYLES = {
 } as const;
 
 /* ── Main Component ────────────────────────────────────────────────────────── */
-export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | null }) {
+export function RewardsLeaderboardTable({ totalPoolRaw }: { totalPoolRaw: number | null }) {
   const m = useSiteMessages();
+  const prize = usePrizeAsset();
   const { locale } = useSiteLocale();
   const placeLabel = locale === "uk" ? formatRewardPlaceUk : formatRewardPlaceEn;
-  const pool = (totalPool && totalPool > 0) ? totalPool : 10000;
+  const poolRaw =
+    totalPoolRaw && totalPoolRaw > 0
+      ? totalPoolRaw
+      : prize.asset === "usdcx"
+        ? 5_000_000
+        : 300_00000000;
 
   const allTiers = PRIZE_TIERS.map(tier => {
     let type = "standard";
@@ -93,7 +88,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
       type,
       icon,
       colorClass,
-      moveAmount: (pool * tier.pct) / 100
+      prizeRaw: (poolRaw * tier.pct) / 100,
     };
   });
 
@@ -123,7 +118,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           </h3>
 
           <p className="text-sm md:text-base text-white/50 max-w-md leading-relaxed mx-auto lg:mx-0 font-medium mb-4">
-            {m.rewards.subtitle}
+            {m.rewards.subtitle(prize.symbol)}
           </p>
         </div>
 
@@ -151,10 +146,10 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
           <div className="relative flex flex-col items-center justify-center px-4 py-2 border-b border-white/[0.04]">
             <div className="flex items-baseline gap-2">
               <span className="text-4xl sm:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 tracking-tighter drop-shadow-md">
-                {pool.toLocaleString("en-US")}
+                {prize.formatHero(poolRaw, locale)}
               </span>
               <span className="text-sm md:text-base font-bold text-[#00f948] uppercase tracking-widest drop-shadow-sm">
-                Move
+                {prize.symbol}
               </span>
             </div>
           </div>
@@ -193,7 +188,7 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
                   </span>
                 </div>
 
-                {/* Right Side: PCT & MOVE Output */}
+                {/* Right Side: PCT & prize output */}
                 <div className="flex items-center gap-3 sm:gap-5">
                   <span className="text-[9px] text-white/20 font-bold tabular-nums">
                     {tier.pct}%
@@ -201,10 +196,10 @@ export function RewardsLeaderboardTable({ totalPool }: { totalPool: number | nul
                   
                   <div className="flex items-baseline gap-1.5 w-[75px] sm:w-[90px] justify-end">
                     <span className={`text-base sm:text-lg font-display font-black tabular-nums tracking-tight ${tier.colorClass}`}>
-                      {formatPrizeMoveCompact(tier.moveAmount)}
+                      {prize.formatCompact(tier.prizeRaw)}
                     </span>
                     <span className={`text-[8px] font-bold uppercase tracking-widest ${tier.icon ? tier.colorClass : 'text-white/20'}`}>
-                      MOVE
+                      {prize.symbol}
                     </span>
                   </div>
                 </div>

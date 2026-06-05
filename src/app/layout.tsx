@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { PrizeAssetProvider } from "@/components/PrizeAssetProvider";
 
 const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
@@ -24,7 +25,7 @@ const wcDisplay = Anton({
 
 const siteTitle = "MOVEMATCH — Premier League fantasy on Movement";
 const siteDescription =
-  "Build your EPL squad from live gameweek stats, compete for the top 10, and earn MOVE rewards on Movement Network.";
+  "Build your EPL squad from live gameweek stats, compete for the top 10, and earn USDCx prizes on Movement Network.";
 
 export const metadata: Metadata = {
   title: {
@@ -67,15 +68,17 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${oswald.variable} ${wcHero.variable} ${wcDisplay.variable} font-sans antialiased`}>
         <LocaleProvider>
-          <WalletProvider>
-            <ReferralCapture />
-            <div className="min-h-screen bg-[#0D0F12] text-white">
+          <PrizeAssetProvider>
+            <WalletProvider>
+              <ReferralCapture />
+              <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
               <Navbar />
               <main className="relative z-10">{children}</main>
               <SiteFooter />
-            </div>
-          </WalletProvider>
+              </div>
+            </WalletProvider>
+          </PrizeAssetProvider>
         </LocaleProvider>
       </body>
     </html>
