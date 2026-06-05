@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import {
   client,
@@ -15,7 +15,11 @@ import {
 } from "@/lib/movement";
 import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, fetchWorldCupRoundStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
-import { WC_ROUNDS } from "@/lib/worldcup";
+import {
+  WC_ROUNDS,
+  getWorldCupTourSummaries,
+  isWorldCupTour,
+} from "@/lib/worldcup";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function normAddr(a: string | undefined | null): string {
@@ -35,13 +39,17 @@ function normalizeMoveAccountAddress(raw: string): string | null {
 
 export default function AdminPage() {
   const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
-  const ad = useSiteMessages().pages.admin;
+  const m = useSiteMessages();
+  const ad = m.pages.admin;
+  const wc = m.pages.worldCup;
 
   const [config, setConfig] = useState<ChainConfig | null>(null);
   /** `get_gameweek(config.current_gameweek)` — покажчик у конфігу (може відставати). */
   const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
   /** Фактичний OPEN-тур на ланцюгу (скан) — саме його треба закривати для зупинки реєстрації. */
   const [openGameweek, setOpenGameweek] = useState<GameweekSummary | null>(null);
+  const [openWcTour, setOpenWcTour] = useState<GameweekSummary | null>(null);
+  const [wcTourSummaries, setWcTourSummaries] = useState<GameweekSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
@@ -90,15 +98,28 @@ export default function AdminPage() {
       setConfig(configData);
       setCurrentGameweek(null);
       setOpenGameweek(null);
+      setOpenWcTour(null);
+      setWcTourSummaries([]);
       if (configData) {
-        const [pointerGw, openGw] = await Promise.all([
+        const [pointerGw, openGw, wcTours] = await Promise.all([
           configData.currentGameweek
             ? getGameweek(configData.currentGameweek).catch(() => null)
             : Promise.resolve(null),
           findOpenGameweekFromChain(configData),
+          getWorldCupTourSummaries(),
         ]);
         setCurrentGameweek(pointerGw);
         setOpenGameweek(openGw);
+        setWcTourSummaries(wcTours);
+        setOpenWcTour(wcTours.find((t) => t.status === "open") ?? null);
+        // Pre-fill re-open input when the config pointer is a closed/resolved tour.
+        if (
+          pointerGw &&
+          (pointerGw.status === "closed" || pointerGw.status === "resolved") &&
+          !reopenTargetId
+        ) {
+          setReopenTargetId(String(pointerGw.id));
+        }
       }
     } finally {
       setIsLoading(false);
@@ -203,10 +224,16 @@ export default function AdminPage() {
     walletAddr && config?.oracle && normAddr(config.oracle) === walletAddr
   );
 
-  const handleCreateGameweek = async () => {
-    if (!connected || !newGameweekId) return;
+  /** OPEN tour on-chain — EPL scanner misses WC ids (10001+), so fall back to WC + config pointer. */
+  const activeOpenTour = useMemo((): GameweekSummary | null => {
+    if (openGameweek?.status === "open") return openGameweek;
+    if (openWcTour?.status === "open") return openWcTour;
+    if (currentGameweek?.status === "open") return currentGameweek;
+    return null;
+  }, [openGameweek, openWcTour, currentGameweek]);
 
-    const idNum = Number.parseInt(newGameweekId, 10);
+  const handleCreateGameweekById = async (idNum: number) => {
+    if (!connected) return;
     if (!Number.isFinite(idNum) || idNum < 1) {
       alert(ad.alertInvalidGw);
       return;
@@ -234,9 +261,12 @@ export default function AdminPage() {
         },
       });
       alert(ad.alertGwCreated(idNum));
-      setNewGameweekId("");
       const gwData = await getGameweek(idNum);
-      setCurrentGameweek(gwData);
+      if (idNum >= 10001) {
+        setOpenWcTour(gwData?.status === "open" ? gwData : null);
+      } else {
+        setCurrentGameweek(gwData);
+      }
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to create gameweek:", error);
@@ -246,24 +276,25 @@ export default function AdminPage() {
     }
   };
 
-  const handleCloseGameweek = async () => {
-    if (!connected) return;
-    const toClose = openGameweek?.status === "open" ? openGameweek : null;
-    if (!toClose) {
-      alert(ad.alertNoOpenToClose);
-      return;
-    }
+  const handleCreateGameweek = async () => {
+    if (!newGameweekId) return;
+    const idNum = Number.parseInt(newGameweekId, 10);
+    await handleCreateGameweekById(idNum);
+    setNewGameweekId("");
+  };
 
+  const handleCloseGameweekById = async (id: number) => {
+    if (!connected) return;
     setIsSubmitting(true);
     try {
       await signAndSubmitTransaction({
         data: {
           function: moduleFunction("close_gameweek"),
           typeArguments: [],
-          functionArguments: [String(toClose.id)],
+          functionArguments: [String(id)],
         },
       });
-      alert(ad.alertGwClosed(toClose.id));
+      alert(ad.alertGwClosed(id));
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to close gameweek:", error);
@@ -273,10 +304,16 @@ export default function AdminPage() {
     }
   };
 
-  const handleReopenGameweek = async () => {
-    if (!connected) return;
+  const handleCloseGameweek = async () => {
+    if (!activeOpenTour) {
+      alert(ad.alertNoOpenToClose);
+      return;
+    }
+    await handleCloseGameweekById(activeOpenTour.id);
+  };
 
-    const idNum = Number.parseInt((reopenTargetId || "").trim(), 10);
+  const handleReopenGameweekById = async (idNum: number) => {
+    if (!connected) return;
     if (!Number.isFinite(idNum) || idNum < 1) {
       alert(ad.alertReopenInvalidGw);
       return;
@@ -307,17 +344,17 @@ export default function AdminPage() {
       });
       alert(ad.alertReopenDone(idNum));
       await loadChainConfig();
-      const cfg = await getConfig();
-      if (cfg?.currentGameweek != null) {
-        const fresh = await getGameweek(cfg.currentGameweek);
-        setCurrentGameweek(fresh);
-      }
     } catch (error: unknown) {
       console.error("Failed to reopen gameweek:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReopenGameweek = async () => {
+    const idNum = Number.parseInt((reopenTargetId || "").trim(), 10);
+    await handleReopenGameweekById(idNum);
   };
 
   const handleUpdatePrizePool = async () => {
@@ -797,8 +834,10 @@ export default function AdminPage() {
           <div className="stat-card px-4 py-3 rounded-xl col-span-2 lg:col-span-2 border border-emerald-500/20 bg-emerald-500/[0.06]">
             <p className="text-muted-foreground text-sm mb-1">{ad.statOpenRegistration}</p>
             <p className="text-3xl font-bold text-emerald-300 tabular-nums">
-              {openGameweek?.status === "open" ? (
-                <>GW {openGameweek.id} · OPEN</>
+              {activeOpenTour ? (
+                <>
+                  {isWorldCupTour(activeOpenTour.id) ? "WC" : "GW"} {activeOpenTour.id} · OPEN
+                </>
               ) : (
                 <span className="text-white/40 text-xl font-semibold">{ad.noOpenGw}</span>
               )}
@@ -830,13 +869,13 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Close / Re-open — Close прив’язаний до фактичного OPEN на ланцюгу, не лише до покажчика config. */}
-        {isAdmin && (openGameweek || currentGameweek) && (
+        {/* Close / Re-open — includes WC tours (10001+) that the EPL-only scanner misses. */}
+        {isAdmin && (activeOpenTour || currentGameweek) && (
           <div className="glass-card rounded-2xl p-6 border border-white/[0.06]">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {openGameweek?.status === "open" ? (
+                  {activeOpenTour ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   ) : (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -845,11 +884,11 @@ export default function AdminPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {openGameweek?.status === "open" ? ad.sectionTitleWhenOpen : ad.sectionTitleWhenClosed}
+                  {activeOpenTour ? ad.sectionTitleWhenOpen : ad.sectionTitleWhenClosed}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {openGameweek?.status === "open"
-                    ? ad.sectionCloseSubtitleOpen(openGameweek.id)
+                  {activeOpenTour
+                    ? ad.sectionCloseSubtitleOpen(activeOpenTour.id)
                     : ad.sectionCloseSubtitleConfig(
                         String(currentGameweek?.id ?? "—"),
                         currentGameweek?.status?.toUpperCase() ?? "—",
@@ -858,9 +897,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {openGameweek?.status === "open" && (
+            {activeOpenTour && (
               <>
-                <p className="text-muted-foreground mb-4">{ad.closeExplain(openGameweek.id)}</p>
+                <p className="text-muted-foreground mb-4">{ad.closeExplain(activeOpenTour.id)}</p>
                 <button
                   type="button"
                   onClick={handleCloseGameweek}
@@ -870,12 +909,12 @@ export default function AdminPage() {
                     "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400",
                   )}
                 >
-                  {isSubmitting ? "..." : ad.closeGwButtonLabel(openGameweek.id)}
+                  {isSubmitting ? "..." : ad.closeGwButtonLabel(activeOpenTour.id)}
                 </button>
               </>
             )}
 
-            {openGameweek?.status !== "open" && (
+            {!activeOpenTour && (
               <>
                 {currentGameweek?.status === "resolved" && (
                   <div className="mb-4 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100/95 leading-relaxed">
@@ -920,7 +959,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Create Gameweek (Admin) */}
+        {/* Create Gameweek (Admin) — EPL ids 1,2,3… or WC ids 10001+ */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -929,12 +968,17 @@ export default function AdminPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">Create Gameweek</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white">Create Gameweek / Tour</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  EPL: 1, 2, 3… · World Cup: 10001 (md1), 10002 (md2), … 10008 (final)
+                </p>
+              </div>
             </div>
             <div className="flex gap-4">
               <input
                 type="number"
-                placeholder="Gameweek ID (e.g., 2)"
+                placeholder="Tour ID (EPL: 2 · WC md1: 10001)"
                 value={newGameweekId}
                 onChange={(e) => setNewGameweekId(e.target.value)}
                 className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary border border-border"
@@ -946,6 +990,106 @@ export default function AdminPage() {
               >
                 {isSubmitting ? "..." : "Create"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* World Cup tours — same on-chain create_gameweek, ids 10001–10008 */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6 border border-[#00f948]/15">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#00f948]/15 flex items-center justify-center">
+                  <svg className="h-5 w-5 text-[#00f948]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">World Cup 2026 · Tours</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Opens <code className="text-[#00f948]/80">/world-cup/squad</code> when any tour is OPEN on-chain.
+                  </p>
+                </div>
+              </div>
+              {activeOpenTour && isWorldCupTour(activeOpenTour.id) ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#00f948]/30 bg-[#00f948]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#00f948]">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00f948]" />
+                    Tour {activeOpenTour.id} OPEN
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleCloseGameweekById(activeOpenTour.id)}
+                    disabled={isSubmitting}
+                    className="rounded-lg border border-amber-500/50 bg-amber-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 disabled:opacity-50"
+                  >
+                    Close tour
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/35">No open WC tour</span>
+              )}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {WC_ROUNDS.map((round) => {
+                const summary = wcTourSummaries.find((t) => t.id === round.tourId);
+                const status = summary?.status;
+                const statusCls =
+                  status === "open"
+                    ? "text-[#00f948] border-[#00f948]/30 bg-[#00f948]/10"
+                    : status === "closed"
+                      ? "text-amber-400 border-amber-500/25 bg-amber-500/10"
+                      : status === "resolved"
+                        ? "text-sky-300 border-sky-500/25 bg-sky-500/10"
+                        : "text-white/30 border-white/10 bg-white/[0.03]";
+                return (
+                  <div
+                    key={round.tourId}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-secondary/30 px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">
+                        ID {round.tourId} · {round.key}
+                      </p>
+                      <p className="truncate text-sm font-semibold text-white">{wc.roundName(round.key)}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase", statusCls)}>
+                        {status ?? wc.statusUpcoming}
+                      </span>
+                      {!summary ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateGameweekById(round.tourId)}
+                          disabled={isSubmitting}
+                          className="rounded-lg bg-[#00f948] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-black disabled:opacity-50"
+                        >
+                          Create
+                        </button>
+                      ) : status === "open" ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleCloseGameweekById(round.tourId)}
+                          disabled={isSubmitting}
+                          className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 disabled:opacity-50"
+                        >
+                          Close
+                        </button>
+                      ) : status === "closed" || status === "resolved" ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleReopenGameweekById(round.tourId)}
+                          disabled={isSubmitting}
+                          className="rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-200 disabled:opacity-50"
+                        >
+                          Re-open
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

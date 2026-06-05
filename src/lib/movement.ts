@@ -150,6 +150,9 @@ async function mapInBatches<T, R>(
   return out;
 }
 
+/** World Cup tour ids start here — must match `WC_TOUR_ID_BASE` in worldcup.ts. */
+const WC_TOUR_ID_BASE = 10000;
+
 /**
  * Resolves the gameweek players should use for registration (first OPEN week).
  * Uses `config.current_gameweek` as a hint, then scans forward/backward so we
@@ -161,6 +164,10 @@ export async function findOpenGameweekFromChain(
   if (!configData) return null;
   const c = Number(configData.currentGameweek);
   if (!Number.isFinite(c) || c < 0) return null;
+
+  // Config pointer on a WC tour (10001+) — use findOpenWorldCupTourFromChain instead.
+  // Scanning 1..c-1 here would fan out ~10k RPC calls and freeze the admin UI.
+  if (c >= WC_TOUR_ID_BASE) return null;
 
   // Build the candidate scan order once, then batch the RPC fan-out so the leaderboard /
   // gameweek pages don't make 60+ sequential round-trips on every load.
@@ -190,6 +197,7 @@ export async function findActiveGameweekFromChain(
   if (!configData) return null;
   const c = Number(configData.currentGameweek);
   if (!Number.isFinite(c) || c < 0) return null;
+  if (c >= WC_TOUR_ID_BASE) return null;
 
   const candidates: number[] = [];
   if (c === 0) {
