@@ -485,7 +485,7 @@ export const pagesEn: PagesMessages = {
     pickPlayersHint: "Pick 11 players. Max 3 from the same club.",
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
-    entryFeeUsdcxHint: "Need USDCx? How to bridge USDC →",
+    entryFeeUsdcxHint: "Need USDCx? Swap in Nightly or Yuzu →",
     entryShort: "Entry",
     benchTitle: (n, max) => `Bench (${n}/${max})`,
     benchSlotEmpty: (idx) => `Sub ${idx + 1}`,
@@ -914,7 +914,7 @@ export const pagesEn: PagesMessages = {
             q: "What is Movement and what is USDCx?",
             a: [
               { type: "p", text: "Movement is a blockchain network (think of it like the internet, but for crypto)." },
-              { type: "p", text: "USDCx is USDC on Movement (Circle xReserve). On MOVEMATCH you pay squad entry fees and receive prizes in USDCx — a stablecoin pegged to the US dollar." },
+              { type: "p", text: "USDCx is the dollar stablecoin on Movement. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via Nightly Swap or Yuzu (app.yuzu.finance)." },
             ],
           },
           {
@@ -925,15 +925,15 @@ export const pagesEn: PagesMessages = {
                 type: "ul",
                 items: [
                   "Install Nightly from nightly.app and create a wallet on Movement.",
-                  "Get USDC on Ethereum (or another supported chain) — buy on an exchange or swap inside your wallet.",
-                  "In Nightly, bridge USDC to your Movement address via Circle xReserve. USDCx appears automatically — no separate mint step.",
-                  "Check your balance: you need at least 5 USDCx to register one squad (plus a tiny amount of MOVE for network gas on title purchases only).",
+                  "In Nightly, open the Swap tab and exchange MOVE (or another token you already hold) for USDCx — takes a few taps.",
+                  "Or use Yuzu, Movement’s official DEX: app.yuzu.finance — connect Nightly, pick USDCx, swap, and sign.",
+                  "You need at least 5 USDCx to register one squad. Keep a little MOVE on the wallet for network fees.",
                   "Open MOVEMATCH → Connect wallet → Squad page → Confirm squad and sign in Nightly.",
                 ],
               },
               {
                 type: "p",
-                text: "Step-by-step with screenshots: movementnetwork.xyz/article/introducing-usdcx-movements-native-usdc-backed-stablecoin — or use the «How to get USDCx» link in the wallet menu on this site.",
+                text: "Shortcut: the «Swap on Yuzu → USDCx» button in the wallet menu on this site opens the pair ready to go.",
               },
             ],
           },
@@ -979,7 +979,7 @@ export const pagesEn: PagesMessages = {
                 items: [
                   "1. Install Nightly from nightly.app.",
                   "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Bridge USDC to Movement (or buy USDC and withdraw to your Movement address) so you have USDCx in Nightly.",
+                  "3. Get USDCx — swap in Nightly (Swap tab) or on Yuzu (app.yuzu.finance). You need ~5 USDCx + a bit of MOVE for fees.",
                   "4. On MOVEMATCH press “Connect wallet” and pick Nightly.",
                   "5. Open the Squad page and pick 11 starters + 3 bench players.",
                   "6. Press “Confirm squad” and sign the transaction in Nightly.",
@@ -1097,7 +1097,7 @@ export const pagesEn: PagesMessages = {
             id: "convert-to-fiat",
             q: "How do I cash out USDCx back to normal money?",
             a: [
-              { type: "p", text: "USDCx is already a dollar-pegged stablecoin. Bridge it back to your exchange or bank via Circle xReserve, or swap to fiat on an exchange that supports USDC withdrawals." },
+              { type: "p", text: "USDCx is already pegged to the dollar. Swap it back to MOVE or another token on Yuzu or in Nightly, then cash out via your usual exchange — same as any crypto." },
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
@@ -1257,7 +1257,7 @@ export const pagesUk: PagesMessages = {
     pickPlayersHint: "Обери 11 гравців. Максимум 3 з однієї команди.",
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
-    entryFeeUsdcxHint: "Потрібен USDCx? Як отримати →",
+    entryFeeUsdcxHint: "Потрібен USDCx? Nightly Swap або Yuzu →",
     entryShort: "Внесок",
     benchTitle: (n, max) => `Запасні (${n}/${max})`,
     benchSlotEmpty: (idx) => `Запасний ${idx + 1}`,
@@ -1693,7 +1693,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Movement і USDCx?",
             a: [
               { type: "p", text: "Movement — це блокчейн-мережа (як інтернет, тільки для криптовалют)." },
-              { type: "p", text: "USDCx — це USDC у мережі Movement (Circle xReserve). На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx — стейблкоїні, прив’язаному до долара США." },
+              { type: "p", text: "USDCx — стейблкоїн Movement, прив’язаний до долара. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через Swap у Nightly або на Yuzu (app.yuzu.finance)." },
             ],
           },
           {
@@ -1704,15 +1704,15 @@ export const pagesUk: PagesMessages = {
                 type: "ul",
                 items: [
                   "Встанови Nightly з nightly.app і створи гаманець у Movement.",
-                  "Отримай USDC в Ethereum (або іншій підтримуваній мережі) — купи на біржі або обміняй у гаманці.",
-                  "У Nightly зроби брідж USDC на свою Movement-адресу через Circle xReserve. USDCx з’явиться автоматично — окремий крок мінту не потрібен.",
-                  "Перевір баланс: для одного складу потрібно щонайменше 5 USDCx (плюс трохи MOVE лише на газ для покупки титулів, якщо будеш).",
+                  "У Nightly відкрий вкладку Swap і обміняй MOVE (або інший токен на балансі) на USDCx — кілька тапів.",
+                  "Або Yuzu — офіційний DEX Movement: app.yuzu.finance — підключи Nightly, обери USDCx, свопни і підпиши.",
+                  "Потрібно щонайменше 5 USDCx на один склад. Залиш трохи MOVE на комісії мережі.",
                   "Заходь на MOVEMATCH → Підключи гаманець → Склад → Підтверди і підпиши в Nightly.",
                 ],
               },
               {
                 type: "p",
-                text: "Покроково з поясненнями: movementnetwork.xyz/article/introducing-usdcx-movements-native-usdc-backed-stablecoin — або посилання «Як отримати USDCx» у меню гаманця на сайті.",
+                text: "Швидкий шлях: кнопка «Своп на Yuzu → USDCx» у меню гаманця на сайті відкриває пару вже налаштованою.",
               },
             ],
           },
@@ -1758,7 +1758,7 @@ export const pagesUk: PagesMessages = {
                 items: [
                   "1. Встанови гаманець Nightly з nightly.app.",
                   "2. Створи акаунт у Nightly і збережи seed-фразу на папері.",
-                  "3. Зроби брідж USDC у Movement (або купи USDC і виведи на Movement-адресу), щоб у Nightly був USDCx.",
+                  "3. Отримай USDCx — своп у Nightly (вкладка Swap) або на Yuzu (app.yuzu.finance). Потрібно ~5 USDCx + трохи MOVE на комісії.",
                   "4. На MOVEMATCH натисни «Підключити гаманець», обери Nightly.",
                   "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
                   "6. Натисни «Підтвердити склад» і підпиши транзакцію в Nightly.",
@@ -1876,7 +1876,7 @@ export const pagesUk: PagesMessages = {
             id: "convert-to-fiat",
             q: "Як вивести USDCx у звичайні гроші?",
             a: [
-              { type: "p", text: "USDCx уже прив’язаний до долара. Зроби брідж назад через Circle xReserve на біржу або банк, або продай USDC за фіат на біржі, що підтримує вивід." },
+              { type: "p", text: "USDCx уже прив’язаний до долара. Обміняй назад на MOVE або інший токен на Yuzu чи в Nightly, потім виведи через звичну біржу — як із будь-якою криптою." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
             ],
           },

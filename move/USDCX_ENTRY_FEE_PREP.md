@@ -76,6 +76,6 @@ Frontend will follow chain once `get_entry_fee_asset` returns `0`.
 
 ## Notes
 
-- Users need **USDCx** in wallet (bridge USDC → Movement via Circle xReserve).
+- Users need **USDCx** in wallet — swap in **Nightly** (Swap tab) or on **[Yuzu](https://app.yuzu.finance/swap?tokenIn=0xa&tokenOut=0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e)** (official Movement DEX). Keep a little **MOVE** for network fees.
 - Prize pool + claims use the **same asset** as entry fees.
 - `NEXT_PUBLIC_PREVIEW_USDCX_ENTRY_FEE` removed — no longer used.

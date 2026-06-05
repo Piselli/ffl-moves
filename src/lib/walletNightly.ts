@@ -5,12 +5,12 @@ export const NIGHTLY_DOWNLOAD_URL = "https://nightly.app/";
 export const MOVEMENT_WALLET_WELCOME_GUIDE_URL =
   "https://www.movementnetwork.xyz/guides/welcome";
 
-/** How USDCx works on Movement (bridge USDC → receive USDCx in wallet). */
-export const USDCX_GUIDE_URL =
-  "https://www.movementnetwork.xyz/article/introducing-usdcx-movements-native-usdc-backed-stablecoin";
-
-/** Circle xReserve — infrastructure behind USDCx minting (for advanced readers). */
-export const CIRCLE_XRESERVE_URL = "https://www.circle.com/xreserve";
+/**
+ * Yuzu — official Movement DEX. Pre-filled MOVE → USDCx swap (mainnet).
+ * Users connect Nightly and confirm the swap in-wallet.
+ */
+export const YUZU_USDCX_SWAP_URL =
+  "https://app.yuzu.finance/swap?tokenIn=0xa&tokenOut=0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e";
 
 /**
  * Desktop: Nightly extension injects → readyState "Installed".
