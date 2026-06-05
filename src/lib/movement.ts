@@ -93,8 +93,10 @@ export async function getConfig() {
       guildFee: viewNum(result[4]),
       prizePoolPercent: viewNum(result[5]),
       currentGameweek: viewNum(result[6]),
-      entryFeeAsset: entryAsset?.asset ?? 1,
+      /** `0` (MOVE) until `get_entry_fee_asset` exists and returns `1`. */
+      entryFeeAsset: entryAsset?.asset ?? 0,
       usdcMetadataAddr: entryAsset?.usdcMetadata ?? "0x0",
+      usdcxEntryLive: entryAsset !== null && entryAsset.asset === 1,
     };
   } catch (e) {
     console.error("Failed to get config:", e);

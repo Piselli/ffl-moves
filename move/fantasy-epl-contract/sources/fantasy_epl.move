@@ -96,7 +96,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     // ============ Structs ============
 
-    /// Global configuration
+    /// Global configuration (layout frozen — do not add fields; upgrade-safe).
     struct Config has key {
         admins: vector<address>,  // Multiple admins supported
         oracle: address,
@@ -105,7 +105,11 @@ module fantasy_epl_addr::fantasy_epl {
         guild_fee: u64,
         prize_pool_percent: u64,  // Percentage of entry fee to prize vault (e.g., 80 = 80%)
         current_gameweek: u64,
-        entry_fee_asset: u8,      // ENTRY_FEE_ASSET_MOVE (default) or ENTRY_FEE_ASSET_USDCX
+    }
+
+    /// Squad entry + prize pool asset (separate resource for package upgrades).
+    struct EntryFeeAssetConfig has key {
+        asset: u8,                // ENTRY_FEE_ASSET_MOVE (0) or ENTRY_FEE_ASSET_USDCX (1)
         usdc_metadata_addr: address,
     }
 
@@ -297,22 +301,26 @@ module fantasy_epl_addr::fantasy_epl {
         }
     }
 
-    fun entry_fee_uses_usdcx(config: &Config): bool {
-        config.entry_fee_asset == ENTRY_FEE_ASSET_USDCX
+    fun entry_fee_uses_usdcx(): bool acquires EntryFeeAssetConfig {
+        if (!exists<EntryFeeAssetConfig>(@fantasy_epl_addr)) {
+            return false
+        };
+        let asset_cfg = borrow_global<EntryFeeAssetConfig>(@fantasy_epl_addr);
+        asset_cfg.asset == ENTRY_FEE_ASSET_USDCX
     }
 
-    fun usdc_metadata_object(config: &Config): Object<Metadata> {
-        object::address_to_object<Metadata>(config.usdc_metadata_addr)
+    fun usdc_metadata_object(): Object<Metadata> acquires EntryFeeAssetConfig {
+        let asset_cfg = borrow_global<EntryFeeAssetConfig>(@fantasy_epl_addr);
+        object::address_to_object<Metadata>(asset_cfg.usdc_metadata_addr)
     }
 
     fun transfer_entry_asset_from(
-        config: &Config,
         from: &signer,
         to: address,
         amount: u64,
-    ) {
-        if (entry_fee_uses_usdcx(config)) {
-            let metadata = usdc_metadata_object(config);
+    ) acquires EntryFeeAssetConfig {
+        if (entry_fee_uses_usdcx()) {
+            let metadata = usdc_metadata_object();
             primary_fungible_store::transfer(from, metadata, to, amount);
         } else {
             coin::transfer<AptosCoin>(from, to, amount);
@@ -320,22 +328,21 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     fun transfer_entry_asset_from_signer(
-        config: &Config,
         from: &signer,
         to: address,
         amount: u64,
-    ) {
-        if (entry_fee_uses_usdcx(config)) {
-            let metadata = usdc_metadata_object(config);
+    ) acquires EntryFeeAssetConfig {
+        if (entry_fee_uses_usdcx()) {
+            let metadata = usdc_metadata_object();
             primary_fungible_store::transfer(from, metadata, to, amount);
         } else {
             coin::transfer<AptosCoin>(from, to, amount);
         };
     }
 
-    fun entry_asset_vault_balance(config: &Config, vault_addr: address): u64 {
-        if (entry_fee_uses_usdcx(config)) {
-            let metadata = usdc_metadata_object(config);
+    fun entry_asset_vault_balance(vault_addr: address): u64 acquires EntryFeeAssetConfig {
+        if (entry_fee_uses_usdcx()) {
+            let metadata = usdc_metadata_object();
             primary_fungible_store::balance(vault_addr, metadata)
         } else {
             coin::balance<AptosCoin>(vault_addr)
@@ -358,7 +365,10 @@ module fantasy_epl_addr::fantasy_epl {
             guild_fee: 50000000,   // 0.5 MOVE — guild purchase
             prize_pool_percent: 80,
             current_gameweek: 0,
-            entry_fee_asset: ENTRY_FEE_ASSET_USDCX,
+        });
+
+        move_to(sender, EntryFeeAssetConfig {
+            asset: ENTRY_FEE_ASSET_USDCX,
             usdc_metadata_addr: USDCX_METADATA_MAINNET,
         });
 
@@ -525,7 +535,7 @@ module fantasy_epl_addr::fantasy_epl {
         asset: u8,
         usdc_metadata: address,
         entry_fee: u64,
-    ) acquires Config {
+    ) acquires Config, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global_mut<Config>(@fantasy_epl_addr);
         assert!(is_admin(sender_addr, config), ENOT_ADMIN);
@@ -533,9 +543,19 @@ module fantasy_epl_addr::fantasy_epl {
         if (asset == ENTRY_FEE_ASSET_USDCX) {
             assert!(usdc_metadata != @0x0, EINVALID_USDC_METADATA);
         };
-        config.entry_fee_asset = asset;
-        config.usdc_metadata_addr = usdc_metadata;
         config.entry_fee = entry_fee;
+        if (exists<EntryFeeAssetConfig>(@fantasy_epl_addr)) {
+            let asset_cfg = borrow_global_mut<EntryFeeAssetConfig>(@fantasy_epl_addr);
+            asset_cfg.asset = asset;
+            asset_cfg.usdc_metadata_addr = usdc_metadata;
+        } else {
+            // First-time USDCx enable: resource must live at the module account (@fantasy_epl_addr).
+            assert!(sender_addr == @fantasy_epl_addr, ENOT_TREASURY_ACCOUNT);
+            move_to(sender, EntryFeeAssetConfig {
+                asset,
+                usdc_metadata_addr: usdc_metadata,
+            });
+        };
     }
 
     /// Update share of entry fees that goes to the prize pool (admin only). `new_percent` is 0–100.
@@ -593,7 +613,7 @@ module fantasy_epl_addr::fantasy_epl {
         sender: &signer,
         recipient: address,
         amount: u64,
-    ) acquires Config, TreasuryAuth {
+    ) acquires Config, TreasuryAuth, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
         assert!(is_admin(sender_addr, config), ENOT_ADMIN);
@@ -602,11 +622,11 @@ module fantasy_epl_addr::fantasy_epl {
 
         let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
         let vault_addr = account::get_signer_capability_address(&auth.cap);
-        let bal = entry_asset_vault_balance(config, vault_addr);
+        let bal = entry_asset_vault_balance(vault_addr);
         assert!(bal >= amount, EINSUFFICIENT_VAULT_BALANCE);
 
         let treasury = account::create_signer_with_capability(&auth.cap);
-        transfer_entry_asset_from_signer(config, &treasury, recipient, amount);
+        transfer_entry_asset_from_signer(&treasury, recipient, amount);
 
         event::emit(PrizeVaultWithdrawn {
             admin: sender_addr,
@@ -622,7 +642,7 @@ module fantasy_epl_addr::fantasy_epl {
         sender: &signer,
         gameweek_id: u64,
         amount_octas: u64,
-    ) acquires Config, GameweekRegistry, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, TreasuryAuth, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
         assert!(is_admin(sender_addr, config), ENOT_ADMIN);
@@ -635,7 +655,7 @@ module fantasy_epl_addr::fantasy_epl {
         assert!(gameweek.status != STATUS_RESOLVED, ESPONSOR_GAMEWEEK_RESOLVED);
 
         let vault_addr = fee_recipient_addr();
-        transfer_entry_asset_from(config, sender, vault_addr, amount_octas);
+        transfer_entry_asset_from(sender, vault_addr, amount_octas);
         gameweek.prize_pool = gameweek.prize_pool + amount_octas;
 
         event::emit(PrizePoolSponsored {
@@ -655,7 +675,7 @@ module fantasy_epl_addr::fantasy_epl {
         player_ids: vector<u64>,
         player_positions: vector<u8>,
         player_clubs: vector<u64>,
-    ) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
 
@@ -682,13 +702,13 @@ module fantasy_epl_addr::fantasy_epl {
         let house_leg = fee - prize_leg;
         if (exists<TreasuryAuth>(@fantasy_epl_addr)) {
             if (prize_leg > 0) {
-                transfer_entry_asset_from(config, sender, fee_recipient_addr(), prize_leg);
+                transfer_entry_asset_from(sender, fee_recipient_addr(), prize_leg);
             };
             if (house_leg > 0) {
-                transfer_entry_asset_from(config, sender, @fantasy_epl_addr, house_leg);
+                transfer_entry_asset_from(sender, @fantasy_epl_addr, house_leg);
             };
         } else {
-            transfer_entry_asset_from(config, sender, @fantasy_epl_addr, fee);
+            transfer_entry_asset_from(sender, @fantasy_epl_addr, fee);
         };
 
         // Update prize pool (same accounting as before: share of full entry fee)
@@ -837,7 +857,7 @@ module fantasy_epl_addr::fantasy_epl {
     public entry fun claim_prize(
         sender: &signer,
         gameweek_id: u64,
-    ) acquires Config, GameweekRegistry, ResultsRegistry, TreasuryAuth {
+    ) acquires GameweekRegistry, ResultsRegistry, TreasuryAuth, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
 
         // Check gameweek is resolved
@@ -860,10 +880,9 @@ module fantasy_epl_addr::fantasy_epl {
         result.claimed = true;
 
         assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
-        let config = borrow_global<Config>(@fantasy_epl_addr);
         let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
         let treasury = account::create_signer_with_capability(&auth.cap);
-        transfer_entry_asset_from_signer(config, &treasury, sender_addr, amount);
+        transfer_entry_asset_from_signer(&treasury, sender_addr, amount);
 
         event::emit(PrizeClaimed {
             owner: sender_addr,
@@ -1706,9 +1725,12 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[view]
-    public fun get_entry_fee_asset(): (u8, address) acquires Config {
-        let config = borrow_global<Config>(@fantasy_epl_addr);
-        (config.entry_fee_asset, config.usdc_metadata_addr)
+    public fun get_entry_fee_asset(): (u8, address) acquires EntryFeeAssetConfig {
+        if (!exists<EntryFeeAssetConfig>(@fantasy_epl_addr)) {
+            return (ENTRY_FEE_ASSET_MOVE, @0x0)
+        };
+        let asset_cfg = borrow_global<EntryFeeAssetConfig>(@fantasy_epl_addr);
+        (asset_cfg.asset, asset_cfg.usdc_metadata_addr)
     }
 
     #[view]

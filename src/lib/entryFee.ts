@@ -9,8 +9,9 @@ export type EntryFeeAssetKind = "usdcx" | "move";
 
 /** Squad registration + prize pool denomination (title/guild fees stay MOVE). */
 export function resolveEntryFeeAsset(chainAsset: number | null | undefined): EntryFeeAssetKind {
-  if (chainAsset === ENTRY_FEE_ASSET_MOVE) return "move";
-  return "usdcx";
+  // Only explicit on-chain `1` means USDCx. Missing view / legacy deploy → MOVE.
+  if (chainAsset === ENTRY_FEE_ASSET_USDCX) return "usdcx";
+  return "move";
 }
 
 /** Default on-chain entry fee in raw units (5 USDCx = 5_000_000). */

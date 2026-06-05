@@ -869,6 +869,11 @@ export default function GameweekPage() {
     <div className="bg-[#0D0F12] min-h-screen">
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 pt-28">
+        {!prize.usdcxEntryLive && config && (
+          <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+            {g.entryFeeLegacyBanner(entryFeeLabel)}
+          </div>
+        )}
         {/* Desktop header */}
         <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
@@ -882,7 +887,7 @@ export default function GameweekPage() {
             <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
               {entryFeeLabel}
             </p>
-            {prize.asset === "usdcx" && (
+            {prize.usdcxEntryLive && (
               <Link
                 href="/faq#web3-101--how-to-get-move"
                 className="text-[10px] text-sky-400/80 hover:text-sky-300 mt-1.5 block transition-colors"
@@ -905,7 +910,7 @@ export default function GameweekPage() {
             <p className="text-base font-display font-black text-[#00f948]">
               {entryFeeLabel}
             </p>
-            {prize.asset === "usdcx" && (
+            {prize.usdcxEntryLive && (
               <Link
                 href="/faq#web3-101--how-to-get-move"
                 className="text-[9px] text-sky-400/80 hover:text-sky-300 mt-0.5 block transition-colors"

@@ -16,6 +16,18 @@ Title & guild fees **stay MOVE** (`/titles` page unchanged).
 | UI | Squad, leaderboards, homepage, WC, tickers, FAQ, admin sponsor/withdraw |
 | Provider | `PrizeAssetProvider` in layout — one `getConfig` fetch |
 
+## ⚠️ UI vs on-chain (read this first)
+
+The frontend **must not** show USDCx until `get_entry_fee_asset` exists on the deployed module.
+If only the site is deployed but the contract is **not** upgraded:
+
+- UI may have shown **5.00 USDCx** while the wallet charged **MOVE** (`0x1::coin::WithdrawEvent`).
+- `set_fees` with `5000000` on a **legacy** module = **0.05 MOVE** (8 decimals), not 5 USDCx.
+
+**Fix:** publish upgrade → `set_entry_fee_asset(1, metadata, 5000000)` → redeploy frontend (reads live asset).
+
+---
+
 ## Go live checklist
 
 ### 1. Tests & build

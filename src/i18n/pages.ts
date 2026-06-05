@@ -125,6 +125,7 @@ export type PagesMessages = {
     maxThreeHint: string;
     entryFeeLabel: string;
     entryFeeUsdcxHint: string;
+    entryFeeLegacyBanner: (chargedLabel: string) => string;
     entryShort: string;
     benchTitle: (n: number, max: number) => string;
     benchSlotEmpty: (idx: number) => string;
@@ -486,6 +487,8 @@ export const pagesEn: PagesMessages = {
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
     entryFeeUsdcxHint: "Need USDCx? Swap in Nightly or Yuzu →",
+    entryFeeLegacyBanner: (chargedLabel) =>
+      `On-chain entry is still ${chargedLabel} (MOVE) — USDCx activates after a contract upgrade. The wallet will charge MOVE, not USDCx.`,
     entryShort: "Entry",
     benchTitle: (n, max) => `Bench (${n}/${max})`,
     benchSlotEmpty: (idx) => `Sub ${idx + 1}`,
@@ -1258,6 +1261,8 @@ export const pagesUk: PagesMessages = {
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
     entryFeeUsdcxHint: "Потрібен USDCx? Nightly Swap або Yuzu →",
+    entryFeeLegacyBanner: (chargedLabel) =>
+      `On-chain внесок досі ${chargedLabel} (MOVE) — USDCx увімкнеться після оновлення контракту. З гаманця зніметься MOVE, не USDCx.`,
     entryShort: "Внесок",
     benchTitle: (n, max) => `Запасні (${n}/${max})`,
     benchSlotEmpty: (idx) => `Запасний ${idx + 1}`,
