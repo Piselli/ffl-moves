@@ -917,7 +917,7 @@ export const pagesEn: PagesMessages = {
             q: "What is Movement and what is USDCx?",
             a: [
               { type: "p", text: "Movement is a blockchain network (think of it like the internet, but for crypto)." },
-              { type: "p", text: "USDCx is the dollar stablecoin on Movement. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via Nightly Swap or Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "USDCx is the dollar stablecoin on Movement, backed 1:1 by USDC from Circle. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via Nightly Swap or Yuzu (app.yuzu.finance)." },
             ],
           },
           {
@@ -1698,7 +1698,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Movement і USDCx?",
             a: [
               { type: "p", text: "Movement — це блокчейн-мережа (як інтернет, тільки для криптовалют)." },
-              { type: "p", text: "USDCx — стейблкоїн Movement, прив’язаний до долара. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через Swap у Nightly або на Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "USDCx — доларовий стейблкоїн на мережі Movement, забезпечений USDC від Circle. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через Swap у Nightly або на Yuzu (app.yuzu.finance)." },
             ],
           },
           {
