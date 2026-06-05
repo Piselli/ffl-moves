@@ -35,6 +35,7 @@ import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
@@ -136,6 +137,7 @@ export default function GameweekPage() {
   const { connected, account, signTransaction } = useWallet();
   const siteMessages = useSiteMessages();
   const g = siteMessages.pages.gameweek;
+  const ss = siteMessages.pages.squadShare;
   const mr = siteMessages.pages.myResult;
   const lt = siteMessages.pages.leaderboardTable;
 
@@ -150,6 +152,7 @@ export default function GameweekPage() {
   const [gameweekLoading, setGameweekLoading] = useState(true);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
   const [gameweekStats, setGameweekStats] = useState<Record<string, Record<string, unknown>>>({});
@@ -658,6 +661,7 @@ export default function GameweekPage() {
         }
       }
       setAlreadyRegistered(true);
+      setShareModalOpen(true);
 
       // Attribute this registration to the referral code the visitor arrived with.
       trackReferralConversion(account?.address?.toString() ?? null);
@@ -761,12 +765,24 @@ export default function GameweekPage() {
             </div>
             <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">{g.registeredTitle}</h1>
           </div>
-          <a
-            href="/leaderboard"
-            className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-sm hover:bg-emerald-500/30 transition-colors"
-          >
-            {g.leaderboardLink}
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShareModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white px-5 py-2.5 text-sm font-display font-black uppercase tracking-wide text-black transition-all hover:brightness-95"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              {ss.registeredShareButton}
+            </button>
+            <a
+              href="/leaderboard"
+              className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-sm hover:bg-emerald-500/30 transition-colors"
+            >
+              {g.leaderboardLink}
+            </a>
+          </div>
         </div>
 
         {teamToShow.length > 0 && (
@@ -797,6 +813,15 @@ export default function GameweekPage() {
           />
         )}
 
+        <ShareSquadOnXModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          starters={teamToShow}
+          bench={benchToShow}
+          context="gameweek"
+          tourLabel={`${g.gwWord} ${currentGameweek?.id ?? ""}`}
+          sitePath="/gameweek"
+        />
       </div>
     );
   }

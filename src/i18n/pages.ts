@@ -273,6 +273,25 @@ export type PagesMessages = {
     later: string;
     save: string;
   };
+  squadShare: {
+    modalTitle: string;
+    modalDesc: string;
+    closeAria: string;
+    xHandleLabel: string;
+    xHandlePlaceholder: string;
+    xHandleHint: string;
+    shareButton: string;
+    laterButton: string;
+    generating: string;
+    desktopHint: string;
+    clipboardHint: string;
+    registeredShareButton: string;
+    posterCta: string;
+    tweetXiLabel: string;
+    tweetBenchLabel: string;
+    tweetHeaderGw: (gwLabel: string) => string;
+    tweetHeaderWc: (roundLabel: string) => string;
+  };
   admin: {
     alertInvalidGw: string;
     alertGwExists: (id: number, statusWord: string) => string;
@@ -633,6 +652,27 @@ export const pagesEn: PagesMessages = {
     placeholder: "Enter nickname",
     later: "Later",
     save: "Save",
+  },
+  squadShare: {
+    modalTitle: "Share your squad on X",
+    modalDesc: "Your full squad goes in the post text. Attach the PNG in X manually — browsers can't upload images for you.",
+    closeAria: "Close",
+    xHandleLabel: "Your X handle (optional)",
+    xHandlePlaceholder: "username",
+    xHandleHint: "Saved locally — we add it to your post so friends can find you.",
+    shareButton: "Share on X",
+    laterButton: "Maybe later",
+    generating: "Preparing…",
+    desktopHint:
+      "X opened in a new tab. The squad PNG was downloaded — drag it into the compose box or click the image icon to attach.",
+    clipboardHint:
+      "X opened in a new tab. The squad image is in your clipboard — paste it into the compose box (⌘V).",
+    registeredShareButton: "Share on X",
+    posterCta: "Build your squad on MoveMatch",
+    tweetXiLabel: "XI",
+    tweetBenchLabel: "Bench",
+    tweetHeaderGw: (gw) => `My ${gw} squad on @MoveMatchxyz ⚽`,
+    tweetHeaderWc: (round) => `My WC ${round} squad on @MoveMatchxyz ⚽`,
   },
   admin: {
     alertInvalidGw: "Enter a valid gameweek number (integer ≥ 1).",
@@ -1407,6 +1447,27 @@ export const pagesUk: PagesMessages = {
     placeholder: "Введи нікнейм",
     later: "Пізніше",
     save: "Зберегти",
+  },
+  squadShare: {
+    modalTitle: "Поділись складом у X",
+    modalDesc: "Увесь склад буде в тексті поста. PNG прикріпи в X вручну — браузер не може завантажити фото замість тебе.",
+    closeAria: "Закрити",
+    xHandleLabel: "Твій X (необовʼязково)",
+    xHandlePlaceholder: "username",
+    xHandleHint: "Зберігається локально — додамо в пост, щоб друзі могли знайти тебе.",
+    shareButton: "Поділитись у X",
+    laterButton: "Можливо пізніше",
+    generating: "Готуємо…",
+    desktopHint:
+      "X відкрився в новій вкладці. PNG складу завантажено — перетягни у вікно поста або натисни іконку зображення.",
+    clipboardHint:
+      "X відкрився в новій вкладці. Зображення в буфері — встав у вікно поста (⌘V).",
+    registeredShareButton: "Поділитись у X",
+    posterCta: "Збери свій склад на MoveMatch",
+    tweetXiLabel: "Основа",
+    tweetBenchLabel: "Запас",
+    tweetHeaderGw: (gw) => `Мій склад ${gw} на @MoveMatchxyz ⚽`,
+    tweetHeaderWc: (round) => `Мій склад ЧС · ${round} на @MoveMatchxyz ⚽`,
   },
   admin: {
     alertInvalidGw: "Введи коректний номер туру (ціле число ≥ 1).",

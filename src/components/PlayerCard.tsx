@@ -164,8 +164,9 @@ export function PlayerCard({
   compact = false,
 }: PlayerCardProps) {
   const copy = useSiteMessages().pages.playerCard;
-  const photoUrl = player.photo || player.imageUrl;
   const fplCode = player.fplPhotoCode;
+  const apiId = player.apiId;
+  const photoUrl = player.photo || player.imageUrl;
 
   const positionBorderCompact: Record<string, string> = {
     GK:  "border-rose-400/60",
@@ -186,6 +187,7 @@ export function PlayerCard({
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-black/40 shrink-0 relative">
           <FplPhotoAvatar
             fplPhotoCode={fplCode}
+            apiId={apiId}
             photoUrl={photoUrl}
             alt={player.name}
             size={48}
@@ -221,6 +223,7 @@ export function PlayerCard({
         >
           <FplPhotoAvatar
             fplPhotoCode={fplCode}
+            apiId={apiId}
             photoUrl={photoUrl}
             alt={player.name}
             size={44}

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { CLEAN_SHEET_POINTS, GOAL_POINTS } from "@/lib/scoring-rules";
+import { playerPhotoSrc } from "@/lib/playerPhoto";
+import type { Player } from "@/lib/types";
 
 const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const PHOTO_BASE =
@@ -114,7 +116,11 @@ export async function GET() {
       };
       });
 
-    return NextResponse.json(players);
+    const withProxiedPhotos = (players as Player[]).map((p) => {
+      const proxied = playerPhotoSrc(p);
+      return proxied ? { ...p, photo: proxied } : p;
+    });
+    return NextResponse.json(withProxiedPhotos);
   } catch (err) {
     console.error("Failed to fetch FPL players:", err);
     return NextResponse.json(

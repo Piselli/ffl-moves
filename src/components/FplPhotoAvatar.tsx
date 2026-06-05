@@ -9,11 +9,14 @@ import {
   hasFplAtlas,
 } from "@/lib/fpl-photo-atlas";
 import { hueFromString, initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { playerPhotoSrc } from "@/lib/playerPhoto";
 import type { CSSProperties } from "react";
 
 type Props = {
   /** FPL `element.code` from API — preferred */
   fplPhotoCode?: number | null;
+  /** API-Sports id — World Cup catalog */
+  apiId?: number | null;
   /** Full photo URL — used for fallback and to derive code */
   photoUrl?: string | null;
   alt: string;
@@ -47,6 +50,7 @@ function FallbackSilhouette({ className }: { className?: string }) {
 
 export function FplPhotoAvatar({
   fplPhotoCode,
+  apiId,
   photoUrl,
   alt,
   className,
@@ -65,7 +69,7 @@ export function FplPhotoAvatar({
   useEffect(() => {
     setImgFailed(false);
     setImgLoaded(false);
-  }, [photoUrl, fplPhotoCode]);
+  }, [photoUrl, fplPhotoCode, apiId]);
 
   const code =
     fplPhotoCode != null && fplPhotoCode > 0
@@ -74,7 +78,12 @@ export function FplPhotoAvatar({
   const frame = code ? getFplPhotoFrame(code) : null;
   const useSprite = hasFplAtlas() && frame != null;
 
-  const showImg = Boolean(photoUrl) && !imgFailed;
+  const resolvedPhotoUrl = playerPhotoSrc({
+    photo: photoUrl ?? undefined,
+    fplPhotoCode: fplPhotoCode ?? undefined,
+    apiId: apiId ?? undefined,
+  });
+  const showImg = Boolean(resolvedPhotoUrl) && !imgFailed;
   const fallbackVisible = !imgLoaded || imgFailed;
 
   const initials =
@@ -156,12 +165,13 @@ export function FplPhotoAvatar({
       {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={photoUrl!}
+          src={resolvedPhotoUrl!}
           alt=""
           className={cn(
             "absolute inset-0 z-[3] h-full w-full object-cover object-top transition-opacity duration-200",
             imgLoaded ? "opacity-100" : "opacity-0"
           )}
+          referrerPolicy="no-referrer"
           onLoad={() => setImgLoaded(true)}
           onError={() => setImgFailed(true)}
         />

@@ -156,6 +156,7 @@ function ShowcaseCard({
         >
           <FplPhotoAvatar
             fplPhotoCode={player.fplPhotoCode ?? null}
+            apiId={player.apiId ?? null}
             photoUrl={player.photo || player.imageUrl || null}
             alt={player.name}
             size={photo}
