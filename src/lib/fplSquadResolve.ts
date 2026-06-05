@@ -1,5 +1,6 @@
 import type { Player } from "./types";
 import { TEAM_NOT_IN_SITE_CATALOG } from "@/lib/catalog-placeholders";
+import { apiSportsPhotoProxyPath } from "@/lib/playerPhoto";
 
 const POS: readonly ("GK" | "DEF" | "MID" | "FWD")[] = ["GK", "DEF", "MID", "FWD"];
 
@@ -29,17 +30,36 @@ export type ChainSquad = { playerIds: number[]; playerPositions: number[] };
  * Fill display fields (photo, webName, …) from the live catalog while keeping
  * on-chain / snapshot positions. Fixes squads hydrated before the catalog loaded.
  */
+function catalogByApiIdIndex(catalogById: Map<number, Player>): Map<number, Player> {
+  const byApiId = new Map<number, Player>();
+  catalogById.forEach((p) => {
+    if (p.apiId != null && p.apiId > 0) byApiId.set(p.apiId, p);
+  });
+  return byApiId;
+}
+
 export function enrichSquadFromCatalog(
   team: { starters: Player[]; bench: Player[] },
   catalogById: Map<number, Player>,
 ): { starters: Player[]; bench: Player[] } {
+  const byApiId = catalogByApiIdIndex(catalogById);
+
   const enrichOne = (p: Player): Player => {
-    const fromCatalog = catalogById.get(p.id);
+    let fromCatalog = catalogById.get(p.id);
+    if (!fromCatalog && p.apiId != null && p.apiId > 0) {
+      fromCatalog = byApiId.get(p.apiId);
+    }
     if (!fromCatalog) return p;
+    const apiId = fromCatalog.apiId;
     return {
       ...fromCatalog,
+      id: p.id,
       positionId: p.positionId,
       position: p.position,
+      photo:
+        apiId != null && apiId > 0
+          ? apiSportsPhotoProxyPath(apiId)
+          : fromCatalog.photo,
     };
   };
   return {

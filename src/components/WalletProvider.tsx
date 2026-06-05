@@ -1,10 +1,31 @@
 "use client";
 
-import { type ComponentProps, type PropsWithChildren } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  type ComponentProps,
+  type PropsWithChildren,
+} from "react";
 import { Network } from "@aptos-labs/ts-sdk";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MOVEMENT_RPC_URL } from "@/lib/constants";
+import { WalletSessionRestore } from "@/components/WalletSessionRestore";
+
+type WalletAdapterErrorContextValue = {
+  lastError: string | null;
+  clearError: () => void;
+};
+
+const WalletAdapterErrorContext = createContext<WalletAdapterErrorContextValue>({
+  lastError: null,
+  clearError: () => {},
+});
+
+export function useWalletAdapterError(): WalletAdapterErrorContextValue {
+  return useContext(WalletAdapterErrorContext);
+}
 
 const queryClient = new QueryClient();
 
@@ -34,6 +55,8 @@ function walletAdapterFullnodeOverride(): string {
 }
 
 export function WalletProvider({ children }: PropsWithChildren) {
+  const [lastError, setLastError] = useState<string | null>(null);
+
   /** Runtime adapter reads `fullnode` (see wallet-adapter-core `getAptosConfig`); duplicate `.d.ts` in pnpm may omit `fullnode`. */
   const dappConfig = {
     network: walletAdapterDappNetwork(),
@@ -41,17 +64,29 @@ export function WalletProvider({ children }: PropsWithChildren) {
   } as ComponentProps<typeof AptosWalletAdapterProvider>["dappConfig"];
 
   return (
-    <AptosWalletAdapterProvider
-      autoConnect={true}
-      optInWallets={["Nightly"]}
-      dappConfig={dappConfig}
-      onError={(error) => {
-        console.error("Wallet adapter error:", error);
-      }}
+    <WalletAdapterErrorContext.Provider
+      value={{ lastError, clearError: () => setLastError(null) }}
     >
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </AptosWalletAdapterProvider>
+      <AptosWalletAdapterProvider
+        autoConnect
+        optInWallets={["Nightly"]}
+        dappConfig={dappConfig}
+        onError={(error) => {
+          const msg =
+            error instanceof Error
+              ? error.message
+              : typeof error === "string"
+                ? error
+                : "Wallet connection failed";
+          setLastError(msg);
+          console.error("Wallet adapter error:", error);
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <WalletSessionRestore />
+          {children}
+        </QueryClientProvider>
+      </AptosWalletAdapterProvider>
+    </WalletAdapterErrorContext.Provider>
   );
 }

@@ -31,6 +31,7 @@ import { trackReferralConversion } from "@/lib/referralClient";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadResolve";
+import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 
@@ -175,42 +176,58 @@ export default function WorldCupSquadPage() {
 
   const registeredTeamForDisplay = useMemo(() => {
     if (!registeredTeam || !isCompleteRegisteredSnapshot(registeredTeam)) return null;
-    if (players.length === 0) return registeredTeam;
+    if (players.length === 0) return null;
     return enrichSquadFromCatalog(registeredTeam, catalogById);
   }, [registeredTeam, catalogById, players.length]);
 
   const prize = usePrizeAsset();
   const entryFeeLabel = useMemo(() => {
-    if (entryFee == null) return "—";
+    if (!prize.ready || entryFee == null) return "—";
     return prize.formatLabel(entryFee);
   }, [entryFee, prize]);
 
   // WC player catalog (API-Sports based), fallback to bundled JSON.
   useEffect(() => {
-    fetch("/api/wc-players")
-      .then(async (r) => {
-        if (!r.ok) throw new Error("wc players api unavailable");
-        const data = await r.json();
-        if (Array.isArray(data)) {
-          setPlayers(data as Player[]);
+    let cancelled = false;
+
+    async function loadCatalog() {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (cancelled) return;
+        try {
+          const r = await fetch("/api/wc-players");
+          if (!r.ok) throw new Error("wc players api unavailable");
+          const data = await r.json();
+          if (!Array.isArray(data)) throw new Error("wc players api invalid response");
+          if (!cancelled) setPlayers(data as Player[]);
           return;
+        } catch {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+          }
         }
-        throw new Error("wc players api invalid response");
-      })
-      .catch(() => {
-        // Catalog is served by /api/wc-players (reads public/data/wc-players.json).
-        // If that fails, show the "squads not published yet" empty state.
-        setPlayers([]);
-      })
-      .finally(() => setPlayersLoading(false));
+      }
+      if (!cancelled) setPlayers([]);
+    }
+
+    loadCatalog().finally(() => {
+      if (!cancelled) setPlayersLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
+    const prevIdentity = walletIdentityRef.current;
     const nextIdentity = account?.address?.toString();
-    const identityChanged = walletIdentityRef.current !== nextIdentity;
+    const switchedWallet =
+      prevIdentity !== undefined &&
+      nextIdentity !== undefined &&
+      prevIdentity !== nextIdentity;
     walletIdentityRef.current = nextIdentity;
 
-    if (identityChanged) {
+    if (switchedWallet) {
       setAlreadyRegistered(false);
       setRegisteredTeam(null);
       setTourStats({});
@@ -221,75 +238,121 @@ export default function WorldCupSquadPage() {
     }
     setTourLoading(true);
 
+    let cancelled = false;
+
     async function fetchData() {
-      const [{ getConfig }, gwData] = await Promise.all([
-        import("@/lib/movement"),
-        findActiveWorldCupTourFromChain(),
-      ]);
-      const cfg = await getConfig();
-      setEntryFee(cfg ? cfg.entryFee : null);
-
-      setCurrentTour(gwData);
-      setTourLoading(false);
-      if (!gwData) return;
-
-      const targetTourId = gwData.id;
-      if (!account?.address) return;
-      const addr = account.address.toString();
-
-      if (gwData.status === "closed" || gwData.status === "resolved") {
-        const [chainTeam, res] = await Promise.all([
-          getUserTeam(addr, targetTourId),
-          getTeamResult(addr, targetTourId),
+      try {
+        const [{ getConfig }, gwData] = await Promise.all([
+          import("@/lib/movement"),
+          findActiveWorldCupTourFromChain(),
         ]);
-        setTeamResult(res);
+        if (cancelled) return;
 
-        if (chainTeam?.playerIds?.length) {
-          setAlreadyRegistered(true);
-          if (players.length > 0) {
-            const catalog = new Map(players.map((p) => [p.id, p]));
-            const teamPlayers = squadPlayersFromChain(
-              { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
-              catalog,
-            );
-            if (teamPlayers.length === FORMATION.TOTAL) {
-              const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
-              setRegisteredTeam(snapshot);
-              localStorage.setItem(registeredStorageKey(targetTourId, addr), JSON.stringify(snapshot));
-            }
+        const cfg = await getConfig();
+        if (cancelled) return;
+
+        if (cancelled) return;
+        setEntryFee(cfg ? cfg.entryFee : null);
+        setCurrentTour(gwData);
+
+        if (!gwData || !account?.address) {
+          if (!cancelled) {
+            setAlreadyRegistered(false);
+            setRegisteredTeam(null);
           }
-          // Chain stats are authoritative for WC (no keyless live feed).
-          const stats = await getGameweekStats(targetTourId, chainTeam.playerIds);
-          setTourStats(stats as Record<string, Record<string, unknown>>);
-        } else {
-          setAlreadyRegistered(false);
+          return;
         }
-      } else {
-        const registered = await hasRegisteredTeam(addr, targetTourId);
-        setAlreadyRegistered(registered);
-        if (registered) {
-          const saved = localStorage.getItem(registeredStorageKey(targetTourId, addr));
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
-              if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
-                const snapshot = parsed as { starters: Player[]; bench: Player[] };
-                const catalog = new Map(players.map((p) => [p.id, p]));
-                setRegisteredTeam(
-                  players.length > 0 ? enrichSquadFromCatalog(snapshot, catalog) : snapshot,
-                );
+        if (cancelled) return;
+
+        const targetTourId = gwData.id;
+        const addr = account.address.toString();
+        const regKey = registeredStorageKey(targetTourId, addr);
+
+        const hydrateRegisteredSnapshot = (raw: string | null) => {
+          if (!raw || cancelled) return false;
+          try {
+            const parsed = JSON.parse(raw) as { starters?: Player[]; bench?: Player[] };
+            if (!isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) return false;
+            setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        if (gwData.status === "closed" || gwData.status === "resolved") {
+          const [chainTeam, res] = await Promise.all([
+            getUserTeam(addr, targetTourId),
+            getTeamResult(addr, targetTourId),
+          ]);
+          if (cancelled) return;
+
+          setTeamResult(res);
+
+          if (chainTeam?.playerIds?.length) {
+            if (!cancelled) setAlreadyRegistered(true);
+            if (!hydrateRegisteredSnapshot(localStorage.getItem(regKey)) && !cancelled) {
+              setRegisteredTeam(null);
+            }
+            const stats = await getGameweekStats(targetTourId, chainTeam.playerIds);
+            if (!cancelled) setTourStats(stats as Record<string, Record<string, unknown>>);
+          } else if (!cancelled) {
+            setAlreadyRegistered(false);
+            setRegisteredTeam(null);
+          }
+        } else {
+          // Optimistic hydrate so registered users don't flash the squad picker.
+          const saved = localStorage.getItem(regKey);
+          if (hydrateRegisteredSnapshot(saved) && !cancelled) {
+            setAlreadyRegistered(true);
+          }
+
+          const registered = await hasRegisteredTeam(addr, targetTourId);
+          if (cancelled) return;
+
+          setAlreadyRegistered(registered);
+          if (registered) {
+            if (!hydrateRegisteredSnapshot(localStorage.getItem(regKey)) && !cancelled) {
+              const chainTeam = await getUserTeam(addr, targetTourId);
+              if (cancelled) return;
+              if (chainTeam?.playerIds?.length) {
+                setRegisteredTeam(null);
               }
-            } catch {
-              /* ignore */
             }
+          } else if (!cancelled) {
+            setRegisteredTeam(null);
           }
-        } else {
-          tryHydrateTeamDraftFromStorage(targetTourId, addr, players, setStarters, setBench);
         }
+      } finally {
+        if (!cancelled) setTourLoading(false);
       }
     }
     fetchData();
-  }, [account?.address, players.length]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account?.address]);
+
+  useEffect(() => {
+    if (
+      tourLoading ||
+      alreadyRegistered ||
+      !account?.address ||
+      !currentTour ||
+      currentTour.status !== "open" ||
+      players.length === 0
+    ) {
+      return;
+    }
+    tryHydrateTeamDraftFromStorage(
+      currentTour.id,
+      account.address.toString(),
+      players,
+      setStarters,
+      setBench,
+    );
+  }, [tourLoading, alreadyRegistered, account?.address, currentTour, players.length]);
 
   useEffect(() => {
     if (starters.some(Boolean) || bench.some(Boolean)) lineupTouchedNonEmptySessionRef.current = true;
@@ -355,18 +418,23 @@ export default function WorldCupSquadPage() {
     };
   }, [alreadyRegistered, registeredTeam, players, account?.address, currentTour]);
 
-  // Backfill photo URLs when squad was cached before the player catalog finished loading.
+  // When the WC catalog loads, merge portrait fields (apiId, photo) into registered state.
   useEffect(() => {
     if (!alreadyRegistered || !account?.address || !currentTour || players.length === 0) return;
     if (!registeredTeam || !isCompleteRegisteredSnapshot(registeredTeam)) return;
 
-    const squad = [...registeredTeam.starters, ...registeredTeam.bench];
-    if (!squad.some((p) => !p.photo && !p.imageUrl && !p.fplPhotoCode)) return;
-
     const enriched = enrichSquadFromCatalog(registeredTeam, catalogById);
-    const improved = [...enriched.starters, ...enriched.bench].some((p, i) => {
-      const orig = squad[i];
-      return Boolean(p.photo || p.imageUrl || p.fplPhotoCode) && !Boolean(orig.photo || orig.imageUrl || orig.fplPhotoCode);
+    const flatOrig = [...registeredTeam.starters, ...registeredTeam.bench];
+    const flatNew = [...enriched.starters, ...enriched.bench];
+    const improved = flatNew.some((p, i) => {
+      const orig = flatOrig[i];
+      return (
+        (p.apiId ?? 0) > 0 &&
+        (orig.apiId !== p.apiId ||
+          orig.photo !== p.photo ||
+          orig.fplPhotoCode !== p.fplPhotoCode ||
+          orig.imageUrl !== p.imageUrl)
+      );
     });
     if (!improved) return;
 
@@ -577,15 +645,28 @@ export default function WorldCupSquadPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">{g.connectTitle}</h1>
-          <p className="text-white/40 text-sm leading-relaxed">{g.connectDesc}</p>
+          <p className="text-white/40 text-sm leading-relaxed mb-2">{g.connectDesc}</p>
+          <ConnectWalletCTA className="mt-6 text-left" />
         </div>
       </div>
     );
   }
 
+  const pageBootstrapping = tourLoading;
+  const registeredBootstrapping =
+    alreadyRegistered && (playersLoading || !registeredTeamForDisplay);
+
+  if (pageBootstrapping || registeredBootstrapping) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
   if (alreadyRegistered) {
-    const teamToShow = registeredTeamForDisplay?.starters || [];
-    const benchToShow = registeredTeamForDisplay?.bench || [];
+    const teamToShow = registeredTeamForDisplay!.starters;
+    const benchToShow = registeredTeamForDisplay!.bench;
     const isPreviewMode = currentTour?.status === "closed";
     const hasStats = Object.keys(tourStats).length > 0;
     const showScores =
@@ -659,14 +740,6 @@ export default function WorldCupSquadPage() {
           tourLabel={roundLabel}
           sitePath="/world-cup/squad"
         />
-      </div>
-    );
-  }
-
-  if (tourLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
       </div>
     );
   }

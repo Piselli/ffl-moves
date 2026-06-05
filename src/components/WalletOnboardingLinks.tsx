@@ -2,8 +2,10 @@
 
 import {
   MOVEMENT_WALLET_WELCOME_GUIDE_URL,
+  NIGHTLY_CHROME_EXTENSION_URL,
   NIGHTLY_DOWNLOAD_URL,
   YUZU_USDCX_SWAP_URL,
+  isMobileBrowser,
 } from "@/lib/walletNightly";
 
 const linkClass =
@@ -16,15 +18,16 @@ export function WalletOnboardingLinks({
   locale: "uk" | "en";
   className?: string;
 }) {
+  const desktop = !isMobileBrowser();
   const t =
     locale === "uk"
       ? {
-          nightly: "Завантажити Nightly",
+          nightly: desktop ? "Розширення Nightly (Chrome)" : "Завантажити Nightly",
           movement: "Офіційний гайд Movement",
           usdcx: "Своп на Yuzu → USDCx",
         }
       : {
-          nightly: "Download Nightly",
+          nightly: desktop ? "Nightly extension (Chrome)" : "Download Nightly",
           movement: "Official Movement guide",
           usdcx: "Swap on Yuzu → USDCx",
         };
@@ -32,7 +35,7 @@ export function WalletOnboardingLinks({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <a
-        href={NIGHTLY_DOWNLOAD_URL}
+        href={desktop ? NIGHTLY_CHROME_EXTENSION_URL : NIGHTLY_DOWNLOAD_URL}
         target="_blank"
         rel="noopener noreferrer"
         className={`${linkClass} border-[#00f948]/40 bg-[#00f948]/10 text-[#00f948] hover:bg-[#00f948]/20 hover:border-[#00f948]/60`}

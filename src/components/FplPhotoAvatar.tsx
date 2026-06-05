@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   fplPhotoCodeFromUrl,
@@ -9,7 +9,7 @@ import {
   hasFplAtlas,
 } from "@/lib/fpl-photo-atlas";
 import { hueFromString, initialsFromDisplayName } from "@/lib/avatar-fallback";
-import { playerPhotoSrc } from "@/lib/playerPhoto";
+import { apiSportsPhotoProxyPath, playerPhotoCandidates } from "@/lib/playerPhoto";
 import type { CSSProperties } from "react";
 
 type Props = {
@@ -65,24 +65,48 @@ export function FplPhotoAvatar({
   // when the request 403s (PL CDN sometimes blocks newer/transferred players).
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [urlIndex, setUrlIndex] = useState(0);
+  const [retryTick, setRetryTick] = useState(0);
+
+  const photoCandidates = useMemo(
+    () =>
+      playerPhotoCandidates({
+        photo: photoUrl ?? undefined,
+        fplPhotoCode: fplPhotoCode ?? undefined,
+        apiId: apiId ?? undefined,
+      }),
+    [photoUrl, fplPhotoCode, apiId],
+  );
+
+  const wcPortraitSrc =
+    apiId != null && apiId > 0 ? apiSportsPhotoProxyPath(apiId) : null;
+
+  const candidateKey = photoCandidates.join("|");
+  const portraitKey = wcPortraitSrc ?? candidateKey;
 
   useEffect(() => {
     setImgFailed(false);
     setImgLoaded(false);
-  }, [photoUrl, fplPhotoCode, apiId]);
+    setUrlIndex(0);
+    setRetryTick(0);
+  }, [portraitKey]);
+
+  const resolvedPhotoUrl = useMemo(() => {
+    const base = wcPortraitSrc ?? photoCandidates[urlIndex] ?? null;
+    if (!base || retryTick === 0) return base;
+    const sep = base.includes("?") ? "&" : "?";
+    return `${base}${sep}_retry=${retryTick}`;
+  }, [wcPortraitSrc, photoCandidates, urlIndex, retryTick]);
 
   const code =
     fplPhotoCode != null && fplPhotoCode > 0
       ? String(fplPhotoCode)
       : fplPhotoCodeFromUrl(photoUrl || undefined);
   const frame = code ? getFplPhotoFrame(code) : null;
-  const useSprite = hasFplAtlas() && frame != null;
+  // World Cup portraits use API-Sports — never route through the FPL sprite atlas.
+  const useSprite =
+    !(apiId != null && apiId > 0) && hasFplAtlas() && frame != null;
 
-  const resolvedPhotoUrl = playerPhotoSrc({
-    photo: photoUrl ?? undefined,
-    fplPhotoCode: fplPhotoCode ?? undefined,
-    apiId: apiId ?? undefined,
-  });
   const showImg = Boolean(resolvedPhotoUrl) && !imgFailed;
   const fallbackVisible = !imgLoaded || imgFailed;
 
@@ -173,7 +197,20 @@ export function FplPhotoAvatar({
           )}
           referrerPolicy="no-referrer"
           onLoad={() => setImgLoaded(true)}
-          onError={() => setImgFailed(true)}
+          onError={() => {
+            if (retryTick < 2) {
+              setRetryTick((t) => t + 1);
+              setImgLoaded(false);
+              return;
+            }
+            if (urlIndex + 1 < photoCandidates.length) {
+              setUrlIndex((i) => i + 1);
+              setRetryTick(0);
+              setImgLoaded(false);
+            } else {
+              setImgFailed(true);
+            }
+          }}
         />
       ) : null}
     </div>

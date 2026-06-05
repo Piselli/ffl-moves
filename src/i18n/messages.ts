@@ -28,6 +28,14 @@ export type SiteMessages = {
     noWalletsHint: string;
     connectHintNightly: string;
     connectHintFailed: string;
+    openingNightly: string;
+    installNightlyExtension: string;
+    desktopExtensionHint: string;
+    desktopExtensionRefresh: string;
+    scanningNightly: string;
+    connectHintInstalled: string;
+    safariExtensionHint: string;
+    nightlyInstalledTips: string;
     socialXAria: string;
   };
   footer: {
@@ -221,6 +229,19 @@ const uk: SiteMessages = {
       "Схоже, Nightly не відкрився або не встановлено. Завантаж Nightly за посиланням нижче й спробуй підключити знову.",
     connectHintFailed:
       "Не вдалося підключити гаманець. Перевір, чи встановлено Nightly, або скористайся посиланнями нижче.",
+    openingNightly: "Відкриваємо Nightly… Підтверди підключення у вікні розширення.",
+    installNightlyExtension: "Встановити розширення Nightly",
+    desktopExtensionHint:
+      "На Mac у браузері потрібне розширення Nightly (Chrome, Brave або Edge) — мобільний застосунок тут не підключиться.",
+    desktopExtensionRefresh:
+      "Після встановлення онови сторінку (Cmd+Shift+R) і натисни Nightly знову. Дозволь розширенню доступ до localhost.",
+    scanningNightly: "Шукаємо розширення Nightly у браузері…",
+    connectHintInstalled:
+      "Nightly знайдено, але підключення не завершилось. Натисни іконку Nightly у панелі браузера → підключи сайт → обери мережу Movement → спробуй знову. Дозволь popup для localhost.",
+    safariExtensionHint:
+      "У Safari потрібне окреме розширення Nightly (не Chrome Web Store). Встанови з nightly.app → Safari → Увімкни в Налаштування → Розширення.",
+    nightlyInstalledTips:
+      "1) Іконка Nightly у панелі браузера → підключи цей сайт. 2) У гаманці обери Movement. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
     socialXAria: "MoveMatch на X (Twitter) — новини та підтримка",
   },
   footer: {
@@ -431,6 +452,19 @@ const en: SiteMessages = {
       "Nightly may not have opened or isn’t installed. Download Nightly via the link below and try again.",
     connectHintFailed:
       "Could not connect the wallet. Check that Nightly is installed or use the links below.",
+    openingNightly: "Opening Nightly… Approve the connection in the extension popup.",
+    installNightlyExtension: "Install Nightly extension",
+    desktopExtensionHint:
+      "On Mac, the browser needs the Nightly extension (Chrome, Brave, or Edge) — the mobile app cannot connect here.",
+    desktopExtensionRefresh:
+      "After installing, refresh this page (Cmd+Shift+R) and tap Nightly again. Allow the extension access to localhost.",
+    scanningNightly: "Looking for the Nightly extension in your browser…",
+    connectHintInstalled:
+      "Nightly was found but the connection did not finish. Click the Nightly icon in the toolbar → connect this site → select Movement network → try again. Allow popups for localhost.",
+    safariExtensionHint:
+      "Safari needs the separate Nightly Safari extension (not Chrome Web Store). Install from nightly.app → Safari → enable in Settings → Extensions.",
+    nightlyInstalledTips:
+      "1) Nightly toolbar icon → connect this site. 2) Select Movement in the wallet. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
     socialXAria: "MoveMatch on X (Twitter) — news and support",
   },
   footer: {

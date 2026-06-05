@@ -7,9 +7,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
-import { nightlyConnectRows } from "@/lib/walletNightly";
+import { NIGHTLY_CHROME_EXTENSION_URL, isSafariBrowser } from "@/lib/walletNightly";
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { useNickname } from "@/hooks/useNickname";
+import { useNightlyConnect } from "@/hooks/useNightlyConnect";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityCluster";
@@ -36,23 +37,20 @@ export function Navbar() {
         { href: "/world-cup", label: m.nav.worldCup },
         { href: "/faq", label: m.nav.faq },
       ];
-  const { connected, account, connect, disconnect, wallets, notDetectedWallets } = useWallet();
+  const { connected, account, disconnect } = useWallet();
+  const { nightlyRows, connectNightly, lastError, hint, scanDone } = useNightlyConnect();
   const [showWalletList, setShowWalletList] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [connectHint, setConnectHint] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navShellRef = useRef<HTMLDivElement>(null);
-  const connectedRef = useRef(false);
-  const connectHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
   const cinematicHeroTop = wcCampaign && pathname === "/" && !scrolled;
 
   const address = account?.address?.toString() ?? null;
   const { setNickname, hasNickname, myNickname } = useNickname(address);
-  connectedRef.current = connected;
 
   // Auto-open nickname modal on first connection
   useEffect(() => {
@@ -65,16 +63,6 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(
-    () => () => {
-      if (connectHintTimerRef.current) {
-        clearTimeout(connectHintTimerRef.current);
-        connectHintTimerRef.current = null;
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -102,37 +90,8 @@ export function Navbar() {
 
   useEffect(() => {
     if (!connected) return;
-    if (connectHintTimerRef.current) {
-      clearTimeout(connectHintTimerRef.current);
-      connectHintTimerRef.current = null;
-    }
-    setConnectHint(null);
     setShowWalletList(false);
   }, [connected]);
-
-  const handleConnectWallet = async (walletName: string) => {
-    setConnectHint(null);
-    if (connectHintTimerRef.current) {
-      clearTimeout(connectHintTimerRef.current);
-      connectHintTimerRef.current = null;
-    }
-    try {
-      // wallet-adapter types `connect` as `void`, but the runtime returns a Promise that may reject
-      // (e.g. user closed Nightly) — await so the catch below actually handles cancellation hints.
-      await connect(walletName);
-      connectHintTimerRef.current = setTimeout(() => {
-        connectHintTimerRef.current = null;
-        if (!connectedRef.current) {
-          setConnectHint(m.nav.connectHintNightly);
-        }
-      }, 2200);
-    } catch (e) {
-      console.error("Failed to connect:", e);
-      setConnectHint(m.nav.connectHintFailed);
-    }
-  };
-
-  const nightlyRows = nightlyConnectRows(wallets, notDetectedWallets);
 
   const logoEl = (
     <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">
@@ -286,11 +245,6 @@ export function Navbar() {
                   id="wallet-connect-btn"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setConnectHint(null);
-                    if (connectHintTimerRef.current) {
-                      clearTimeout(connectHintTimerRef.current);
-                      connectHintTimerRef.current = null;
-                    }
                     setShowWalletList(!showWalletList);
                   }}
                   className="rounded-lg px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-[#00f948] transition-colors hover:bg-[#00f948]/15 whitespace-nowrap"
@@ -330,36 +284,68 @@ export function Navbar() {
                     <p className="text-xs text-white/40 mt-1">{m.nav.compatibleMovement}</p>
                   </div>
                   <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
-                    {connectHint ? (
+                    {lastError ? (
+                      <div className="px-3 py-3 mb-1 rounded-xl bg-rose-500/10 border border-rose-500/30">
+                        <p className="text-[11px] text-rose-100/90 leading-relaxed break-words">{lastError}</p>
+                      </div>
+                    ) : null}
+                    {hint ? (
                       <div className="px-3 py-3 mb-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{connectHint}</p>
+                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{hint}</p>
+                      </div>
+                    ) : null}
+                    {scanDone && nightlyRows.some((r) => r.mode === "extension-missing") ? (
+                      <div className="px-3 py-3 mb-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{m.nav.desktopExtensionHint}</p>
                       </div>
                     ) : null}
                     {nightlyRows.length > 0 ? (
                       <>
-                        {nightlyRows.map((row) => (
-                          <button
-                            key={row.name + row.mode}
-                            type="button"
-                            onClick={() => handleConnectWallet(row.name)}
-                            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
-                              {row.icon ? (
-                                <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
-                              ) : null}
-                            </div>
-                            <div>
-                              <p className="text-sm font-display font-bold text-white group-hover:text-[#00f948] transition-colors">
-                                {row.name}
-                              </p>
-                              <p className="text-xs text-[#00f948] font-bold uppercase tracking-wider mt-0.5">
-                                {row.mode === "installed" ? m.nav.installed : m.nav.openInNightly}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
-                        {nightlyRows.some((r) => r.mode === "app") ? (
+                        {nightlyRows.map((row) =>
+                          row.mode === "extension-missing" ? (
+                            <a
+                              key={row.name + row.mode}
+                              href={NIGHTLY_CHROME_EXTENSION_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
+                                {row.icon ? (
+                                  <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
+                                ) : null}
+                              </div>
+                              <div>
+                                <p className="text-sm font-display font-bold text-[#00f948] group-hover:text-[#00f948] transition-colors">
+                                  {m.nav.installNightlyExtension}
+                                </p>
+                                <p className="text-xs text-white/45 font-medium mt-0.5">Chrome Web Store</p>
+                              </div>
+                            </a>
+                          ) : (
+                            <button
+                              key={row.name + row.mode}
+                              type="button"
+                              onClick={() => connectNightly(row.name)}
+                              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
+                                {row.icon ? (
+                                  <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
+                                ) : null}
+                              </div>
+                              <div>
+                                <p className="text-sm font-display font-bold text-white group-hover:text-[#00f948] transition-colors">
+                                  {row.name}
+                                </p>
+                                <p className="text-xs text-[#00f948] font-bold uppercase tracking-wider mt-0.5">
+                                  {row.mode === "installed" ? m.nav.installed : m.nav.openInNightly}
+                                </p>
+                              </div>
+                            </button>
+                          ),
+                        )}
+                        {nightlyRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
                           <div className="px-3 pb-2 pt-2 border-t border-white/[0.06] mt-1">
                             <WalletOnboardingLinks locale={locale} />
                           </div>
@@ -375,7 +361,9 @@ export function Navbar() {
                         <WalletOnboardingLinks locale={locale} />
                       </div>
                     )}
-                    {connectHint && nightlyRows.length > 0 && !nightlyRows.some((r) => r.mode === "app") ? (
+                    {hint &&
+                    nightlyRows.length > 0 &&
+                    !nightlyRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
                       <div className="px-3 pb-2 pt-2 border-t border-white/[0.06]">
                         <WalletOnboardingLinks locale={locale} />
                       </div>
