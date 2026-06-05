@@ -59,16 +59,29 @@ movement move run \
   --args u8:1 address:<USDCX_METADATA> u64:5000000
 ```
 
-### 4. Migrate prize vault (if switching mid-season)
+### 4. Void bad registrations (wrong fee window)
+
+If players registered while the chain still charged MOVE (or a mis-set fee), reset the tour **before** `calculate_results`:
+
+```bash
+movement move run \
+  --function-id '<MODULE>::fantasy_epl::admin_reset_gameweek_registrations' \
+  --args u64:<GW_OR_TOUR_ID> \
+  --profile mainnet
+```
+
+Clears on-chain entries + `UserTeams` for that id, sets `prize_pool` to 0, reopens the tour. Vault tokens already deposited are **not** auto-refunded — withdraw stray MOVE separately if needed.
+
+### 5. Migrate prize vault (if switching mid-season)
 
 Withdraw remaining MOVE from the prize vault (admin `admin_withdraw_prize_vault`), then sponsor USDCx before resolving the next gameweek.
 
-### 5. Frontend deploy
+### 6. Frontend deploy
 
 - No preview env vars required.
 - Redeploy site (reads `get_entry_fee_asset` from chain; falls back to USDCx if view missing).
 
-### 6. Verify
+### 7. Verify
 
 - Squad page shows **5.00 USDCx** registration fee.
 - Test registration with USDCx in Nightly wallet.

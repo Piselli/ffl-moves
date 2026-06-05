@@ -49,6 +49,8 @@ module fantasy_epl_addr::fantasy_epl {
     const ESPONSOR_GAMEWEEK_RESOLVED: u64 = 27;
     const EINVALID_ENTRY_FEE_ASSET: u64 = 28;
     const EINVALID_USDC_METADATA: u64 = 29;
+    /// admin_reset_gameweek_registrations: gameweek already RESOLVED
+    const EGAMEWEEK_RESET_NOT_ALLOWED: u64 = 30;
 
     // ============ Constants ============
     /// Entry-fee / prize-pool denomination (title & guild fees stay MOVE).
@@ -255,6 +257,12 @@ module fantasy_epl_addr::fantasy_epl {
     #[event]
     struct GameweekReopened has drop, store {
         gameweek_id: u64,
+    }
+
+    #[event]
+    struct GameweekRegistrationsReset has drop, store {
+        gameweek_id: u64,
+        cleared_entries: u64,
     }
 
     #[event]
@@ -496,6 +504,56 @@ module fantasy_epl_addr::fantasy_epl {
 
         event::emit(GameweekReopened {
             gameweek_id,
+        });
+    }
+
+    /// Void all squad registrations for a tour (admin only). Clears on-chain teams, prize_pool
+    /// accounting, and per-wallet UserTeams rows so players can register again at the current fee.
+    /// Use after a bad entry-fee window (e.g. MOVE charged while UI showed USDCx). Not allowed once RESOLVED.
+    public entry fun admin_reset_gameweek_registrations(
+        sender: &signer,
+        gameweek_id: u64,
+    ) acquires Config, GameweekRegistry, PlayerStatsRegistry, ResultsRegistry, UserTeams {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+
+        let registry = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.gameweeks, gameweek_id), EINVALID_GAMEWEEK);
+        let gameweek = table::borrow_mut(&mut registry.gameweeks, gameweek_id);
+        assert!(gameweek.status != STATUS_RESOLVED, EGAMEWEEK_RESET_NOT_ALLOWED);
+
+        let results_registry = borrow_global<ResultsRegistry>(@fantasy_epl_addr);
+        assert!(!table::contains(&results_registry.results, gameweek_id), ERESULTS_ALREADY_CALCULATED);
+
+        let cleared = gameweek.total_entries;
+        let addrs = gameweek.teams;
+        gameweek.teams = vector::empty();
+        gameweek.prize_pool = 0;
+        gameweek.total_entries = 0;
+        gameweek.status = STATUS_OPEN;
+
+        let stats_registry = borrow_global_mut<PlayerStatsRegistry>(@fantasy_epl_addr);
+        if (table::contains(&stats_registry.stats, gameweek_id)) {
+            table::remove(&mut stats_registry.stats, gameweek_id);
+        };
+
+        let i = 0;
+        let n = vector::length(&addrs);
+        while (i < n) {
+            let owner = *vector::borrow(&addrs, i);
+            if (exists<UserTeams>(owner)) {
+                let user_teams = borrow_global_mut<UserTeams>(owner);
+                if (table::contains(&user_teams.teams, gameweek_id)) {
+                    table::remove(&mut user_teams.teams, gameweek_id);
+                };
+            };
+            i = i + 1;
+        };
+
+        event::emit(GameweekRegistrationsReset {
+            gameweek_id,
+            cleared_entries: cleared,
         });
     }
 
