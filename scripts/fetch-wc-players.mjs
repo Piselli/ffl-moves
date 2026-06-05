@@ -16,9 +16,11 @@
  *   API_SPORTS_KEY=xxxxxxxx npm run wc:players
  *
  * Notes:
- *   - Free tier is 100 req/day; a full squad build is ~1 request per team page.
- *   - Position mapping: API-Sports games.position is "Goalkeeper"/"Defender"/
- *     "Midfielder"/"Attacker" on /players, or "G"/"D"/"M"/"F" on /fixtures/players.
+ *   - Squads come from GET /players/squads?team={id} (one req per nation). The
+ *     /players?league=1&season=2026 endpoint is empty until the tournament starts;
+ *     we fall back to it only when /players/squads returns no rows.
+ *   - Position mapping: squads use "Goalkeeper"/"Defender"/"Midfielder"/"Attacker";
+ *     /fixtures/players uses "G"/"D"/"M"/"F" for the oracle.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -70,8 +72,23 @@ async function fetchTeams() {
   }));
 }
 
-/** Fetch every player page for one team (paginated). */
-async function fetchTeamPlayers(apiTeamId) {
+/** Official tournament squad for one national team. */
+async function fetchTeamSquad(apiTeamId) {
+  const data = await getJson(`${API_BASE}/players/squads?team=${apiTeamId}`);
+  const row = (data.response || []).find((r) => r.team?.id === apiTeamId) || data.response?.[0];
+  if (!row?.players?.length) return [];
+
+  return row.players.map((p) => ({
+    apiId: p.id,
+    name: p.name,
+    webName: p.name.split(" ").pop() || p.name,
+    photo: p.photo,
+    posRaw: p.position,
+  }));
+}
+
+/** Fallback: season statistics roster (populated once matches start). */
+async function fetchTeamPlayersLeague(apiTeamId) {
   const players = [];
   let page = 1;
   let totalPages = 1;
@@ -92,10 +109,15 @@ async function fetchTeamPlayers(apiTeamId) {
       });
     }
     page += 1;
-    // be gentle with the rate limit
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 200));
   } while (page <= totalPages);
   return players;
+}
+
+async function fetchTeamPlayers(apiTeamId) {
+  const squad = await fetchTeamSquad(apiTeamId);
+  if (squad.length > 0) return squad;
+  return fetchTeamPlayersLeague(apiTeamId);
 }
 
 async function main() {

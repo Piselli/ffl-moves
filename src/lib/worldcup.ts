@@ -34,9 +34,12 @@ export const WC_GROUP_LETTERS = [
   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
 ] as const;
 
-/** API-Sports round names for one group-stage matchday across all 12 groups. */
+/**
+ * API-Sports round string for one group-stage matchday (all 12 groups in one round).
+ * e.g. "Group Stage - 1" — NOT per-group "Group A - 1" (that format is unused in v3).
+ */
 function groupMatchdayRounds(matchday: number): string[] {
-  return WC_GROUP_LETTERS.map((letter) => `Group ${letter} - ${matchday}`);
+  return [`Group Stage - ${matchday}`];
 }
 
 export type WorldCupStage = "group" | "knockout";
