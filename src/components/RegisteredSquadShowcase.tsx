@@ -156,7 +156,7 @@ function ShowcaseCard({
         >
           <FplPhotoAvatar
             fplPhotoCode={player.fplPhotoCode ?? null}
-            photoUrl={player.photo ?? null}
+            photoUrl={player.photo || player.imageUrl || null}
             alt={player.name}
             size={photo}
             teamName={player.team}

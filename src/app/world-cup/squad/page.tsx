@@ -30,7 +30,7 @@ import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
-import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
+import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -168,6 +168,14 @@ export default function WorldCupSquadPage() {
     [officialResolved, interimBreakdown, g],
   );
 
+  const catalogById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
+
+  const registeredTeamForDisplay = useMemo(() => {
+    if (!registeredTeam || !isCompleteRegisteredSnapshot(registeredTeam)) return null;
+    if (players.length === 0) return registeredTeam;
+    return enrichSquadFromCatalog(registeredTeam, catalogById);
+  }, [registeredTeam, catalogById, players.length]);
+
   const prize = usePrizeAsset();
   const entryFeeLabel = useMemo(() => {
     if (entryFee == null) return "—";
@@ -235,15 +243,17 @@ export default function WorldCupSquadPage() {
 
         if (chainTeam?.playerIds?.length) {
           setAlreadyRegistered(true);
-          const catalog = new Map(players.map((p) => [p.id, p]));
-          const teamPlayers = squadPlayersFromChain(
-            { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
-            catalog,
-          );
-          if (teamPlayers.length === FORMATION.TOTAL) {
-            const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
-            setRegisteredTeam(snapshot);
-            localStorage.setItem(registeredStorageKey(targetTourId, addr), JSON.stringify(snapshot));
+          if (players.length > 0) {
+            const catalog = new Map(players.map((p) => [p.id, p]));
+            const teamPlayers = squadPlayersFromChain(
+              { playerIds: chainTeam.playerIds, playerPositions: chainTeam.playerPositions },
+              catalog,
+            );
+            if (teamPlayers.length === FORMATION.TOTAL) {
+              const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
+              setRegisteredTeam(snapshot);
+              localStorage.setItem(registeredStorageKey(targetTourId, addr), JSON.stringify(snapshot));
+            }
           }
           // Chain stats are authoritative for WC (no keyless live feed).
           const stats = await getGameweekStats(targetTourId, chainTeam.playerIds);
@@ -260,7 +270,11 @@ export default function WorldCupSquadPage() {
             try {
               const parsed = JSON.parse(saved) as { starters?: Player[]; bench?: Player[] };
               if (isCompleteRegisteredSnapshot(parsed as { starters: Player[]; bench: Player[] })) {
-                setRegisteredTeam(parsed as { starters: Player[]; bench: Player[] });
+                const snapshot = parsed as { starters: Player[]; bench: Player[] };
+                const catalog = new Map(players.map((p) => [p.id, p]));
+                setRegisteredTeam(
+                  players.length > 0 ? enrichSquadFromCatalog(snapshot, catalog) : snapshot,
+                );
               }
             } catch {
               /* ignore */
@@ -314,6 +328,7 @@ export default function WorldCupSquadPage() {
   // Hydrate registered squad from chain for closed/resolved when catalog/localStorage is incomplete.
   useEffect(() => {
     if (!alreadyRegistered || !account?.address || !currentTour) return;
+    if (players.length === 0) return;
     if (isCompleteRegisteredSnapshot(registeredTeam)) return;
     const addr = account.address.toString();
     const tourId = currentTour.id;
@@ -336,6 +351,32 @@ export default function WorldCupSquadPage() {
       cancelled = true;
     };
   }, [alreadyRegistered, registeredTeam, players, account?.address, currentTour]);
+
+  // Backfill photo URLs when squad was cached before the player catalog finished loading.
+  useEffect(() => {
+    if (!alreadyRegistered || !account?.address || !currentTour || players.length === 0) return;
+    if (!registeredTeam || !isCompleteRegisteredSnapshot(registeredTeam)) return;
+
+    const squad = [...registeredTeam.starters, ...registeredTeam.bench];
+    if (!squad.some((p) => !p.photo && !p.imageUrl && !p.fplPhotoCode)) return;
+
+    const enriched = enrichSquadFromCatalog(registeredTeam, catalogById);
+    const improved = [...enriched.starters, ...enriched.bench].some((p, i) => {
+      const orig = squad[i];
+      return Boolean(p.photo || p.imageUrl || p.fplPhotoCode) && !Boolean(orig.photo || orig.imageUrl || orig.fplPhotoCode);
+    });
+    if (!improved) return;
+
+    setRegisteredTeam(enriched);
+    try {
+      localStorage.setItem(
+        registeredStorageKey(currentTour.id, account.address.toString()),
+        JSON.stringify(enriched),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [alreadyRegistered, account?.address, currentTour, players.length, registeredTeam, catalogById]);
 
   const selectedPlayers = useMemo(
     () => new Set([...starters, ...bench].filter(Boolean).map((p) => p!.id)),
@@ -539,8 +580,8 @@ export default function WorldCupSquadPage() {
   }
 
   if (alreadyRegistered) {
-    const teamToShow = registeredTeam?.starters || [];
-    const benchToShow = registeredTeam?.bench || [];
+    const teamToShow = registeredTeamForDisplay?.starters || [];
+    const benchToShow = registeredTeamForDisplay?.bench || [];
     const isPreviewMode = currentTour?.status === "closed";
     const hasStats = Object.keys(tourStats).length > 0;
     const showScores =

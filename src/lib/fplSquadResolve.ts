@@ -25,6 +25,29 @@ export function placeholderPlayerFromChain(id: number, positionId: number): Play
 
 export type ChainSquad = { playerIds: number[]; playerPositions: number[] };
 
+/**
+ * Fill display fields (photo, webName, …) from the live catalog while keeping
+ * on-chain / snapshot positions. Fixes squads hydrated before the catalog loaded.
+ */
+export function enrichSquadFromCatalog(
+  team: { starters: Player[]; bench: Player[] },
+  catalogById: Map<number, Player>,
+): { starters: Player[]; bench: Player[] } {
+  const enrichOne = (p: Player): Player => {
+    const fromCatalog = catalogById.get(p.id);
+    if (!fromCatalog) return p;
+    return {
+      ...fromCatalog,
+      positionId: p.positionId,
+      position: p.position,
+    };
+  };
+  return {
+    starters: team.starters.map(enrichOne),
+    bench: team.bench.map(enrichOne),
+  };
+}
+
 /** One entry per chain slot, same order as `register_team` (11 + bench). */
 export function squadPlayersFromChain(
   chain: ChainSquad,
