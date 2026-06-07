@@ -28,7 +28,6 @@ import {
   ASSIST_POINTS,
   CLEAN_SHEET_POINTS,
   DEDUCTIONS,
-  FPL_BONUS_MAX,
   GK_SAVE_BATCH,
   GK_SAVE_POINTS_PER_BATCH,
   GOAL_POINTS,
@@ -36,6 +35,8 @@ import {
   HAT_TRICK_BONUS,
   MINUTES_POINTS,
   PENALTY_SAVE_POINTS,
+  RATING_BONUS_TIERS,
+  RATING_SUB_POINTS,
 } from "@/lib/scoring-rules";
 
 // ─── Animated step (How It Works) ─────────────────────────────────────────────
@@ -310,8 +311,18 @@ function sumPositiveCardValues(gains: CardGain[]): number {
 
 function buildUniversalBonuses(m: SiteMessages) {
   const g = m.scoringGains;
+  const tierLabels: Record<number, string> = {
+    90: g.rating90,
+    80: g.rating80,
+    75: g.rating75,
+  };
+  const ratingBonuses = RATING_BONUS_TIERS.map((tier) => ({
+    label: tierLabels[tier.minTenths],
+    pts: `+${tier.points}`,
+    color: "text-[#00f948]" as const,
+  }));
   return [
-    { label: g.bps, pts: `+${FPL_BONUS_MAX}`, color: "text-[#00f948]" },
+    ...ratingBonuses,
     { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00f948]" },
     { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00f948]" },
     { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00f948]" },
@@ -325,6 +336,7 @@ function buildUniversalPenalties(m: SiteMessages) {
     { label: g.ownGoal, pts: `−${DEDUCTIONS.ownGoal}` },
     { label: g.penMiss, pts: `−${DEDUCTIONS.penaltyMissed}` },
     { label: g.yellowCard, pts: `−${DEDUCTIONS.yellowCard}` },
+    { label: g.lowRating, pts: `−${RATING_SUB_POINTS}` },
   ];
 }
 

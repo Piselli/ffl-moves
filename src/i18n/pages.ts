@@ -884,7 +884,7 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "football-terms",
-            q: "What is a clean sheet, an assist, a hat-trick, BPS?",
+            q: "What is a clean sheet, an assist, a hat-trick, match rating?",
             a: [
               {
                 type: "ul",
@@ -892,7 +892,7 @@ export const pagesEn: PagesMessages = {
                   "Clean sheet — the team didn’t concede a goal during the match. Bonus for goalkeepers and defenders.",
                   "Assist — the pass that leads directly to a goal. Valuable for forwards and midfielders.",
                   "Hat-trick — three goals scored by the same player in one match. Rare, so it gets its own bonus.",
-                  "BPS (Bonus Points System) — the official EPL scoring of useful match actions (tackles, passes, shots on target). Top performers get an extra bonus.",
+                  "Match rating — a performance score for each player per game (e.g. 7.5, 8.2). High ratings earn bonus points; a very low rating can cost −1.",
                 ],
               },
             ],
@@ -1104,8 +1104,7 @@ export const pagesEn: PagesMessages = {
                   "Clean sheet — for goalkeepers and defenders",
                   "Saves — for goalkeepers",
                   "60+ minutes played — extra points",
-                  "High match rating — bonus",
-                  "BPS (player of the match) — separate bonus",
+                  "High match rating — +1 to +3 (≥7.5 / ≥8.0 / ≥9.0)",
                   "Hat-trick — separate big bonus",
                 ],
               },
@@ -1686,7 +1685,7 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "football-terms",
-            q: "Що таке «суха пара», «асист», «хет-трик», «BPS»?",
+            q: "Що таке «суха пара», «асист», «хет-трик», рейтинг матчу?",
             a: [
               {
                 type: "ul",
@@ -1694,7 +1693,7 @@ export const pagesUk: PagesMessages = {
                   "Суха пара (clean sheet) — команда не пропустила жодного гола за матч. Бонус для воротарів і захисників.",
                   "Асист — пас, після якого партнер забив. Цінна дія для нападників і півзахисників.",
                   "Хет-трик — три голи в одному матчі від одного гравця. Рідкість, тому окремий бонус.",
-                  "BPS (Bonus Points System) — офіційний рейтинг АПЛ за корисні дії в матчі. Найкращим гравцям дається додатковий бонус.",
+                  "Рейтинг матчу — оцінка гри кожного гравця за матч (наприклад, 7.5, 8.2). Високий рейтинг дає бонусні очки; дуже низький — штраф −1.",
                 ],
               },
             ],
@@ -1906,8 +1905,7 @@ export const pagesUk: PagesMessages = {
                   "Суха пара — для воротарів і захисників",
                   "Сейви — для воротарів",
                   "Гра 60+ хвилин — додаткові очки",
-                  "Високий рейтинг матчу — бонус",
-                  "BPS (player of the match) — окремий бонус",
+                  "Високий рейтинг матчу — +1 до +3 (≥7.5 / ≥8.0 / ≥9.0)",
                   "Хет-трик — окремий великий бонус",
                 ],
               },

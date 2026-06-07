@@ -148,7 +148,10 @@ export type SiteMessages = {
     | "assist"
     | "savesBatch"
     | "concededGoal"
-    | "bps"
+    | "rating90"
+    | "rating80"
+    | "rating75"
+    | "lowRating"
     | "hattrick"
     | "minutes60"
     | "minutesPartial"
@@ -358,7 +361,10 @@ const uk: SiteMessages = {
     assist: "Асист",
     savesBatch: "сейви",
     concededGoal: "Пропущений гол",
-    bps: "Гравець матчу (BPS)",
+    rating90: "Рейтинг матчу ≥9.0",
+    rating80: "Рейтинг матчу ≥8.0",
+    rating75: "Рейтинг матчу ≥7.5",
+    lowRating: "Рейтинг матчу <6.0",
     hattrick: "Хет-трик",
     minutes60: "Вихід 60+ хв",
     minutesPartial: "Вихід 1–59 хв",
@@ -581,7 +587,10 @@ const en: SiteMessages = {
     assist: "Assist",
     savesBatch: "saves",
     concededGoal: "Goal conceded",
-    bps: "Player of the match (BPS)",
+    rating90: "Match rating ≥9.0",
+    rating80: "Match rating ≥8.0",
+    rating75: "Match rating ≥7.5",
+    lowRating: "Match rating <6.0",
     hattrick: "Hat-trick",
     minutes60: "Played 60+ mins",
     minutesPartial: "Played 1–59 mins",
