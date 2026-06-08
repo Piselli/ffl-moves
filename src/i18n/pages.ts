@@ -783,9 +783,9 @@ export const pagesEn: PagesMessages = {
     backToTop: "Back to top",
     contactTitle: "Still have a question?",
     contactBody:
-      "If something is unclear or you found a bug — drop us a DM on X (Twitter). We answer fast and prefer real conversations to ticket queues.",
+      "If something is unclear or you found a bug — message us on Telegram @movematch. We answer fast. Announcements and news — on X too.",
     contactCta: "Message us on",
-    contactHref: "https://x.com/MoveMatchxyz",
+    contactHref: "https://t.me/movematch",
     categories: [
       {
         id: "what-is-this",
@@ -1163,7 +1163,7 @@ export const pagesEn: PagesMessages = {
             q: "What if there is a bug and I lose my entry fee?",
             a: [
               { type: "p", text: "The contract is tested, but there is always some risk. For now, only play with amounts you are willing to risk." },
-              { type: "p", text: "If a bug in our logic is confirmed — we refund. Bug reports and questions: write to us via the social links." },
+              { type: "p", text: "If a bug in our logic is confirmed — we refund. Bug reports and questions: Telegram @movematch." },
             ],
           },
           {
@@ -1584,9 +1584,9 @@ export const pagesUk: PagesMessages = {
     backToTop: "Нагору",
     contactTitle: "Не знайшов відповіді?",
     contactBody:
-      "Якщо щось незрозуміло або знайшов баг — пиши нам у DM на X (Twitter). Відповідаємо швидко й любимо живі розмови, а не тікети.",
-    contactCta: "Написати нам в",
-    contactHref: "https://x.com/MoveMatchxyz",
+      "Якщо щось незрозуміло або знайшов баг — напиши в Telegram @movematch. Відповідаємо швидко. Оголошення й новини — також у X.",
+    contactCta: "Написати в",
+    contactHref: "https://t.me/movematch",
     categories: [
       {
         id: "what-is-this",
@@ -1964,7 +1964,7 @@ export const pagesUk: PagesMessages = {
             q: "Що якщо у вас баг і я втрачу внесок?",
             a: [
               { type: "p", text: "Контракт тестується, але ризик завжди є. Поки що грай на суми, які ти готовий ризикнути." },
-              { type: "p", text: "У разі підтвердженого бага в нашій логіці контракту — повертаємо. Скарги і питання — пиши через посилання у соцмережі." },
+              { type: "p", text: "У разі підтвердженого бага в нашій логіці контракту — повертаємо. Скарги й питання — пиши в Telegram @movematch." },
             ],
           },
           {

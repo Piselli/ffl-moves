@@ -103,6 +103,10 @@ export const FORMATION = {
 // Max players per club
 export const MAX_PER_CLUB = 3;
 
-/** Official X (Twitter) profile — news, updates, support DMs. */
+/** Official X (Twitter) profile — news and announcements. */
 export const SOCIAL_X_URL = "https://x.com/MoveMatchxyz";
 export const SOCIAL_X_HANDLE = "@MoveMatchxyz";
+
+/** Official Telegram channel — questions, bugs, support. */
+export const SOCIAL_TG_URL = "https://t.me/movematch";
+export const SOCIAL_TG_HANDLE = "@movematch";

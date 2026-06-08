@@ -248,8 +248,8 @@ const uk: SiteMessages = {
     socialXAria: "MoveMatch на X (Twitter) — новини та підтримка",
   },
   footer: {
-    socialHint: "Новини туру, оновлення й підтримка — підписуйся на нас у X (Twitter).",
-    socialHintShort: "Новини та підтримка в X",
+    socialHint: "Питання й баги — у Telegram @movematch. Новини туру та оновлення — у X.",
+    socialHintShort: "Питання в Telegram · новини в X",
     socialAria: "MoveMatch на X (Twitter)",
   },
   communityStrip: {
@@ -474,8 +474,8 @@ const en: SiteMessages = {
     socialXAria: "MoveMatch on X (Twitter) — news and support",
   },
   footer: {
-    socialHint: "Gameweek news, updates, and support — follow us on X (Twitter).",
-    socialHintShort: "News & support on X",
+    socialHint: "Questions and bugs — Telegram @movematch. Gameweek news and updates — on X.",
+    socialHintShort: "Questions on Telegram · news on X",
     socialAria: "MoveMatch on X (Twitter)",
   },
   communityStrip: {

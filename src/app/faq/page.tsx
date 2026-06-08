@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { SOCIAL_X_URL } from "@/lib/constants";
-import { XLogo } from "@/components/SocialLinkX";
+import { SOCIAL_TG_HANDLE } from "@/lib/constants";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { adaptFaqCopy } from "@/lib/entryFee";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
@@ -451,13 +450,13 @@ export default function FaqPage() {
             <p className="text-sm text-white/50 leading-relaxed max-w-xl">{faq.contactBody}</p>
           </div>
           <a
-            href={SOCIAL_X_URL}
+            href={faq.contactHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-display font-black uppercase tracking-widest text-sm bg-[#00f948] text-black hover:brightness-110 transition-all shadow-[0_0_24px_rgba(0,249,72,0.25)] shrink-0"
           >
             {faq.contactCta}
-            <XLogo className="w-4 h-4" />
+            <span className="normal-case tracking-normal font-bold">{SOCIAL_TG_HANDLE}</span>
           </a>
         </motion.div>
 
