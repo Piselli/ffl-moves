@@ -34,6 +34,7 @@ import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadRes
 import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
+import { buildRandomSquad } from "@/lib/randomSquad";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type MobileTab = "pitch" | "players";
@@ -554,6 +555,17 @@ export default function WorldCupSquadPage() {
     [starters, bench],
   );
 
+  const handleRandomSquad = () => {
+    const squad = buildRandomSquad(players, { mode: "uniform" });
+    if (!squad) {
+      window.alert(g.randomSquadFailed);
+      return;
+    }
+    setStarters(squad.starters);
+    setBench(squad.bench);
+    lineupTouchedNonEmptySessionRef.current = true;
+  };
+
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentTour) return;
     setIsSubmitting(true);
@@ -780,6 +792,40 @@ export default function WorldCupSquadPage() {
   const starterCount = starters.filter(Boolean).length;
   const benchCount = bench.filter(Boolean).length;
   const totalCount = starterCount + benchCount;
+  const squadProgressLabel = (
+    <span
+      className={cn(
+        "flex items-center gap-1.5 text-[10px] font-semibold tabular-nums",
+        isTeamComplete ? "text-emerald-400" : "text-white/35",
+      )}
+      title={g.playersProgress(totalCount, FORMATION.TOTAL, starterCount, benchCount)}
+    >
+      <span
+        className={cn(
+          "w-1.5 h-1.5 rounded-full shrink-0",
+          isTeamComplete ? "bg-emerald-400" : "bg-white/25",
+        )}
+      />
+      {totalCount}/{FORMATION.TOTAL}
+    </span>
+  );
+
+  const randomSquadBtn = (extraClass = "") => (
+    <button
+      type="button"
+      onClick={handleRandomSquad}
+      disabled={playersLoading || players.length === 0}
+      className={cn(
+        "shrink-0 px-4 py-3 rounded-2xl font-display font-bold text-sm uppercase tracking-wide transition-all duration-200",
+        "bg-white/[0.04] border border-white/[0.12] text-white/70 hover:bg-white/[0.08] hover:text-white hover:border-[#00f948]/30",
+        "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.04] disabled:hover:text-white/70",
+        extraClass,
+      )}
+    >
+      {g.randomSquadBtn}
+    </button>
+  );
+
   const submitBtn = (extraClass = "") => (
     <button
       onClick={handleSubmitTeam}
@@ -856,7 +902,12 @@ export default function WorldCupSquadPage() {
           <div className="flex flex-col">
             <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
             <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">{g.benchTitle(benchCount, FORMATION.BENCH)}</h3>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 shrink-0">
+                  {g.benchTitle(benchCount, FORMATION.BENCH)}
+                </h3>
+                {squadProgressLabel}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {bench.map((player, idx) => (
                   <button
@@ -879,13 +930,10 @@ export default function WorldCupSquadPage() {
                 ))}
               </div>
             </div>
-            <div className="mt-3 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
-              <span className={cn("flex items-center gap-2 text-sm font-semibold", isTeamComplete ? "text-emerald-400" : "text-white/40")}>
-                <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {g.playersProgress(totalCount, FORMATION.TOTAL, starterCount, benchCount)}
-              </span>
+            <div className="mt-3 flex gap-2">
+              {randomSquadBtn()}
+              {submitBtn("flex-1 min-w-0 text-base py-3")}
             </div>
-            {submitBtn("mt-3 text-lg")}
           </div>
 
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: "calc(100vh - 120px)", position: "sticky", top: "88px" }}>
@@ -977,7 +1025,12 @@ export default function WorldCupSquadPage() {
           <div className="flex flex-col gap-3">
             <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">{g.benchTitle(benchCount, FORMATION.BENCH)}</h3>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 shrink-0">
+                  {g.benchTitle(benchCount, FORMATION.BENCH)}
+                </h3>
+                {squadProgressLabel}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {bench.map((player, idx) => (
                   <button
@@ -1000,12 +1053,7 @@ export default function WorldCupSquadPage() {
                 ))}
               </div>
             </div>
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3">
-              <span className={cn("flex items-center gap-2 text-sm font-semibold", isTeamComplete ? "text-emerald-400" : "text-white/40")}>
-                <span className={cn("w-2 h-2 rounded-full", isTeamComplete ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-white/20")} />
-                {g.playersProgressShort(totalCount, FORMATION.TOTAL)}
-              </span>
-            </div>
+            {randomSquadBtn("w-full")}
           </div>
         )}
 

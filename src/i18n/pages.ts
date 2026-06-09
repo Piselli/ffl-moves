@@ -122,6 +122,8 @@ export type PagesMessages = {
     submitNeedPlayers: (picked: number, max: number) => string;
     headerTitle: (gw: number) => string;
     pickPlayersHint: string;
+    randomSquadBtn: string;
+    randomSquadFailed: string;
     maxThreeHint: string;
     entryFeeLabel: string;
     entryFeeUsdcxHint: string;
@@ -503,6 +505,8 @@ export const pagesEn: PagesMessages = {
     submitNeedPlayers: (picked: number, max: number) => `Pick ${max} players (${picked}/${max})`,
     headerTitle: (gw) => `GW ${gw} · Squad selection`,
     pickPlayersHint: "Pick 11 players. Max 3 from the same club.",
+    randomSquadBtn: "Random squad",
+    randomSquadFailed: "Could not build a valid squad — try again.",
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
     entryFeeUsdcxHint: "Need USDCx? Swap in Nightly or Yuzu →",
@@ -1297,6 +1301,8 @@ export const pagesUk: PagesMessages = {
     submitNeedPlayers: (picked: number, max: number) => `Обери ${max} гравців (${picked}/${max})`,
     headerTitle: (gw) => `Тур ${gw} · Вибір складу`,
     pickPlayersHint: "Обери 11 гравців. Максимум 3 з однієї команди.",
+    randomSquadBtn: "Випадковий склад",
+    randomSquadFailed: "Не вдалося зібрати склад — спробуй ще раз.",
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
     entryFeeUsdcxHint: "Потрібен USDCx? Nightly Swap або Yuzu →",
