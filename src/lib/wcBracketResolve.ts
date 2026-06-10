@@ -12,6 +12,7 @@ import {
   type BracketPrediction,
   type KnockoutWinners,
 } from "@/lib/wcBracketPrediction";
+import { annexCCombinationKey, lookupAnnexC } from "@/lib/wcFifaAnnexC";
 
 export interface ResolvedSide {
   teamIdx: number | null;
@@ -89,12 +90,34 @@ function eligibleCount(slot: ThirdSlot, teams: AdvancingThird[]): number {
   return teams.filter((t) => slot.groups.has(t.group)).length;
 }
 
-/**
- * Assign each advancing third to exactly one R32 tie whose seed string allows that group.
- * Greedy order fails when overlapping pools exhaust teams — use backtracking (8 slots max).
- */
+/** Assign advancing thirds to R32 ties per FIFA Annex C (495 official combinations). */
 function buildThirdAssignments(prediction: BracketPrediction): Map<string, number> {
   const advancing = advancingThirdIndices(prediction.groupRanks, prediction.thirdPlaceOrder);
+  const groupToTeam = new Map<string, number>();
+  for (const teamIdx of advancing) {
+    groupToTeam.set(WC_TEAMS[teamIdx]!.group, teamIdx);
+  }
+
+  const key = annexCCombinationKey(Array.from(groupToTeam.keys()));
+  const annex = key ? lookupAnnexC(key) : null;
+
+  if (annex && groupToTeam.size === 8) {
+    const assignment = new Map<string, number>();
+    for (const [matchId, groupLetter] of Object.entries(annex)) {
+      const teamIdx = groupToTeam.get(groupLetter);
+      if (teamIdx != null) assignment.set(matchId, teamIdx);
+    }
+    if (assignment.size === 8) return assignment;
+  }
+
+  return buildThirdAssignmentsFallback(prediction, advancing);
+}
+
+/** Last resort when Annex C lookup fails (invalid/incomplete prediction). */
+function buildThirdAssignmentsFallback(
+  prediction: BracketPrediction,
+  advancing: number[],
+): Map<string, number> {
   const teams: AdvancingThird[] = advancing.map((teamIdx) => {
     const groupIdx = Math.floor(teamIdx / 4);
     return {
