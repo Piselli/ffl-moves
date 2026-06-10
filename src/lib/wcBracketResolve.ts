@@ -282,8 +282,16 @@ export function clearDownstreamWinners(
     }
   }
   walk(matchId);
-  toClear.add("M103");
-  toClear.add("M104");
+  // Final / 3rd-place ties depend on semi results — clear only when semis or their upstream change.
+  if (
+    matchId === "M101" ||
+    matchId === "M102" ||
+    toClear.has("M101") ||
+    toClear.has("M102")
+  ) {
+    toClear.add("M103");
+    toClear.add("M104");
+  }
 
   for (const id of Array.from(toClear)) {
     const idx = knockoutMatchIndex(id);

@@ -273,7 +273,7 @@ function CenterFinals({
   const highlightFinals = needsFinalKnockoutPicks(winners);
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-4 px-2">
+    <div className="relative z-20 flex shrink-0 flex-col items-center gap-4 px-2">
       <div className="w-[120px]">
         <p className="mb-1 text-center font-wc-hero text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">
           {copy.thirdPlace}
