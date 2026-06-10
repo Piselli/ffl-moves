@@ -23,6 +23,7 @@ import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
+import { isWorldCupTour } from "@/lib/worldcup";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -56,7 +57,9 @@ export default function LeaderboardPage() {
           findHighestGameweekIdOnChain(configData),
         ]);
 
-        const maxPick = Math.max(Number(configData.currentGameweek) || 0, highestId);
+        const chainCurrent = Number(configData.currentGameweek) || 0;
+        const eplCurrent = isWorldCupTour(chainCurrent) ? highestId : chainCurrent;
+        const maxPick = Math.max(eplCurrent, highestId);
         setPickerMaxGw(maxPick);
 
         const latestResolved = await findLatestResolvedGameweekId(highestId);

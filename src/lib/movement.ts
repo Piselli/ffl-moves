@@ -257,8 +257,12 @@ export async function findHighestGameweekIdOnChain(
 ): Promise<number> {
   if (!configData) return 0;
   const hint = Number(configData.currentGameweek);
+  // Config pointer on a WC tour (10001+) — ignore it; scan only the EPL id range.
+  const eplHint = hint >= WC_TOUR_ID_BASE ? 0 : hint;
   const maxScan =
-    Number.isFinite(hint) && hint >= 1 ? Math.min(Math.max(hint + 80, 120), 200) : 120;
+    Number.isFinite(eplHint) && eplHint >= 1
+      ? Math.min(Math.max(eplHint + 80, 120), 200)
+      : 120;
   const ids = Array.from({ length: maxScan }, (_, i) => i + 1);
   const results = await mapInBatches(ids, 16, (id) => getGameweek(id));
   let maxId = 0;
@@ -293,10 +297,9 @@ export async function findLatestUserRegisteredGameweek(
 /** Latest resolved GW at or below `highestId` — best default for the leaderboard after publishing results. */
 export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
   if (highestId < 1) return 0;
-  const ids = Array.from({ length: highestId }, (_, i) => highestId - i);
-  const results = await mapInBatches(ids, 12, (id) => getGameweek(id));
-  for (let i = 0; i < results.length; i++) {
-    if (results[i]?.status === "resolved") return ids[i];
+  for (let id = highestId; id >= 1; id--) {
+    const g = await getGameweek(id);
+    if (g?.status === "resolved") return id;
   }
   return 0;
 }

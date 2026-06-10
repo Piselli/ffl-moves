@@ -7,19 +7,25 @@ import {
   getGameweekTeams,
   getTeamResult,
 } from "@/lib/movement";
+import { findLatestResolvedWorldCupTourId, isWorldCupCampaignActive } from "@/lib/worldcup";
 import { getPrizeDisplayFromChain } from "@/lib/prizeAssetServer";
 import { PrizeTickerStrip, type TickerWinner } from "./PrizeTickerStrip";
 
 const fetchTickerData = unstable_cache(
   async (): Promise<{ gwId: number; winners: TickerWinner[] } | null> => {
     try {
-      const cfg = await getConfig();
-      if (!cfg) return null;
+      let resolvedGwId = 0;
+      if (isWorldCupCampaignActive()) {
+        resolvedGwId = await findLatestResolvedWorldCupTourId();
+      } else {
+        const cfg = await getConfig();
+        if (!cfg) return null;
 
-      const highestId = await findHighestGameweekIdOnChain(cfg);
-      if (highestId < 1) return null;
+        const highestId = await findHighestGameweekIdOnChain(cfg);
+        if (highestId < 1) return null;
 
-      const resolvedGwId = await findLatestResolvedGameweekId(highestId);
+        resolvedGwId = await findLatestResolvedGameweekId(highestId);
+      }
       if (!resolvedGwId) return null;
 
       const addresses = await getGameweekTeams(resolvedGwId);
