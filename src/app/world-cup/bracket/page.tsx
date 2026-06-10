@@ -24,6 +24,9 @@ import {
 import {
   WC_BRACKET_DEADLINE_ISO,
   WC_BRACKET_ELIGIBILITY_TOUR_ID,
+  WC_BRACKET_ADVERTISED_POOL_USDCX,
+  WC_BRACKET_PERFECT_BONUS_USDCX,
+  WC_BRACKET_PERFECT_SCORE,
   WC_BRACKET_PRIZES_USDCX,
   defaultGroupRanks,
   defaultThirdPlaceOrder,
@@ -36,7 +39,11 @@ import {
 } from "@/lib/wcBracketPrediction";
 import { getErrorMessage, cn } from "@/lib/utils";
 
-const PRIZE_LABELS = ["$100", "$50", "$25", "$15", "$10"];
+const PRIZE_LABELS = WC_BRACKET_PRIZES_USDCX.map((u) => `$${u / 1_000_000}`);
+
+function usdcxUsd(micro: number) {
+  return `$${micro / 1_000_000}`;
+}
 
 type DraftMeta = {
   step: BracketStep;
@@ -269,14 +276,44 @@ export default function WorldCupBracketPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-5">
-        {WC_BRACKET_PRIZES_USDCX.map((_, i) => (
-          <div key={i} className="rounded-xl border border-white/[0.08] bg-[#0a0c0f]/80 px-3 py-3 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{bc.prizeRank(i + 1)}</p>
-            <p className="mt-1 font-display text-xl font-black tabular-nums text-white">{PRIZE_LABELS[i]}</p>
-            <p className="text-[10px] text-white/35">USDCx</p>
+      <div className="mt-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0c0f]">
+        <div className="border-b border-white/[0.06] bg-[#00f948]/[0.05] px-5 py-4 sm:px-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{bc.prizePoolLabel}</p>
+          <p className="mt-1 font-display text-3xl font-black tabular-nums text-white sm:text-4xl">
+            {usdcxUsd(WC_BRACKET_ADVERTISED_POOL_USDCX)}
+            <span className="ml-2 text-base font-bold text-white/40">USDCx</span>
+          </p>
+        </div>
+
+        <div className="p-5 sm:p-6">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/30">{bc.prizeTopFiveLabel}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {WC_BRACKET_PRIZES_USDCX.map((_, i) => (
+              <div key={i} className="rounded-xl border border-white/[0.08] bg-[#0D0F12]/80 px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{bc.prizeRank(i + 1)}</p>
+                <p className="mt-1 font-display text-xl font-black tabular-nums text-white">{PRIZE_LABELS[i]}</p>
+                <p className="text-[10px] text-white/35">USDCx</p>
+              </div>
+            ))}
           </div>
-        ))}
+
+          <div className="mt-4 rounded-xl border border-[#FFD700]/25 bg-gradient-to-r from-[#FFD700]/[0.08] to-transparent px-4 py-3.5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div>
+              <p className="font-wc-hero text-xs font-bold uppercase tracking-wider text-[#FFD700]">
+                {bc.prizePerfectBonusTitle}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+                {bc.prizePerfectBonusDesc(
+                  WC_BRACKET_PERFECT_SCORE,
+                  String(WC_BRACKET_PERFECT_BONUS_USDCX / 1_000_000),
+                )}
+              </p>
+            </div>
+            <p className="mt-3 shrink-0 font-display text-2xl font-black tabular-nums text-[#FFD700] sm:mt-0">
+              +{usdcxUsd(WC_BRACKET_PERFECT_BONUS_USDCX)}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-white/[0.08] bg-[#0a0c0f]/60 px-4 py-3">

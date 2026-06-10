@@ -114,7 +114,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     /// md1 World Cup tour — bracket challenge eligibility gate.
     const WC_BRACKET_MD1_TOUR: u64 = 10001;
-    /// Gameweek id used for the sponsored USDCx prize pool ($200 total).
+    /// Gameweek id used for the sponsored USDCx prize pool ($500: $200 top-5 + $300 perfect-bonus reserve).
     const WC_BRACKET_PRIZE_GW: u64 = 10999;
     const WC_BRACKET_GROUP_BYTES: u64 = 48;
     const WC_BRACKET_THIRD_BYTES: u64 = 12;

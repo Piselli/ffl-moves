@@ -19,14 +19,27 @@ export const WC_BRACKET_EVENT_ID = 10999;
 /** md1 tour — must have registered a squad here to enter the bracket challenge. */
 export const WC_BRACKET_ELIGIBILITY_TOUR_ID = WC_TOUR_ID_BASE + 1;
 
+export const WC_TEAM_COUNT = 48;
+export const WC_THIRD_PLACE_COUNT = 12;
+export const WC_KNOCKOUT_MATCH_COUNT = 32;
+
 /** Fixed top-5 prizes in USDCx micro-units (6 decimals). Total $200. */
 export const WC_BRACKET_PRIZES_USDCX = [
   100_000_000, 50_000_000, 25_000_000, 15_000_000, 10_000_000,
 ] as const;
 
-export const WC_TEAM_COUNT = 48;
-export const WC_THIRD_PLACE_COUNT = 12;
-export const WC_KNOCKOUT_MATCH_COUNT = 32;
+/** Bonus if an entry nails every place (48 + 12 + 32 = 92). Unclaimed if nobody hits perfect. */
+export const WC_BRACKET_PERFECT_BONUS_USDCX = 300_000_000;
+
+export const WC_BRACKET_TOP5_TOTAL_USDCX = WC_BRACKET_PRIZES_USDCX.reduce((a, b) => a + b, 0);
+
+/** Advertised pool = top-5 + perfect-bonus reserve ($500). */
+export const WC_BRACKET_ADVERTISED_POOL_USDCX =
+  WC_BRACKET_TOP5_TOTAL_USDCX + WC_BRACKET_PERFECT_BONUS_USDCX;
+
+/** Max strict score — all group, third-among-thirds, and knockout places correct. */
+export const WC_BRACKET_PERFECT_SCORE =
+  WC_TEAM_COUNT + WC_THIRD_PLACE_COUNT + WC_KNOCKOUT_MATCH_COUNT;
 
 /** Canonical knockout match ids in encoding order (M73…M88 R32, M89…M96 R16, … M104 Final). */
 export const WC_KNOCKOUT_MATCH_IDS = [

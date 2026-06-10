@@ -115,6 +115,10 @@ export type PagesMessages = {
       statusUpcoming: string;
       entriesLabel: (n: number) => string;
       prizeRank: (n: number) => string;
+      prizePoolLabel: string;
+      prizeTopFiveLabel: string;
+      prizePerfectBonusTitle: string;
+      prizePerfectBonusDesc: (maxScore: number, bonusUsd: string) => string;
       notEligibleTitle: string;
       notEligibleHint: string;
       submittedTitle: string;
@@ -538,6 +542,11 @@ export const pagesEn: PagesMessages = {
       statusUpcoming: "Soon",
       entriesLabel: (n) => `${n.toLocaleString()} predictions`,
       prizeRank: (n) => `#${n}`,
+      prizePoolLabel: "Total prize pool",
+      prizeTopFiveLabel: "Top 5",
+      prizePerfectBonusTitle: "Perfect bracket bonus",
+      prizePerfectBonusDesc: (maxScore, bonusUsd) =>
+        `${bonusUsd} USDCx if you nail all ${maxScore} places — every group rank, third-place order, and knockout winner. Nobody’s done it yet. Bonus stacks on top of your top-5 prize.`,
       notEligibleTitle: "Squad required",
       notEligibleHint: "Register a squad for World Cup matchday 1 first — then come back to submit your bracket.",
       submittedTitle: "Prediction locked on-chain",
@@ -552,7 +561,7 @@ export const pagesEn: PagesMessages = {
       koThirdPlace: "3rd place",
       koTapHint: "Tap a nation to pick the winner of each tie. Pairs in the Round of 32 come from your group and third-place picks.",
       hubCta: "Bracket challenge",
-      hubTeaser: "Predict the full tournament — $200 USDCx for top 5",
+      hubTeaser: "Predict the full tournament — $500 USDCx prize pool (+$300 perfect bracket bonus)",
       predictor: {
         stepGroups: "Groups",
         stepThirds: "Best 3rds",
@@ -1377,6 +1386,11 @@ export const pagesUk: PagesMessages = {
       statusUpcoming: "Скоро",
       entriesLabel: (n) => `${n.toLocaleString()} прогнозів`,
       prizeRank: (n) => `#${n}`,
+      prizePoolLabel: "Загальний призовий фонд",
+      prizeTopFiveLabel: "Топ-5",
+      prizePerfectBonusTitle: "Бонус за ідеальний прогноз",
+      prizePerfectBonusDesc: (maxScore, bonusUsd) =>
+        `+${bonusUsd} USDCx, якщо вгадаєш усі ${maxScore} місця — кожну позицію в групах, порядок третіх і переможців плей-оф. Ніхто ще не робив. Бонус додається до призу топ-5.`,
       notEligibleTitle: "Потрібен склад md1",
       notEligibleHint: "Спочатку зареєструй склад на перший тур ЧС — тоді зможеш подати прогноз.",
       submittedTitle: "Прогноз зафіксовано on-chain",
@@ -1391,7 +1405,7 @@ export const pagesUk: PagesMessages = {
       koThirdPlace: "3-тє місце",
       koTapHint: "Натисни на збірну, щоб обрати переможця матчу. Пари 1/16 будуються з твоїх групових прогнозів і рейтингу третіх місць.",
       hubCta: "Прогноз турніру",
-      hubTeaser: "Прогнозуй весь турнір — $200 USDCx топ-5",
+      hubTeaser: "Прогнозуй весь турнір — $500 USDCx фонд (+$300 бонус за ідеальний прогноз)",
       predictor: {
         stepGroups: "Групи",
         stepThirds: "Кращі 3-ті",
