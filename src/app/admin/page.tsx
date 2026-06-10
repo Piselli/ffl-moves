@@ -10,9 +10,17 @@ import {
   findOpenGameweekFromChain,
   hasAdminSponsorPrizePoolOnChain,
   hasAdminWithdrawPrizeVaultOnChain,
+  getBracketChallengeStatus,
+  getBracketChallengeEntries,
+  hasRegisterBracketPredictionOnChain,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { MODULE_ADDRESS } from "@/lib/constants";
+import {
+  WC_BRACKET_ADVERTISED_POOL_USDCX,
+  WC_BRACKET_EVENT_ID,
+} from "@/lib/wcBracketPrediction";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
@@ -58,6 +66,10 @@ export default function AdminPage() {
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
   const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
   const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
+  const [bracketAbiLive, setBracketAbiLive] = useState<boolean | null>(null);
+  const [bracketStatus, setBracketStatus] = useState<number | null>(null);
+  const [bracketEntries, setBracketEntries] = useState<number | null>(null);
+  const [bracketPrizeGw, setBracketPrizeGw] = useState<GameweekSummary | null>(null);
 
   // Form states
   const [newGameweekId, setNewGameweekId] = useState("");
@@ -90,14 +102,26 @@ export default function AdminPage() {
     setIsLoading(true);
     setSponsorTxAvailable(null);
     setWithdrawTxAvailable(null);
+    setBracketAbiLive(null);
+    setBracketStatus(null);
+    setBracketEntries(null);
+    setBracketPrizeGw(null);
     try {
-      const [configData, sponsorOk, withdrawOk] = await Promise.all([
+      const [configData, sponsorOk, withdrawOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
         getConfig(),
         hasAdminSponsorPrizePoolOnChain(),
         hasAdminWithdrawPrizeVaultOnChain(),
+        hasRegisterBracketPredictionOnChain(),
+        getBracketChallengeStatus(),
+        getBracketChallengeEntries(),
+        getGameweek(WC_BRACKET_EVENT_ID).catch(() => null),
       ]);
       setSponsorTxAvailable(sponsorOk);
       setWithdrawTxAvailable(withdrawOk);
+      setBracketAbiLive(bracketOk);
+      setBracketStatus(bracketSt);
+      setBracketEntries(bracketEnt);
+      setBracketPrizeGw(bracketGw);
       setConfig(configData);
       setCurrentGameweek(null);
       setOpenGameweek(null);
@@ -378,6 +402,88 @@ export default function AdminPage() {
       setNewPrizePoolPct("");
     } catch (error: unknown) {
       console.error("Failed to update percentage:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSponsorBracketPool = async () => {
+    if (!connected) return;
+    const gw = await getGameweek(WC_BRACKET_EVENT_ID);
+    if (!gw) {
+      alert(ad.sponsorGwNotFound(WC_BRACKET_EVENT_ID));
+      return;
+    }
+    if (gw.status === "resolved") {
+      alert(ad.sponsorAlertResolved);
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_sponsor_prize_pool"),
+          typeArguments: [],
+          functionArguments: [String(WC_BRACKET_EVENT_ID), String(WC_BRACKET_ADVERTISED_POOL_USDCX)],
+        },
+      });
+      alert(ad.sponsorSuccess(WC_BRACKET_EVENT_ID, prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDCX)));
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to sponsor bracket pool:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInitBracketChallenge = async () => {
+    if (!connected) return;
+    if (!bracketAbiLive) {
+      alert(ad.bracketNotOnChain);
+      return;
+    }
+    const moduleNorm = normAddr(MODULE_ADDRESS);
+    const walletNorm = normAddr(account?.address?.toString());
+    if (bracketStatus === 255 && walletNorm !== moduleNorm) {
+      alert(ad.bracketInitModuleWalletHint);
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_init_bracket_challenge"),
+          typeArguments: [],
+          functionArguments: [],
+        },
+      });
+      alert(ad.bracketInitSuccess);
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to init bracket challenge:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseBracketChallenge = async () => {
+    if (!connected || bracketStatus !== 0) return;
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_close_bracket_challenge"),
+          typeArguments: [],
+          functionArguments: [],
+        },
+      });
+      alert(ad.bracketCloseSuccess);
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to close bracket challenge:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -1094,6 +1200,117 @@ export default function AdminPage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* WC Bracket Challenge go-live */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6 border border-[#FFD700]/20">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-white">{ad.bracketSectionTitle}</h2>
+                <p className="text-xs text-muted-foreground mt-1 max-w-2xl">{ad.bracketSectionHint}</p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
+                  bracketAbiLive
+                    ? "border-[#00f948]/30 bg-[#00f948]/10 text-[#00f948]"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-200",
+                )}
+              >
+                {bracketAbiLive ? ad.bracketAbiLive : ad.bracketAbiMissing}
+              </span>
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-2 text-xs">
+              {bracketStatus != null ? (
+                <span
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 font-bold uppercase",
+                    bracketStatus === 0
+                      ? "border-[#00f948]/30 bg-[#00f948]/10 text-[#00f948]"
+                      : "border-white/10 bg-white/[0.04] text-white/50",
+                  )}
+                >
+                  {ad.bracketStatusLabel(bracketStatus)}
+                </span>
+              ) : null}
+              {bracketEntries != null ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/45">
+                  {ad.bracketEntriesLabel(bracketEntries)}
+                </span>
+              ) : null}
+              {bracketPrizeGw ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/45">
+                  {ad.bracketGwPoolLabel(
+                    WC_BRACKET_EVENT_ID,
+                    prize.formatLabel(Number(bracketPrizeGw.prizePool ?? 0)),
+                  )}
+                </span>
+              ) : null}
+            </div>
+
+            {bracketAbiLive === false ? (
+              <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
+                {ad.bracketNotOnChain}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepPublish}</p>
+                <code className="block overflow-x-auto rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-[11px] text-white/60">
+                  npm run wc:bracket:deploy
+                </code>
+
+                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepCreateGw}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleCreateGameweekById(WC_BRACKET_EVENT_ID)}
+                  disabled={isSubmitting || Boolean(bracketPrizeGw)}
+                  className="rounded-lg bg-[#FFD700]/90 px-4 py-2 text-xs font-bold uppercase tracking-wide text-black disabled:opacity-40"
+                >
+                  {ad.bracketCreateGwButton(WC_BRACKET_EVENT_ID)}
+                </button>
+
+                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepSponsor}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleSponsorBracketPool()}
+                  disabled={
+                    isSubmitting ||
+                    !bracketPrizeGw ||
+                    bracketPrizeGw.status === "resolved" ||
+                    sponsorTxAvailable === false
+                  }
+                  className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 disabled:opacity-40"
+                >
+                  {ad.bracketSponsorButton(prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDCX))}
+                </button>
+
+                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepInit}</p>
+                <p className="text-xs text-white/40">{ad.bracketInitModuleWalletHint}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleInitBracketChallenge()}
+                    disabled={isSubmitting || !bracketAbiLive || bracketStatus === 0}
+                    className="rounded-lg bg-[#00f948] px-4 py-2 text-xs font-bold uppercase tracking-wide text-black disabled:opacity-40"
+                  >
+                    {ad.bracketInitButton}
+                  </button>
+                  {bracketStatus === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleCloseBracketChallenge()}
+                      disabled={isSubmitting}
+                      className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-amber-100 disabled:opacity-40"
+                    >
+                      {ad.bracketCloseButton}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -127,6 +127,10 @@ export type PagesMessages = {
       submitCta: string;
       submitting: string;
       gasNote: string;
+      submitPickRemaining: (n: number) => string;
+      submitPickFinals: string;
+      submitDeadlinePassed: string;
+      submitStatusNotOpen: string;
       confirmGroups: string;
       confirmThirds: string;
       koFinal: string;
@@ -409,6 +413,25 @@ export type PagesMessages = {
     withdrawInvalidAmount: (symbol: string) => string;
     withdrawAmountTooSmall: string;
     withdrawNotOnChain: string;
+    bracketSectionTitle: string;
+    bracketSectionHint: string;
+    bracketAbiLive: string;
+    bracketAbiMissing: string;
+    bracketStatusLabel: (status: number) => string;
+    bracketEntriesLabel: (n: number) => string;
+    bracketGwPoolLabel: (gw: number, poolLabel: string) => string;
+    bracketStepPublish: string;
+    bracketStepCreateGw: string;
+    bracketStepSponsor: string;
+    bracketStepInit: string;
+    bracketCreateGwButton: (gw: number) => string;
+    bracketSponsorButton: (amountLabel: string) => string;
+    bracketInitButton: string;
+    bracketCloseButton: string;
+    bracketInitSuccess: string;
+    bracketCloseSuccess: string;
+    bracketInitModuleWalletHint: string;
+    bracketNotOnChain: string;
   };
   faq: {
     pageTitle: string;
@@ -555,6 +578,12 @@ export const pagesEn: PagesMessages = {
       submitCta: "Lock prediction on-chain",
       submitting: "Submitting…",
       gasNote: "Free entry · you only pay network gas",
+      submitPickRemaining: (n) =>
+        n === 1 ? "Pick 1 more knockout tie to continue." : `Pick ${n} more knockout ties to continue.`,
+      submitPickFinals:
+        "Almost there — pick the Final and 3rd-place play-off in the centre of the bracket (M103 & M104).",
+      submitDeadlinePassed: "Registration closed at the first match kickoff.",
+      submitStatusNotOpen: "Bracket challenge is not open for entries yet.",
       confirmGroups: "Confirm groups →",
       confirmThirds: "Confirm best 3rds →",
       koFinal: "Final",
@@ -859,6 +888,37 @@ export const pagesEn: PagesMessages = {
     withdrawAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
     withdrawNotOnChain:
       "This deployment’s module has no admin_withdraw_prize_vault entry on-chain. Upgrade the published package from this repo so the function appears in the ABI.",
+    bracketSectionTitle: "World Cup · Bracket Challenge go-live",
+    bracketSectionHint:
+      "After publishing the package upgrade (register_bracket_prediction on-chain), run these steps in order. First admin_init_bracket_challenge must be signed by the module publisher wallet (0xf598…).",
+    bracketAbiLive: "Bracket entrypoints detected on-chain",
+    bracketAbiMissing: "Bracket entrypoints missing — publish package upgrade first (npm run wc:bracket:deploy)",
+    bracketStatusLabel: (status) =>
+      status === 255
+        ? "Not initialized"
+        : status === 0
+          ? "OPEN — accepting predictions"
+          : status === 1
+            ? "CLOSED"
+            : status === 2
+              ? "RESOLVED"
+              : `Status ${status}`,
+    bracketEntriesLabel: (n) => `${n.toLocaleString()} bracket predictions`,
+    bracketGwPoolLabel: (gw, poolLabel) => `GW ${gw} prize pool: ${poolLabel}`,
+    bracketStepPublish: "1. Publish upgrade (CLI — requires module key)",
+    bracketStepCreateGw: "2. Create prize gameweek",
+    bracketStepSponsor: "3. Sponsor USDCx pool ($500)",
+    bracketStepInit: "4. Open bracket challenge",
+    bracketCreateGwButton: (gw) => `Create GW ${gw}`,
+    bracketSponsorButton: (amountLabel) => `Sponsor ${amountLabel}`,
+    bracketInitButton: "Open bracket challenge",
+    bracketCloseButton: "Close bracket registration",
+    bracketInitSuccess: "Bracket challenge is OPEN. Users can submit at /world-cup/bracket.",
+    bracketCloseSuccess: "Bracket registration closed.",
+    bracketInitModuleWalletHint:
+      "First init must be signed with the module publisher wallet (same address as MODULE_ADDRESS). Connect that wallet in the browser, or use the CLI.",
+    bracketNotOnChain:
+      "register_bracket_prediction is not in the on-chain ABI yet. Run: npm run wc:bracket:deploy",
   },
   faq: {
     pageTitle: "FAQ",
@@ -1399,6 +1459,19 @@ export const pagesUk: PagesMessages = {
       submitCta: "Зафіксувати прогноз on-chain",
       submitting: "Надсилання…",
       gasNote: "Безкоштовно · платиш лише газ за транзакцію",
+      submitPickRemaining: (n) => {
+        if (n === 1) return "Обери ще 1 матч плей-оф, щоб продовжити.";
+        const mod10 = n % 10;
+        const mod100 = n % 100;
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+          return `Обери ще ${n} матчі плей-оф, щоб продовжити.`;
+        }
+        return `Обери ще ${n} матчів плей-оф, щоб продовжити.`;
+      },
+      submitPickFinals:
+        "Майже готово — обери переможців фіналу та матчу за 3-тє місце в центрі сітки (M103 і M104).",
+      submitDeadlinePassed: "Реєстрація закрита на старті першого матчу.",
+      submitStatusNotOpen: "Прийом прогнозів ще не відкрито.",
       confirmGroups: "Підтвердити групи →",
       confirmThirds: "Підтвердити кращі 3-ті →",
       koFinal: "Фінал",
@@ -1703,6 +1776,37 @@ export const pagesUk: PagesMessages = {
     withdrawAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
     withdrawNotOnChain:
       "У задеплоєному модулі on-chain немає entry admin_withdraw_prize_vault. Онови пакет із цього репозиторію, щоб функція з’явилася в ABI.",
+    bracketSectionTitle: "ЧС · Запуск Bracket Challenge",
+    bracketSectionHint:
+      "Після publish оновлення пакета (register_bracket_prediction on-chain) виконай кроки по порядку. Перший admin_init_bracket_challenge має підписати гаманець модуля (0xf598…).",
+    bracketAbiLive: "Bracket entrypoints є on-chain",
+    bracketAbiMissing: "Bracket entrypoints відсутні — спочатку publish (npm run wc:bracket:deploy)",
+    bracketStatusLabel: (status) =>
+      status === 255
+        ? "Не ініціалізовано"
+        : status === 0
+          ? "ВІДКРИТО — приймаємо прогнози"
+          : status === 1
+            ? "ЗАКРИТО"
+            : status === 2
+              ? "ЗАВЕРШЕНО"
+              : `Статус ${status}`,
+    bracketEntriesLabel: (n) => `${n.toLocaleString()} прогнозів`,
+    bracketGwPoolLabel: (gw, poolLabel) => `GW ${gw} призовий фонд: ${poolLabel}`,
+    bracketStepPublish: "1. Publish upgrade (CLI — потрібен ключ модуля)",
+    bracketStepCreateGw: "2. Створити prize gameweek",
+    bracketStepSponsor: "3. Завести $500 USDCx у пул",
+    bracketStepInit: "4. Відкрити bracket challenge",
+    bracketCreateGwButton: (gw) => `Створити GW ${gw}`,
+    bracketSponsorButton: (amountLabel) => `Завести ${amountLabel}`,
+    bracketInitButton: "Відкрити bracket challenge",
+    bracketCloseButton: "Закрити реєстрацію bracket",
+    bracketInitSuccess: "Bracket challenge ВІДКРИТО. Користувачі можуть подавати на /world-cup/bracket.",
+    bracketCloseSuccess: "Реєстрацію bracket закрито.",
+    bracketInitModuleWalletHint:
+      "Перший init має підписати гаманець publisher модуля (MODULE_ADDRESS). Підключи його в браузері або використай CLI.",
+    bracketNotOnChain:
+      "register_bracket_prediction ще немає в on-chain ABI. Запусти: npm run wc:bracket:deploy",
   },
   faq: {
     pageTitle: "Часті питання",

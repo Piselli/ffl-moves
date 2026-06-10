@@ -35,6 +35,8 @@ import {
   encodeKnockoutWinners,
   encodeThirdPlaceOrder,
   isCompletePrediction,
+  knockoutPicksRemaining,
+  needsFinalKnockoutPicks,
   type BracketPrediction,
 } from "@/lib/wcBracketPrediction";
 import { getErrorMessage, cn } from "@/lib/utils";
@@ -90,7 +92,20 @@ export default function WorldCupBracketPage() {
 
   const addr = account?.address?.toString();
   const complete = isCompletePrediction(prediction);
+  const koRemaining = knockoutPicksRemaining(prediction.knockoutWinners);
   const pastDeadline = Date.now() >= new Date(WC_BRACKET_DEADLINE_ISO).getTime();
+
+  const submitBlockHint = useMemo(() => {
+    if (submitting) return null;
+    if (pastDeadline) return bc.submitDeadlinePassed;
+    if (!complete) {
+      if (needsFinalKnockoutPicks(prediction.knockoutWinners)) return bc.submitPickFinals;
+      return bc.submitPickRemaining(koRemaining);
+    }
+    if (!chainLive) return bc.contractPending;
+    if (status !== 0) return bc.submitStatusNotOpen;
+    return null;
+  }, [submitting, pastDeadline, complete, prediction.knockoutWinners, koRemaining, chainLive, status, bc]);
 
   const predictorCopy = useMemo(
     () => ({
@@ -434,6 +449,16 @@ export default function WorldCupBracketPage() {
                 >
                   {submitting ? bc.submitting : bc.submitCta}
                 </button>
+                {submitBlockHint ? (
+                  <p
+                    className={cn(
+                      "max-w-md text-center text-xs leading-relaxed",
+                      !chainLive && complete ? "text-amber-200/90" : "text-[#00f948]/80",
+                    )}
+                  >
+                    {submitBlockHint}
+                  </p>
+                ) : null}
                 <p className="text-center text-[11px] text-white/35">{bc.gasNote}</p>
               </>
             ) : null}

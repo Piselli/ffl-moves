@@ -227,6 +227,21 @@ export function isCompletePrediction(p: BracketPrediction): boolean {
   );
 }
 
+export function knockoutPicksRemaining(winners: KnockoutWinners): number {
+  return winners.filter((w) => w < 0).length;
+}
+
+export function missingKnockoutMatchIds(winners: KnockoutWinners): KnockoutMatchId[] {
+  return WC_KNOCKOUT_MATCH_IDS.filter((_, i) => winners[i]! < 0);
+}
+
+export function needsFinalKnockoutPicks(winners: KnockoutWinners): boolean {
+  const idx = (id: KnockoutMatchId) => winners[knockoutMatchIndex(id)] ?? -1;
+  const semisDone = idx("M101") >= 0 && idx("M102") >= 0;
+  const finalsDone = idx("M103") >= 0 && idx("M104") >= 0;
+  return semisDone && !finalsDone;
+}
+
 // ── Scoring ─────────────────────────────────────────────────────────────────
 
 export interface BracketScoreBreakdown {

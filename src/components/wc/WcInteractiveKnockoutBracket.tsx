@@ -6,6 +6,7 @@ import { WcFlagChip } from "@/components/wc/WcGroupCard";
 import { resolveBracketMatches, setMatchWinner } from "@/lib/wcBracketResolve";
 import {
   knockoutMatchIndex,
+  needsFinalKnockoutPicks,
   WC_TEAMS,
   type BracketPrediction,
 } from "@/lib/wcBracketPrediction";
@@ -66,6 +67,7 @@ function MatchBox({
   readOnly,
   onPick,
   mirror,
+  highlight,
 }: {
   matchId: string;
   round: string;
@@ -74,18 +76,21 @@ function MatchBox({
   readOnly: boolean;
   onPick: (teamIdx: number) => void;
   mirror?: boolean;
+  highlight?: boolean;
 }) {
   const isLeaf = round === "R32";
   const canPick = !readOnly && participants.home != null && participants.away != null;
+  const unpicked = canPick && winnerIdx == null;
 
   return (
     <div
       className={cn(
         BOX_W,
-        "flex flex-col justify-center rounded-[6px] border px-0.5 py-1",
+        "flex flex-col justify-center rounded-[6px] border px-0.5 py-1 transition-shadow",
         isLeaf
           ? "border-white/12 bg-white/[0.035]"
           : "border-[#00f948]/25 bg-[#00f948]/[0.06]",
+        highlight && unpicked && "animate-pulse ring-2 ring-amber-400/70 ring-offset-1 ring-offset-[#050608]",
       )}
       title={matchId}
     >
@@ -265,6 +270,7 @@ function CenterFinals({
   const thirdParts = participantMap.get("M103") ?? { home: null, away: null, round: "3rd" };
   const finalWinner = winners[knockoutMatchIndex("M104")] ?? -1;
   const thirdWinner = winners[knockoutMatchIndex("M103")] ?? -1;
+  const highlightFinals = needsFinalKnockoutPicks(winners);
 
   return (
     <div className="flex shrink-0 flex-col items-center gap-4 px-2">
@@ -279,6 +285,7 @@ function CenterFinals({
           winnerIdx={thirdWinner >= 0 ? thirdWinner : null}
           readOnly={readOnly}
           onPick={(t) => onPick("M103", t)}
+          highlight={highlightFinals}
         />
       </div>
       <div className="w-[120px]">
@@ -292,6 +299,7 @@ function CenterFinals({
           winnerIdx={finalWinner >= 0 ? finalWinner : null}
           readOnly={readOnly}
           onPick={(t) => onPick("M104", t)}
+          highlight={highlightFinals}
         />
       </div>
     </div>
@@ -310,6 +318,7 @@ export function WcInteractiveKnockoutBracket({
   copy: { final: string; thirdPlace: string; tapHint: string };
 }) {
   const participantMap = useMemo(() => resolveBracketMatches(prediction), [prediction]);
+  const highlightFinals = needsFinalKnockoutPicks(prediction.knockoutWinners);
 
   const handlePick = (matchId: string, teamIdx: number) => {
     if (readOnly) return;
@@ -356,8 +365,17 @@ export function WcInteractiveKnockoutBracket({
           if (!p) return null;
           const koIdx = knockoutMatchIndex(id);
           const w = koIdx >= 0 ? prediction.knockoutWinners[koIdx] : -1;
+          const highlight = highlightFinals && (id === "M103" || id === "M104");
           return (
-            <div key={id} className="rounded-xl border border-white/[0.08] bg-[#0a0c0f]/70 p-3">
+            <div
+              key={id}
+              className={cn(
+                "rounded-xl border bg-[#0a0c0f]/70 p-3",
+                highlight && w < 0
+                  ? "animate-pulse border-amber-400/50 ring-1 ring-amber-400/40"
+                  : "border-white/[0.08]",
+              )}
+            >
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-display text-xs font-black text-white/60">{id}</span>
                 <span className="text-[9px] font-bold uppercase text-white/30">{p.round}</span>
