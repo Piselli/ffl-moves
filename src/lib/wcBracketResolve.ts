@@ -26,7 +26,8 @@ export interface ResolvedMatch {
   koIndex: number;
 }
 
-const THIRD_SLOT_ORDER = ["M74", "M77", "M81", "M82", "M79", "M80", "M85", "M87"] as const;
+type ThirdSlot = { matchId: string; groups: Set<string> };
+type AdvancingThird = { teamIdx: number; group: string; rank: number };
 
 function parseSeed(seed: string): { kind: "place"; place: 1 | 2 | 3; group: string } | { kind: "third"; groups: string[] } | null {
   const direct = seed.match(/^([123])([A-L])$/);
@@ -72,42 +73,75 @@ for (const n of ALL_TREE_NODES) {
   }
 }
 
-/** Assign advancing thirds to R32 slots (greedy by rank among eligible groups). */
-function buildThirdAssignments(prediction: BracketPrediction): Map<string, number> {
-  const advancing = advancingThirdIndices(prediction.groupRanks, prediction.thirdPlaceOrder);
-  const ranked = advancing
-    .map((teamIdx) => {
-      const groupIdx = Math.floor(teamIdx / 4);
-      return {
-        teamIdx,
-        group: WC_TEAMS[teamIdx]!.group,
-        rank: prediction.thirdPlaceOrder[groupIdx] ?? 99,
-      };
-    })
-    .sort((a, b) => a.rank - b.rank);
-
-  const used = new Set<number>();
-  const slotToTeam = new Map<string, number>();
-
-  for (const matchId of THIRD_SLOT_ORDER) {
-    const leaf = R32_LEAVES.find((l) => l.code === matchId);
-    if (!leaf) continue;
-    const parts = leaf.seeds.split(" v ");
-    const thirdSeed = parts.find((p) => p.startsWith("3"));
+function thirdSlotsFromLeaves(): ThirdSlot[] {
+  const slots: ThirdSlot[] = [];
+  for (const leaf of R32_LEAVES) {
+    const thirdSeed = leaf.seeds.split(" v ").find((p) => p.startsWith("3"));
     if (!thirdSeed) continue;
     const parsed = parseSeed(thirdSeed);
     if (!parsed || parsed.kind !== "third") continue;
+    slots.push({ matchId: leaf.code, groups: new Set(parsed.groups) });
+  }
+  return slots;
+}
 
-    const candidates = ranked
-      .filter((t) => parsed.groups.includes(t.group) && !used.has(t.teamIdx))
+function eligibleCount(slot: ThirdSlot, teams: AdvancingThird[]): number {
+  return teams.filter((t) => slot.groups.has(t.group)).length;
+}
+
+/**
+ * Assign each advancing third to exactly one R32 tie whose seed string allows that group.
+ * Greedy order fails when overlapping pools exhaust teams — use backtracking (8 slots max).
+ */
+function buildThirdAssignments(prediction: BracketPrediction): Map<string, number> {
+  const advancing = advancingThirdIndices(prediction.groupRanks, prediction.thirdPlaceOrder);
+  const teams: AdvancingThird[] = advancing.map((teamIdx) => {
+    const groupIdx = Math.floor(teamIdx / 4);
+    return {
+      teamIdx,
+      group: WC_TEAMS[teamIdx]!.group,
+      rank: prediction.thirdPlaceOrder[groupIdx] ?? 99,
+    };
+  });
+
+  const slots = thirdSlotsFromLeaves().sort(
+    (a, b) => eligibleCount(a, teams) - eligibleCount(b, teams),
+  );
+
+  const assignment = new Map<string, number>();
+  const used = new Set<number>();
+
+  function backtrack(i: number): boolean {
+    if (i >= slots.length) return true;
+    const slot = slots[i]!;
+    const candidates = teams
+      .filter((t) => slot.groups.has(t.group) && !used.has(t.teamIdx))
       .sort((a, b) => a.rank - b.rank);
-    if (candidates[0]) {
-      used.add(candidates[0].teamIdx);
-      slotToTeam.set(matchId, candidates[0].teamIdx);
+
+    for (const c of candidates) {
+      used.add(c.teamIdx);
+      assignment.set(slot.matchId, c.teamIdx);
+      if (backtrack(i + 1)) return true;
+      used.delete(c.teamIdx);
+      assignment.delete(slot.matchId);
+    }
+    return false;
+  }
+
+  if (!backtrack(0)) {
+    const usedFallback = new Set<number>();
+    for (const slot of slots) {
+      const pick = teams
+        .filter((t) => slot.groups.has(t.group) && !usedFallback.has(t.teamIdx))
+        .sort((a, b) => a.rank - b.rank)[0];
+      if (pick) {
+        usedFallback.add(pick.teamIdx);
+        assignment.set(slot.matchId, pick.teamIdx);
+      }
     }
   }
 
-  return slotToTeam;
+  return assignment;
 }
 
 function resolveSeedSide(
@@ -175,14 +209,12 @@ export function resolveBracketMatches(
     out.set(node.code, { home, away, round: node.round });
   }
 
-  // 3rd-place play-off: semi-final losers
   out.set("M103", {
     home: loserOf("M101", prediction.knockoutWinners, out),
     away: loserOf("M102", prediction.knockoutWinners, out),
     round: "3rd",
   });
 
-  // Final: semi winners
   out.set("M104", {
     home: winnerOf("M101", prediction.knockoutWinners),
     away: winnerOf("M102", prediction.knockoutWinners),
