@@ -576,6 +576,34 @@ export async function hasBracketPrediction(owner: string): Promise<boolean> {
   }
 }
 
+export async function getBracketPrediction(
+  owner: string,
+): Promise<{ groupRanks: number[]; thirdPlaceOrder: number[]; knockoutWinners: number[]; submittedAt: number } | null> {
+  try {
+    const result = await client.view({
+      payload: {
+        function: moduleFunction("get_bracket_prediction"),
+        typeArguments: [],
+        functionArguments: [owner],
+      },
+    });
+    const [groupRanks, thirdPlaceOrder, knockoutWinners, submittedAt] = result as [
+      unknown,
+      unknown,
+      unknown,
+      number | string,
+    ];
+    return {
+      groupRanks: viewU8Vector(groupRanks),
+      thirdPlaceOrder: viewU8Vector(thirdPlaceOrder),
+      knockoutWinners: viewU8Vector(knockoutWinners),
+      submittedAt: Number(submittedAt),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function hasRegisterBracketPredictionOnChain(): Promise<boolean> {
   const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
   const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;

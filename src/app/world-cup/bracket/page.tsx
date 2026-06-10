@@ -20,6 +20,7 @@ import {
   moduleFunction,
   getBracketChallengeStatus,
   getBracketChallengeEntries,
+  getBracketPrediction,
 } from "@/lib/movement";
 import {
   WC_BRACKET_DEADLINE_ISO,
@@ -28,6 +29,7 @@ import {
   WC_BRACKET_PERFECT_BONUS_USDCX,
   WC_BRACKET_PERFECT_SCORE,
   WC_BRACKET_PRIZES_USDCX,
+  decodeBracketPrediction,
   defaultGroupRanks,
   defaultThirdPlaceOrder,
   emptyBracketPrediction,
@@ -154,7 +156,20 @@ export default function WorldCupBracketPage() {
         setStatus(st);
         setEntries(ent);
 
-        if (!pred && typeof window !== "undefined") {
+        if (pred) {
+          const onChain = await getBracketPrediction(addr);
+          if (cancelled) return;
+          if (onChain) {
+            setPrediction(decodeBracketPrediction(
+              onChain.groupRanks,
+              onChain.thirdPlaceOrder,
+              onChain.knockoutWinners,
+            ));
+            setStep("knockout");
+            setGroupsLocked(true);
+            setThirdsLocked(true);
+          }
+        } else if (typeof window !== "undefined") {
           try {
             const raw = window.localStorage.getItem(draftKey(addr));
             if (raw) {
@@ -234,6 +249,9 @@ export default function WorldCupBracketPage() {
         options: { timeoutSecs: 30, checkSuccess: true },
       });
       setSubmitted(true);
+      setGroupsLocked(true);
+      setThirdsLocked(true);
+      setStep("knockout");
       if (addr) {
         try {
           localStorage.removeItem(draftKey(addr));
@@ -365,8 +383,11 @@ export default function WorldCupBracketPage() {
             value={prediction}
             onChange={() => {}}
             readOnly
-            step="knockout"
-            onStepChange={() => {}}
+            step={step}
+            onStepChange={(next) => {
+              setStep(next);
+              requestAnimationFrame(scrollToPredictor);
+            }}
             groupsLocked
             thirdsLocked
             copy={predictorCopy}

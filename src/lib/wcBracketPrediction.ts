@@ -323,5 +323,18 @@ export function decodeKnockoutWinners(bytes: number[]): KnockoutWinners {
   return bytes.slice(0, WC_KNOCKOUT_MATCH_COUNT).map((b) => (b < WC_TEAM_COUNT ? b : -1));
 }
 
+/** Rebuild prediction struct from on-chain view tuple bytes. */
+export function decodeBracketPrediction(
+  groupBytes: number[],
+  thirdBytes: number[],
+  koBytes: number[],
+): BracketPrediction {
+  return {
+    groupRanks: decodeGroupRanks(groupBytes),
+    thirdPlaceOrder: decodeThirdPlaceOrder(thirdBytes),
+    knockoutWinners: decodeKnockoutWinners(koBytes),
+  };
+}
+
 /** md1 kickoff — bracket registration closes with md1 squad registration. */
 export const WC_BRACKET_DEADLINE_ISO = "2026-06-11T19:00:00Z";

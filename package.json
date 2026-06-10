@@ -16,7 +16,7 @@
     "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",
     "preflight:mainnet": "node scripts/preflight-mainnet.mjs",
     "verify:chain": "node scripts/verify-chain.mjs",
-    "wc:bracket:verify": "node scripts/verify-wc-bracket-chain.mjs",
+    "wc:bracket:banner": "node scripts/render-wc-bracket-banner.mjs",
     "wc:bracket:deploy": "bash scripts/deploy-wc-bracket-mainnet.sh",
     "setup:movement-mainnet-profile": "bash scripts/setup-movement-mainnet-profile.sh",
     "build": "next build",

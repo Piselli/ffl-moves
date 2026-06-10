@@ -240,9 +240,10 @@ export function WcBracketPredictor({
               {i > 0 ? <span className="text-white/15">→</span> : null}
               <button
                 type="button"
-                disabled={readOnly || !reachable}
+                disabled={!readOnly && !reachable}
                 onClick={() => {
-                  if (!reachable) return;
+                  if (!readOnly && !reachable) return;
+                  if (readOnly && !reachable) return;
                   onStepChange(s.id);
                 }}
                 className={cn(
