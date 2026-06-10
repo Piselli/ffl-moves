@@ -378,7 +378,17 @@ export function WorldCupEventHub() {
                     </svg>
                   </span>
                 </Link>
+                <Link
+                  href="/world-cup/bracket"
+                  className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 font-wc-hero text-xs font-bold uppercase tracking-[0.06em] text-white/90 transition-colors hover:border-[#00f948]/30 hover:bg-[#00f948]/[0.08] hover:text-[#00f948]"
+                >
+                  {wc.bracket.hubCta}
+                  <svg className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </Link>
               </div>
+              <p className="max-w-md text-center text-xs text-white/40">{wc.bracket.hubTeaser}</p>
             </div>
           </motion.div>
         </div>

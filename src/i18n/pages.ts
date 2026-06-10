@@ -102,6 +102,46 @@ export type PagesMessages = {
       seeAll: string;
       teaserTitle: string;
     };
+    /** Bracket prediction challenge (full tournament). */
+    bracket: {
+      badge: string;
+      title: string;
+      subtitle: string;
+      rulesLine: string;
+      deadlineNote: string;
+      statusOpen: string;
+      statusClosed: string;
+      statusResolved: string;
+      statusUpcoming: string;
+      entriesLabel: (n: number) => string;
+      prizeRank: (n: number) => string;
+      notEligibleTitle: string;
+      notEligibleHint: string;
+      submittedTitle: string;
+      submittedHint: string;
+      contractPending: string;
+      submitCta: string;
+      submitting: string;
+      gasNote: string;
+      confirmGroups: string;
+      confirmThirds: string;
+      koFinal: string;
+      koThirdPlace: string;
+      koTapHint: string;
+      hubCta: string;
+      hubTeaser: string;
+      predictor: {
+        stepGroups: string;
+        stepThirds: string;
+        stepKnockout: string;
+        thirdsTitle: string;
+        thirdsHint: string;
+        thirdsAdvance: string;
+        koTitle: string;
+        koPickWinner: string;
+        progress: (done: number, total: number) => string;
+      };
+    };
   };
   gameweek: {
     registerErrorPrefix: string;
@@ -484,6 +524,47 @@ export const pagesEn: PagesMessages = {
       timeTbc: "TBC",
       seeAll: "All matches",
       teaserTitle: "Match schedule",
+    },
+    bracket: {
+      badge: "Bracket Challenge",
+      title: "Predict the full World Cup",
+      subtitle:
+        "Rank every group, pick the eight best third-placed sides, then call every knockout tie through the final and third-place play-off. One submission — locked on-chain.",
+      rulesLine: "Scoring: 1 point per exact place — group positions (48), third-place ranking among the dozen (12), and each knockout winner (32). Max 92 pts.",
+      deadlineNote: "Registration closes at the first match kickoff (same deadline as md1 squad registration). Free entry — gas only.",
+      statusOpen: "Open",
+      statusClosed: "Closed",
+      statusResolved: "Resolved",
+      statusUpcoming: "Soon",
+      entriesLabel: (n) => `${n.toLocaleString()} predictions`,
+      prizeRank: (n) => `#${n}`,
+      notEligibleTitle: "Squad required",
+      notEligibleHint: "Register a squad for World Cup matchday 1 first — then come back to submit your bracket.",
+      submittedTitle: "Prediction locked on-chain",
+      submittedHint: "No edits after submission. Results and prizes after the tournament.",
+      contractPending: "On-chain registration opens after the next contract upgrade is live on mainnet.",
+      submitCta: "Lock prediction on-chain",
+      submitting: "Submitting…",
+      gasNote: "Free entry · you only pay network gas",
+      confirmGroups: "Confirm groups →",
+      confirmThirds: "Confirm best 3rds →",
+      koFinal: "Final",
+      koThirdPlace: "3rd place",
+      koTapHint: "Tap a nation to pick the winner of each tie. Pairs in the Round of 32 come from your group and third-place picks.",
+      hubCta: "Bracket challenge",
+      hubTeaser: "Predict the full tournament — $200 USDCx for top 5",
+      predictor: {
+        stepGroups: "Groups",
+        stepThirds: "Best 3rds",
+        stepKnockout: "Knockout",
+        thirdsTitle: "Eight best third-placed teams",
+        thirdsHint:
+          "Rank all twelve third-placed sides from strongest to weakest. The top eight advance — same FIFA rule as the real draw.",
+        thirdsAdvance: "Advances",
+        koTitle: "Knockout bracket",
+        koPickWinner: "Pick winner…",
+        progress: (done, total) => `${done}/${total} ties`,
+      },
     },
   },
   gameweek: {
@@ -1280,6 +1361,49 @@ export const pagesUk: PagesMessages = {
       timeTbc: "TBC",
       seeAll: "Усі матчі",
       teaserTitle: "Розклад матчів",
+    },
+    bracket: {
+      badge: "Прогноз турніру",
+      title: "Прогнозуй весь Чемпіонат світу",
+      subtitle:
+        "Розстав місця в усіх групах, визнач вісім найкращих третіх і пройди всю сітку до фіналу та матчу за 3-тє місце. Одна заявка — фіксується on-chain.",
+      rulesLine:
+        "Очки: 1 за кожне точне місце — позиції в групах (48), рейтинг третіх серед дванадцяти (12) і переможець кожного матчу плей-оф (32). Макс. 92 очки.",
+      deadlineNote:
+        "Реєстрація закривається на старті першого матчу (разом із дедлайном складу md1). Безкоштовно — лише газ.",
+      statusOpen: "Відкрито",
+      statusClosed: "Закрито",
+      statusResolved: "Завершено",
+      statusUpcoming: "Скоро",
+      entriesLabel: (n) => `${n.toLocaleString()} прогнозів`,
+      prizeRank: (n) => `#${n}`,
+      notEligibleTitle: "Потрібен склад md1",
+      notEligibleHint: "Спочатку зареєструй склад на перший тур ЧС — тоді зможеш подати прогноз.",
+      submittedTitle: "Прогноз зафіксовано on-chain",
+      submittedHint: "Редагування неможливе. Результати й призи — після турніру.",
+      contractPending: "On-chain реєстрація відкриється після оновлення контракту на mainnet.",
+      submitCta: "Зафіксувати прогноз on-chain",
+      submitting: "Надсилання…",
+      gasNote: "Безкоштовно · платиш лише газ за транзакцію",
+      confirmGroups: "Підтвердити групи →",
+      confirmThirds: "Підтвердити кращі 3-ті →",
+      koFinal: "Фінал",
+      koThirdPlace: "3-тє місце",
+      koTapHint: "Натисни на збірну, щоб обрати переможця матчу. Пари 1/16 будуються з твоїх групових прогнозів і рейтингу третіх місць.",
+      hubCta: "Прогноз турніру",
+      hubTeaser: "Прогнозуй весь турнір — $200 USDCx топ-5",
+      predictor: {
+        stepGroups: "Групи",
+        stepThirds: "Кращі 3-ті",
+        stepKnockout: "Плей-оф",
+        thirdsTitle: "Вісім найкращих третіх місць",
+        thirdsHint:
+          "Розстав усі дванадцять третіх місць від найсильнішого до найслабшого. Вісім перших проходять — за регламентом FIFA.",
+        thirdsAdvance: "Проходить",
+        koTitle: "Сітка плей-оф",
+        koPickWinner: "Обери переможця…",
+        progress: (done, total) => `${done}/${total} матчів`,
+      },
     },
   },
   gameweek: {

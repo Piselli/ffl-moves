@@ -51,6 +51,22 @@ module fantasy_epl_addr::fantasy_epl {
     const EINVALID_USDC_METADATA: u64 = 29;
     /// admin_reset_gameweek_registrations: gameweek already RESOLVED
     const EGAMEWEEK_RESET_NOT_ALLOWED: u64 = 30;
+    /// Bracket challenge: registration closed or not initialised
+    const EBRACKET_NOT_OPEN: u64 = 31;
+    /// Bracket challenge: wallet already submitted a prediction
+    const EBRACKET_ALREADY_REGISTERED: u64 = 32;
+    /// Bracket challenge: must have registered md1 squad (tour 10001)
+    const EBRACKET_NOT_ELIGIBLE: u64 = 33;
+    /// Bracket challenge: invalid group / third / knockout payload
+    const EBRACKET_INVALID_PAYLOAD: u64 = 34;
+    /// Bracket challenge: admin op requires CLOSED status
+    const EBRACKET_NOT_CLOSED: u64 = 35;
+    /// Bracket challenge: claim requires RESOLVED status
+    const EBRACKET_NOT_RESOLVED: u64 = 36;
+    /// Bracket challenge: no prize for this address
+    const EBRACKET_NO_PRIZE: u64 = 37;
+    /// Bracket challenge: prize already claimed
+    const EBRACKET_ALREADY_CLAIMED: u64 = 38;
 
     // ============ Constants ============
     /// Entry-fee / prize-pool denomination (title & guild fees stay MOVE).
@@ -95,6 +111,14 @@ module fantasy_epl_addr::fantasy_epl {
     const REQUIRED_DEF: u64 = 4;
     const REQUIRED_MID: u64 = 3;
     const REQUIRED_FWD: u64 = 3;
+
+    /// md1 World Cup tour — bracket challenge eligibility gate.
+    const WC_BRACKET_MD1_TOUR: u64 = 10001;
+    /// Gameweek id used for the sponsored USDCx prize pool ($200 total).
+    const WC_BRACKET_PRIZE_GW: u64 = 10999;
+    const WC_BRACKET_GROUP_BYTES: u64 = 48;
+    const WC_BRACKET_THIRD_BYTES: u64 = 12;
+    const WC_BRACKET_KO_BYTES: u64 = 32;
 
     // ============ Structs ============
 
@@ -158,6 +182,31 @@ module fantasy_epl_addr::fantasy_epl {
     struct UserGuild has key {
         multiplier: u64,  // In basis points
         season: u64,
+    }
+
+    /// WC 2026 bracket-prediction challenge (separate from per-round fantasy squads).
+    struct BracketChallengeState has key {
+        status: u8,           // STATUS_OPEN | STATUS_CLOSED | STATUS_RESOLVED
+        total_entries: u64,
+    }
+
+    struct BracketPredictionData has store, copy, drop {
+        group_ranks: vector<u8>,      // 48 × rank 1–4
+        third_place_order: vector<u8>, // 12 × rank 1–12 among third-placed teams (A→L)
+        knockout_winners: vector<u8>,  // 32 × team index 0–47
+        submitted_at: u64,
+    }
+
+    struct BracketChallengeResult has store, copy, drop {
+        score: u64,
+        rank: u64,           // 1–5 for prize slots, 0 = unranked
+        prize_amount: u64,   // USDCx micro-units
+        claimed: bool,
+    }
+
+    struct BracketPredictions has key {
+        predictions: Table<address, BracketPredictionData>,
+        results: Table<address, BracketChallengeResult>,
     }
 
     /// Player stats for a gameweek (submitted by oracle)
@@ -1958,6 +2007,259 @@ module fantasy_epl_addr::fantasy_epl {
     public fun get_current_gameweek(): u64 acquires Config {
         let config = borrow_global<Config>(@fantasy_epl_addr);
         config.current_gameweek
+    }
+
+    // ============ World Cup Bracket Challenge ============
+
+    fun validate_group_ranks_bytes(ranks: &vector<u8>) {
+        assert!(vector::length(ranks) == WC_BRACKET_GROUP_BYTES, EBRACKET_INVALID_PAYLOAD);
+        let g = 0;
+        while (g < 12) {
+            let seen1 = false;
+            let seen2 = false;
+            let seen3 = false;
+            let seen4 = false;
+            let s = 0;
+            while (s < 4) {
+                let r = *vector::borrow(ranks, g * 4 + s);
+                assert!(r >= 1 && r <= 4, EBRACKET_INVALID_PAYLOAD);
+                if (r == 1) { seen1 = true };
+                if (r == 2) { seen2 = true };
+                if (r == 3) { seen3 = true };
+                if (r == 4) { seen4 = true };
+                s = s + 1;
+            };
+            assert!(seen1 && seen2 && seen3 && seen4, EBRACKET_INVALID_PAYLOAD);
+            g = g + 1;
+        };
+    }
+
+    fun validate_third_order_bytes(order: &vector<u8>) {
+        assert!(vector::length(order) == WC_BRACKET_THIRD_BYTES, EBRACKET_INVALID_PAYLOAD);
+        let seen = vector::empty<u8>();
+        let i = 0;
+        while (i < 12) {
+            let v = *vector::borrow(order, i);
+            assert!(v >= 1 && v <= 12, EBRACKET_INVALID_PAYLOAD);
+            let j = 0;
+            while (j < vector::length(&seen)) {
+                assert!(*vector::borrow(&seen, j) != v, EBRACKET_INVALID_PAYLOAD);
+                j = j + 1;
+            };
+            vector::push_back(&mut seen, v);
+            i = i + 1;
+        };
+    }
+
+    fun validate_knockout_winners_bytes(winners: &vector<u8>) {
+        assert!(vector::length(winners) == WC_BRACKET_KO_BYTES, EBRACKET_INVALID_PAYLOAD);
+        let i = 0;
+        while (i < WC_BRACKET_KO_BYTES) {
+            let w = *vector::borrow(winners, i);
+            assert!(w < 48, EBRACKET_INVALID_PAYLOAD);
+            i = i + 1;
+        };
+    }
+
+    fun bracket_user_has_md1_squad(owner: address): bool acquires UserTeams {
+        if (!exists<UserTeams>(owner)) {
+            return false
+        };
+        let user_teams = borrow_global<UserTeams>(owner);
+        table::contains(&user_teams.teams, WC_BRACKET_MD1_TOUR)
+    }
+
+    /// Admin: initialise bracket challenge (OPEN). Prize pool lives on gameweek 10999 via admin_sponsor_prize_pool.
+    public entry fun admin_init_bracket_challenge(sender: &signer) acquires Config, BracketChallengeState {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        if (!exists<BracketChallengeState>(@fantasy_epl_addr)) {
+            assert!(sender_addr == @fantasy_epl_addr, ENOT_TREASURY_ACCOUNT);
+            move_to(sender, BracketChallengeState {
+                status: STATUS_OPEN,
+                total_entries: 0,
+            });
+        } else {
+            let state = borrow_global_mut<BracketChallengeState>(@fantasy_epl_addr);
+            state.status = STATUS_OPEN;
+        };
+        if (!exists<BracketPredictions>(@fantasy_epl_addr)) {
+            assert!(sender_addr == @fantasy_epl_addr, ENOT_TREASURY_ACCOUNT);
+            move_to(sender, BracketPredictions {
+                predictions: table::new(),
+                results: table::new(),
+            });
+        };
+    }
+
+    /// Admin: close registration (typically at md1 kickoff).
+    public entry fun admin_close_bracket_challenge(sender: &signer) acquires Config, BracketChallengeState {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(exists<BracketChallengeState>(@fantasy_epl_addr), EBRACKET_NOT_OPEN);
+        let state = borrow_global_mut<BracketChallengeState>(@fantasy_epl_addr);
+        assert!(state.status == STATUS_OPEN, EBRACKET_NOT_OPEN);
+        state.status = STATUS_CLOSED;
+    }
+
+    /// Free entry (gas only). Requires md1 squad registration. One submission per wallet — immutable.
+    public entry fun register_bracket_prediction(
+        sender: &signer,
+        group_ranks: vector<u8>,
+        third_place_order: vector<u8>,
+        knockout_winners: vector<u8>,
+    ) acquires BracketChallengeState, BracketPredictions, UserTeams {
+        let sender_addr = signer::address_of(sender);
+        assert!(exists<BracketChallengeState>(@fantasy_epl_addr), EBRACKET_NOT_OPEN);
+        let state = borrow_global_mut<BracketChallengeState>(@fantasy_epl_addr);
+        assert!(state.status == STATUS_OPEN, EBRACKET_NOT_OPEN);
+        assert!(bracket_user_has_md1_squad(sender_addr), EBRACKET_NOT_ELIGIBLE);
+
+        validate_group_ranks_bytes(&group_ranks);
+        validate_third_order_bytes(&third_place_order);
+        validate_knockout_winners_bytes(&knockout_winners);
+
+        let registry = borrow_global_mut<BracketPredictions>(@fantasy_epl_addr);
+        assert!(!table::contains(&registry.predictions, sender_addr), EBRACKET_ALREADY_REGISTERED);
+
+        let pred = BracketPredictionData {
+            group_ranks,
+            third_place_order,
+            knockout_winners,
+            submitted_at: timestamp::now_seconds(),
+        };
+        table::add(&mut registry.predictions, sender_addr, pred);
+        state.total_entries = state.total_entries + 1;
+    }
+
+    /// Admin: resolve top-5 winners with fixed USDCx prizes. `ranks` must be 1..5 aligned with `winners`.
+    public entry fun admin_resolve_bracket_challenge(
+        sender: &signer,
+        winners: vector<address>,
+        scores: vector<u64>,
+        ranks: vector<u64>,
+        prize_amounts: vector<u64>,
+    ) acquires Config, BracketChallengeState, BracketPredictions, GameweekRegistry {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(exists<BracketChallengeState>(@fantasy_epl_addr), EBRACKET_NOT_CLOSED);
+        let state = borrow_global_mut<BracketChallengeState>(@fantasy_epl_addr);
+        assert!(state.status == STATUS_CLOSED, EBRACKET_NOT_CLOSED);
+
+        let n = vector::length(&winners);
+        assert!(n == vector::length(&scores), EBRACKET_INVALID_PAYLOAD);
+        assert!(n == vector::length(&ranks), EBRACKET_INVALID_PAYLOAD);
+        assert!(n == vector::length(&prize_amounts), EBRACKET_INVALID_PAYLOAD);
+        assert!(n <= 5, EBRACKET_INVALID_PAYLOAD);
+
+        let registry = borrow_global_mut<BracketPredictions>(@fantasy_epl_addr);
+        let i = 0;
+        while (i < n) {
+            let addr = *vector::borrow(&winners, i);
+            assert!(table::contains(&registry.predictions, addr), EBRACKET_INVALID_PAYLOAD);
+            let score = *vector::borrow(&scores, i);
+            let rank = *vector::borrow(&ranks, i);
+            let prize = *vector::borrow(&prize_amounts, i);
+            assert!(rank >= 1 && rank <= 5, EBRACKET_INVALID_PAYLOAD);
+            let result = BracketChallengeResult {
+                score,
+                rank,
+                prize_amount: prize,
+                claimed: false,
+            };
+            if (table::contains(&registry.results, addr)) {
+                *table::borrow_mut(&mut registry.results, addr) = result;
+            } else {
+                table::add(&mut registry.results, addr, result);
+            };
+            i = i + 1;
+        };
+
+        state.status = STATUS_RESOLVED;
+
+        // Mirror resolved status on prize gameweek if it exists (for UI consistency).
+        if (exists<GameweekRegistry>(@fantasy_epl_addr)) {
+            let gw_reg = borrow_global_mut<GameweekRegistry>(@fantasy_epl_addr);
+            if (table::contains(&gw_reg.gameweeks, WC_BRACKET_PRIZE_GW)) {
+                let gw = table::borrow_mut(&mut gw_reg.gameweeks, WC_BRACKET_PRIZE_GW);
+                gw.status = STATUS_RESOLVED;
+            };
+        };
+    }
+
+    /// Claim fixed USDCx bracket prize (top 5 only).
+    public entry fun claim_bracket_prize(sender: &signer) acquires BracketChallengeState, BracketPredictions, TreasuryAuth, EntryFeeAssetConfig {
+        let sender_addr = signer::address_of(sender);
+        assert!(exists<BracketChallengeState>(@fantasy_epl_addr), EBRACKET_NOT_RESOLVED);
+        let state = borrow_global<BracketChallengeState>(@fantasy_epl_addr);
+        assert!(state.status == STATUS_RESOLVED, EBRACKET_NOT_RESOLVED);
+        assert!(exists<BracketPredictions>(@fantasy_epl_addr), EBRACKET_NO_PRIZE);
+        assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+
+        let registry = borrow_global_mut<BracketPredictions>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.results, sender_addr), EBRACKET_NO_PRIZE);
+        let result = table::borrow_mut(&mut registry.results, sender_addr);
+        assert!(result.prize_amount > 0, EBRACKET_NO_PRIZE);
+        assert!(!result.claimed, EBRACKET_ALREADY_CLAIMED);
+
+        let amount = result.prize_amount;
+        result.claimed = true;
+
+        let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
+        let treasury = account::create_signer_with_capability(&auth.cap);
+        transfer_entry_asset_from_signer(&treasury, sender_addr, amount);
+    }
+
+    #[view]
+    public fun bracket_challenge_status(): u8 acquires BracketChallengeState {
+        if (!exists<BracketChallengeState>(@fantasy_epl_addr)) {
+            return 255
+        };
+        borrow_global<BracketChallengeState>(@fantasy_epl_addr).status
+    }
+
+    #[view]
+    public fun bracket_challenge_entries(): u64 acquires BracketChallengeState {
+        if (!exists<BracketChallengeState>(@fantasy_epl_addr)) {
+            return 0
+        };
+        borrow_global<BracketChallengeState>(@fantasy_epl_addr).total_entries
+    }
+
+    #[view]
+    public fun has_bracket_prediction(owner: address): bool acquires BracketPredictions {
+        if (!exists<BracketPredictions>(@fantasy_epl_addr)) {
+            return false
+        };
+        table::contains(&borrow_global<BracketPredictions>(@fantasy_epl_addr).predictions, owner)
+    }
+
+    #[view]
+    public fun get_bracket_prediction(
+        owner: address,
+    ): (vector<u8>, vector<u8>, vector<u8>, u64) acquires BracketPredictions {
+        let registry = borrow_global<BracketPredictions>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.predictions, owner), EBRACKET_INVALID_PAYLOAD);
+        let pred = table::borrow(&registry.predictions, owner);
+        (
+            pred.group_ranks,
+            pred.third_place_order,
+            pred.knockout_winners,
+            pred.submitted_at,
+        )
+    }
+
+    #[view]
+    public fun get_bracket_result(
+        owner: address,
+    ): (u64, u64, u64, bool) acquires BracketPredictions {
+        let registry = borrow_global<BracketPredictions>(@fantasy_epl_addr);
+        assert!(table::contains(&registry.results, owner), EBRACKET_NO_PRIZE);
+        let r = table::borrow(&registry.results, owner);
+        (r.score, r.rank, r.prize_amount, r.claimed)
     }
 
     // ============ Tests ============

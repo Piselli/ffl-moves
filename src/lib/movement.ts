@@ -529,3 +529,66 @@ export async function getGameweekStats(
   });
   return stats;
 }
+
+/** Bracket challenge lifecycle: 255 = not initialised, 0 = open, 1 = closed, 2 = resolved. */
+export async function getBracketChallengeStatus(): Promise<number | null> {
+  try {
+    const result = await client.view({
+      payload: {
+        function: moduleFunction("bracket_challenge_status"),
+        typeArguments: [],
+        functionArguments: [],
+      },
+    });
+    return Number(result[0]);
+  } catch {
+    return null;
+  }
+}
+
+export async function getBracketChallengeEntries(): Promise<number | null> {
+  try {
+    const result = await client.view({
+      payload: {
+        function: moduleFunction("bracket_challenge_entries"),
+        typeArguments: [],
+        functionArguments: [],
+      },
+    });
+    return Number(result[0]);
+  } catch {
+    return null;
+  }
+}
+
+export async function hasBracketPrediction(owner: string): Promise<boolean> {
+  try {
+    const result = await client.view({
+      payload: {
+        function: moduleFunction("has_bracket_prediction"),
+        typeArguments: [],
+        functionArguments: [owner],
+      },
+    });
+    return result[0] as boolean;
+  } catch {
+    return false;
+  }
+}
+
+export async function hasRegisterBracketPredictionOnChain(): Promise<boolean> {
+  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
+  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
+  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
+    };
+    const funcs = data.abi?.exposed_functions ?? [];
+    return funcs.some((f) => f.is_entry && f.name === "register_bracket_prediction");
+  } catch {
+    return false;
+  }
+}
