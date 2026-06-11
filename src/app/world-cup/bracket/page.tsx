@@ -384,7 +384,9 @@ export default function WorldCupBracketPage() {
 
       <div className="mt-6 rounded-xl border border-white/[0.08] bg-[#0a0c0f]/60 px-4 py-3">
         <p className="text-sm text-white/55">{bc.rulesLine}</p>
-        <p className="mt-2 text-xs text-white/35">{bc.deadlineNote}</p>
+        {!registrationClosed ? (
+          <p className="mt-2 text-xs text-white/35">{bc.deadlineNote}</p>
+        ) : null}
       </div>
 
       {registrationClosed ? (

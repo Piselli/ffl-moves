@@ -244,9 +244,15 @@ export function WorldCupEventHub() {
   const activeRound = activeTour ? getWorldCupRound(activeTour.id) : undefined;
   const openRound = WC_ROUNDS.find((r) => tours[r.tourId]?.status === "open");
   const openTourId = openRound?.tourId;
-  const deadlineTourId = openTourId ?? activeTour?.id ?? WC_ROUNDS[0].tourId;
+  const registrationOpen = Boolean(openRound);
+  const deadlineTourId = openTourId ?? null;
 
   useEffect(() => {
+    if (deadlineTourId == null) {
+      setKickoffTargetMs(null);
+      setKickoff(null);
+      return;
+    }
     let cancelled = false;
     fetchWcTourDeadlineMs(deadlineTourId).then((ms) => {
       if (!cancelled) setKickoffTargetMs(ms);
@@ -301,6 +307,16 @@ export function WorldCupEventHub() {
   const statPool = statSummary?.prizePool ?? null;
   const hasStatPool = statPool != null && statPool > 0;
   const statEntries = statSummary?.totalEntries ?? null;
+  const deadlineLoading = registrationOpen && kickoffTargetMs == null;
+  const showKickoffCountdown =
+    registrationOpen &&
+    kickoff != null &&
+    kickoffTargetMs != null &&
+    kickoffTargetMs > Date.now();
+  const showRegistrationClosed =
+    !loading &&
+    !deadlineLoading &&
+    (!registrationOpen || (kickoffTargetMs != null && kickoffTargetMs <= Date.now()));
 
   function statusLabel(s: GameweekSummary | undefined): { text: string; cls: string } {
     if (!s) return { text: wc.statusUpcoming, cls: "text-white/30 bg-white/[0.04] border-white/10" };
@@ -370,26 +386,60 @@ export function WorldCupEventHub() {
                 value={loading ? null : statEntries != null ? statEntries.toLocaleString() : <span className="text-white/30">—</span>}
               />
               <HeroStat
-                label={hm.wcKickoffLabel}
-                meta={hm.wcKickoffMeta}
-                value={kickoff == null ? null : `${kickoff.d}:${pad2(kickoff.h)}:${pad2(kickoff.m)}`}
+                label={showKickoffCountdown ? hm.wcKickoffLabel : wc.heroRegistrationLabel}
+                meta={
+                  showKickoffCountdown
+                    ? hm.wcKickoffMeta
+                    : statRound
+                      ? wc.roundName(statRound.key)
+                      : undefined
+                }
+                value={
+                  loading || deadlineLoading
+                    ? null
+                    : showKickoffCountdown
+                      ? `${kickoff!.d}:${pad2(kickoff!.h)}:${pad2(kickoff!.m)}`
+                      : showRegistrationClosed
+                        ? <span className="text-amber-300">{wc.statusClosed}</span>
+                        : null
+                }
               />
             </div>
+
+            {showRegistrationClosed ? (
+              <p className="mx-auto mt-3 max-w-md text-center text-xs leading-relaxed text-white/40">
+                {wc.heroRegistrationClosedHint}
+              </p>
+            ) : null}
 
             {/* CTAs */}
             <div className="mt-7 flex flex-col items-center gap-6">
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href="/world-cup/squad"
-                  className="group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 font-wc-hero text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]"
-                >
-                  <span className="text-[15px] font-extrabold uppercase tracking-[0.04em]">{wc.playCta}</span>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[#00f948]">
-                    <svg className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </span>
-                </Link>
+                {registrationOpen ? (
+                  <Link
+                    href="/world-cup/squad"
+                    className="group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 font-wc-hero text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]"
+                  >
+                    <span className="text-[15px] font-extrabold uppercase tracking-[0.04em]">{wc.playCta}</span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[#00f948]">
+                      <svg className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/world-cup/leaderboard"
+                    className="group inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/[0.06] py-1.5 pl-6 pr-1.5 font-wc-hero text-white shadow-lg shadow-black/25 transition-[transform,filter] duration-150 hover:border-[#00f948]/35 hover:bg-[#00f948]/[0.08] hover:text-[#00f948] active:scale-[0.98]"
+                  >
+                    <span className="text-[15px] font-extrabold uppercase tracking-[0.04em]">{wc.leaderboardCta}</span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white/80 transition-colors group-hover:border-[#00f948]/40 group-hover:text-[#00f948]">
+                      <svg className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </span>
+                  </Link>
+                )}
                 <Link
                   href="/world-cup/bracket"
                   className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 font-wc-hero text-xs font-bold uppercase tracking-[0.06em] text-white/90 transition-colors hover:border-[#00f948]/30 hover:bg-[#00f948]/[0.08] hover:text-[#00f948]"

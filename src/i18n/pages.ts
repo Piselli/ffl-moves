@@ -35,6 +35,8 @@ export type PagesMessages = {
     landingTitle: string;
     landingSubtitle: string;
     playCta: string;
+    heroRegistrationLabel: string;
+    heroRegistrationClosedHint: string;
     leaderboardCta: string;
     navSquad: string;
     navLeaderboard: string;
@@ -490,6 +492,9 @@ export const pagesEn: PagesMessages = {
     landingSubtitle:
       "Build a squad of national-team stars, score from real World Cup matches, and share the on-chain prize pool — round after round, from the group stage to the final.",
     playCta: "Build your squad",
+    heroRegistrationLabel: "Registration",
+    heroRegistrationClosedHint:
+      "Squad registration for this round is closed. The next matchday opens when the schedule is live on-chain.",
     leaderboardCta: "Leaderboard",
     navSquad: "Squad",
     navLeaderboard: "Leaderboard",
@@ -578,8 +583,7 @@ export const pagesEn: PagesMessages = {
       notEligibleTitle: "Squad required",
       notEligibleHint: "Register a squad for World Cup matchday 1 first — then come back to submit your bracket.",
       registrationClosedTitle: "Registration closed",
-      registrationClosedBanner:
-        "Bracket registration closed at the first match kickoff — same deadline as md1 squads. New entries are no longer accepted.",
+      registrationClosedBanner: "New entries are no longer accepted.",
       registrationClosedConnectHint:
         "Connect your wallet to view your locked prediction if you submitted before the deadline.",
       registrationClosedMissedHint:
@@ -1378,6 +1382,9 @@ export const pagesUk: PagesMessages = {
     landingSubtitle:
       "Збери склад із зірок збірних, набирай очки з реальних матчів ЧС і ділíть on-chain призовий фонд — раунд за раундом, від групового етапу до фіналу.",
     playCta: "Зібрати склад",
+    heroRegistrationLabel: "Реєстрація",
+    heroRegistrationClosedHint:
+      "Реєстрацію складів на цей тур закрито. Наступний тур відкриється, коли з’явиться в розкладі on-chain.",
     leaderboardCta: "Лідерборд",
     navSquad: "Склад",
     navLeaderboard: "Лідерборд",
@@ -1468,8 +1475,7 @@ export const pagesUk: PagesMessages = {
       notEligibleTitle: "Потрібен склад md1",
       notEligibleHint: "Спочатку зареєструй склад на перший тур ЧС — тоді зможеш подати прогноз.",
       registrationClosedTitle: "Реєстрацію закрито",
-      registrationClosedBanner:
-        "Прийом прогнозів закрито на старті першого матчу — той самий дедлайн, що й для складів md1. Нові заявки більше не приймаються.",
+      registrationClosedBanner: "Нові заявки більше не приймаються.",
       registrationClosedConnectHint:
         "Підключи гаманець, щоб переглянути свій зафіксований прогноз, якщо встиг подати до дедлайну.",
       registrationClosedMissedHint:
