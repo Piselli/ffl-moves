@@ -44,6 +44,7 @@ export default function ReferralDashboardPage() {
   const [baseUrl, setBaseUrl] = useState("");
   const [newCode, setNewCode] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -105,6 +106,32 @@ export default function ReferralDashboardPage() {
     if (!code || !baseUrl) return "";
     return buildReferralLink(baseUrl, code);
   }, [newCode, baseUrl]);
+
+  const removeCode = useCallback(
+    async (code: string) => {
+      if (!key) return;
+      if (!window.confirm(`Видалити код «${code}» зі статистики? Цю дію не можна скасувати.`)) return;
+      setDeleting(code);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/referral/stats?key=${encodeURIComponent(key)}&code=${encodeURIComponent(code)}`,
+          { method: "DELETE" },
+        );
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error ?? `Не вдалося видалити (${res.status})`);
+          return;
+        }
+        await load(key);
+      } catch {
+        setError("Не вдалося видалити код.");
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [key, load],
+  );
 
   const copy = useCallback(async (text: string, label: string) => {
     try {
@@ -249,6 +276,7 @@ export default function ReferralDashboardPage() {
                     <th className="py-2 px-4 font-medium text-right">CR</th>
                     <th className="py-2 px-4 font-medium text-right">Перший</th>
                     <th className="py-2 pl-4 font-medium text-right">Останній</th>
+                    <th className="py-2 pl-2 font-medium text-right w-10" aria-label="Дії" />
                   </tr>
                 </thead>
                 <tbody>
@@ -262,6 +290,17 @@ export default function ReferralDashboardPage() {
                       <td className="py-2.5 px-4 text-right text-white/80">{pct(s.conversionRate)}</td>
                       <td className="py-2.5 px-4 text-right text-white/40">{fmtDate(s.firstSeen)}</td>
                       <td className="py-2.5 pl-4 text-right text-white/40">{fmtDate(s.lastActivity)}</td>
+                      <td className="py-2.5 pl-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => removeCode(s.code)}
+                          disabled={deleting === s.code}
+                          title="Видалити зі статистики"
+                          className="text-white/25 hover:text-rose-400 disabled:opacity-40 transition-colors text-sm leading-none"
+                        >
+                          {deleting === s.code ? "…" : "×"}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

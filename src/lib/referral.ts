@@ -163,6 +163,30 @@ function memStats(): ReferralStat[] {
   }));
 }
 
+/** Remove a referral code and all its counters from storage. */
+export async function deleteCode(code: string): Promise<boolean> {
+  const normalized = normalizeCode(code);
+  if (!normalized) return false;
+
+  const r = await tryRedis(async () => {
+    const p = redis!.pipeline();
+    p.srem(CODES_KEY, normalized);
+    p.del(k.clicks(normalized));
+    p.del(k.wallets(normalized));
+    p.del(k.last(normalized));
+    p.del(k.first(normalized));
+    await p.exec();
+  });
+  if (r.ok) {
+    mem.delete(normalized);
+    return true;
+  }
+
+  if (!mem.has(normalized)) return false;
+  mem.delete(normalized);
+  return true;
+}
+
 /** All referral codes, with click/signup counters. Sorted by signups desc, then clicks desc. */
 export async function getStats(): Promise<ReferralStat[]> {
   const codesResult = await tryRedis(async () => (await redis!.smembers(CODES_KEY)) ?? []);

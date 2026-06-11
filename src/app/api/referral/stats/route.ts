@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStats, isReferralStoreDurable, getReferralHealth } from "@/lib/referral";
+import {
+  deleteCode,
+  getStats,
+  isReferralStoreDurable,
+  getReferralHealth,
+  normalizeCode,
+} from "@/lib/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,4 +57,37 @@ export async function GET(req: NextRequest) {
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/**
+ * DELETE /api/referral/stats?key=…&code=…
+ *
+ * Removes a referral code and its click/signup counters from storage.
+ */
+export async function DELETE(req: NextRequest) {
+  const expected = process.env.REFERRAL_ADMIN_KEY;
+  if (!expected) {
+    return NextResponse.json(
+      { error: "Referral dashboard disabled: set REFERRAL_ADMIN_KEY in the environment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const { searchParams } = new URL(req.url);
+  const provided = req.headers.get("x-referral-key") ?? searchParams.get("key") ?? "";
+  if (provided !== expected) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const code = normalizeCode(searchParams.get("code"));
+  if (!code) {
+    return NextResponse.json({ error: "Invalid code" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const deleted = await deleteCode(code);
+  if (!deleted) {
+    return NextResponse.json({ error: "Code not found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+
+  return NextResponse.json({ ok: true, code }, { status: 200, headers: { "Cache-Control": "no-store" } });
 }
