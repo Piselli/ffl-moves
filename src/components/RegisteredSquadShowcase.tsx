@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import type { Player, TeamResult } from "@/lib/types";
-import type { ChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
+import { chainSlotDisplayPoints, type ChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { cn } from "@/lib/utils";
 
 /**
@@ -388,9 +388,7 @@ export function RegisteredSquadShowcase({
               if (!player) return null;
               const chainSlot = chainSlotsByIndex?.get(formationIndex);
               const pitchPts =
-                useChainAligned && chainSlot
-                  ? chainSlot.registeredDisplayBase
-                  : getPoints(player);
+                useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : getPoints(player);
               return (
                 <div
                   key={`slot-${formationIndex}`}
@@ -441,9 +439,7 @@ export function RegisteredSquadShowcase({
               {starters.map((p, idx) => {
                 const chainSlot = chainSlotsByIndex?.get(idx);
                 const pts =
-                  useChainAligned && chainSlot
-                    ? chainSlot.registeredDisplayBase
-                    : getPoints(p);
+                  useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : getPoints(p);
                 const subNote =
                   useChainAligned && chainSlot?.substituted && chainAlignedCopy
                     ? chainAlignedCopy.viaSub(chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name)

@@ -31,6 +31,11 @@ export type ChainAlignedXiBreakdown = {
   preMultiplier: number;
 };
 
+/** Per-slot points for UI — base + rating tier (same player/sub that counts toward XI). */
+export function chainSlotDisplayPoints(slot: ChainAlignedXiSlot): number {
+  return Math.max(0, slot.basePoints + slot.ratingAdd - slot.ratingSub);
+}
+
 function pickStats(
   gameweekStats: Record<string, Record<string, unknown>>,
   playerId: number,
