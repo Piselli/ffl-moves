@@ -883,6 +883,7 @@ export default function Home() {
           dataLoading={dataLoading}
           roundLabel={statsRoundLabel}
           wcDeadlineTime={wcDeadlineTime}
+          wcTourId={openGameweekId}
           statsGwLabel={aplStatsGwLabel}
           aplDeadlineTime={aplFixturesData?.gameweek?.deadlineTime ?? null}
           aplDeadlineGwId={

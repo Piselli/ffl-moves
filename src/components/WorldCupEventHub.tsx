@@ -17,9 +17,8 @@ import { WcHowItWorksDemo } from "@/components/wc/WcHowItWorksDemo";
 import { WcPitchLinesSvg } from "@/components/wc/WcDecor";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
 import { WcUpcomingMatches } from "@/components/wc/WcUpcomingMatches";
+import { fetchWcTourDeadlineMs } from "@/lib/wc-deadline";
 
-/** WC26 opening match — Estadio Azteca, México City. */
-const WC_KICKOFF = new Date("2026-06-11T19:00:00-06:00").getTime();
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -240,10 +239,27 @@ export function WorldCupEventHub() {
   const [activeTour, setActiveTour] = useState<GameweekSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [kickoff, setKickoff] = useState<{ d: number; h: number; m: number } | null>(null);
+  const [kickoffTargetMs, setKickoffTargetMs] = useState<number | null>(null);
+
+  const activeRound = activeTour ? getWorldCupRound(activeTour.id) : undefined;
+  const openRound = WC_ROUNDS.find((r) => tours[r.tourId]?.status === "open");
+  const openTourId = openRound?.tourId;
+  const deadlineTourId = openTourId ?? activeTour?.id ?? WC_ROUNDS[0].tourId;
 
   useEffect(() => {
+    let cancelled = false;
+    fetchWcTourDeadlineMs(deadlineTourId).then((ms) => {
+      if (!cancelled) setKickoffTargetMs(ms);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [deadlineTourId]);
+
+  useEffect(() => {
+    if (kickoffTargetMs == null) return;
     const tick = () => {
-      const diff = Math.max(0, WC_KICKOFF - Date.now());
+      const diff = Math.max(0, kickoffTargetMs - Date.now());
       setKickoff({
         d: Math.floor(diff / 86400000),
         h: Math.floor((diff % 86400000) / 3600000),
@@ -253,7 +269,7 @@ export function WorldCupEventHub() {
     tick();
     const id = setInterval(tick, 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [kickoffTargetMs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -278,10 +294,6 @@ export function WorldCupEventHub() {
       cancelled = true;
     };
   }, []);
-
-  const activeRound = activeTour ? getWorldCupRound(activeTour.id) : undefined;
-  const openRound = WC_ROUNDS.find((r) => tours[r.tourId]?.status === "open");
-  const openTourId = openRound?.tourId;
 
   // Hero KPI source — the live/open round if any, else whatever's active on-chain.
   const statSummary = activeTour ?? (openTourId ? tours[openTourId] : undefined);

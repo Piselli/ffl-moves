@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-/** WC26 opening match — Estadio Azteca, México City. */
-const KICKOFF = new Date("2026-06-11T19:00:00-06:00").getTime();
-
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
 export function WcKickoffCountdown({
+  targetTime,
   label,
   meta,
   d,
@@ -17,6 +15,7 @@ export function WcKickoffCountdown({
   m,
   s,
 }: {
+  targetTime: string;
   label: string;
   meta: string;
   d: string;
@@ -24,11 +23,13 @@ export function WcKickoffCountdown({
   m: string;
   s: string;
 }) {
+  const kickoffMs = Date.parse(targetTime);
   const [left, setLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
 
   useEffect(() => {
+    if (!Number.isFinite(kickoffMs)) return;
     function tick() {
-      const diff = KICKOFF - Date.now();
+      const diff = kickoffMs - Date.now();
       const safe = Math.max(0, diff);
       setLeft({
         d: Math.floor(safe / 86400000),
@@ -40,7 +41,7 @@ export function WcKickoffCountdown({
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [kickoffMs]);
 
   const seg = (value: number | null, suffix: string) => (
     <span className="flex flex-col items-center">
