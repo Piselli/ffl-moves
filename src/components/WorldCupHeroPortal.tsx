@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -69,6 +70,7 @@ export function WorldCupHeroPortal({
   const hm = m.home;
   const wc = m.pages.worldCup;
   const reduce = useReducedMotion();
+  const [deadlineActive, setDeadlineActive] = useState(false);
   const deadlineCopy = {
     untilDeadline: hm.untilDeadline,
     deadlinePassed: hm.deadlinePassed,
@@ -76,6 +78,22 @@ export function WorldCupHeroPortal({
     hourSuffix: hm.hourSuffix,
     minSuffix: hm.minSuffix,
   };
+
+  useEffect(() => {
+    if (!deadlineTime) {
+      setDeadlineActive(false);
+      return;
+    }
+    const ms = Date.parse(deadlineTime);
+    if (!Number.isFinite(ms)) {
+      setDeadlineActive(false);
+      return;
+    }
+    const tick = () => setDeadlineActive(ms > Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadlineTime]);
 
   const fade = (delay = 0) =>
     reduce
@@ -160,7 +178,7 @@ export function WorldCupHeroPortal({
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00f948]" />
             {hm.wcHeroLiveStatus}
           </span>
-          {deadlineTime && deadlineTourId != null ? (
+          {deadlineTime && deadlineTourId != null && deadlineActive ? (
             <div className="mt-3 w-full max-w-[220px] rounded-xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-md">
               <HeroDeadlinePlaque
                 targetTime={deadlineTime}

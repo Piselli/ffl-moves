@@ -6,6 +6,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
 import {
   findActiveWorldCupTourFromChain,
+  findOpenWorldCupTourFromChain,
   getWorldCupRound,
   isWorldCupCampaignActive,
 } from "@/lib/worldcup";
@@ -725,6 +726,7 @@ export default function Home() {
   const [prizePoolRaw, setPrizePoolRaw] = useState<number | null>(null);
   const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
   const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
+  const [wcOpenTourId, setWcOpenTourId] = useState<number | null>(null);
   const [activeRoundKey, setActiveRoundKey] = useState<string | null>(null);
   const [wcDeadlineTime, setWcDeadlineTime] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -740,14 +742,19 @@ export default function Home() {
     async function fetchOnChainData() {
       try {
         if (wcCampaign) {
-          const tour = await findActiveWorldCupTourFromChain();
-          if (tour) {
-            setPrizePoolRaw(tour.prizePool);
-            setTourEntryCount(tour.totalEntries);
-            setOpenGameweekId(tour.id);
-            const round = getWorldCupRound(tour.id);
+          const [activeTour, openTour] = await Promise.all([
+            findActiveWorldCupTourFromChain(),
+            findOpenWorldCupTourFromChain(),
+          ]);
+          if (activeTour) {
+            setPrizePoolRaw(activeTour.prizePool);
+            setTourEntryCount(activeTour.totalEntries);
+            setOpenGameweekId(activeTour.id);
+            const round = getWorldCupRound(activeTour.id);
             setActiveRoundKey(round?.key ?? null);
           }
+          setWcOpenTourId(openTour?.id ?? null);
+          if (!openTour) setWcDeadlineTime(null);
         } else {
           const cfg = await getConfig();
           const gw = await findActiveGameweekFromChain(cfg);
@@ -768,13 +775,16 @@ export default function Home() {
 
   useEffect(() => {
     if (wcCampaign) {
-      if (openGameweekId == null) return;
-      fetch(`/api/wc-fixtures?tour=${openGameweekId}`, { cache: "no-store" })
+      if (wcOpenTourId == null) {
+        setWcDeadlineTime(null);
+        return;
+      }
+      fetch(`/api/wc-fixtures?tour=${wcOpenTourId}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((d: { deadlineTime?: string | null }) => {
-          if (d.deadlineTime) setWcDeadlineTime(d.deadlineTime);
+          setWcDeadlineTime(d.deadlineTime ?? null);
         })
-        .catch(() => {});
+        .catch(() => setWcDeadlineTime(null));
       fetch(`/api/fixtures`, { cache: "no-store" })
         .then((r) => r.json())
         .then((d: FixturesApiPayload & { error?: string }) => {
@@ -793,7 +803,7 @@ export default function Home() {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});
-  }, [openGameweekId, wcCampaign]);
+  }, [openGameweekId, wcOpenTourId, wcCampaign]);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
   const steps = useMemo(
@@ -883,7 +893,7 @@ export default function Home() {
           dataLoading={dataLoading}
           roundLabel={statsRoundLabel}
           wcDeadlineTime={wcDeadlineTime}
-          wcTourId={openGameweekId}
+          wcTourId={wcOpenTourId}
           statsGwLabel={aplStatsGwLabel}
           aplDeadlineTime={aplFixturesData?.gameweek?.deadlineTime ?? null}
           aplDeadlineGwId={
