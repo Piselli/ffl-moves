@@ -89,13 +89,15 @@ export default function WorldCupBracketPage() {
   const [chainLive, setChainLive] = useState(false);
   const [status, setStatus] = useState<number | null>(null);
   const [entries, setEntries] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const addr = account?.address?.toString();
   const complete = isCompletePrediction(prediction);
   const koRemaining = knockoutPicksRemaining(prediction.knockoutWinners);
   const pastDeadline = Date.now() >= new Date(WC_BRACKET_DEADLINE_ISO).getTime();
+  const registrationClosed = status === 1 || status === 2 || pastDeadline;
 
   const submitBlockHint = useMemo(() => {
     if (submitting) return null;
@@ -132,29 +134,46 @@ export default function WorldCupBracketPage() {
   }, [groupsLocked, thirdsLocked]);
 
   useEffect(() => {
-    if (!addr) {
-      setEligible(null);
-      setSubmitted(false);
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      setMetaLoading(true);
       try {
-        const [reg, pred, live, st, ent] = await Promise.all([
-          hasRegisteredTeam(addr, WC_BRACKET_ELIGIBILITY_TOUR_ID),
-          hasBracketPrediction(addr),
+        const [live, st, ent] = await Promise.all([
           hasRegisterBracketPredictionOnChain(),
           getBracketChallengeStatus(),
           getBracketChallengeEntries(),
         ]);
         if (cancelled) return;
-        setEligible(reg);
-        setSubmitted(pred);
         setChainLive(live);
         setStatus(st);
         setEntries(ent);
+      } finally {
+        if (!cancelled) setMetaLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!addr) {
+      setEligible(null);
+      setSubmitted(false);
+      setWalletLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setWalletLoading(true);
+      try {
+        const [reg, pred] = await Promise.all([
+          hasRegisteredTeam(addr, WC_BRACKET_ELIGIBILITY_TOUR_ID),
+          hasBracketPrediction(addr),
+        ]);
+        if (cancelled) return;
+        setEligible(reg);
+        setSubmitted(pred);
 
         if (pred) {
           const onChain = await getBracketPrediction(addr);
@@ -169,7 +188,7 @@ export default function WorldCupBracketPage() {
             setGroupsLocked(true);
             setThirdsLocked(true);
           }
-        } else if (typeof window !== "undefined") {
+        } else if (!registrationClosed && typeof window !== "undefined") {
           try {
             const raw = window.localStorage.getItem(draftKey(addr));
             if (raw) {
@@ -186,16 +205,16 @@ export default function WorldCupBracketPage() {
           }
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setWalletLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [addr]);
+  }, [addr, registrationClosed]);
 
   useEffect(() => {
-    if (!addr || submitted) return;
+    if (!addr || submitted || registrationClosed) return;
     const payload: DraftPayload = {
       ...prediction,
       step,
@@ -207,7 +226,22 @@ export default function WorldCupBracketPage() {
     } catch {
       /* ignore */
     }
-  }, [prediction, step, groupsLocked, thirdsLocked, addr, submitted]);
+  }, [prediction, step, groupsLocked, thirdsLocked, addr, submitted, registrationClosed]);
+
+  const statusLabel =
+    status === 0
+      ? bc.statusOpen
+      : status === 1
+        ? bc.statusClosed
+        : status === 2
+          ? bc.statusResolved
+          : metaLoading
+            ? "…"
+            : bc.statusUpcoming;
+
+  const closedNoEntryHint = eligible
+    ? bc.registrationClosedMissedHint
+    : bc.registrationClosedNotEligibleHint;
 
   const handleConfirmGroups = () => {
     if (!isGroupsStepReady(prediction.groupRanks)) return;
@@ -273,9 +307,6 @@ export default function WorldCupBracketPage() {
     }
   };
 
-  const statusLabel =
-    status === 0 ? bc.statusOpen : status === 1 ? bc.statusClosed : status === 2 ? bc.statusResolved : bc.statusUpcoming;
-
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6">
       <Link href="/world-cup" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
@@ -296,7 +327,9 @@ export default function WorldCupBracketPage() {
               "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
               status === 0
                 ? "border-[#00f948]/30 bg-[#00f948]/10 text-[#00f948]"
-                : "border-white/10 bg-white/[0.04] text-white/40",
+                : status === 1 || status === 2
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                  : "border-white/10 bg-white/[0.04] text-white/40",
             )}
           >
             {statusLabel}
@@ -354,24 +387,23 @@ export default function WorldCupBracketPage() {
         <p className="mt-2 text-xs text-white/35">{bc.deadlineNote}</p>
       </div>
 
+      {registrationClosed ? (
+        <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5">
+          <p className="text-sm font-semibold text-amber-200">{bc.registrationClosedTitle}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-white/50">{bc.registrationClosedBanner}</p>
+        </div>
+      ) : null}
+
       {!connected ? (
         <div className="mt-10 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-10 text-center">
+          {registrationClosed ? (
+            <p className="mx-auto mb-6 max-w-md text-sm text-white/50">{bc.registrationClosedConnectHint}</p>
+          ) : null}
           <ConnectWalletCTA className="mx-auto max-w-md text-left" />
         </div>
-      ) : loading ? (
+      ) : walletLoading ? (
         <div className="mt-16 flex justify-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-white/60" />
-        </div>
-      ) : !eligible ? (
-        <div className="mt-10 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-8 text-center">
-          <h2 className="font-display text-lg font-black uppercase text-amber-300">{bc.notEligibleTitle}</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-white/50">{bc.notEligibleHint}</p>
-          <Link
-            href="/world-cup/squad"
-            className="mt-6 inline-flex rounded-full bg-[#00f948] px-6 py-2.5 font-wc-hero text-sm font-extrabold uppercase text-black"
-          >
-            {m.pages.worldCup.playCta}
-          </Link>
         </div>
       ) : submitted ? (
         <div id="wc-bracket-predictor" className="mt-10 scroll-mt-28">
@@ -392,6 +424,22 @@ export default function WorldCupBracketPage() {
             thirdsLocked
             copy={predictorCopy}
           />
+        </div>
+      ) : registrationClosed ? (
+        <div className="mt-10 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-8 text-center">
+          <h2 className="font-display text-lg font-black uppercase text-amber-300">{bc.registrationClosedTitle}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-white/50">{closedNoEntryHint}</p>
+        </div>
+      ) : !eligible ? (
+        <div className="mt-10 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-8 text-center">
+          <h2 className="font-display text-lg font-black uppercase text-amber-300">{bc.notEligibleTitle}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-white/50">{bc.notEligibleHint}</p>
+          <Link
+            href="/world-cup/squad"
+            className="mt-6 inline-flex rounded-full bg-[#00f948] px-6 py-2.5 font-wc-hero text-sm font-extrabold uppercase text-black"
+          >
+            {m.pages.worldCup.playCta}
+          </Link>
         </div>
       ) : (
         <>

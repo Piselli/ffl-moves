@@ -121,6 +121,11 @@ export type PagesMessages = {
       prizePerfectBonusDesc: (maxScore: number, bonusUsd: string) => string;
       notEligibleTitle: string;
       notEligibleHint: string;
+      registrationClosedTitle: string;
+      registrationClosedBanner: string;
+      registrationClosedConnectHint: string;
+      registrationClosedMissedHint: string;
+      registrationClosedNotEligibleHint: string;
       submittedTitle: string;
       submittedHint: string;
       contractPending: string;
@@ -572,6 +577,15 @@ export const pagesEn: PagesMessages = {
         `${bonusUsd} USDCx if you nail all ${maxScore} places — every group rank, third-place order, and knockout winner. Nobody’s done it yet. Bonus stacks on top of your top-5 prize.`,
       notEligibleTitle: "Squad required",
       notEligibleHint: "Register a squad for World Cup matchday 1 first — then come back to submit your bracket.",
+      registrationClosedTitle: "Registration closed",
+      registrationClosedBanner:
+        "Bracket registration closed at the first match kickoff — same deadline as md1 squads. New entries are no longer accepted.",
+      registrationClosedConnectHint:
+        "Connect your wallet to view your locked prediction if you submitted before the deadline.",
+      registrationClosedMissedHint:
+        "You had an md1 squad but did not lock a bracket prediction before kickoff. The entry window has passed.",
+      registrationClosedNotEligibleHint:
+        "Bracket entry required an md1 squad before the first match kickoff. That registration window has also closed.",
       submittedTitle: "Prediction locked on-chain",
       submittedHint: "No edits after submission. Results and prizes after the tournament.",
       contractPending: "On-chain registration opens after the next contract upgrade is live on mainnet.",
@@ -1453,6 +1467,15 @@ export const pagesUk: PagesMessages = {
         `+${bonusUsd} USDCx, якщо вгадаєш усі ${maxScore} місця — кожну позицію в групах, порядок третіх і переможців плей-оф. Ніхто ще не робив. Бонус додається до призу топ-5.`,
       notEligibleTitle: "Потрібен склад md1",
       notEligibleHint: "Спочатку зареєструй склад на перший тур ЧС — тоді зможеш подати прогноз.",
+      registrationClosedTitle: "Реєстрацію закрито",
+      registrationClosedBanner:
+        "Прийом прогнозів закрито на старті першого матчу — той самий дедлайн, що й для складів md1. Нові заявки більше не приймаються.",
+      registrationClosedConnectHint:
+        "Підключи гаманець, щоб переглянути свій зафіксований прогноз, якщо встиг подати до дедлайну.",
+      registrationClosedMissedHint:
+        "У тебе був склад md1, але прогноз не зафіксовано on-chain до старту. Вікно подачі вже минуло.",
+      registrationClosedNotEligibleHint:
+        "Для участі потрібен був склад md1 до старту першого матчу. Реєстрація складів теж уже закрита.",
       submittedTitle: "Прогноз зафіксовано on-chain",
       submittedHint: "Редагування неможливе. Результати й призи — після турніру.",
       contractPending: "On-chain реєстрація відкриється після оновлення контракту на mainnet.",
