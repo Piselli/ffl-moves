@@ -6,6 +6,8 @@ import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import type { Player, TeamResult } from "@/lib/types";
 import { chainSlotDisplayPoints, type ChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
+import { PlayerPointsBreakdownTooltip } from "@/components/PlayerPointsBreakdownTooltip";
+import type { ScoringPlayer } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 
 /**
@@ -62,6 +64,34 @@ function statFor(player: Player, gameweekStats: Record<string, Record<string, un
   return gameweekStats[player.id] ?? gameweekStats[player.id.toString()] ?? null;
 }
 
+function breakdownContext(
+  registeredPlayer: Player,
+  gameweekStats: Record<string, Record<string, unknown>>,
+  chainSlot?: ChainAlignedXiBreakdown["slots"][number] | null,
+  viaSub?: ((name: string) => string) | null,
+): {
+  scoringPlayer: ScoringPlayer;
+  stats: Record<string, unknown> | null;
+  subNote: string | null;
+} {
+  if (chainSlot) {
+    const effective = chainSlot.effectivePlayer;
+    return {
+      scoringPlayer: { positionId: registeredPlayer.positionId },
+      stats: statFor(effective, gameweekStats),
+      subNote:
+        chainSlot.substituted && viaSub
+          ? viaSub(chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name)
+          : null,
+    };
+  }
+  return {
+    scoringPlayer: { positionId: registeredPlayer.positionId },
+    stats: statFor(registeredPlayer, gameweekStats),
+    subNote: null,
+  };
+}
+
 /** Grass + markings; viewBox matches FIFA-style length:width ≈ 105:68 (here height:width = 105:68) */
 function PitchFieldTexture() {
   return (
@@ -111,6 +141,9 @@ function ShowcaseCard({
   dim = false,
   compact = false,
   pitchTile = false,
+  breakdownScoringPlayer,
+  breakdownStats,
+  subNote,
 }: {
   player: Player;
   stats: Record<string, unknown> | null | undefined;
@@ -122,6 +155,9 @@ function ShowcaseCard({
   compact?: boolean;
   /** Starting XI on grass — larger than bench compact */
   pitchTile?: boolean;
+  breakdownScoringPlayer?: ScoringPlayer;
+  breakdownStats?: Record<string, unknown> | null;
+  subNote?: string | null;
 }) {
   const photo = compact ? (pitchTile ? 54 : 48) : 56;
   const maxW = compact ? (pitchTile ? 74 : 66) : 64;
@@ -131,17 +167,12 @@ function ShowcaseCard({
   const assists = stats ? Number(stats.assists ?? 0) : 0;
   const cs = stats ? Boolean(stats.clean_sheet ?? stats.cleanSheet) : false;
 
-  return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 320, damping: 28, delay }}
-      className={cn(
-        "flex flex-col items-center gap-0 group",
-        dim ? "opacity-75 hover:opacity-100 transition-opacity" : "",
-      )}
-      style={{ minWidth: maxW, maxWidth: compact ? maxW + 6 : undefined }}
-    >
+  const tooltipScoring = breakdownScoringPlayer ?? { positionId: player.positionId };
+  const tooltipStats = breakdownStats ?? stats;
+  const showBreakdown = showScores && Boolean(tooltipStats);
+
+  const cardBody = (
+    <>
       <div
         className="relative transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:scale-[1.03]"
         style={{ width: photo, height: photo }}
@@ -216,6 +247,33 @@ function ShowcaseCard({
           <span className={cn("font-black leading-none text-amber-300", compact ? (pitchTile ? "text-[8px]" : "text-[7.5px]") : "text-[8px]")}>CS</span>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 28, delay }}
+      className={cn(
+        "flex flex-col items-center gap-0 group",
+        dim ? "opacity-75 hover:opacity-100 transition-opacity" : "",
+        showBreakdown ? "cursor-help" : "",
+      )}
+      style={{ minWidth: maxW, maxWidth: compact ? maxW + 6 : undefined }}
+    >
+      {showBreakdown ? (
+        <PlayerPointsBreakdownTooltip
+          scoringPlayer={tooltipScoring}
+          stats={tooltipStats}
+          total={points}
+          subNote={subNote}
+        >
+          {cardBody}
+        </PlayerPointsBreakdownTooltip>
+      ) : (
+        cardBody
+      )}
     </motion.div>
   );
 }
@@ -246,18 +304,24 @@ function BenchSidebarPanel({
         <span className="normal-case tracking-normal text-white/28">{benchTitle}</span>
       </p>
       <div className="mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-2">
-        {bench.map((p, i) => (
-          <ShowcaseCard
-            key={p.id}
-            player={p}
-            stats={statFor(p, gameweekStats)}
-            points={getPoints(p)}
-            showScores={showScores}
-            delay={delayBase + i * 0.04}
-            dim
-            compact
-          />
-        ))}
+        {bench.map((p, i) => {
+          const bd = breakdownContext(p, gameweekStats);
+          return (
+            <ShowcaseCard
+              key={p.id}
+              player={p}
+              stats={statFor(p, gameweekStats)}
+              points={getPoints(p)}
+              showScores={showScores}
+              delay={delayBase + i * 0.04}
+              dim
+              compact
+              breakdownScoringPlayer={bd.scoringPlayer}
+              breakdownStats={bd.stats}
+              subNote={bd.subNote}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -389,6 +453,12 @@ export function RegisteredSquadShowcase({
               const chainSlot = chainSlotsByIndex?.get(formationIndex);
               const pitchPts =
                 useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : getPoints(player);
+              const bd = breakdownContext(
+                player,
+                gameweekStats,
+                useChainAligned ? chainSlot : null,
+                chainAlignedCopy?.viaSub ?? null,
+              );
               return (
                 <div
                   key={`slot-${formationIndex}`}
@@ -403,6 +473,9 @@ export function RegisteredSquadShowcase({
                     delay={pitchDelay + i * 0.035}
                     compact
                     pitchTile
+                    breakdownScoringPlayer={bd.scoringPlayer}
+                    breakdownStats={bd.stats}
+                    subNote={bd.subNote}
                   />
                 </div>
               );
@@ -444,11 +517,14 @@ export function RegisteredSquadShowcase({
                   useChainAligned && chainSlot?.substituted && chainAlignedCopy
                     ? chainAlignedCopy.viaSub(chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name)
                     : null;
-                return (
-                  <li
-                    key={`xi-${p.id}-${idx}`}
-                    className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0 py-1 text-[12px] leading-snug"
-                  >
+                const bd = breakdownContext(
+                  p,
+                  gameweekStats,
+                  useChainAligned ? chainSlot : null,
+                  chainAlignedCopy?.viaSub ?? null,
+                );
+                const rowCells = (
+                  <>
                     <span className="shrink-0 text-right font-mono text-[10px] tabular-nums text-white/30">
                       {posAbbrev[p.position] ?? p.position}
                     </span>
@@ -466,6 +542,27 @@ export function RegisteredSquadShowcase({
                     >
                       {showScores ? pts : "—"}
                     </span>
+                  </>
+                );
+                const rowClass = cn(
+                  "grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0 py-1 text-[12px] leading-snug",
+                  showScores && bd.stats ? "cursor-help" : "",
+                );
+                return (
+                  <li key={`xi-${p.id}-${idx}`}>
+                    {showScores && bd.stats ? (
+                      <PlayerPointsBreakdownTooltip
+                        className={rowClass}
+                        scoringPlayer={bd.scoringPlayer}
+                        stats={bd.stats}
+                        total={pts}
+                        subNote={bd.subNote}
+                      >
+                        {rowCells}
+                      </PlayerPointsBreakdownTooltip>
+                    ) : (
+                      <div className={rowClass}>{rowCells}</div>
+                    )}
                   </li>
                 );
               })}

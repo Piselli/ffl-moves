@@ -54,7 +54,13 @@ export interface OraclePlayerStats {
   minutesPlayed: number;
   goals: number;
   assists: number;
+  /** GK/DEF on-chain clean_sheet flag (60+ min, team did not concede). */
   cleanSheet: boolean;
+  /**
+   * MID clean sheet — stored as `fpl_clean_sheet` on chain (same as FPL `clean_sheets` for midfielders).
+   * EPL oracle leaves this 0 for GK/DEF (they use `cleanSheet`); WC/API-Sports sets it for MID only.
+   */
+  fplCleanSheets?: number;
   saves: number;
   penaltiesSaved: number;
   penaltiesMissed: number;
@@ -208,18 +214,20 @@ async function fetchStatsForCompetition(
               mapping.position === "DEF" ? 1 :
               mapping.position === "MID" ? 2 : 3;
 
-            const cleanSheet =
-              hadCleanSheet &&
-              stats.games.minutes >= 60 &&
-              (positionId === 0 || positionId === 1);
+            const mins = stats.games.minutes || 0;
+            const teamCsEligible = hadCleanSheet && mins >= 60;
+
+            const cleanSheet = teamCsEligible && (positionId === 0 || positionId === 1);
+            const fplCleanSheets = teamCsEligible && positionId === 2 ? 1 : 0;
 
             result.players.push({
               playerId: mapping.id,
               position: positionId,
-              minutesPlayed: stats.games.minutes || 0,
+              minutesPlayed: mins,
               goals: stats.goals?.total || 0,
               assists: stats.goals?.assists || 0,
               cleanSheet,
+              fplCleanSheets,
               saves: stats.goals?.saves || 0,
               penaltiesSaved: stats.penalty?.saved || 0,
               penaltiesMissed: stats.penalty?.missed || 0,

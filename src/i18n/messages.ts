@@ -158,9 +158,14 @@ export type SiteMessages = {
     | "redCard"
     | "ownGoal"
     | "penMiss"
-    | "yellowCard",
+    | "yellowCard"
+    | "fplBonus",
     string
   >;
+  pointsBreakdown: {
+    total: string;
+    noStats: string;
+  };
   carousel: {
     slides: Array<{
       statusText: string;
@@ -372,6 +377,11 @@ const uk: SiteMessages = {
     ownGoal: "Автогол",
     penMiss: "Незабитий пенальті",
     yellowCard: "Жовта картка",
+    fplBonus: "FPL бонус",
+  },
+  pointsBreakdown: {
+    total: "Разом",
+    noStats: "Немає статистики за тур",
   },
   carousel: {
     slides: [
@@ -598,6 +608,11 @@ const en: SiteMessages = {
     ownGoal: "Own goal",
     penMiss: "Penalty miss",
     yellowCard: "Yellow card",
+    fplBonus: "FPL bonus",
+  },
+  pointsBreakdown: {
+    total: "Total",
+    noStats: "No stats for this round",
   },
   carousel: {
     slides: [

@@ -146,6 +146,143 @@ export function calculateFantasyPointsWithRating(
   return Math.max(0, base + add - sub);
 }
 
+export type PointsBreakdownLineKind =
+  | "minutes60"
+  | "minutesPartial"
+  | "goal"
+  | "hattrick"
+  | "assist"
+  | "cleanSheet"
+  | "savesBatch"
+  | "penSave"
+  | "concededGoal"
+  | "fplBonus"
+  | "rating90"
+  | "rating80"
+  | "rating75"
+  | "lowRating"
+  | "yellowCard"
+  | "redCard"
+  | "ownGoal"
+  | "penMiss";
+
+export type PointsBreakdownLine = {
+  kind: PointsBreakdownLineKind;
+  points: number;
+  /** Event count when label is shown as “×N” (goals, assists, cards, …). */
+  count?: number;
+};
+
+/**
+ * Per-event lines that sum to `calculateFantasyPointsWithRating` (same rules as `calculateFantasyPoints` + rating).
+ */
+export function computeFantasyPointsBreakdown(
+  player: ScoringPlayer,
+  stats: Record<string, unknown> | null | undefined,
+): PointsBreakdownLine[] {
+  if (!stats) return [];
+
+  const mins = num(stats.minutes_played ?? stats.minutesPlayed);
+  const goals = num(stats.goals);
+  const assists = num(stats.assists);
+  const saves = num(stats.saves);
+  const pensSaved = num(stats.penalties_saved ?? stats.penaltiesSaved);
+  const pensMissed = num(stats.penalties_missed ?? stats.penaltiesMissed);
+  const ownG = num(stats.own_goals ?? stats.ownGoals);
+  const yc = num(stats.yellow_cards ?? stats.yellowCards);
+  const rc = num(stats.red_cards ?? stats.redCards);
+
+  const fplCs = num(stats.fpl_clean_sheets ?? stats.fplCleanSheets) > 0;
+  const chainCs = bool(stats.clean_sheet ?? stats.cleanSheet);
+  const hasCs = chainCs || fplCs;
+
+  const gc = num(stats.goals_conceded ?? stats.goalsConceded);
+  const bonus = num(stats.bonus ?? stats.fpl_bonus);
+
+  const lines: PointsBreakdownLine[] = [];
+
+  if (mins >= MINUTES_POINTS.minMinutesFull) {
+    lines.push({ kind: "minutes60", points: MINUTES_POINTS.full });
+  } else if (mins >= MINUTES_POINTS.minMinutesPartial) {
+    lines.push({ kind: "minutesPartial", points: MINUTES_POINTS.partial });
+  }
+
+  if (goals > 0) {
+    const pid = player.positionId;
+    const perGoal =
+      pid === 0 ? GOAL_POINTS.GK : pid === 1 ? GOAL_POINTS.DEF : pid === 2 ? GOAL_POINTS.MID : GOAL_POINTS.FWD;
+    lines.push({ kind: "goal", points: goals * perGoal, count: goals });
+  }
+
+  if (goals >= 3) {
+    lines.push({ kind: "hattrick", points: HAT_TRICK_BONUS });
+  }
+
+  if (assists > 0) {
+    lines.push({ kind: "assist", points: assists * ASSIST_POINTS, count: assists });
+  }
+
+  if (mins >= MINUTES_POINTS.minMinutesFull && hasCs) {
+    if (player.positionId <= 1) {
+      lines.push({ kind: "cleanSheet", points: CLEAN_SHEET_POINTS.GK_DEF });
+    } else if (player.positionId === 2) {
+      lines.push({ kind: "cleanSheet", points: CLEAN_SHEET_POINTS.MID });
+    }
+  }
+
+  if (player.positionId === 0) {
+    const savePts = Math.floor(saves / GK_SAVE_BATCH) * GK_SAVE_POINTS_PER_BATCH;
+    if (savePts > 0) {
+      lines.push({
+        kind: "savesBatch",
+        points: savePts,
+        count: Math.floor(saves / GK_SAVE_BATCH),
+      });
+    }
+  }
+
+  if (pensSaved > 0) {
+    lines.push({ kind: "penSave", points: pensSaved * PENALTY_SAVE_POINTS, count: pensSaved });
+  }
+
+  if (player.positionId <= 1 && gc > 0) {
+    const gcPen = Math.floor(gc / GOALS_CONCEDED_DIVISOR);
+    if (gcPen > 0) {
+      lines.push({ kind: "concededGoal", points: -gcPen, count: gcPen });
+    }
+  }
+
+  const bonusPts = Math.max(0, Math.min(FPL_BONUS_MAX, Math.floor(bonus)));
+  if (bonusPts > 0) {
+    lines.push({ kind: "fplBonus", points: bonusPts });
+  }
+
+  const { add, sub } = ratingTierAdjustment(stats);
+  if (add > 0) {
+    const r = ratingScaledTenths(stats);
+    const kind: PointsBreakdownLineKind = r >= 90 ? "rating90" : r >= 80 ? "rating80" : "rating75";
+    lines.push({ kind, points: add });
+  }
+  if (sub > 0) {
+    lines.push({ kind: "lowRating", points: -sub });
+  }
+
+  if (pensMissed > 0) {
+    lines.push({ kind: "penMiss", points: -pensMissed * DEDUCTIONS.penaltyMissed, count: pensMissed });
+  }
+  if (ownG > 0) {
+    lines.push({ kind: "ownGoal", points: -ownG * DEDUCTIONS.ownGoal, count: ownG });
+  }
+  if (yc > 0) {
+    lines.push({ kind: "yellowCard", points: -yc * DEDUCTIONS.yellowCard, count: yc });
+  }
+  if (rc > 0) {
+    lines.push({ kind: "redCard", points: -rc * DEDUCTIONS.redCardMultiplier, count: rc });
+  }
+
+  return lines;
+}
+
 /** Merge FPL live aux fields (from /api/fpl-live players[]) into chain-shaped stats. */
 export function mergeFplAuxIntoStats(
   chainStats: Record<string, unknown> | null | undefined,
