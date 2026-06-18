@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import type { Player, TeamResult } from "@/lib/types";
-import { chainSlotDisplayPoints, type ChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
+import { chainSlotDisplayPoints, chainSlotStarterDisplayPoints, type ChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { PlayerPointsBreakdownTooltip } from "@/components/PlayerPointsBreakdownTooltip";
 import type { ScoringPlayer } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
@@ -76,12 +76,13 @@ function breakdownContext(
 } {
   if (chainSlot) {
     const effective = chainSlot.effectivePlayer;
+    const subPts = chainSlot.substituted ? chainSlotDisplayPoints(chainSlot) : undefined;
     return {
       scoringPlayer: { positionId: registeredPlayer.positionId },
       stats: statFor(effective, gameweekStats),
       subNote:
         chainSlot.substituted && viaSub
-          ? viaSub(chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name)
+          ? viaSub(effective.webName || effective.name, subPts)
           : null,
     };
   }
@@ -144,6 +145,7 @@ function ShowcaseCard({
   breakdownScoringPlayer,
   breakdownStats,
   subNote,
+  tooltipTotal,
 }: {
   player: Player;
   stats: Record<string, unknown> | null | undefined;
@@ -158,6 +160,8 @@ function ShowcaseCard({
   breakdownScoringPlayer?: ScoringPlayer;
   breakdownStats?: Record<string, unknown> | null;
   subNote?: string | null;
+  /** Tooltip total when pill shows starter-only pts (auto-sub). */
+  tooltipTotal?: number;
 }) {
   const photo = compact ? (pitchTile ? 54 : 48) : 56;
   const maxW = compact ? (pitchTile ? 74 : 66) : 64;
@@ -170,6 +174,7 @@ function ShowcaseCard({
   const tooltipScoring = breakdownScoringPlayer ?? { positionId: player.positionId };
   const tooltipStats = breakdownStats ?? stats;
   const showBreakdown = showScores && Boolean(tooltipStats);
+  const breakdownTotal = tooltipTotal ?? points;
 
   const cardBody = (
     <>
@@ -266,7 +271,7 @@ function ShowcaseCard({
         <PlayerPointsBreakdownTooltip
           scoringPlayer={tooltipScoring}
           stats={tooltipStats}
-          total={points}
+          total={breakdownTotal}
           subNote={subNote}
         >
           {cardBody}
@@ -379,7 +384,7 @@ export function RegisteredSquadShowcase({
   interimBreakdown?: ChainAlignedXiBreakdown | null;
   chainAlignedCopy?: {
     multiplierFooter: (factorLabel: string) => string;
-    viaSub: (name: string) => string;
+    viaSub: (name: string, subPts?: number) => string;
   } | null;
 }) {
   const xiSum = starters.reduce((acc, p) => acc + getPoints(p), 0);
@@ -452,7 +457,11 @@ export function RegisteredSquadShowcase({
               if (!player) return null;
               const chainSlot = chainSlotsByIndex?.get(formationIndex);
               const pitchPts =
-                useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : getPoints(player);
+                useChainAligned && chainSlot
+                  ? chainSlotStarterDisplayPoints(chainSlot)
+                  : getPoints(player);
+              const pitchTooltipTotal =
+                useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : pitchPts;
               const bd = breakdownContext(
                 player,
                 gameweekStats,
@@ -469,6 +478,7 @@ export function RegisteredSquadShowcase({
                     player={player}
                     stats={statFor(player, gameweekStats)}
                     points={pitchPts}
+                    tooltipTotal={pitchTooltipTotal}
                     showScores={showScores}
                     delay={pitchDelay + i * 0.035}
                     compact
@@ -511,11 +521,16 @@ export function RegisteredSquadShowcase({
             <ul className="space-y-0.5 py-0.5">
               {starters.map((p, idx) => {
                 const chainSlot = chainSlotsByIndex?.get(idx);
-                const pts =
+                const effectivePts =
                   useChainAligned && chainSlot ? chainSlotDisplayPoints(chainSlot) : getPoints(p);
+                const pts =
+                  useChainAligned && chainSlot ? chainSlotStarterDisplayPoints(chainSlot) : getPoints(p);
                 const subNote =
                   useChainAligned && chainSlot?.substituted && chainAlignedCopy
-                    ? chainAlignedCopy.viaSub(chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name)
+                    ? chainAlignedCopy.viaSub(
+                        chainSlot.effectivePlayer.webName || chainSlot.effectivePlayer.name,
+                        effectivePts,
+                      )
                     : null;
                 const bd = breakdownContext(
                   p,
@@ -555,7 +570,7 @@ export function RegisteredSquadShowcase({
                         className={rowClass}
                         scoringPlayer={bd.scoringPlayer}
                         stats={bd.stats}
-                        total={pts}
+                        total={effectivePts}
                         subNote={bd.subNote}
                       >
                         {rowCells}

@@ -212,7 +212,7 @@ export type PagesMessages = {
     /** Sidebar footer — titles/guild multiplier applied after base + rating */
     registeredMultiplierFooter: (factorLabel: string) => string;
     /** Registered starter row — stats counted from auto-sub */
-    registeredViaSub: (name: string) => string;
+    registeredViaSub: (name: string, subPts?: number) => string;
   };
   fixtures: {
     back: string;
@@ -231,6 +231,7 @@ export type PagesMessages = {
   leaderboard: {
     claimSuccess: (symbol: string) => string;
     claimFail: (msg: string) => string;
+    claimAlreadyPaid: string;
     loading: string;
     seasonTag: string;
     pageTitle: string;
@@ -681,7 +682,8 @@ export const pagesEn: PagesMessages = {
     registeredXiTotalLabel: "Starting XI total",
     registeredOfficialTotalHint: "Published tour total",
     registeredMultiplierFooter: (factorLabel) => `Titles / guild ${factorLabel}`,
-    registeredViaSub: (name) => `→ ${name}`,
+    registeredViaSub: (name, subPts) =>
+      subPts != null && subPts > 0 ? `→ ${name} (+${subPts})` : `→ ${name}`,
   },
   fixtures: {
     back: "Back",
@@ -701,6 +703,8 @@ export const pagesEn: PagesMessages = {
   leaderboard: {
     claimSuccess: (symbol) => `Claim complete: ${symbol} was sent to your wallet (check balance in wallet / explorer).`,
     claimFail: (msg) => `Could not claim: ${msg}`,
+    claimAlreadyPaid:
+      "You already claimed this tour’s prize (including before results were recalculated). A second payout is not allowed.",
     loading: "Loading data…",
     seasonTag: "Season 2024/25",
     pageTitle: "Leaderboard",
@@ -1589,7 +1593,8 @@ export const pagesUk: PagesMessages = {
     registeredXiTotalLabel: "Разом (основа)",
     registeredOfficialTotalHint: "Офіційний підсумок туру",
     registeredMultiplierFooter: (factorLabel) => `Титули / гільдії ${factorLabel}`,
-    registeredViaSub: (name) => `→ ${name}`,
+    registeredViaSub: (name, subPts) =>
+      subPts != null && subPts > 0 ? `→ ${name} (+${subPts})` : `→ ${name}`,
   },
   fixtures: {
     back: "Назад",
@@ -1609,6 +1614,8 @@ export const pagesUk: PagesMessages = {
   leaderboard: {
     claimSuccess: (symbol) => `Клейм виконано: ${symbol} надіслано на твій гаманець (перевір баланс у гаманці / в експлорері).`,
     claimFail: (msg) => `Не вдалося заклеймити: ${msg}`,
+    claimAlreadyPaid:
+      "Ти вже забирав приз за цей тур (у т.ч. до recalc). Повторна виплата недоступна.",
     loading: "Завантаження даних...",
     seasonTag: "Сезон 2024/25",
     pageTitle: "Лідерборд",

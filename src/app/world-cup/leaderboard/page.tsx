@@ -26,8 +26,9 @@ import { cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import {
-  fetchOwnersWithClaimPrizeTx,
+  fetchTourClaimHistoryFromApi,
   mergePriorClaimsIntoResults,
+  ownerHasPriorClaimPrize,
 } from "@/lib/tourClaimHistory";
 
 export default function WorldCupLeaderboardPage() {
@@ -81,7 +82,7 @@ export default function WorldCupLeaderboardPage() {
         const addresses = await getGameweekTeams(tourId);
         const [results, priorClaimed] = await Promise.all([
           Promise.all(addresses.map((addr) => getTeamResult(addr, tourId))),
-          fetchOwnersWithClaimPrizeTx(tourId, addresses),
+          fetchTourClaimHistoryFromApi(tourId),
         ]);
         const valid = results.filter((r): r is TeamResult => r !== null);
         const merged = mergePriorClaimsIntoResults(valid, priorClaimed);
@@ -156,6 +157,14 @@ export default function WorldCupLeaderboardPage() {
 
   const handleClaimPrize = async (tourId: number) => {
     if (!connected || !account?.address) return;
+
+    const alreadyPaid = await ownerHasPriorClaimPrize(tourId, account.address.toString());
+    if (alreadyPaid) {
+      alert(lb.claimAlreadyPaid);
+      await fetchTourData(tourId);
+      return;
+    }
+
     setIsClaiming(true);
     try {
       const transaction = await client.transaction.build.simple({

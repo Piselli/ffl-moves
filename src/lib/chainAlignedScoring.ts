@@ -36,6 +36,12 @@ export function chainSlotDisplayPoints(slot: ChainAlignedXiSlot): number {
   return Math.max(0, slot.basePoints + slot.ratingAdd - slot.ratingSub);
 }
 
+/** Points shown on the registered starter’s chip/row (0 when auto-subbed; sub pts shown separately). */
+export function chainSlotStarterDisplayPoints(slot: ChainAlignedXiSlot): number {
+  if (slot.substituted) return Math.max(0, slot.registeredDisplayBase);
+  return chainSlotDisplayPoints(slot);
+}
+
 function pickStats(
   gameweekStats: Record<string, Record<string, unknown>>,
   playerId: number,

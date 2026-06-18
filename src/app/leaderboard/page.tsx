@@ -26,6 +26,11 @@ import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { isWorldCupTour } from "@/lib/worldcup";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import {
+  fetchTourClaimHistoryFromApi,
+  mergePriorClaimsIntoResults,
+  ownerHasPriorClaimPrize,
+} from "@/lib/tourClaimHistory";
 
 export default function LeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
@@ -97,10 +102,14 @@ export default function LeaderboardPage() {
 
       if (gwData && gwData.status === "resolved") {
         const addresses = await getGameweekTeams(gwId);
-        const results = await Promise.all(
-          addresses.map((addr) => getTeamResult(addr, gwId)),
+        const [results, priorClaimed] = await Promise.all([
+          Promise.all(addresses.map((addr) => getTeamResult(addr, gwId))),
+          fetchTourClaimHistoryFromApi(gwId),
+        ]);
+        const validResults = mergePriorClaimsIntoResults(
+          results.filter((r): r is TeamResult => r !== null),
+          priorClaimed,
         );
-        const validResults = results.filter((r): r is TeamResult => r !== null);
         validResults.sort((a, b) => {
           if (a.rank !== b.rank) return a.rank - b.rank;
           if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
@@ -184,6 +193,14 @@ export default function LeaderboardPage() {
 
   const handleClaimPrize = async (gameweekId: number) => {
     if (!connected || !account?.address) return;
+
+    const alreadyPaid = await ownerHasPriorClaimPrize(gameweekId, account.address.toString());
+    if (alreadyPaid) {
+      alert(lb.claimAlreadyPaid);
+      await fetchGameweekData(gameweekId);
+      return;
+    }
+
     setIsClaiming(true);
     try {
       // Same path as gameweek registration: build on Movement fullnode, sign raw tx.
