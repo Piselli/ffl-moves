@@ -10,6 +10,7 @@ import {
   findOpenGameweekFromChain,
   hasAdminSponsorPrizePoolOnChain,
   hasAdminWithdrawPrizeVaultOnChain,
+  hasAdminMarkPrizeClaimedOnChain,
   getBracketChallengeStatus,
   getBracketChallengeEntries,
   hasRegisterBracketPredictionOnChain,
@@ -66,6 +67,7 @@ export default function AdminPage() {
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
   const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
   const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
+  const [markClaimedTxAvailable, setMarkClaimedTxAvailable] = useState<boolean | null>(null);
   const [bracketAbiLive, setBracketAbiLive] = useState<boolean | null>(null);
   const [bracketStatus, setBracketStatus] = useState<number | null>(null);
   const [bracketEntries, setBracketEntries] = useState<number | null>(null);
@@ -104,15 +106,17 @@ export default function AdminPage() {
     setIsLoading(true);
     setSponsorTxAvailable(null);
     setWithdrawTxAvailable(null);
+    setMarkClaimedTxAvailable(null);
     setBracketAbiLive(null);
     setBracketStatus(null);
     setBracketEntries(null);
     setBracketPrizeGw(null);
     try {
-      const [configData, sponsorOk, withdrawOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
+      const [configData, sponsorOk, withdrawOk, markClaimedOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
         getConfig(),
         hasAdminSponsorPrizePoolOnChain(),
         hasAdminWithdrawPrizeVaultOnChain(),
+        hasAdminMarkPrizeClaimedOnChain(),
         hasRegisterBracketPredictionOnChain(),
         getBracketChallengeStatus(),
         getBracketChallengeEntries(),
@@ -120,6 +124,7 @@ export default function AdminPage() {
       ]);
       setSponsorTxAvailable(sponsorOk);
       setWithdrawTxAvailable(withdrawOk);
+      setMarkClaimedTxAvailable(markClaimedOk);
       setBracketAbiLive(bracketOk);
       setBracketStatus(bracketSt);
       setBracketEntries(bracketEnt);
@@ -620,6 +625,11 @@ export default function AdminPage() {
 
   const handleMarkPrizeClaimed = async () => {
     if (!connected) return;
+
+    if (markClaimedTxAvailable === false) {
+      alert(ad.markClaimedNotOnChain);
+      return;
+    }
 
     const gw = Number.parseInt((markClaimedGwId || "").trim(), 10);
     if (!Number.isFinite(gw) || gw < 1) {
@@ -1879,6 +1889,11 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold text-white">{ad.markClaimedSectionTitle}</h2>
             </div>
             <p className="text-muted-foreground text-sm mb-4">{ad.markClaimedSectionHint}</p>
+            {markClaimedTxAvailable === false && (
+              <p className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+                {ad.markClaimedNotOnChain}
+              </p>
+            )}
             <div className="flex flex-col sm:flex-row gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{ad.markClaimedGwLabel}</span>
@@ -1904,7 +1919,12 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={handleMarkPrizeClaimed}
-                disabled={isSubmitting || !markClaimedGwId || !markClaimedOwner}
+                disabled={
+                  isSubmitting ||
+                  !markClaimedGwId ||
+                  !markClaimedOwner ||
+                  markClaimedTxAvailable !== true
+                }
                 className="self-end px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl font-medium hover:from-teal-400 hover:to-emerald-500 transition-all shadow-lg shadow-teal-500/25 disabled:opacity-50"
               >
                 {isSubmitting ? "..." : ad.markClaimedSubmit}

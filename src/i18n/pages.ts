@@ -448,6 +448,7 @@ export type PagesMessages = {
     markClaimedSuccess: string;
     markClaimedInvalidGw: string;
     markClaimedInvalidOwner: string;
+    markClaimedNotOnChain: string;
   };
   faq: {
     pageTitle: string;
@@ -958,6 +959,8 @@ export const pagesEn: PagesMessages = {
     markClaimedSuccess: "Prize marked as claimed on-chain.",
     markClaimedInvalidGw: "Enter a valid tour / gameweek ID.",
     markClaimedInvalidOwner: "Enter a valid Movement wallet address (0x + 64 hex).",
+    markClaimedNotOnChain:
+      "admin_mark_prize_claimed is not on mainnet yet. From repo root run: npm run md1:deploy-mark-claimed (Movement CLI + module publisher wallet). Then mark the 3 MD1 wallets or run npm run md1:mark-prior-claims.",
   },
   faq: {
     pageTitle: "FAQ",
@@ -1869,6 +1872,8 @@ export const pagesUk: PagesMessages = {
     markClaimedSuccess: "На chain позначено claimed=true.",
     markClaimedInvalidGw: "Введи коректний ID туру / gameweek.",
     markClaimedInvalidOwner: "Введи коректну адресу Movement (0x + 64 hex).",
+    markClaimedNotOnChain:
+      "admin_mark_prize_claimed ще немає on-chain. У корені репо: npm run md1:deploy-mark-claimed (Movement CLI + гаманець publisher модуля). Потім познач 3 гаманці MD1 або npm run md1:mark-prior-claims.",
   },
   faq: {
     pageTitle: "Часті питання",
