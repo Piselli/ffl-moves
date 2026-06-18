@@ -40,8 +40,8 @@ cd "$PKG"
 echo "→ compile"
 movement move compile --dev
 
-echo "→ test (admin_mark_prize_claimed)"
-movement move test --dev test_admin_mark_prize_claimed_blocks_claim 2>/dev/null || movement move test --dev
+echo "→ test"
+movement move test --dev
 
 echo ""
 read -r -p "Publish UPGRADE to mainnet now? [y/N] " confirm

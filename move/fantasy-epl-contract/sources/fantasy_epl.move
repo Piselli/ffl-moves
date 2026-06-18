@@ -2308,7 +2308,7 @@ module fantasy_epl_addr::fantasy_epl {
     #[test_only]
     use aptos_framework::aptos_coin;
     #[test_only]
-    fun setup_test(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun setup_test(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         // Initialize timestamp for testing
         timestamp::set_time_has_started_for_testing(aptos_framework);
         timestamp::update_global_time_for_test_secs(1000);
@@ -2376,7 +2376,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_init_module(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_init_module(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Verify config was initialized
@@ -2393,7 +2393,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_create_gameweek(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry {
+    fun test_create_gameweek(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Create gameweek 1
@@ -2413,7 +2413,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    fun test_create_gameweek_not_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry {
+    fun test_create_gameweek_not_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Non-admin tries to create gameweek - should fail
@@ -2421,7 +2421,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_register_team(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
+    fun test_register_team(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Create gameweek
@@ -2449,7 +2449,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EGAMEWEEK_NOT_OPEN)]
-    fun test_register_team_gameweek_closed(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
+    fun test_register_team_gameweek_closed(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Create and close gameweek
@@ -2463,7 +2463,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = ETOO_MANY_FROM_SAME_CLUB)]
-    fun test_register_team_too_many_same_club(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
+    fun test_register_team_too_many_same_club(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2478,7 +2478,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EINVALID_POSITION_COUNT)]
-    fun test_register_team_invalid_formation(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth {
+    fun test_register_team_invalid_formation(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2492,7 +2492,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
+    fun test_buy_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // User buys title
@@ -2509,7 +2509,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EALREADY_HAS_TITLE)]
-    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_buy_title_already_has(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -2517,7 +2517,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle {
+    fun test_reroll_title(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserTitle, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_title(user1, 1);
@@ -2535,7 +2535,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild {
+    fun test_buy_guild(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, UserGuild, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         buy_guild(user1, 1);
@@ -2548,7 +2548,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_close_gameweek(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry {
+    fun test_close_gameweek(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2564,7 +2564,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer,
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2638,14 +2638,14 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer,
-    ) acquires Config, GameweekRegistry, PlayerStatsRegistry, ResultsRegistry {
+    ) acquires Config, GameweekRegistry, PlayerStatsRegistry, ResultsRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
         create_gameweek(admin, 1);
         reopen_gameweek(admin, 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_submit_player_stats(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, PlayerStatsRegistry {
+    fun test_submit_player_stats(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, PlayerStatsRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2690,7 +2690,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // 1. Create gameweek
@@ -2755,7 +2755,6 @@ module fantasy_epl_addr::fantasy_epl {
             vector[], // No guild triggers
             vector[1, 2], // Prize ranks
             vector[60, 40],  // Prize percentages
-            vector[@0x123, @0x456], // pre-sorted (same squads → tied; order irrelevant)
         );
 
         // Verify gameweek resolved
@@ -2778,7 +2777,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer,
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2825,7 +2824,6 @@ module fantasy_epl_addr::fantasy_epl {
             vector[],
             vector[1, 2],
             vector[60, 40],
-            vector[@0x123, @0x456], // tied — order irrelevant
         );
 
         let (_, _, _, _, _, _, _, fp1, rank1, prize1, _) = get_team_result(@0x123, 1);
@@ -2843,7 +2841,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Setup a complete gameweek
@@ -2884,7 +2882,6 @@ module fantasy_epl_addr::fantasy_epl {
             vector[],
             vector[1],
             vector[100],
-            vector[@0x123], // only user1 registered
         );
 
         // Claim prize
@@ -2902,7 +2899,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2921,7 +2918,7 @@ module fantasy_epl_addr::fantasy_epl {
             vector[false],
         );
 
-        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100], vector[@0x123]);
+        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100]);
 
         claim_prize(user1, 1);
         claim_prize(user1, 1); // Should fail
@@ -2934,7 +2931,7 @@ module fantasy_epl_addr::fantasy_epl {
         admin: &signer,
         user1: &signer,
         user2: &signer
-    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
@@ -2953,14 +2950,14 @@ module fantasy_epl_addr::fantasy_epl {
             vector[false],
         );
 
-        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100], vector[@0x123]);
+        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100]);
 
         admin_mark_prize_claimed(admin, 1, @0x123);
         claim_prize(user1, 1); // Should fail — already marked claimed
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_set_oracle(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_set_oracle(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         set_oracle(admin, @0x123);
@@ -2970,7 +2967,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_add_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_add_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Add user1 as admin
@@ -2985,7 +2982,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_remove_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_remove_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Add user1 as admin first
@@ -3003,7 +3000,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    fun test_add_admin_not_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_add_admin_not_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Non-admin tries to add admin - should fail
@@ -3012,7 +3009,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    fun test_remove_last_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_remove_last_admin(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Try to remove the only admin - should fail
@@ -3020,7 +3017,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_set_fees(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config {
+    fun test_set_fees(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         set_fees(admin, 200000000, 100000000, 75000000);
@@ -3034,7 +3031,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_calculate_player_points_forward_goal(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun test_calculate_player_points_forward_goal(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         let stats = PlayerStats {
@@ -3070,7 +3067,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_calculate_player_points_goalkeeper_clean_sheet(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun test_calculate_player_points_goalkeeper_clean_sheet(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         let stats = PlayerStats {
@@ -3106,7 +3103,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_calculate_player_points_with_deductions(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun test_calculate_player_points_with_deductions(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         let stats = PlayerStats {
@@ -3142,7 +3139,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_validate_formation_valid(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun test_validate_formation_valid(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // Valid 4-3-3
@@ -3153,7 +3150,7 @@ module fantasy_epl_addr::fantasy_epl {
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
     #[expected_failure(abort_code = EINVALID_POSITION_COUNT)]
-    fun test_validate_formation_invalid_no_gk(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) {
+    fun test_validate_formation_invalid_no_gk(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         // No goalkeeper
@@ -3162,7 +3159,7 @@ module fantasy_epl_addr::fantasy_epl {
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
-    fun test_multiple_gameweeks(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry {
+    fun test_multiple_gameweeks(aptos_framework: &signer, admin: &signer, user1: &signer, user2: &signer) acquires Config, GameweekRegistry, EntryFeeAssetConfig {
         setup_test(aptos_framework, admin, user1, user2);
 
         create_gameweek(admin, 1);
