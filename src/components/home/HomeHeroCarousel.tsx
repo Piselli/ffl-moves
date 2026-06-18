@@ -15,9 +15,6 @@ export function HomeHeroCarousel({
   prizePoolRaw,
   tourEntryCount,
   dataLoading,
-  roundLabel,
-  wcDeadlineTime,
-  wcTourId,
   statsGwLabel,
   aplDeadlineTime,
   aplDeadlineGwId,
@@ -28,9 +25,6 @@ export function HomeHeroCarousel({
   prizePoolRaw: number | null;
   tourEntryCount: number | null;
   dataLoading: boolean;
-  roundLabel: string | null;
-  wcDeadlineTime: string | null;
-  wcTourId: number | null;
   statsGwLabel: number | null;
   aplDeadlineTime: string | null;
   aplDeadlineGwId: number | null;
@@ -90,11 +84,7 @@ export function HomeHeroCarousel({
         aria-roledescription="carousel"
       >
         <div className="w-full shrink-0 snap-center snap-always">
-          <WorldCupHeroPortal
-            deadlineTime={wcDeadlineTime}
-            deadlineTourId={wcTourId}
-            roundLabel={roundLabel}
-          />
+          <WorldCupHeroPortal />
         </div>
         <div className="w-full shrink-0 snap-center snap-always">
           <AplHeroSlide

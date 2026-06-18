@@ -6,8 +6,6 @@ import { useEffect, useState, useMemo } from "react";
 import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
 import {
   findActiveWorldCupTourFromChain,
-  findOpenWorldCupTourFromChain,
-  getWorldCupRound,
   isWorldCupCampaignActive,
 } from "@/lib/worldcup";
 import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
@@ -712,12 +710,11 @@ type FixturesApiPayload = {
 export default function Home() {
   const m = useSiteMessages();
   const { locale } = useSiteLocale();
-  const wcPages = m.pages.worldCup;
-  const wcCampaign = isWorldCupCampaignActive();
   const positionCards = useMemo(() => buildPositionCards(m), [m]);
   const universalBonuses = useMemo(() => buildUniversalBonuses(m), [m]);
   const universalPenalties = useMemo(() => buildUniversalPenalties(m), [m]);
 
+  const wcCampaign = isWorldCupCampaignActive();
   const { connected } = useWallet();
   const prize = usePrizeAsset();
 
@@ -726,9 +723,6 @@ export default function Home() {
   const [prizePoolRaw, setPrizePoolRaw] = useState<number | null>(null);
   const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
   const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
-  const [wcOpenTourId, setWcOpenTourId] = useState<number | null>(null);
-  const [activeRoundKey, setActiveRoundKey] = useState<string | null>(null);
-  const [wcDeadlineTime, setWcDeadlineTime] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   
   // Fixtures / deadline
@@ -742,19 +736,12 @@ export default function Home() {
     async function fetchOnChainData() {
       try {
         if (wcCampaign) {
-          const [activeTour, openTour] = await Promise.all([
-            findActiveWorldCupTourFromChain(),
-            findOpenWorldCupTourFromChain(),
-          ]);
+          const activeTour = await findActiveWorldCupTourFromChain();
           if (activeTour) {
             setPrizePoolRaw(activeTour.prizePool);
             setTourEntryCount(activeTour.totalEntries);
             setOpenGameweekId(activeTour.id);
-            const round = getWorldCupRound(activeTour.id);
-            setActiveRoundKey(round?.key ?? null);
           }
-          setWcOpenTourId(openTour?.id ?? null);
-          if (!openTour) setWcDeadlineTime(null);
         } else {
           const cfg = await getConfig();
           const gw = await findActiveGameweekFromChain(cfg);
@@ -775,16 +762,6 @@ export default function Home() {
 
   useEffect(() => {
     if (wcCampaign) {
-      if (wcOpenTourId == null) {
-        setWcDeadlineTime(null);
-        return;
-      }
-      fetch(`/api/wc-fixtures?tour=${wcOpenTourId}`, { cache: "no-store" })
-        .then((r) => r.json())
-        .then((d: { deadlineTime?: string | null }) => {
-          setWcDeadlineTime(d.deadlineTime ?? null);
-        })
-        .catch(() => setWcDeadlineTime(null));
       fetch(`/api/fixtures`, { cache: "no-store" })
         .then((r) => r.json())
         .then((d: FixturesApiPayload & { error?: string }) => {
@@ -803,7 +780,7 @@ export default function Home() {
         if (!d.error) setFixturesData(d);
       })
       .catch(() => {});
-  }, [openGameweekId, wcOpenTourId, wcCampaign]);
+  }, [openGameweekId, wcCampaign]);
 
   // ── How It Works steps ─────────────────────────────────────────────────────
   const steps = useMemo(
@@ -856,8 +833,6 @@ export default function Home() {
 
   const statsGwLabel =
     openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
-  const statsRoundLabel =
-    activeRoundKey != null ? wcPages.roundName(activeRoundKey) : null;
   const siteLocale = locale === "uk" ? "uk" : "en";
   const aplStatsGwLabel =
     aplFixturesData?.gameweek?.id != null ? Number(aplFixturesData.gameweek.id) : statsGwLabel;
@@ -891,9 +866,6 @@ export default function Home() {
           prizePoolRaw={prizePoolRaw}
           tourEntryCount={tourEntryCount}
           dataLoading={dataLoading}
-          roundLabel={statsRoundLabel}
-          wcDeadlineTime={wcDeadlineTime}
-          wcTourId={wcOpenTourId}
           statsGwLabel={aplStatsGwLabel}
           aplDeadlineTime={aplFixturesData?.gameweek?.deadlineTime ?? null}
           aplDeadlineGwId={
