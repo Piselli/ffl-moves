@@ -68,7 +68,7 @@ function breakdownContext(
   registeredPlayer: Player,
   gameweekStats: Record<string, Record<string, unknown>>,
   chainSlot?: ChainAlignedXiBreakdown["slots"][number] | null,
-  viaSub?: ((name: string) => string) | null,
+  viaSub?: ((name: string, subPts?: number) => string) | null,
 ): {
   scoringPlayer: ScoringPlayer;
   stats: Record<string, unknown> | null;

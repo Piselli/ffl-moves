@@ -16,7 +16,7 @@
     "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",
     "preflight:mainnet": "node scripts/preflight-mainnet.mjs",
     "verify:chain": "node scripts/verify-chain.mjs",
-    "md1:audit-payouts": "tsx scripts/audit-wc-md1-payouts.ts",
+    "md1:audit-payouts": "npx tsx scripts/audit-wc-md1-payouts.ts",
     "md1:deploy-mark-claimed": "bash scripts/deploy-admin-mark-claimed-mainnet.sh",
     "md1:mark-prior-claims": "bash scripts/mark-md1-prior-claims-mainnet.sh",
     "md1:verify-mark-claimed": "node scripts/verify-admin-mark-claimed-chain.mjs",
