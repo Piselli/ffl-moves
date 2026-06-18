@@ -328,6 +328,15 @@ module fantasy_epl_addr::fantasy_epl {
         rank: u64,
     }
 
+    /// Emitted when admin marks `claimed = true` without a vault transfer (e.g. after recalc when
+    /// the wallet already received its prize before `reopen_gameweek`).
+    #[event]
+    struct PrizeClaimMarked has drop, store {
+        owner: address,
+        gameweek_id: u64,
+        marked_by: address,
+    }
+
     #[event]
     struct PrizeVaultWithdrawn has drop, store {
         admin: address,
@@ -997,6 +1006,38 @@ module fantasy_epl_addr::fantasy_epl {
             amount,
             rank: result.rank,
         });
+    }
+
+    /// Mark a prize as already claimed without transferring tokens. Admin only — use after recalc
+    /// when the owner received their payout before `reopen_gameweek` cleared results.
+    public entry fun admin_mark_prize_claimed(
+        sender: &signer,
+        gameweek_id: u64,
+        owner: address,
+    ) acquires Config, GameweekRegistry, ResultsRegistry {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+
+        let registry = borrow_global<GameweekRegistry>(@fantasy_epl_addr);
+        let gameweek = table::borrow(&registry.gameweeks, gameweek_id);
+        assert!(gameweek.status == STATUS_RESOLVED, EGAMEWEEK_NOT_RESOLVED);
+
+        let results_registry = borrow_global_mut<ResultsRegistry>(@fantasy_epl_addr);
+        assert!(table::contains(&results_registry.results, gameweek_id), EGAMEWEEK_NOT_RESOLVED);
+
+        let gameweek_results = table::borrow_mut(&mut results_registry.results, gameweek_id);
+        assert!(simple_map::contains_key(gameweek_results, &owner), ENO_PRIZE_TO_CLAIM);
+
+        let result = simple_map::borrow_mut(gameweek_results, &owner);
+        if (!result.claimed) {
+            result.claimed = true;
+            event::emit(PrizeClaimMarked {
+                owner,
+                gameweek_id,
+                marked_by: sender_addr,
+            });
+        };
     }
 
     // ============ Oracle Functions ============
@@ -2884,6 +2925,38 @@ module fantasy_epl_addr::fantasy_epl {
 
         claim_prize(user1, 1);
         claim_prize(user1, 1); // Should fail
+    }
+
+    #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
+    #[expected_failure(abort_code = EPRIZE_ALREADY_CLAIMED)]
+    fun test_admin_mark_prize_claimed_blocks_claim(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer
+    ) acquires Config, GameweekRegistry, UserTeams, PlayerStatsRegistry, ResultsRegistry, UserTitle, UserGuild, TreasuryAuth {
+        setup_test(aptos_framework, admin, user1, user2);
+
+        create_gameweek(admin, 1);
+        let (player_ids, positions, clubs) = create_test_team_data();
+        register_team(user1, 1, player_ids, positions, clubs);
+        close_gameweek(admin, 1);
+
+        submit_player_stats(
+            admin, 1,
+            vector[9], vector[3], vector[90], vector[1], vector[0],
+            vector[false], vector[0], vector[0], vector[0],
+            vector[0], vector[0], vector[0], vector[80],
+            vector[0], vector[0], vector[0], vector[0],
+            vector[0],
+            vector[0],
+            vector[false],
+        );
+
+        calculate_results(admin, 1, vector[], vector[], vector[1], vector[100], vector[@0x123]);
+
+        admin_mark_prize_claimed(admin, 1, @0x123);
+        claim_prize(user1, 1); // Should fail — already marked claimed
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]

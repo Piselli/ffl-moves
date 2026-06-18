@@ -439,6 +439,14 @@ export type PagesMessages = {
     bracketCloseSuccess: string;
     bracketInitModuleWalletHint: string;
     bracketNotOnChain: string;
+    markClaimedSectionTitle: string;
+    markClaimedSectionHint: string;
+    markClaimedGwLabel: string;
+    markClaimedOwnerLabel: string;
+    markClaimedSubmit: string;
+    markClaimedSuccess: string;
+    markClaimedInvalidGw: string;
+    markClaimedInvalidOwner: string;
   };
   faq: {
     pageTitle: string;
@@ -937,6 +945,15 @@ export const pagesEn: PagesMessages = {
       "First init must be signed with the module publisher wallet (same address as MODULE_ADDRESS). Connect that wallet in the browser, or use the CLI.",
     bracketNotOnChain:
       "register_bracket_prediction is not in the on-chain ABI yet. Run: npm run wc:bracket:deploy",
+    markClaimedSectionTitle: "Mark prize already claimed",
+    markClaimedSectionHint:
+      "After recalc, set claimed=true for wallets that already received a payout (no second transfer). Use for MD1 reopen workflow before winners try to claim again.",
+    markClaimedGwLabel: "Tour / gameweek ID",
+    markClaimedOwnerLabel: "Wallet address (0x…)",
+    markClaimedSubmit: "Mark claimed",
+    markClaimedSuccess: "Prize marked as claimed on-chain.",
+    markClaimedInvalidGw: "Enter a valid tour / gameweek ID.",
+    markClaimedInvalidOwner: "Enter a valid Movement wallet address (0x + 64 hex).",
   },
   faq: {
     pageTitle: "FAQ",
@@ -1836,6 +1853,15 @@ export const pagesUk: PagesMessages = {
       "Перший init має підписати гаманець publisher модуля (MODULE_ADDRESS). Підключи його в браузері або використай CLI.",
     bracketNotOnChain:
       "register_bracket_prediction ще немає в on-chain ABI. Запусти: npm run wc:bracket:deploy",
+    markClaimedSectionTitle: "Позначити приз як уже отриманий",
+    markClaimedSectionHint:
+      "Після recalc: claimed=true для гаманців, які вже забрали виплату (без другого transfer). Для MD1 — одразу після calculate, щоб не було повторного claim.",
+    markClaimedGwLabel: "ID туру / gameweek",
+    markClaimedOwnerLabel: "Адреса гаманця (0x…)",
+    markClaimedSubmit: "Позначити claimed",
+    markClaimedSuccess: "На chain позначено claimed=true.",
+    markClaimedInvalidGw: "Введи коректний ID туру / gameweek.",
+    markClaimedInvalidOwner: "Введи коректну адресу Movement (0x + 64 hex).",
   },
   faq: {
     pageTitle: "Часті питання",

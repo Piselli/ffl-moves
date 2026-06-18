@@ -77,6 +77,8 @@ export default function AdminPage() {
   const [reopenTargetId, setReopenTargetId] = useState("");
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
+  const [markClaimedGwId, setMarkClaimedGwId] = useState("");
+  const [markClaimedOwner, setMarkClaimedOwner] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
   const [sponsorGwId, setSponsorGwId] = useState("");
   const [sponsorAmountMove, setSponsorAmountMove] = useState("");
@@ -610,6 +612,39 @@ export default function AdminPage() {
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to update fees:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMarkPrizeClaimed = async () => {
+    if (!connected) return;
+
+    const gw = Number.parseInt((markClaimedGwId || "").trim(), 10);
+    if (!Number.isFinite(gw) || gw < 1) {
+      alert(ad.markClaimedInvalidGw);
+      return;
+    }
+
+    const owner = normalizeMoveAccountAddress(markClaimedOwner || "");
+    if (!owner) {
+      alert(ad.markClaimedInvalidOwner);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_mark_prize_claimed"),
+          typeArguments: [],
+          functionArguments: [String(gw), owner],
+        },
+      });
+      alert(ad.markClaimedSuccess);
+    } catch (error: unknown) {
+      console.error("Failed to mark prize claimed:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -1827,6 +1862,52 @@ export default function AdminPage() {
                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:from-purple-400 hover:to-violet-500 transition-all shadow-lg shadow-purple-500/25 disabled:opacity-50"
               >
                 {isSubmitting ? "..." : "Calculate & Publish"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mark prize claimed (Admin) — after recalc when wallet already received payout */}
+        {isAdmin && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">{ad.markClaimedSectionTitle}</h2>
+            </div>
+            <p className="text-muted-foreground text-sm mb-4">{ad.markClaimedSectionHint}</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.markClaimedGwLabel}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={markClaimedGwId}
+                  onChange={(e) => setMarkClaimedGwId(e.target.value)}
+                  placeholder="10001"
+                  className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 border border-border"
+                />
+              </label>
+              <label className="flex flex-col gap-1 flex-1">
+                <span className="text-xs text-muted-foreground">{ad.markClaimedOwnerLabel}</span>
+                <input
+                  type="text"
+                  value={markClaimedOwner}
+                  onChange={(e) => setMarkClaimedOwner(e.target.value)}
+                  placeholder="0x…"
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 border border-border font-mono text-sm"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleMarkPrizeClaimed}
+                disabled={isSubmitting || !markClaimedGwId || !markClaimedOwner}
+                className="self-end px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl font-medium hover:from-teal-400 hover:to-emerald-500 transition-all shadow-lg shadow-teal-500/25 disabled:opacity-50"
+              >
+                {isSubmitting ? "..." : ad.markClaimedSubmit}
               </button>
             </div>
           </div>

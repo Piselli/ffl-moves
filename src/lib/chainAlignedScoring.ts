@@ -137,20 +137,14 @@ export function computeChainAlignedXiBreakdown(
     };
 
     const starterStats = pickStats(gameweekStats, registeredStarter.id);
-    if (!starterStats) {
-      pushZero(0);
-      continue;
-    }
-
     const posId = registeredStarter.positionId;
-    const starterDisplayBase = calculateFantasyPoints({ positionId: posId }, starterStats);
 
-    if (minutesPlayed(starterStats) === 0) {
+    const applyAutoSub = (registeredDisplayBase: number): boolean => {
       const sub = findSubstitute(bench, posId, gameweekStats, consumedBenchPlayerIds);
       const subStats = sub ? pickStats(gameweekStats, sub.id) : null;
       if (!sub || !subStats || minutesPlayed(subStats) === 0) {
-        pushZero(starterDisplayBase);
-        continue;
+        pushZero(registeredDisplayBase);
+        return false;
       }
       const basePoints = calculateFantasyPoints({ positionId: posId }, subStats);
       const { add, sub: rs } = ratingTierAdjustment(subStats);
@@ -163,10 +157,23 @@ export function computeChainAlignedXiBreakdown(
         effectivePlayer: sub,
         substituted: true,
         basePoints,
-        registeredDisplayBase: starterDisplayBase,
+        registeredDisplayBase,
         ratingAdd: add,
         ratingSub: rs,
       });
+      return true;
+    };
+
+    // Missing oracle row = DNP (same as minutes_played 0 once WC stats include 0-min entries).
+    if (!starterStats) {
+      applyAutoSub(0);
+      continue;
+    }
+
+    const starterDisplayBase = calculateFantasyPoints({ positionId: posId }, starterStats);
+
+    if (minutesPlayed(starterStats) === 0) {
+      applyAutoSub(starterDisplayBase);
       continue;
     }
 

@@ -204,7 +204,7 @@ async function fetchStatsForCompetition(
 
           for (const playerData of teamData.players as ApiPlayerStats[]) {
             const stats = playerData.statistics[0];
-            if (!stats || !stats.games.minutes) continue;
+            if (!stats) continue;
 
             const mapping = mappings.get(playerData.player.id);
             if (!mapping) continue; // Skip players not in our catalog
@@ -214,7 +214,7 @@ async function fetchStatsForCompetition(
               mapping.position === "DEF" ? 1 :
               mapping.position === "MID" ? 2 : 3;
 
-            const mins = stats.games.minutes || 0;
+            const mins = stats.games.minutes ?? 0;
             const teamCsEligible = hadCleanSheet && mins >= 60;
 
             const cleanSheet = teamCsEligible && (positionId === 0 || positionId === 1);
@@ -234,7 +234,8 @@ async function fetchStatsForCompetition(
               ownGoals: 0,
               yellowCards: stats.cards?.yellow || 0,
               redCards: stats.cards?.red || 0,
-              rating: Math.round(parseFloat(stats.games.rating || "6.0") * 10),
+              // 0 minutes → rating 0 so contract treats as no rating tier (matches FPL live path).
+              rating: mins > 0 ? Math.round(parseFloat(stats.games.rating || "6.0") * 10) : 0,
               tackles: stats.tackles?.total || 0,
               interceptions: stats.tackles?.interceptions || 0,
               successfulDribbles: stats.dribbles?.success || 0,
