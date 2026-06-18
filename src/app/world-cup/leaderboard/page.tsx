@@ -25,6 +25,10 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import {
+  fetchOwnersWithClaimPrizeTx,
+  mergePriorClaimsIntoResults,
+} from "@/lib/tourClaimHistory";
 
 export default function WorldCupLeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
@@ -75,14 +79,18 @@ export default function WorldCupLeaderboardPage() {
 
       if (gwData && gwData.status === "resolved") {
         const addresses = await getGameweekTeams(tourId);
-        const results = await Promise.all(addresses.map((addr) => getTeamResult(addr, tourId)));
+        const [results, priorClaimed] = await Promise.all([
+          Promise.all(addresses.map((addr) => getTeamResult(addr, tourId))),
+          fetchOwnersWithClaimPrizeTx(tourId, addresses),
+        ]);
         const valid = results.filter((r): r is TeamResult => r !== null);
-        valid.sort((a, b) => {
+        const merged = mergePriorClaimsIntoResults(valid, priorClaimed);
+        merged.sort((a, b) => {
           if (a.rank !== b.rank) return a.rank - b.rank;
           if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
           return a.owner.localeCompare(b.owner);
         });
-        setLeaderboardData(valid);
+        setLeaderboardData(merged);
       } else if (gwData && gwData.status === "closed") {
         const addresses = await getGameweekTeams(tourId);
         if (addresses.length > 0) {
