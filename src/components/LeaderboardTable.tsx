@@ -28,6 +28,8 @@ interface LeaderboardTableProps {
    * enrich on-chain stats with FPL live). Off for non-EPL competitions (e.g. World Cup).
    */
   fplEnrichment?: boolean;
+  /** When true, the connected wallet can expand its row even outside the top 10. */
+  allowOwnSquadExpand?: boolean;
 }
 
 type LoadedSquad = {
@@ -105,10 +107,12 @@ export function LeaderboardTable({
   showSquadView = false,
   catalogUrl = "/api/players",
   fplEnrichment = true,
+  allowOwnSquadExpand = false,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
   const g = siteMessages.pages.gameweek;
+  const mr = siteMessages.pages.myResult;
   const posAbbrev = siteMessages.positionAbbrev;
   const benchAbbrev = siteMessages.recap.benchAbbrev;
   const { getNickname } = useNickname();
@@ -129,8 +133,10 @@ export function LeaderboardTable({
 
   const colCount = showSquadView ? 6 : 5;
 
-  const canExpandRow = (rank: number) =>
-    showSquadView && gameweekId > 0 && rank > 0 && rank <= 10;
+  const canExpandRow = (rank: number, owner: string) =>
+    showSquadView &&
+    gameweekId > 0 &&
+    ((rank > 0 && rank <= 10) || (allowOwnSquadExpand && owner === currentUser));
 
   const loadSquad = useCallback(
     async (owner: string) => {
@@ -195,7 +201,7 @@ export function LeaderboardTable({
 
   const toggleRow = useCallback(
     (owner: string, rank: number) => {
-      if (!showSquadView || gameweekId <= 0 || rank <= 0 || rank > 10) return;
+      if (!canExpandRow(rank, owner)) return;
       if (expandedOwner === owner) {
         setExpandedOwner(null);
         return;
@@ -203,7 +209,7 @@ export function LeaderboardTable({
       setExpandedOwner(owner);
       void loadSquad(owner);
     },
-    [expandedOwner, loadSquad, showSquadView, gameweekId],
+    [expandedOwner, loadSquad, showSquadView, gameweekId, allowOwnSquadExpand, currentUser],
   );
 
   const chainAlignedCopy = {
@@ -279,7 +285,7 @@ export function LeaderboardTable({
             const isTop3 = result.rank <= 3;
             const hasPrize = result.prizeAmount > 0;
             const claimedGlow = Boolean(result.claimed && hasPrize);
-            const expandable = canExpandRow(result.rank);
+            const expandable = canExpandRow(result.rank, result.owner);
             const isOpen = expandedOwner === result.owner;
             const cached = squadCacheRef.current.get(result.owner);
             const isLoading = loadingOwner === result.owner;
@@ -441,6 +447,7 @@ export function LeaderboardTable({
                                     cached.stats,
                                   )
                                 : null;
+                            const hasStats = Object.keys(cached.stats).length > 0;
                             const getPoints = (player: Player) => {
                               const stats =
                                 cached.stats[player.id] ?? cached.stats[String(player.id)];
@@ -455,7 +462,8 @@ export function LeaderboardTable({
                                 starters={cached.starters}
                                 bench={cached.bench}
                                 gameweekStats={cached.stats}
-                                showScores
+                                showScores={hasStats}
+                                statsPendingHint={!hasStats ? mr.statsPending : null}
                                 getPoints={getPoints}
                                 posAbbrev={posAbbrev}
                                 benchAbbrev={benchAbbrev}

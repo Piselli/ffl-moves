@@ -61,6 +61,16 @@ export type PagesMessages = {
     leaderboardTitle: string;
     leaderboardEmptyTitle: string;
     leaderboardEmptyHint: string;
+    /** Closed round — squads locked, oracle stats not submitted yet. */
+    leaderboardClosedAwaitingHint: (roundLabel: string) => string;
+    /** Squads can still be viewed while points are pending. */
+    leaderboardSquadsViewable: string;
+    mySquadsCta: string;
+    myResultPageTitle: string;
+    myResultTourPicker: string;
+    myResultNoSquads: string;
+    myResultBackLeaderboard: string;
+    myResultOpenRegistrationCta: string;
     backToHub: string;
     howItWorksTitle: string;
     howStep1: string;
@@ -529,6 +539,15 @@ export const pagesEn: PagesMessages = {
     leaderboardTitle: "World Cup · Leaderboard",
     leaderboardEmptyTitle: "No results yet",
     leaderboardEmptyHint: "Results appear after a round is played and published on-chain.",
+    leaderboardClosedAwaitingHint: (roundLabel) =>
+      `${roundLabel} is closed on-chain: squads are locked. Points appear after matches are played and stats are published.`,
+    leaderboardSquadsViewable: "Squads viewable · points pending",
+    mySquadsCta: "My squad →",
+    myResultPageTitle: "My World Cup squads",
+    myResultTourPicker: "Round",
+    myResultNoSquads: "You have not registered a squad for any World Cup round yet.",
+    myResultBackLeaderboard: "Leaderboard",
+    myResultOpenRegistrationCta: "Register for the open round →",
     backToHub: "← World Cup",
     howItWorksTitle: "How it works",
     howStep1: "Pick 11 + 3 from real World Cup squads before the round deadline.",
@@ -1433,6 +1452,15 @@ export const pagesUk: PagesMessages = {
     leaderboardTitle: "Чемпіонат світу · Лідерборд",
     leaderboardEmptyTitle: "Результатів поки немає",
     leaderboardEmptyHint: "Результати з’являються після того, як раунд зіграно й опубліковано on-chain.",
+    leaderboardClosedAwaitingHint: (roundLabel) =>
+      `${roundLabel} закрито on-chain: склади зафіксовані. Очки з’являться після матчів і публікації статистики.`,
+    leaderboardSquadsViewable: "Склади доступні · очки очікуються",
+    mySquadsCta: "Мій склад →",
+    myResultPageTitle: "Мої склади ЧС",
+    myResultTourPicker: "Раунд",
+    myResultNoSquads: "Ти ще не зареєстрував склад жодного раунду Чемпіонату світу.",
+    myResultBackLeaderboard: "Лідерборд",
+    myResultOpenRegistrationCta: "Зареєструватись на відкритий раунд →",
     backToHub: "← Чемпіонат світу",
     howItWorksTitle: "Як це працює",
     howStep1: "Обери 11 + 3 з реальних складів збірних до дедлайну раунду.",

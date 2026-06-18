@@ -711,6 +711,12 @@ export default function WorldCupSquadPage() {
               {ss.registeredShareButton}
             </button>
             <Link
+              href="/world-cup/my-result"
+              className="px-5 py-2.5 rounded-xl bg-white/[0.04] text-white/70 border border-white/10 font-semibold text-sm hover:bg-white/[0.08] transition-colors"
+            >
+              {wc.mySquadsCta}
+            </Link>
+            <Link
               href="/world-cup/leaderboard"
               className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-sm hover:bg-emerald-500/30 transition-colors"
             >
@@ -861,7 +867,14 @@ export default function WorldCupSquadPage() {
             </h1>
             <p className="text-white/40 text-sm">{roundLabel} · {wc.pickHint}</p>
           </div>
-          <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/world-cup/my-result"
+              className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-2 rounded-xl transition-colors"
+            >
+              {wc.mySquadsCta}
+            </Link>
+            <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
             <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
               {entryFeeLabel}
@@ -875,11 +888,15 @@ export default function WorldCupSquadPage() {
               </Link>
             )}
           </div>
+          </div>
         </div>
-        <div className="lg:hidden flex items-center justify-between mb-4">
-          <div>
+        <div className="lg:hidden flex items-center justify-between mb-4 gap-3">
+          <div className="min-w-0">
             <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">{wc.squadTitle}</h1>
             <p className="text-white/30 text-xs mt-0.5">{wc.maxThreeNation}</p>
+            <Link href="/world-cup/my-result" className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70">
+              {wc.mySquadsCta}
+            </Link>
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>

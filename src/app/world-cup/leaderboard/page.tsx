@@ -45,6 +45,7 @@ export default function WorldCupLeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+  const [isAwaitingOracle, setIsAwaitingOracle] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -74,6 +75,7 @@ export default function WorldCupLeaderboardPage() {
     if (tourId === 0) return;
     setIsLoading(true);
     setIsPreview(false);
+    setIsAwaitingOracle(false);
     try {
       const gwData = await getGameweek(tourId);
       setCurrentTour(gwData);
@@ -135,7 +137,22 @@ export default function WorldCupLeaderboardPage() {
             setLeaderboardData(preview);
             setIsPreview(true);
           } else {
-            setLeaderboardData([]);
+            const locked: TeamResult[] = addresses.map((owner) => ({
+              owner,
+              basePoints: 0,
+              ratingBonus: 0,
+              titleTriggered: false,
+              titleMultiplier: 1,
+              guildTriggered: false,
+              guildMultiplier: 1,
+              finalPoints: 0,
+              rank: 0,
+              prizeAmount: 0,
+              claimed: false,
+            }));
+            locked.sort((a, b) => a.owner.localeCompare(b.owner));
+            setLeaderboardData(locked);
+            setIsAwaitingOracle(true);
           }
         } else {
           setLeaderboardData([]);
@@ -251,6 +268,13 @@ export default function WorldCupLeaderboardPage() {
         </div>
       )}
 
+      {isAwaitingOracle && (
+        <div className="mb-4 flex flex-col gap-2 px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] sm:flex-row sm:items-center sm:gap-3">
+          <p className="text-white/45 text-xs leading-relaxed">{wc.leaderboardClosedAwaitingHint(tourLabel(selectedTour))}</p>
+          <p className="text-[#00f948]/70 text-[10px] font-bold uppercase tracking-widest shrink-0">{wc.leaderboardSquadsViewable}</p>
+        </div>
+      )}
+
       {currentTour ? (
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-4 mb-8 flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-2.5">
@@ -291,13 +315,21 @@ export default function WorldCupLeaderboardPage() {
 
       {userResult && (
         <div className="bg-[#00f948]/[0.04] border border-[#00f948]/20 shadow-[0_0_40px_rgba(0,249,72,0.06)] rounded-2xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">{lb.myResultTitle(selectedTour)}</h2>
-            {userResult.rank > 0 && userResult.rank <= 10 && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                {lb.inPrizes}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {userResult.rank > 0 && userResult.rank <= 10 && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                  {lb.inPrizes}
+                </span>
+              )}
+              <Link
+                href={`/world-cup/my-result?tour=${selectedTour}`}
+                className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-1 rounded-full transition-colors"
+              >
+                {wc.mySquadsCta}
+              </Link>
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
             {[
@@ -346,8 +378,10 @@ export default function WorldCupLeaderboardPage() {
             gameweekId={selectedTour}
             isPreview={isPreview}
             showSquadView={
-              currentTour?.status === "resolved" || (currentTour?.status === "closed" && isPreview)
+              currentTour?.status === "resolved" ||
+              currentTour?.status === "closed"
             }
+            allowOwnSquadExpand
             catalogUrl="/api/wc-players"
             fplEnrichment={false}
           />
