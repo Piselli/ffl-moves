@@ -3,18 +3,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import {
-  NIGHTLY_DESKTOP_SCAN_MS,
+  WALLET_DESKTOP_SCAN_MS,
   isMobileBrowser,
-  nightlyConnectRows,
+  movementWalletConnectRows,
+  movementWalletDefByAdapterName,
 } from "@/lib/walletNightly";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { useWalletAdapterError } from "@/components/WalletProvider";
 
+function openingMessage(
+  walletName: string,
+  m: ReturnType<typeof useSiteMessages>,
+): string {
+  const def = movementWalletDefByAdapterName(walletName);
+  if (def?.id === "motion") return m.nav.openingMotion;
+  return m.nav.openingNightly;
+}
+
 /**
- * Connect to Nightly from a direct click handler.
+ * Connect to a Movement wallet from a direct click handler.
  * `connect()` must run synchronously in the click stack (browser extension popup).
  */
-export function useNightlyConnect() {
+export function useWalletConnect() {
   const { connect, connected, wallets, notDetectedWallets, isLoading } = useWallet();
   const { lastError, clearError } = useWalletAdapterError();
   const m = useSiteMessages();
@@ -24,12 +34,12 @@ export function useNightlyConnect() {
   const connectedRef = useRef(connected);
   connectedRef.current = connected;
 
-  const nightlyRows = useMemo(
-    () => nightlyConnectRows(wallets, notDetectedWallets),
+  const walletRows = useMemo(
+    () => movementWalletConnectRows(wallets, notDetectedWallets),
     [wallets, notDetectedWallets],
   );
 
-  const hasInstalled = nightlyRows.some((r) => r.mode === "installed");
+  const hasInstalled = walletRows.some((r) => r.mode === "installed");
   const desktop = !isMobileBrowser();
 
   const [scanDone, setScanDone] = useState(() => !desktop || hasInstalled);
@@ -40,18 +50,18 @@ export function useNightlyConnect() {
       return;
     }
     setScanDone(false);
-    const t = window.setTimeout(() => setScanDone(true), NIGHTLY_DESKTOP_SCAN_MS);
+    const t = window.setTimeout(() => setScanDone(true), WALLET_DESKTOP_SCAN_MS);
     return () => window.clearTimeout(t);
   }, [desktop, hasInstalled, wallets.length, notDetectedWallets.length]);
 
   const adapterReady = !isLoading && (scanDone || hasInstalled);
 
-  const connectNightly = (walletName: string) => {
+  const connectWallet = (walletName: string) => {
     if (pending) return;
 
     clearError();
     setHint(null);
-    setStatusLine(m.nav.openingNightly);
+    setStatusLine(openingMessage(walletName, m));
     setPending(true);
 
     const watchdog = window.setTimeout(() => {
@@ -85,7 +95,9 @@ export function useNightlyConnect() {
   };
 
   return {
-    nightlyRows,
+    walletRows,
+    /** @deprecated Use walletRows */
+    nightlyRows: walletRows,
     adapterReady,
     scanDone,
     hasInstalled,
@@ -93,7 +105,12 @@ export function useNightlyConnect() {
     hint,
     statusLine,
     lastError,
-    connectNightly,
+    connectWallet,
+    /** @deprecated Use connectWallet */
+    connectNightly: connectWallet,
     connected,
   };
 }
+
+/** @deprecated Use useWalletConnect */
+export const useNightlyConnect = useWalletConnect;

@@ -8,7 +8,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { Network } from "@aptos-labs/ts-sdk";
-import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
+import { AptosWalletAdapterProvider, type AvailableWallets } from "@aptos-labs/wallet-adapter-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MOVEMENT_RPC_URL } from "@/lib/constants";
 import { WalletSessionRestore } from "@/components/WalletSessionRestore";
@@ -69,7 +69,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
     >
       <AptosWalletAdapterProvider
         autoConnect
-        optInWallets={["Nightly"]}
+        optInWallets={["Nightly", "Motion", "Motion Wallet"] as AvailableWallets[]}
         dappConfig={dappConfig}
         onError={(error) => {
           const msg =

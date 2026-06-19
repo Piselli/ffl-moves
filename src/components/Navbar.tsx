@@ -7,10 +7,11 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { shortenAddress } from "@/lib/utils";
-import { NIGHTLY_CHROME_EXTENSION_URL, isSafariBrowser } from "@/lib/walletNightly";
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
+import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
+import { MovementWalletRows } from "@/components/MovementWalletRows";
 import { useNickname } from "@/hooks/useNickname";
-import { useNightlyConnect } from "@/hooks/useNightlyConnect";
+import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityCluster";
@@ -38,7 +39,7 @@ export function Navbar() {
         { href: "/faq", label: m.nav.faq },
       ];
   const { connected, account, disconnect } = useWallet();
-  const { nightlyRows, connectNightly, lastError, hint, scanDone } = useNightlyConnect();
+  const { walletRows, connectWallet, lastError, hint, scanDone } = useWalletConnect();
   const [showWalletList, setShowWalletList] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
@@ -282,6 +283,7 @@ export function Navbar() {
                       {m.nav.chooseWallet}
                     </p>
                     <p className="text-xs text-white/40 mt-1">{m.nav.compatibleMovement}</p>
+                    <WalletBeginnerHelp locale={locale} compact className="mt-1.5" />
                   </div>
                   <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
                     {lastError ? (
@@ -294,60 +296,16 @@ export function Navbar() {
                         <p className="text-[11px] text-amber-100/90 leading-relaxed">{hint}</p>
                       </div>
                     ) : null}
-                    {scanDone && nightlyRows.some((r) => r.mode === "extension-missing") ? (
-                      <div className="px-3 py-3 mb-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{m.nav.desktopExtensionHint}</p>
-                      </div>
-                    ) : null}
-                    {nightlyRows.length > 0 ? (
+                    {walletRows.length > 0 ? (
                       <>
-                        {nightlyRows.map((row) =>
-                          row.mode === "extension-missing" ? (
-                            <a
-                              key={row.name + row.mode}
-                              href={NIGHTLY_CHROME_EXTENSION_URL}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
-                                {row.icon ? (
-                                  <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
-                                ) : null}
-                              </div>
-                              <div>
-                                <p className="text-sm font-display font-bold text-[#00f948] group-hover:text-[#00f948] transition-colors">
-                                  {m.nav.installNightlyExtension}
-                                </p>
-                                <p className="text-xs text-white/45 font-medium mt-0.5">Chrome Web Store</p>
-                              </div>
-                            </a>
-                          ) : (
-                            <button
-                              key={row.name + row.mode}
-                              type="button"
-                              onClick={() => connectNightly(row.name)}
-                              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.05] transition-colors text-left group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 group-hover:border-[#00f948]/40 transition-colors flex shrink-0 items-center justify-center">
-                                {row.icon ? (
-                                  <img src={row.icon} alt={row.name} className="w-full h-full object-contain" />
-                                ) : null}
-                              </div>
-                              <div>
-                                <p className="text-sm font-display font-bold text-white group-hover:text-[#00f948] transition-colors">
-                                  {row.name}
-                                </p>
-                                <p className="text-xs text-[#00f948] font-bold uppercase tracking-wider mt-0.5">
-                                  {row.mode === "installed" ? m.nav.installed : m.nav.openInNightly}
-                                </p>
-                              </div>
-                            </button>
-                          ),
-                        )}
-                        {nightlyRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
-                          <div className="px-3 pb-2 pt-2 border-t border-white/[0.06] mt-1">
-                            <WalletOnboardingLinks locale={locale} />
+                        <MovementWalletRows
+                          rows={walletRows}
+                          onConnect={connectWallet}
+                          variant="navbar"
+                        />
+                        {walletRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
+                          <div className="px-2 pb-2 pt-2.5 mt-0.5 border-t border-white/[0.06] space-y-2.5">
+                            <WalletOnboardingLinks locale={locale} variant="footer" />
                           </div>
                         ) : null}
                       </>
@@ -362,10 +320,10 @@ export function Navbar() {
                       </div>
                     )}
                     {hint &&
-                    nightlyRows.length > 0 &&
-                    !nightlyRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
+                    walletRows.length > 0 &&
+                    !walletRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
                       <div className="px-3 pb-2 pt-2 border-t border-white/[0.06]">
-                        <WalletOnboardingLinks locale={locale} />
+                        <WalletOnboardingLinks locale={locale} variant="footer" />
                       </div>
                     ) : null}
                   </div>

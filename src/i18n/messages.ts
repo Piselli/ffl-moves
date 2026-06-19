@@ -24,15 +24,23 @@ export type SiteMessages = {
     compatibleMovement: string;
     installed: string;
     openInNightly: string;
+    openInMotion: string;
     noWalletsFound: string;
     noWalletsHint: string;
     connectHintNightly: string;
     connectHintFailed: string;
     openingNightly: string;
+    openingMotion: string;
     installNightlyExtension: string;
+    installMotionExtension: string;
+    walletMotionInstallSub: string;
+    walletNightlyInstallSub: string;
+    walletBeginnerEyebrow: string;
+    walletBeginnerTitle: string;
     desktopExtensionHint: string;
     desktopExtensionRefresh: string;
     scanningNightly: string;
+    scanningWallets: string;
     connectHintInstalled: string;
     safariExtensionHint: string;
     nightlyInstalledTips: string;
@@ -230,20 +238,28 @@ const uk: SiteMessages = {
     compatibleMovement: "Сумісний з Movement Network",
     installed: "Встановлено",
     openInNightly: "Відкрити в Nightly",
+    openInMotion: "Відкрити в Motion",
     noWalletsFound: "Гаманців не знайдено",
     noWalletsHint:
-      "Потрібен гаманець Nightly. Після встановлення натисни «Підключити гаманець» знову.",
+      "Потрібен гаманець Motion або Nightly. Рекомендуємо Motion — офіційний гаманець Movement. Після встановлення натисни «Підключити гаманець» знову.",
     connectHintNightly:
-      "Схоже, Nightly не відкрився або не встановлено. Завантаж Nightly за посиланням нижче й спробуй підключити знову.",
+      "Схоже, гаманець не відкрився або не встановлено. Завантаж Motion або Nightly за посиланням нижче й спробуй знову.",
     connectHintFailed:
-      "Не вдалося підключити гаманець. Перевір, чи встановлено Nightly, або скористайся посиланнями нижче.",
+      "Не вдалося підключити гаманець. Перевір, чи встановлено Motion або Nightly, або скористайся посиланнями нижче.",
     openingNightly: "Відкриваємо Nightly… Підтверди підключення у вікні розширення.",
+    openingMotion: "Відкриваємо Motion… Підтверди підключення у вікні розширення.",
     installNightlyExtension: "Встановити розширення Nightly",
+    installMotionExtension: "Встановити Motion",
+    walletMotionInstallSub: "Офіційний гаманець Movement",
+    walletNightlyInstallSub: "Альтернативний гаманець",
+    walletBeginnerEyebrow: "Вперше тут?",
+    walletBeginnerTitle: "Що таке гаманець",
     desktopExtensionHint:
-      "На Mac у браузері потрібне розширення Nightly (Chrome, Brave або Edge) — мобільний застосунок тут не підключиться.",
+      "На Mac у браузері потрібне розширення Motion або Nightly (Chrome, Brave або Edge). Рекомендуємо Motion — мобільний застосунок Nightly тут не підключиться.",
     desktopExtensionRefresh:
-      "Після встановлення онови сторінку (Cmd+Shift+R) і натисни Nightly знову. Дозволь розширенню доступ до localhost.",
+      "Після встановлення онови сторінку (Cmd+Shift+R) і обери Motion або Nightly. Дозволь розширенню доступ до localhost.",
     scanningNightly: "Шукаємо розширення Nightly у браузері…",
+    scanningWallets: "Шукаємо розширення гаманців у браузері…",
     connectHintInstalled:
       "Nightly знайдено, але підключення не завершилось. Натисни іконку Nightly у панелі браузера → підключи сайт → обери мережу Movement → спробуй знову. Дозволь popup для localhost.",
     safariExtensionHint:
@@ -462,19 +478,28 @@ const en: SiteMessages = {
     compatibleMovement: "Compatible with Movement Network",
     installed: "Installed",
     openInNightly: "Open in Nightly",
+    openInMotion: "Open in Motion",
     noWalletsFound: "No wallets found",
-    noWalletsHint: "You need the Nightly wallet. After installing, tap “Connect wallet” again.",
+    noWalletsHint:
+      "You need the Motion or Nightly wallet. We recommend Motion — the official Movement wallet. After installing, tap “Connect wallet” again.",
     connectHintNightly:
-      "Nightly may not have opened or isn’t installed. Download Nightly via the link below and try again.",
+      "The wallet may not have opened or isn’t installed. Download Motion or Nightly via the links below and try again.",
     connectHintFailed:
-      "Could not connect the wallet. Check that Nightly is installed or use the links below.",
+      "Could not connect the wallet. Check that Motion or Nightly is installed or use the links below.",
     openingNightly: "Opening Nightly… Approve the connection in the extension popup.",
+    openingMotion: "Opening Motion… Approve the connection in the extension popup.",
     installNightlyExtension: "Install Nightly extension",
+    installMotionExtension: "Install Motion",
+    walletMotionInstallSub: "Official Movement wallet",
+    walletNightlyInstallSub: "Alternative wallet",
+    walletBeginnerEyebrow: "First time here?",
+    walletBeginnerTitle: "What is a wallet",
     desktopExtensionHint:
-      "On Mac, the browser needs the Nightly extension (Chrome, Brave, or Edge) — the mobile app cannot connect here.",
+      "On Mac, the browser needs the Motion or Nightly extension (Chrome, Brave, or Edge). We recommend Motion — the Nightly mobile app cannot connect here.",
     desktopExtensionRefresh:
-      "After installing, refresh this page (Cmd+Shift+R) and tap Nightly again. Allow the extension access to localhost.",
+      "After installing, refresh this page (Cmd+Shift+R) and choose Motion or Nightly. Allow the extension access to localhost.",
     scanningNightly: "Looking for the Nightly extension in your browser…",
+    scanningWallets: "Looking for wallet extensions in your browser…",
     connectHintInstalled:
       "Nightly was found but the connection did not finish. Click the Nightly icon in the toolbar → connect this site → select Movement network → try again. Allow popups for localhost.",
     safariExtensionHint:

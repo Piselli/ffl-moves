@@ -675,7 +675,7 @@ export const pagesEn: PagesMessages = {
     randomSquadFailed: "Could not build a valid squad — try again.",
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
-    entryFeeUsdcxHint: "Need USDCx? Swap in Nightly or Yuzu →",
+    entryFeeUsdcxHint: "Need USDCx? Swap in Motion, Nightly, or Yuzu →",
     entryFeeLegacyBanner: (chargedLabel) =>
       `On-chain entry is still ${chargedLabel} (MOVE) — USDCx activates after a contract upgrade. The wallet will charge MOVE, not USDCx.`,
     entryShort: "Entry",
@@ -1155,11 +1155,13 @@ export const pagesEn: PagesMessages = {
             id: "which-wallet",
             q: "Which wallet do I need? Where do I get it?",
             a: [
-              { type: "p", text: "MOVEMATCH works with the Nightly wallet. Get it from the official site nightly.app — there is a Chrome extension and a phone app (iOS / Android)." },
+              { type: "p", text: "MOVEMATCH supports Motion and Nightly — pick either when you press “Connect wallet”." },
+              { type: "p", text: "Motion (recommended) is the official Movement-native Chrome extension: motion.movementnetwork.xyz. Self-custodial, built for Movement — send, swap, connect to dApps. Install from the Chrome Web Store. Full FAQ: movementnetwork.xyz/faqs/motion-wallet." },
+              { type: "p", text: "Nightly (alternative) also works on Movement — Chrome extension plus a phone app (iOS / Android) from nightly.app. Handy if you already use Nightly on mobile." },
               {
                 type: "ul",
                 items: [
-                  "Create a new wallet inside the app.",
+                  "Create a new wallet inside the extension or app.",
                   "Write down the seed phrase (12–24 words) on paper and store it somewhere safe.",
                   "Never share your seed phrase with anyone — it is full access to your wallet.",
                   "Lose the seed and tell no one — wallet is gone forever. Write it and share it — funds will be stolen.",
@@ -1172,7 +1174,7 @@ export const pagesEn: PagesMessages = {
             q: "What is Movement and what is USDCx?",
             a: [
               { type: "p", text: "Movement is a blockchain network (think of it like the internet, but for crypto)." },
-              { type: "p", text: "USDCx is the dollar stablecoin on Movement, backed 1:1 by USDC from Circle. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via Nightly Swap or Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "USDCx is the dollar stablecoin on Movement, backed 1:1 by USDC from Circle. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via swap in Motion or Nightly, or on Yuzu (app.yuzu.finance)." },
             ],
           },
           {
@@ -1182,11 +1184,11 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Install Nightly from nightly.app and create a wallet on Movement.",
-                  "In Nightly, open the Swap tab and exchange MOVE (or another token you already hold) for USDCx — takes a few taps.",
-                  "Or use Yuzu, Movement’s official DEX: app.yuzu.finance — connect Nightly, pick USDCx, swap, and sign.",
+                  "Install Motion from motion.movementnetwork.xyz (or Nightly from nightly.app) and create a wallet on Movement.",
+                  "In Motion or Nightly, open Swap and exchange MOVE (or another token you already hold) for USDCx — takes a few taps.",
+                  "Or use Yuzu, Movement’s official DEX: app.yuzu.finance — connect your wallet, pick USDCx, swap, and sign.",
                   "You need at least 5 USDCx to register one squad. Keep a little MOVE on the wallet for network fees.",
-                  "Open MOVEMATCH → Connect wallet → Squad page → Confirm squad and sign in Nightly.",
+                  "Open MOVEMATCH → Connect wallet → pick Motion or Nightly → Squad page → Confirm squad and sign.",
                 ],
               },
               {
@@ -1200,7 +1202,7 @@ export const pagesEn: PagesMessages = {
             q: "Is it safe to connect my wallet to the site?",
             a: [
               { type: "p", text: "Yes. “Connect wallet” is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
-              { type: "p", text: "You always sign inside the Nightly window. The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
+              { type: "p", text: "You always sign inside your wallet window (Motion or Nightly). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
               { type: "p", text: "Simple rule of thumb: always check the URL — only use the official MOVEMATCH address." },
             ],
           },
@@ -1218,7 +1220,7 @@ export const pagesEn: PagesMessages = {
             q: "Why do I need to press “Claim” to receive a prize?",
             a: [
               { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves USDCx from the contract to your address." },
-              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in Nightly → USDCx lands on your wallet. You can do this whenever you want." },
+              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in your wallet → USDCx lands on your wallet. You can do this whenever you want." },
             ],
           },
         ],
@@ -1235,12 +1237,12 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Install Nightly from nightly.app.",
+                  "1. Install Motion from motion.movementnetwork.xyz (recommended) or Nightly from nightly.app.",
                   "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Get USDCx — swap in Nightly (Swap tab) or on Yuzu (app.yuzu.finance). You need ~5 USDCx + a bit of MOVE for fees.",
-                  "4. On MOVEMATCH press “Connect wallet” and pick Nightly.",
+                  "3. Get USDCx — swap in Motion, Nightly, or on Yuzu (app.yuzu.finance). You need ~5 USDCx + a bit of MOVE for fees.",
+                  "4. On MOVEMATCH press “Connect wallet” and pick Motion or Nightly.",
                   "5. Open the Squad page and pick 11 starters + 3 bench players.",
-                  "6. Press “Confirm squad” and sign the transaction in Nightly.",
+                  "6. Press “Confirm squad” and sign the transaction in your wallet.",
                   "7. Wait for kickoff — points are tallied automatically from there.",
                 ],
               },
@@ -1354,7 +1356,7 @@ export const pagesEn: PagesMessages = {
             id: "convert-to-fiat",
             q: "How do I cash out USDCx back to normal money?",
             a: [
-              { type: "p", text: "USDCx is already pegged to the dollar. Swap it back to MOVE or another token on Yuzu or in Nightly, then cash out via your usual exchange — same as any crypto." },
+              { type: "p", text: "USDCx is already pegged to the dollar. Swap it back to MOVE or another token on Yuzu, in Motion, or in Nightly, then cash out via your usual exchange — same as any crypto." },
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
@@ -1383,9 +1385,9 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "lost-seed",
-            q: "What if I lose my Nightly seed phrase?",
+            q: "What if I lose my wallet seed phrase?",
             a: [
-              { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Nightly nor MOVEMATCH have access to it." },
+              { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Motion, Nightly, nor MOVEMATCH have access to it." },
               { type: "p", text: "If the seed is lost, the wallet (and any funds in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
             ],
           },
@@ -1597,7 +1599,7 @@ export const pagesUk: PagesMessages = {
     randomSquadFailed: "Не вдалося зібрати склад — спробуй ще раз.",
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
-    entryFeeUsdcxHint: "Потрібен USDCx? Nightly Swap або Yuzu →",
+    entryFeeUsdcxHint: "Потрібен USDCx? Motion, Nightly Swap або Yuzu →",
     entryFeeLegacyBanner: (chargedLabel) =>
       `On-chain внесок досі ${chargedLabel} (MOVE) — USDCx увімкнеться після оновлення контракту. З гаманця зніметься MOVE, не USDCx.`,
     entryShort: "Внесок",
@@ -2084,11 +2086,13 @@ export const pagesUk: PagesMessages = {
             id: "which-wallet",
             q: "Який гаманець потрібен? Де його взяти?",
             a: [
-              { type: "p", text: "MOVEMATCH працює з гаманцем Nightly. Скачай його з офіційного сайту nightly.app — є розширення для Chrome і застосунок для телефону (iOS / Android)." },
+              { type: "p", text: "MOVEMATCH підтримує Motion і Nightly — обери будь-який, коли натискаєш «Підключити гаманець»." },
+              { type: "p", text: "Motion (рекомендуємо) — офіційне розширення Chrome для Movement: motion.movementnetwork.xyz. Self-custodial, зроблений під Movement: відправка, своп, підключення до dApps. Встанови з Chrome Web Store. Повний FAQ: movementnetwork.xyz/faqs/motion-wallet." },
+              { type: "p", text: "Nightly (альтернатива) теж працює з Movement — розширення для Chrome і застосунок для телефону (iOS / Android) з nightly.app. Зручно, якщо вже користуєшся Nightly на мобільному." },
               {
                 type: "ul",
                 items: [
-                  "Створи новий гаманець у застосунку.",
+                  "Створи новий гаманець у розширенні або застосунку.",
                   "Обов'язково запиши seed-фразу (12-24 слова) на папері й сховай у безпечному місці.",
                   "Ніколи нікому не давай seed-фразу — це повний доступ до твого гаманця.",
                   "Втратиш seed і нікому не дав — гаманець відновити неможливо. Запишеш і поділишся з кимось — гроші вкрадуть.",
@@ -2101,7 +2105,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Movement і USDCx?",
             a: [
               { type: "p", text: "Movement — це блокчейн-мережа (як інтернет, тільки для криптовалют)." },
-              { type: "p", text: "USDCx — доларовий стейблкоїн на мережі Movement, забезпечений USDC від Circle. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через Swap у Nightly або на Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "USDCx — доларовий стейблкоїн на мережі Movement, забезпечений USDC від Circle. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через своп у Motion або Nightly, або на Yuzu (app.yuzu.finance)." },
             ],
           },
           {
@@ -2111,11 +2115,11 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Встанови Nightly з nightly.app і створи гаманець у Movement.",
-                  "У Nightly відкрий вкладку Swap і обміняй MOVE (або інший токен на балансі) на USDCx — кілька тапів.",
-                  "Або Yuzu — офіційний DEX Movement: app.yuzu.finance — підключи Nightly, обери USDCx, свопни і підпиши.",
+                  "Встанови Motion з motion.movementnetwork.xyz (або Nightly з nightly.app) і створи гаманець у Movement.",
+                  "У Motion або Nightly відкрий Swap і обміняй MOVE (або інший токен на балансі) на USDCx — кілька тапів.",
+                  "Або Yuzu — офіційний DEX Movement: app.yuzu.finance — підключи гаманець, обери USDCx, свопни і підпиши.",
                   "Потрібно щонайменше 5 USDCx на один склад. Залиш трохи MOVE на комісії мережі.",
-                  "Заходь на MOVEMATCH → Підключи гаманець → Склад → Підтверди і підпиши в Nightly.",
+                  "Заходь на MOVEMATCH → Підключи гаманець → обери Motion або Nightly → Склад → Підтверди і підпиши.",
                 ],
               },
               {
@@ -2129,7 +2133,7 @@ export const pagesUk: PagesMessages = {
             q: "Чи безпечно підключати гаманець до сайту?",
             a: [
               { type: "p", text: "Так. «Підключити гаманець» — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
-              { type: "p", text: "Підпис ти даєш сам у вікні Nightly. Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
+              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Motion або Nightly). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
               { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу MOVEMATCH." },
             ],
           },
@@ -2147,7 +2151,7 @@ export const pagesUk: PagesMessages = {
             q: "Чому я маю натискати «Claim», щоб забрати виграш?",
             a: [
               { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок USDCx з контракту на твою адресу." },
-              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у Nightly → USDCx падає на гаманець. Зробити це можна в будь-який зручний момент." },
+              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у гаманці → USDCx падає на гаманець. Зробити це можна в будь-який зручний момент." },
             ],
           },
         ],
@@ -2164,12 +2168,12 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Встанови гаманець Nightly з nightly.app.",
-                  "2. Створи акаунт у Nightly і збережи seed-фразу на папері.",
-                  "3. Отримай USDCx — своп у Nightly (вкладка Swap) або на Yuzu (app.yuzu.finance). Потрібно ~5 USDCx + трохи MOVE на комісії.",
-                  "4. На MOVEMATCH натисни «Підключити гаманець», обери Nightly.",
+                  "1. Встанови Motion з motion.movementnetwork.xyz (рекомендуємо) або Nightly з nightly.app.",
+                  "2. Створи акаунт і збережи seed-фразу на папері.",
+                  "3. Отримай USDCx — своп у Motion, Nightly або на Yuzu (app.yuzu.finance). Потрібно ~5 USDCx + трохи MOVE на комісії.",
+                  "4. На MOVEMATCH натисни «Підключити гаманець», обери Motion або Nightly.",
                   "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
-                  "6. Натисни «Підтвердити склад» і підпиши транзакцію в Nightly.",
+                  "6. Натисни «Підтвердити склад» і підпиши транзакцію в гаманці.",
                   "7. Чекай початку туру — далі все рахується автоматично.",
                 ],
               },
@@ -2283,7 +2287,7 @@ export const pagesUk: PagesMessages = {
             id: "convert-to-fiat",
             q: "Як вивести USDCx у звичайні гроші?",
             a: [
-              { type: "p", text: "USDCx уже прив’язаний до долара. Обміняй назад на MOVE або інший токен на Yuzu чи в Nightly, потім виведи через звичну біржу — як із будь-якою криптою." },
+              { type: "p", text: "USDCx уже прив’язаний до долара. Обміняй назад на MOVE або інший токен на Yuzu, у Motion або в Nightly, потім виведи через звичну біржу — як із будь-якою криптою." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
             ],
           },
@@ -2312,9 +2316,9 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "lost-seed",
-            q: "А якщо я втратив seed-фразу від Nightly?",
+            q: "А якщо я втратив seed-фразу від гаманця?",
             a: [
-              { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Nightly, ні MOVEMATCH не мають доступу до неї." },
+              { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Motion, ні Nightly, ні MOVEMATCH не мають доступу до неї." },
               { type: "p", text: "Якщо seed утрачено — гаманець (і кошти на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
             ],
           },
