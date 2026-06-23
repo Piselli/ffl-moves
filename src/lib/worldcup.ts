@@ -107,6 +107,28 @@ export async function findOpenWorldCupTourFromChain(): Promise<GameweekSummary |
   return tours.find((t) => t.status === "open") ?? null;
 }
 
+/**
+ * Which WC tour's prize pool to surface on marketing UI: the latest CLOSED tour
+ * (matches done, results not yet published), else the OPEN registration tour.
+ */
+export function pickWorldCupPrizePoolTour(
+  tours: GameweekSummary[] | Record<number, GameweekSummary>,
+): GameweekSummary | null {
+  const list = Array.isArray(tours)
+    ? WC_TOUR_IDS.map((id) => tours.find((t) => t.id === id)).filter(
+        (g): g is GameweekSummary => g != null,
+      )
+    : WC_TOUR_IDS.map((id) => tours[id]).filter((g): g is GameweekSummary => g != null);
+  const closed = [...list].reverse().find((t) => t.status === "closed");
+  if (closed) return closed;
+  return list.find((t) => t.status === "open") ?? null;
+}
+
+export async function findPrizePoolWorldCupTourFromChain(): Promise<GameweekSummary | null> {
+  const tours = await getWorldCupTourSummaries();
+  return pickWorldCupPrizePoolTour(tours);
+}
+
 /** Latest WC tour id that is RESOLVED (best default for the WC leaderboard). */
 export async function findLatestResolvedWorldCupTourId(): Promise<number> {
   const tours = await getWorldCupTourSummaries();

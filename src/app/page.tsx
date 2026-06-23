@@ -736,11 +736,11 @@ export default function Home() {
     async function fetchOnChainData() {
       try {
         if (wcCampaign) {
-          const activeTour = await findActiveWorldCupTourFromChain();
-          if (activeTour) {
-            setPrizePoolRaw(activeTour.prizePool);
-            setTourEntryCount(activeTour.totalEntries);
-            setOpenGameweekId(activeTour.id);
+          const regTour = await findActiveWorldCupTourFromChain();
+          if (regTour) {
+            setPrizePoolRaw(regTour.prizePool);
+            setTourEntryCount(regTour.totalEntries);
+            setOpenGameweekId(regTour.id);
           }
         } else {
           const cfg = await getConfig();

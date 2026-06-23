@@ -5,9 +5,9 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   WC_ROUNDS,
-  findActiveWorldCupTourFromChain,
   getWorldCupRound,
   getWorldCupTourSummaries,
+  pickWorldCupPrizePoolTour,
 } from "@/lib/worldcup";
 import type { GameweekSummary } from "@/lib/movement";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
@@ -236,12 +236,12 @@ export function WorldCupEventHub() {
   const hm = m.home;
   const reduceMotion = useReducedMotion();
   const [tours, setTours] = useState<Record<number, GameweekSummary>>({});
-  const [activeTour, setActiveTour] = useState<GameweekSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [kickoff, setKickoff] = useState<{ d: number; h: number; m: number } | null>(null);
   const [kickoffTargetMs, setKickoffTargetMs] = useState<number | null>(null);
 
-  const activeRound = activeTour ? getWorldCupRound(activeTour.id) : undefined;
+  const prizePoolTour = pickWorldCupPrizePoolTour(tours);
+  const prizePoolRound = prizePoolTour ? getWorldCupRound(prizePoolTour.id) : undefined;
   const openRound = WC_ROUNDS.find((r) => tours[r.tourId]?.status === "open");
   const openTourId = openRound?.tourId;
   const registrationOpen = Boolean(openRound);
@@ -281,15 +281,11 @@ export function WorldCupEventHub() {
     let cancelled = false;
     (async () => {
       try {
-        const [summaries, active] = await Promise.all([
-          getWorldCupTourSummaries(),
-          findActiveWorldCupTourFromChain(),
-        ]);
+        const summaries = await getWorldCupTourSummaries();
         if (cancelled) return;
         const byId: Record<number, GameweekSummary> = {};
         for (const s of summaries) byId[s.id] = s;
         setTours(byId);
-        setActiveTour(active);
       } catch (e) {
         console.error("WC hub load failed:", e);
       } finally {
@@ -301,9 +297,10 @@ export function WorldCupEventHub() {
     };
   }, []);
 
-  // Hero KPI source — the live/open round if any, else whatever's active on-chain.
-  const statSummary = activeTour ?? (openTourId ? tours[openTourId] : undefined);
-  const statRound = activeRound ?? openRound;
+  // Hero KPI — registration tour; prize breakdown section uses closed-first logic below.
+  const registrationTour = openTourId ? tours[openTourId] : undefined;
+  const statSummary = registrationTour ?? prizePoolTour;
+  const statRound = openRound ?? prizePoolRound;
   const statPool = statSummary?.prizePool ?? null;
   const hasStatPool = statPool != null && statPool > 0;
   const statEntries = statSummary?.totalEntries ?? null;
@@ -528,7 +525,7 @@ export function WorldCupEventHub() {
               const summary = tours[round.tourId];
               const st = statusLabel(summary);
               const isOpen = summary?.status === "open";
-              const isCurrent = round.tourId === (openTourId ?? activeTour?.id);
+              const isCurrent = round.tourId === (openTourId ?? prizePoolTour?.id);
               const card = (
                 <div
                   className={cn(
@@ -578,9 +575,9 @@ export function WorldCupEventHub() {
       </section>
 
       <PrizeBreakdown
-        prizePool={activeTour?.prizePool ?? null}
+        prizePool={prizePoolTour?.prizePool ?? null}
         loading={loading}
-        roundLabel={activeRound ? wc.roundName(activeRound.key) : null}
+        roundLabel={prizePoolRound ? wc.roundName(prizePoolRound.key) : null}
       />
     </div>
   );
