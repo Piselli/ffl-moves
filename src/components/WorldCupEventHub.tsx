@@ -12,7 +12,8 @@ import {
 import type { GameweekSummary } from "@/lib/movement";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn } from "@/lib/utils";
-import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { formatFplDeadlineLocale } from "@/lib/fpl-deadline";
 import { WcHowItWorksDemo } from "@/components/wc/WcHowItWorksDemo";
 import { WcPitchLinesSvg } from "@/components/wc/WcDecor";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
@@ -231,6 +232,7 @@ function PrizeBreakdown({
 
 export function WorldCupEventHub() {
   const prize = usePrizeAsset();
+  const { locale } = useSiteLocale();
   const m = useSiteMessages();
   const wc = m.pages.worldCup;
   const hm = m.home;
@@ -273,7 +275,7 @@ export function WorldCupEventHub() {
       });
     };
     tick();
-    const id = setInterval(tick, 30000);
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [kickoffTargetMs]);
 
@@ -305,11 +307,17 @@ export function WorldCupEventHub() {
   const hasStatPool = statPool != null && statPool > 0;
   const statEntries = statSummary?.totalEntries ?? null;
   const deadlineLoading = registrationOpen && kickoffTargetMs == null;
-  const showKickoffCountdown =
+  const showDeadlineCountdown =
     registrationOpen &&
     kickoff != null &&
     kickoffTargetMs != null &&
     kickoffTargetMs > Date.now();
+  const deadlineMeta =
+    showDeadlineCountdown && kickoffTargetMs != null
+      ? formatFplDeadlineLocale(kickoffTargetMs, locale)
+      : statRound
+        ? wc.roundName(statRound.key)
+        : undefined;
   const showRegistrationClosed =
     !loading &&
     !deadlineLoading &&
@@ -383,19 +391,21 @@ export function WorldCupEventHub() {
                 value={loading ? null : statEntries != null ? statEntries.toLocaleString() : <span className="text-white/30">—</span>}
               />
               <HeroStat
-                label={showKickoffCountdown ? hm.wcKickoffLabel : wc.heroRegistrationLabel}
-                meta={
-                  showKickoffCountdown
-                    ? hm.wcKickoffMeta
-                    : statRound
-                      ? wc.roundName(statRound.key)
-                      : undefined
-                }
+                label={showDeadlineCountdown ? hm.untilDeadline : wc.heroRegistrationLabel}
+                meta={deadlineMeta}
                 value={
                   loading || deadlineLoading
                     ? null
-                    : showKickoffCountdown
-                      ? `${kickoff!.d}:${pad2(kickoff!.h)}:${pad2(kickoff!.m)}`
+                    : showDeadlineCountdown
+                      ? (
+                          <span className="inline-flex flex-nowrap items-baseline gap-px sm:gap-0.5">
+                            <span>{pad2(kickoff!.d)}{hm.daySuffix}</span>
+                            <span className="text-white/40">:</span>
+                            <span>{pad2(kickoff!.h)}{hm.hourSuffix}</span>
+                            <span className="text-white/40">:</span>
+                            <span>{pad2(kickoff!.m)}{hm.minSuffix}</span>
+                          </span>
+                        )
                       : showRegistrationClosed
                         ? <span className="text-amber-300">{wc.statusClosed}</span>
                         : null
