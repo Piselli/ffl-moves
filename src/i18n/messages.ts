@@ -6,6 +6,7 @@ export type SiteMessages = {
   nav: {
     squad: string;
     leaderboard: string;
+    seasonPoints: string;
     fixtures: string;
     faq: string;
     worldCup: string;
@@ -220,6 +221,7 @@ const uk: SiteMessages = {
   nav: {
     squad: "Склад",
     leaderboard: "Лідерборд",
+    seasonPoints: "Season SP",
     fixtures: "Матчі",
     faq: "FAQ",
     worldCup: "Чемпіонат світу",
@@ -460,6 +462,7 @@ const en: SiteMessages = {
   nav: {
     squad: "Squad",
     leaderboard: "Leaderboard",
+    seasonPoints: "Season SP",
     fixtures: "Fixtures",
     faq: "FAQ",
     worldCup: "World Cup",

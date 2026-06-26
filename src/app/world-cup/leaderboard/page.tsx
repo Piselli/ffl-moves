@@ -30,6 +30,7 @@ import {
   mergePriorClaimsIntoResults,
   ownerHasPriorClaimPrize,
 } from "@/lib/tourClaimHistory";
+import { getPrizeRankCount, getPrizeTiers, isRankInPrizeZone } from "@/lib/prize-distribution";
 
 export default function WorldCupLeaderboardPage() {
   const { account, connected, signTransaction } = useWallet();
@@ -306,6 +307,41 @@ export default function WorldCupLeaderboardPage() {
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lb.entriesLabel}</span>
             <span className="text-xl font-display font-black text-white tabular-nums">{currentTour.totalEntries}</span>
           </div>
+          <div className="ml-auto relative group/dist">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/25 hover:text-white/50 cursor-default transition-colors underline decoration-dotted underline-offset-2 whitespace-nowrap">
+              {lb.prizeDistribution}
+            </span>
+            <div className="absolute top-full right-0 mt-2 hidden group-hover/dist:block z-50 w-44 pointer-events-none">
+              <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">
+                  {lb.topNPrizeReceive(getPrizeRankCount(selectedTour))}
+                </p>
+                <div className="space-y-1">
+                  {getPrizeTiers(selectedTour).map(({ rank, pct }) => (
+                    <div key={rank} className="flex items-center justify-between">
+                      <span className="text-white/30 text-[11px]">
+                        {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs font-bold tabular-nums",
+                          rank === 1
+                            ? "text-[#FFD700]"
+                            : rank === 2
+                              ? "text-white/60"
+                              : rank === 3
+                                ? "text-[#F59E0B]"
+                                : "text-white/40",
+                        )}
+                      >
+                        {pct}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 text-center mb-8">
@@ -318,7 +354,7 @@ export default function WorldCupLeaderboardPage() {
           <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <h2 className="text-sm font-display font-black text-white uppercase tracking-wide">{lb.myResultTitle(selectedTour)}</h2>
             <div className="flex items-center gap-2">
-              {userResult.rank > 0 && userResult.rank <= 10 && (
+              {userResult.rank > 0 && isRankInPrizeZone(userResult.rank, selectedTour) && (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
                   {lb.inPrizes}
                 </span>

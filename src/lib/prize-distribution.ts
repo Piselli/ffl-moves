@@ -1,0 +1,60 @@
+import { WC_TOUR_ID_BASE } from "@/lib/worldcup";
+
+export type PrizeTier = { rank: number; pct: number };
+
+/** Default grid — top 10, sums to 100%. Used for EPL and most WC rounds. */
+export const DEFAULT_PRIZE_TIERS: readonly PrizeTier[] = [
+  { rank: 1, pct: 30 },
+  { rank: 2, pct: 20 },
+  { rank: 3, pct: 15 },
+  { rank: 4, pct: 8 },
+  { rank: 5, pct: 7 },
+  { rank: 6, pct: 6 },
+  { rank: 7, pct: 5 },
+  { rank: 8, pct: 4 },
+  { rank: 9, pct: 3 },
+  { rank: 10, pct: 2 },
+];
+
+/**
+ * WC MD3 (10003): 8 squads — top 3 unchanged; +1% each to ranks 4–8 (ex 9–10 share).
+ */
+export const WC_MD3_TOUR_ID = WC_TOUR_ID_BASE + 3;
+
+export const WC_MD3_PRIZE_TIERS: readonly PrizeTier[] = [
+  { rank: 1, pct: 30 },
+  { rank: 2, pct: 20 },
+  { rank: 3, pct: 15 },
+  { rank: 4, pct: 9 },
+  { rank: 5, pct: 8 },
+  { rank: 6, pct: 7 },
+  { rank: 7, pct: 6 },
+  { rank: 8, pct: 5 },
+];
+
+const TOUR_PRIZE_OVERRIDES: Readonly<Record<number, readonly PrizeTier[]>> = {
+  [WC_MD3_TOUR_ID]: WC_MD3_PRIZE_TIERS,
+};
+
+export function getPrizeTiers(gameweekId: number): readonly PrizeTier[] {
+  return TOUR_PRIZE_OVERRIDES[gameweekId] ?? DEFAULT_PRIZE_TIERS;
+}
+
+export function getPrizeRankCount(gameweekId: number): number {
+  return getPrizeTiers(gameweekId).length;
+}
+
+export function isRankInPrizeZone(rank: number, gameweekId: number): boolean {
+  return rank >= 1 && rank <= getPrizeRankCount(gameweekId);
+}
+
+export function getPrizeRecalcArgs(gameweekId: number): {
+  prizeRanks: number[];
+  prizePercentages: number[];
+} {
+  const tiers = getPrizeTiers(gameweekId);
+  return {
+    prizeRanks: tiers.map((t) => t.rank),
+    prizePercentages: tiers.map((t) => t.pct),
+  };
+}

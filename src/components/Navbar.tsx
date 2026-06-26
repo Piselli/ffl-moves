@@ -29,11 +29,13 @@ export function Navbar() {
         { href: "/world-cup/squad", label: m.nav.squad },
         { href: "/world-cup/fixtures", label: m.nav.fixtures },
         { href: "/world-cup/leaderboard", label: m.nav.leaderboard },
+        { href: "/season-leaderboard", label: m.nav.seasonPoints },
         { href: "/faq", label: m.nav.faq },
       ]
     : [
         { href: "/gameweek", label: m.nav.squad },
         { href: "/leaderboard", label: m.nav.leaderboard },
+        { href: "/season-leaderboard", label: m.nav.seasonPoints },
         { href: "/fixtures", label: m.nav.fixtures },
         { href: "/world-cup", label: m.nav.worldCup },
         { href: "/faq", label: m.nav.faq },

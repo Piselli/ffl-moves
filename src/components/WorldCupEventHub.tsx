@@ -19,11 +19,11 @@ import { WcPitchLinesSvg } from "@/components/wc/WcDecor";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
 import { WcUpcomingMatches } from "@/components/wc/WcUpcomingMatches";
 import { fetchWcTourDeadlineMs } from "@/lib/wc-deadline";
+import { getPrizeTiers, getPrizeRankCount } from "@/lib/prize-distribution";
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-const PRIZE_SHARES = [30, 20, 15, 10, 8, 6, 5, 3, 2, 1];
 
 /** Brushed-metal masthead fill — the premium "foil" feel shared with the home hero. */
 const FOIL_FILL = "linear-gradient(180deg, #ffffff 0%, #eef1f5 44%, #b9bfca 100%)";
@@ -71,10 +71,12 @@ function HeroStat({
 }
 
 function PrizeBreakdown({
+  tourId,
   prizePool,
   loading,
   roundLabel,
 }: {
+  tourId: number;
   prizePool: number | null;
   loading: boolean;
   roundLabel: string | null;
@@ -84,12 +86,13 @@ function PrizeBreakdown({
   const prize = usePrizeAsset();
   const reduceMotion = useReducedMotion();
   const hasPool = !loading && prizePool != null && prizePool > 0;
+  const prizeCount = getPrizeRankCount(tourId);
 
   const amount = (share: number): string | null =>
     hasPool ? prize.formatUnits((prizePool! * share) / 100) : null;
 
-  const ranks = PRIZE_SHARES.map((share, i) => ({ rank: i + 1, share }));
-  const maxShare = PRIZE_SHARES[0];
+  const ranks = getPrizeTiers(tourId).map(({ rank, pct }) => ({ rank, share: pct }));
+  const maxShare = ranks[0]?.share ?? 0;
 
   const fade = reduceMotion
     ? { initial: { opacity: 1 }, whileInView: { opacity: 1 } }
@@ -102,9 +105,9 @@ function PrizeBreakdown({
         <div>
           <WcSectionEyebrow>{wc.prizeBadge}</WcSectionEyebrow>
           <h2 className="mt-4 font-wc-display text-3xl uppercase leading-[0.95] tracking-tight text-white sm:text-4xl">
-            {wc.prizeTitle}
+            {wc.prizeTitleForN(prizeCount)}
           </h2>
-          <p className="mt-2 max-w-xl text-sm text-white/45">{wc.prizeDesc(prize.symbol)}</p>
+          <p className="mt-2 max-w-xl text-sm text-white/45">{wc.prizeDescForN(prizeCount, prize.symbol)}</p>
         </div>
         <Link
           href="/world-cup/leaderboard"
@@ -246,6 +249,8 @@ export function WorldCupEventHub() {
   const prizePoolRound = prizePoolTour ? getWorldCupRound(prizePoolTour.id) : undefined;
   const openRound = WC_ROUNDS.find((r) => tours[r.tourId]?.status === "open");
   const openTourId = openRound?.tourId;
+  const displayPrizeTour = (openTourId ? tours[openTourId] : undefined) ?? prizePoolTour;
+  const displayPrizeRound = displayPrizeTour ? getWorldCupRound(displayPrizeTour.id) : undefined;
   const registrationOpen = Boolean(openRound);
   const deadlineTourId = openTourId ?? null;
 
@@ -585,9 +590,10 @@ export function WorldCupEventHub() {
       </section>
 
       <PrizeBreakdown
-        prizePool={prizePoolTour?.prizePool ?? null}
+        tourId={displayPrizeTour?.id ?? WC_ROUNDS[0].tourId}
+        prizePool={displayPrizeTour?.prizePool ?? null}
         loading={loading}
-        roundLabel={prizePoolRound ? wc.roundName(prizePoolRound.key) : null}
+        roundLabel={displayPrizeRound ? wc.roundName(displayPrizeRound.key) : null}
       />
     </div>
   );

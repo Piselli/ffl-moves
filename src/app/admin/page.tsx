@@ -17,6 +17,7 @@ import {
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { getPrizeRecalcArgs } from "@/lib/prize-distribution";
 import { MODULE_ADDRESS } from "@/lib/constants";
 import {
   WC_BRACKET_ADVERTISED_POOL_USDCX,
@@ -830,6 +831,8 @@ export default function AdminPage() {
       });
       scored.sort((a, b) => b.finalPts - a.finalPts);
 
+      const { prizeRanks, prizePercentages } = getPrizeRecalcArgs(gw);
+
       const transaction = await client.transaction.build.simple({
         sender: account.address.toString(),
         data: {
@@ -840,8 +843,8 @@ export default function AdminPage() {
             scored.map((x) => x.addr),
             scored.map((x) => x.basePts),
             scored.map((x) => x.finalPts),
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            [30, 20, 15, 8, 7, 6, 5, 4, 3, 2],
+            prizeRanks,
+            prizePercentages,
           ],
         },
       });

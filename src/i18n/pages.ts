@@ -89,7 +89,9 @@ export type PagesMessages = {
     hubHostsLabel: string;
     prizeBadge: string;
     prizeTitle: string;
+    prizeTitleForN: (n: number) => string;
     prizeDesc: (symbol: string) => string;
+    prizeDescForN: (n: number, symbol: string) => string;
     prizePoolNowLabel: string;
     prizeShareSuffix: string;
     prizeClaimNote: string;
@@ -253,6 +255,7 @@ export type PagesMessages = {
     entriesLabel: string;
     prizeDistribution: string;
     top10Receive: string;
+    topNPrizeReceive: (n: number) => string;
     noDataForGw: (gw: number) => string;
     myResultTitle: (gw: number) => string;
     inPrizes: string;
@@ -269,6 +272,55 @@ export type PagesMessages = {
     emptyNotPublished: (gw: number) => string;
     registerSquadCta: string;
     footerLine: (gw: number) => string;
+  };
+  seasonLeaderboard: {
+    loading: string;
+    seasonTag: (label: string) => string;
+    pageTitle: string;
+    subtitle: string;
+    resolvedThrough: (from: number, through: number) => string;
+    myScore: string;
+    streakLabel: string;
+    rulesTitle: string;
+    ruleRegistration: string;
+    ruleFirstReg: string;
+    ruleTop10Header: string;
+    ruleRank: (n: number) => string;
+    ruleRank4to10: string;
+    ruleStreakHeader: string;
+    ruleStreak: (n: number) => string;
+    ruleClaim: string;
+    rulesFootnote: string;
+    faqLink: string;
+    colRank: string;
+    colPlayer: string;
+    colPoints: string;
+    colRegistrations: string;
+    colTop10: string;
+    colBestRank: string;
+    youBadge: string;
+    emptyTitle: string;
+    emptyHint: string;
+    breakdownGw: (gw: number) => string;
+    breakdownRegistration: string;
+    breakdownRank: string;
+    breakdownStreak: string;
+    breakdownClaim: string;
+    breakdownFirst: string;
+    breakdownSkipped: string;
+    loadError: (msg: string) => string;
+    footerNote: string;
+    inactiveTitle: string;
+    inactiveHint: string;
+    endedBadge: string;
+    awaitingGw: (startGw: number) => string;
+    ruleStreakCap: string;
+    seasonWindowOpen: (startGw: number) => string;
+    seasonWindowClosed: (startGw: number, endGw: number) => string;
+    progressWc: (resolved: number, total: number) => string;
+    progressEpl: (from: number, through: number) => string;
+    awaitingFirstEvent: string;
+    awaitingEpl: (startGw: number) => string;
   };
   myResult: {
     errConfig: string;
@@ -567,8 +619,11 @@ export const pagesEn: PagesMessages = {
     hubHostsLabel: "USA · México · Canada",
     prizeBadge: "Prize pool",
     prizeTitle: "Top 10 split the pool",
+    prizeTitleForN: (n) => `Top ${n} split the pool`,
     prizeDesc:
       (symbol) => `Every entry fee flows into the round's on-chain pool. When the matches are settled, the ten best managers take their cut — paid out in ${symbol}, claimable straight from the leaderboard.`,
+    prizeDescForN: (n, symbol) =>
+      `Every entry fee flows into the round's on-chain pool. When the matches are settled, the top ${n} managers take their cut — paid out in ${symbol}, claimable straight from the leaderboard.`,
     prizePoolNowLabel: "Current round pool",
     prizeShareSuffix: "of pool",
     prizeClaimNote: "Payouts are on-chain — winners claim on the leaderboard",
@@ -736,6 +791,7 @@ export const pagesEn: PagesMessages = {
     entriesLabel: "Entries",
     prizeDistribution: "Prize split",
     top10Receive: "Top 10 receive",
+    topNPrizeReceive: (n) => `Top ${n} receive`,
     noDataForGw: (gw) => `No data for GW ${gw}`,
     myResultTitle: (gw) => `My result · GW ${gw}`,
     inPrizes: "In the prizes 🎉",
@@ -753,6 +809,60 @@ export const pagesEn: PagesMessages = {
     emptyNotPublished: (gw) => `GW ${gw} results are not published yet.`,
     registerSquadCta: "Register your squad",
     footerLine: (gw) => `Real on-chain results · GW ${gw} · Movement`,
+  },
+  seasonLeaderboard: {
+    loading: "Loading season standings…",
+    seasonTag: (label) => `Season ${label}`,
+    pageTitle: "Season Points",
+    subtitle:
+      "Season Points (SP) reward participation and top finishes across one season — World Cup tours first, then EPL. Streaks carry from WC into EPL. Separate from fantasy tour points.",
+    resolvedThrough: (from, through) => `Counting resolved gameweeks GW ${from}–${through}`,
+    myScore: "Your season score",
+    streakLabel: "Best streak",
+    rulesTitle: "How SP is earned",
+    ruleRegistration: "Squad registered (per GW)",
+    ruleFirstReg: "First registration (once)",
+    ruleTop10Header: "Top 10 only",
+    ruleRank: (n) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"} place`,
+    ruleRank4to10: "4th–10th: 100 → 25 SP (see FAQ)",
+    ruleStreakHeader: "Registration streak (WC + EPL, per event)",
+    ruleStreak: (n) => `${n}+ GWs in a row`,
+    ruleClaim: "Prize claimed",
+    rulesFootnote:
+      "One season: WC tours then EPL gameweeks. Streak continues across the handoff. Only resolved events count. Ranks 11+ earn no SP.",
+    faqLink: "Full rules in FAQ",
+    colRank: "Rank",
+    colPlayer: "Player",
+    colPoints: "SP",
+    colRegistrations: "GWs",
+    colTop10: "Top 10",
+    colBestRank: "Best",
+    youBadge: "you",
+    emptyTitle: "No season data yet",
+    emptyHint: "Season Points appear after the first gameweek in the season window is resolved on-chain.",
+    breakdownGw: (gw) => `GW ${gw}`,
+    breakdownRegistration: "reg",
+    breakdownRank: "rank",
+    breakdownStreak: "streak",
+    breakdownClaim: "claim",
+    breakdownFirst: "first",
+    breakdownSkipped: "not registered",
+    loadError: (msg) => `Could not load season standings: ${msg}`,
+    footerNote: "SP is computed from on-chain registration and results · cached ~2 min",
+    inactiveTitle: "Season not started yet",
+    inactiveHint:
+      "Season Points are configured but not live. The counter starts on the first resolved gameweek after launch — we’ll announce when SP go live.",
+    endedBadge: "Season ended",
+    awaitingGw: (startGw) =>
+      `Season is live from GW ${startGw}. Points appear after that gameweek is resolved on-chain.`,
+    ruleStreakCap: "5th GW and beyond — same +20 (no higher tier)",
+    seasonWindowOpen: (startGw) => `Open season · from GW ${startGw}`,
+    seasonWindowClosed: (startGw, endGw) => `GW ${startGw}–${endGw}`,
+    progressWc: (resolved, total) => `WC phase · ${resolved}/${total} tours resolved`,
+    progressEpl: (from, through) => `EPL · GW ${from}–${through}`,
+    awaitingFirstEvent: "Season is live — points appear after the first WC or EPL event resolves on-chain.",
+    awaitingEpl: (startGw) =>
+      `WC phase complete in SP terms — EPL continues the same season from GW ${startGw}.`,
   },
   myResult: {
     errConfig: "Could not load config",
@@ -1360,6 +1470,15 @@ export const pagesEn: PagesMessages = {
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
+          {
+            id: "season-points",
+            q: "What are Season Points (SP)?",
+            a: [
+              { type: "p", text: "Season Points are one loyalty season: World Cup tours first, then EPL gameweeks. The same streak counter runs across both — playing every WC round and continuing into EPL keeps your streak." },
+              { type: "p", text: "You earn SP from: registering (+25), first registration (+50 once), top-10 finishes (1st = 200 down to 10th = 25), streaks (+10 / +15 / +20 from 4+), and claiming (+10). The season starts when we enable it (from zero). WC ending does not end the SP season — EPL continues it." },
+              { type: "p", text: "Set `enabled: true` in config when launching. Optionally set `eplStartGw` before or when EPL joins. Live table: Season SP in the menu." },
+            ],
+          },
         ],
       },
       {
@@ -1482,8 +1601,11 @@ export const pagesUk: PagesMessages = {
     hubHostsLabel: "США · Мексика · Канада",
     prizeBadge: "Призовий фонд",
     prizeTitle: "Топ-10 ділять фонд",
+    prizeTitleForN: (n) => `Топ-${n} ділять фонд`,
     prizeDesc:
       (symbol) => `Кожен внесок за участь іде в on-chain фонд раунду. Після завершення матчів десять найкращих менеджерів забирають свою частку — у ${symbol}, прямо з лідерборду.`,
+    prizeDescForN: (n, symbol) =>
+      `Кожен внесок за участь іде в on-chain фонд раунду. Після завершення матчів топ-${n} менеджерів забирають свою частку — у ${symbol}, прямо з лідерборду.`,
     prizePoolNowLabel: "Поточний фонд раунду",
     prizeShareSuffix: "від фонду",
     prizeClaimNote: "Виплати on-chain — переможці забирають на лідерборді",
@@ -1660,6 +1782,7 @@ export const pagesUk: PagesMessages = {
     entriesLabel: "Учасників",
     prizeDistribution: "Розподіл призів",
     top10Receive: "Топ-10 отримують",
+    topNPrizeReceive: (n) => `Топ-${n} отримують`,
     noDataForGw: (gw) => `Немає даних для GW ${gw}`,
     myResultTitle: (gw) => `Мій результат · Тур ${gw}`,
     inPrizes: "У призах 🎉",
@@ -1677,6 +1800,60 @@ export const pagesUk: PagesMessages = {
     emptyNotPublished: (gw) => `Результати Туру ${gw} ще не опубліковані.`,
     registerSquadCta: "Зареєструй свій склад",
     footerLine: (gw) => `Реальні on-chain результати · Тур ${gw} · Movement`,
+  },
+  seasonLeaderboard: {
+    loading: "Завантаження сезонного рейтингу…",
+    seasonTag: (label) => `Сезон ${label}`,
+    pageTitle: "Season Points",
+    subtitle:
+      "Season Points (SP) — один сезон: спочатку тури ЧС, потім EPL. Стрік переноситься з ЧС на EPL. Це не фентезі-очки туру.",
+    resolvedThrough: (from, through) => `Враховано завершені тури GW ${from}–${through}`,
+    myScore: "Твій сезонний рахунок",
+    streakLabel: "Найкращий стрік",
+    rulesTitle: "Як нараховуються SP",
+    ruleRegistration: "Реєстрація складу (за тур)",
+    ruleFirstReg: "Перша реєстрація (одноразово)",
+    ruleTop10Header: "Лише топ-10",
+    ruleRank: (n) => `${n}-е місце`,
+    ruleRank4to10: "4–10 місце: від 100 до 25 SP (деталі в FAQ)",
+    ruleStreakHeader: "Стрік реєстрацій (ЧС + EPL, за подію)",
+    ruleStreak: (n) => `${n}+ тури поспіль`,
+    ruleClaim: "Клейм призу",
+    rulesFootnote:
+      "Один сезон: тури ЧС, потім EPL. Стрік триває через перехід. Рахуються лише завершені події. 11-е місце і нижче — 0 SP.",
+    faqLink: "Повні правила в FAQ",
+    colRank: "Місце",
+    colPlayer: "Гравець",
+    colPoints: "SP",
+    colRegistrations: "Тури",
+    colTop10: "Топ-10",
+    colBestRank: "Кращ.",
+    youBadge: "ти",
+    emptyTitle: "Сезонних даних поки немає",
+    emptyHint: "Season Points з’являться після першого завершеного туру в межах сезону on-chain.",
+    breakdownGw: (gw) => `Тур ${gw}`,
+    breakdownRegistration: "реєстр.",
+    breakdownRank: "місце",
+    breakdownStreak: "стрік",
+    breakdownClaim: "клейм",
+    breakdownFirst: "перша",
+    breakdownSkipped: "без участі",
+    loadError: (msg) => `Не вдалось завантажити сезонний рейтинг: ${msg}`,
+    footerNote: "SP рахуються з on-chain реєстрацій і результатів · кеш ~2 хв",
+    inactiveTitle: "Сезон ще не стартував",
+    inactiveHint:
+      "Season Points налаштовано, але ще не ввімкнено. Відлік піде з першого завершеного туру після запуску — анонсуємо, коли SP стануть активними.",
+    endedBadge: "Сезон завершено",
+    awaitingGw: (startGw) =>
+      `Сезон активний з GW ${startGw}. Очки з’являться після on-chain завершення цього туру.`,
+    ruleStreakCap: "5-й тур і далі — ті самі +20 (вищого рівня немає)",
+    seasonWindowOpen: (startGw) => `Відкритий сезон · з GW ${startGw}`,
+    seasonWindowClosed: (startGw, endGw) => `GW ${startGw}–${endGw}`,
+    progressWc: (resolved, total) => `Фаза ЧС · ${resolved}/${total} турів завершено`,
+    progressEpl: (from, through) => `EPL · GW ${from}–${through}`,
+    awaitingFirstEvent: "Сезон увімкнено — очки з’являться після першої завершеної події ЧС або EPL on-chain.",
+    awaitingEpl: (startGw) =>
+      `Фаза ЧС у SP завершена — той самий сезон продовжується з EPL, GW ${startGw}.`,
   },
   myResult: {
     errConfig: "Не вдалось завантажити конфіг",
@@ -2289,6 +2466,15 @@ export const pagesUk: PagesMessages = {
             a: [
               { type: "p", text: "USDCx уже прив’язаний до долара. Обміняй назад на MOVE або інший токен на Yuzu, у Motion або в Nightly, потім виведи через звичну біржу — як із будь-якою криптою." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
+            ],
+          },
+          {
+            id: "season-points",
+            q: "Що таке Season Points (SP)?",
+            a: [
+              { type: "p", text: "Season Points — один сезон лояльності: спочатку тури ЧС, потім EPL. Один лічильник стріку на обидві фази." },
+              { type: "p", text: "SP за реєстрацію (+25), першу реєстрацію (+50), топ-10 (1-ше = 200 … 10-те = 25), стріки (+10 / +15 / +20 з 4-го), клейм (+10). Сезон стартує з нуля, коли ми його ввімкнемо. Кінець ЧС не завершує SP-сезон — далі йде EPL." },
+              { type: "p", text: "У конфігу `enabled: true` при запуску. `eplStartGw` — коли EPL входить у той самий сезон. Таблиця — Season SP у меню." },
             ],
           },
         ],

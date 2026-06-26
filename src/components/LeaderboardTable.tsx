@@ -13,6 +13,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { DEFAULT_PRIZE_TIERS, getPrizeRankCount, getPrizeTiers } from "@/lib/prize-distribution";
 
 interface LeaderboardTableProps {
   results: (TeamResult & { owner: string })[];
@@ -132,11 +133,13 @@ export function LeaderboardTable({
   }, [gameweekId, isPreview]);
 
   const colCount = showSquadView ? 6 : 5;
+  const prizeRankCap = gameweekId > 0 ? getPrizeRankCount(gameweekId) : DEFAULT_PRIZE_TIERS.length;
+  const prizeTiers = gameweekId > 0 ? getPrizeTiers(gameweekId) : DEFAULT_PRIZE_TIERS;
 
   const canExpandRow = (rank: number, owner: string) =>
     showSquadView &&
     gameweekId > 0 &&
-    ((rank > 0 && rank <= 10) || (allowOwnSquadExpand && owner === currentUser));
+    ((rank > 0 && rank <= prizeRankCap) || (allowOwnSquadExpand && owner === currentUser));
 
   const loadSquad = useCallback(
     async (owner: string) => {
@@ -249,19 +252,25 @@ export function LeaderboardTable({
                   <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">{lt.fundSplit}</p>
                     <div className="space-y-1">
-                      {[
-                        { rank: "1", medal: "🥇", share: "30%", color: "text-[#FFD700]" },
-                        { rank: "2", medal: "🥈", share: "20%", color: "text-[#E2E8F0]" },
-                        { rank: "3", medal: "🥉", share: "15%", color: "text-[#F59E0B]" },
-                        { rank: "4–5", medal: null, share: "8% / 7%", color: "text-white/50" },
-                        { rank: "6–8", medal: null, share: "6% / 5% / 4%", color: "text-white/40" },
-                        { rank: "9–10", medal: null, share: "3% / 2%", color: "text-white/30" },
-                      ].map((p) => (
-                        <div key={p.rank} className="flex items-center justify-between gap-2">
-                          <span className="text-white/30 text-[10px]">{p.medal ? p.medal : `#${p.rank}`}</span>
-                          <span className={cn("text-[11px] font-bold tabular-nums", p.color)}>{p.share}</span>
-                        </div>
-                      ))}
+                      {prizeTiers.map(({ rank, pct }) => {
+                        const medal = rankMedal[rank];
+                        const color =
+                          rank === 1
+                            ? "text-[#FFD700]"
+                            : rank === 2
+                              ? "text-[#E2E8F0]"
+                              : rank === 3
+                                ? "text-[#F59E0B]"
+                                : rank <= 5
+                                  ? "text-white/50"
+                                  : "text-white/35";
+                        return (
+                          <div key={rank} className="flex items-center justify-between gap-2">
+                            <span className="text-white/30 text-[10px]">{medal ?? `#${rank}`}</span>
+                            <span className={cn("text-[11px] font-bold tabular-nums", color)}>{pct}%</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

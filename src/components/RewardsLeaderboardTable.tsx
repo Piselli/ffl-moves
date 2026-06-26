@@ -5,20 +5,10 @@ import { TreasureChest } from "@/components/TreasureChest";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { formatRewardPlaceEn, formatRewardPlaceUk } from "@/i18n/messages";
+import { DEFAULT_PRIZE_TIERS } from "@/lib/prize-distribution";
 
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
-const PRIZE_TIERS = [
-  { rank: 1, pct: 30 },
-  { rank: 2, pct: 20 },
-  { rank: 3, pct: 15 },
-  { rank: 4, pct: 8 },
-  { rank: 5, pct: 7 },
-  { rank: 6, pct: 6 },
-  { rank: 7, pct: 5 },
-  { rank: 8, pct: 4 },
-  { rank: 9, pct: 3 },
-  { rank: 10, pct: 2 },
-];
+const PRIZE_TIERS = DEFAULT_PRIZE_TIERS;
 
 /* ── Row styles ────────────────────────────────────────────────────────────── */
 const VIP_STYLES = {
