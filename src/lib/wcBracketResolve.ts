@@ -320,3 +320,15 @@ export function setMatchWinner(
 }
 
 export { R32_LEAVES, ALL_TREE_NODES, FEEDER_MAP };
+
+/** Annex C third-place slot assignments for a full bracket prediction. */
+export function resolveThirdPlaceAssignments(prediction: BracketPrediction): Map<string, number> {
+  return buildThirdAssignments(prediction);
+}
+
+/** Parse a bracket seed token (e.g. `1E`, `3ABCDF`). */
+export function parseBracketSeed(
+  seed: string,
+): { kind: "place"; place: 1 | 2 | 3; group: string } | { kind: "third"; groups: string[] } | null {
+  return parseSeed(seed);
+}

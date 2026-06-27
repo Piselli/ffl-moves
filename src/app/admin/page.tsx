@@ -33,6 +33,7 @@ import {
   isWorldCupTour,
 } from "@/lib/worldcup";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { WcBracketStateEditor } from "@/components/admin/WcBracketStateEditor";
 
 function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
@@ -1360,6 +1361,38 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Homepage hero — official WC bracket state */}
+        {isAdmin && (
+          <WcBracketStateEditor
+            copy={{
+              title: ad.heroStateTitle,
+              hint: ad.heroStateHint,
+              autoSyncOn: ad.heroStateAutoSyncOn,
+              autoSyncOff: ad.heroStateAutoSyncOff,
+              overrideTitle: ad.heroStateOverrideTitle,
+              overrideHint: ad.heroStateOverrideHint,
+              adminKeyLabel: ad.heroStateAdminKeyLabel,
+              adminKeyPlaceholder: ad.heroStateAdminKeyPlaceholder,
+              refreshButton: ad.heroStateRefreshButton,
+              saveButton: ad.heroStateSaveButton,
+              saving: ad.heroStateSaving,
+              lastUpdated: ad.heroStateLastUpdated,
+              saveSuccess: ad.heroStateSaveSuccess,
+              saveError: ad.heroStateSaveError,
+              keyRequired: ad.heroStateKeyRequired,
+              predictor: {
+                ...wc.bracket.predictor,
+                final: wc.bracket.koFinal,
+                thirdPlace: wc.bracket.koThirdPlace,
+                tapHint: wc.bracket.koTapHint,
+              },
+              final: wc.bracket.koFinal,
+              thirdPlace: wc.bracket.koThirdPlace,
+              tapHint: wc.bracket.koTapHint,
+            }}
+          />
         )}
 
         {/* Adjust Prize Pool (Admin) */}

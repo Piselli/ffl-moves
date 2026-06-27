@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { WC_GROUPS } from "@/components/wc/wcGroups";
 import { WcFlagChip } from "@/components/wc/WcGroupCard";
 import { WcHeroBracket } from "@/components/wc/WcHeroBracket";
 import { BRACKET_LEFT, BRACKET_RIGHT } from "@/components/wc/wcBracket";
+import { useWcBracketState } from "@/hooks/useWcBracketState";
+import { buildHeroMatchDisplays, orderTeamsByRank } from "@/lib/wcHeroDisplay";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -21,7 +24,20 @@ const LEFT_GROUPS = WC_GROUPS.slice(0, 6); // A–F
 const RIGHT_GROUPS = WC_GROUPS.slice(6); // G–L
 
 /** One group as a tight chip: colour-coded letter + the four nation flags. */
-function GroupChip({ letter, accent, teams }: (typeof WC_GROUPS)[number]) {
+function GroupChip({
+  letter,
+  accent,
+  teams,
+  groupIndex,
+  groupRanks,
+  groupsFinal,
+}: (typeof WC_GROUPS)[number] & {
+  groupIndex: number;
+  groupRanks?: number[];
+  groupsFinal?: boolean[];
+}) {
+  const ordered = orderTeamsByRank(teams, groupIndex, groupRanks, groupsFinal);
+
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#0b0e13]/70 py-2.5 pl-2.5 pr-3.5 backdrop-blur-sm">
       <span
@@ -31,7 +47,7 @@ function GroupChip({ letter, accent, teams }: (typeof WC_GROUPS)[number]) {
         {letter}
       </span>
       <div className="flex items-center gap-1.5">
-        {teams.map((t) => (
+        {ordered.map((t) => (
           <WcFlagChip key={t.code} code={t.code} name={t.name} className="h-5 w-[32px]" />
         ))}
       </div>
@@ -42,15 +58,26 @@ function GroupChip({ letter, accent, teams }: (typeof WC_GROUPS)[number]) {
 /** Vertical stack of group chips for one flank of the hero. When `height` is set
  *  the six chips distribute across it (justify-between) so the column spans the
  *  full bracket height and the top/bottom groups align with the bracket extremes. */
-function GroupsColumn({ groups, height }: { groups: typeof WC_GROUPS; height?: number }) {
+function GroupsColumn({
+  groups,
+  height,
+  groupRanks,
+  groupsFinal,
+}: {
+  groups: typeof WC_GROUPS;
+  height?: number;
+  groupRanks?: number[];
+  groupsFinal?: boolean[];
+}) {
   return (
     <div
       className={height ? "flex flex-col justify-between" : "flex flex-col gap-2"}
       style={height ? { height } : undefined}
     >
-      {groups.map((g) => (
-        <GroupChip key={g.letter} {...g} />
-      ))}
+      {groups.map((g) => {
+        const groupIndex = WC_GROUPS.findIndex((x) => x.letter === g.letter);
+        return <GroupChip key={g.letter} {...g} groupIndex={groupIndex} groupRanks={groupRanks} groupsFinal={groupsFinal} />;
+      })}
     </div>
   );
 }
@@ -60,6 +87,10 @@ export function WorldCupHeroPortal() {
   const hm = m.home;
   const wc = m.pages.worldCup;
   const reduce = useReducedMotion();
+  const { state: bracketState } = useWcBracketState();
+  const matchDisplays = useMemo(() => buildHeroMatchDisplays(bracketState), [bracketState]);
+  const groupRanks = bracketState?.groupRanks;
+  const groupsFinal = bracketState?.meta.groupsFinal;
 
   const fade = (delay = 0) =>
     reduce
@@ -165,11 +196,11 @@ export function WorldCupHeroPortal() {
         {/* ── Desktop: groups | bracket | logo (final) | bracket | groups ── */}
         <div className="mt-4 hidden items-center justify-center gap-3 lg:flex xl:gap-5">
           <motion.div {...fade(0.3)}>
-            <GroupsColumn groups={LEFT_GROUPS} height={BRACKET_HEIGHT} />
+            <GroupsColumn groups={LEFT_GROUPS} height={BRACKET_HEIGHT} groupRanks={groupRanks} groupsFinal={groupsFinal} />
           </motion.div>
 
           <motion.div {...fade(0.2)}>
-            <WcHeroBracket root={BRACKET_LEFT} side="left" height={BRACKET_HEIGHT} />
+            <WcHeroBracket root={BRACKET_LEFT} side="left" height={BRACKET_HEIGHT} displays={matchDisplays} />
           </motion.div>
 
           <motion.div {...fade(0.1)} className="flex shrink-0 flex-col items-center px-1">
@@ -182,11 +213,11 @@ export function WorldCupHeroPortal() {
           </motion.div>
 
           <motion.div {...fade(0.2)}>
-            <WcHeroBracket root={BRACKET_RIGHT} side="right" height={BRACKET_HEIGHT} />
+            <WcHeroBracket root={BRACKET_RIGHT} side="right" height={BRACKET_HEIGHT} displays={matchDisplays} />
           </motion.div>
 
           <motion.div {...fade(0.3)}>
-            <GroupsColumn groups={RIGHT_GROUPS} height={BRACKET_HEIGHT} />
+            <GroupsColumn groups={RIGHT_GROUPS} height={BRACKET_HEIGHT} groupRanks={groupRanks} groupsFinal={groupsFinal} />
           </motion.div>
         </div>
 
@@ -228,11 +259,14 @@ export function WorldCupHeroPortal() {
               {wc.stageGroup} · A–L
             </p>
             <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              {WC_GROUPS.map((g) => (
-                <div key={g.letter} className="shrink-0 snap-start">
-                  <GroupChip {...g} />
-                </div>
-              ))}
+              {WC_GROUPS.map((g) => {
+                const groupIndex = WC_GROUPS.findIndex((x) => x.letter === g.letter);
+                return (
+                  <div key={g.letter} className="shrink-0 snap-start">
+                    <GroupChip {...g} groupIndex={groupIndex} groupRanks={groupRanks} groupsFinal={groupsFinal} />
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         </div>

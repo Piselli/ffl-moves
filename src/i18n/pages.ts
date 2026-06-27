@@ -511,6 +511,21 @@ export type PagesMessages = {
     markClaimedInvalidGw: string;
     markClaimedInvalidOwner: string;
     markClaimedNotOnChain: string;
+    heroStateTitle: string;
+    heroStateHint: string;
+    heroStateAutoSyncOn: string;
+    heroStateAutoSyncOff: string;
+    heroStateOverrideTitle: string;
+    heroStateOverrideHint: string;
+    heroStateAdminKeyLabel: string;
+    heroStateAdminKeyPlaceholder: string;
+    heroStateRefreshButton: string;
+    heroStateSaveButton: string;
+    heroStateSaving: string;
+    heroStateLastUpdated: (iso: string, source: string) => string;
+    heroStateSaveSuccess: string;
+    heroStateSaveError: string;
+    heroStateKeyRequired: string;
   };
   faq: {
     pageTitle: string;
@@ -1090,6 +1105,23 @@ export const pagesEn: PagesMessages = {
     markClaimedInvalidOwner: "Enter a valid Movement wallet address (0x + 64 hex).",
     markClaimedNotOnChain:
       "admin_mark_prize_claimed is not on mainnet yet. From repo root run: npm run md1:deploy-mark-claimed (Movement CLI + module publisher wallet). Then mark the 3 MD1 wallets or run npm run md1:mark-prior-claims.",
+    heroStateTitle: "Homepage hero · Official bracket",
+    heroStateHint:
+      "Results sync automatically from football-data.org (FOOTBALL_DATA_TOKEN). The homepage hero refreshes every ~30s — no manual publish needed. Use manual override only if the API is wrong.",
+    heroStateAutoSyncOn: "Auto-sync · live",
+    heroStateAutoSyncOff: "Auto-sync off · set FOOTBALL_DATA_TOKEN",
+    heroStateOverrideTitle: "Manual override",
+    heroStateOverrideHint:
+      "Overrides are merged on top of live API data. Save only when you need to fix a wrong result.",
+    heroStateAdminKeyLabel: "Admin key",
+    heroStateAdminKeyPlaceholder: "WC_BRACKET_STATE_ADMIN_KEY",
+    heroStateRefreshButton: "Refresh preview",
+    heroStateSaveButton: "Save override",
+    heroStateSaving: "Saving…",
+    heroStateLastUpdated: (iso, source) => `Last sync: ${new Date(iso).toLocaleString()} · ${source}`,
+    heroStateSaveSuccess: "Override saved — live API will fill gaps around it.",
+    heroStateSaveError: "Failed to save override.",
+    heroStateKeyRequired: "Enter WC_BRACKET_STATE_ADMIN_KEY to save an override.",
   },
   faq: {
     pageTitle: "FAQ",
@@ -2081,6 +2113,23 @@ export const pagesUk: PagesMessages = {
     markClaimedInvalidOwner: "Введи коректну адресу Movement (0x + 64 hex).",
     markClaimedNotOnChain:
       "admin_mark_prize_claimed ще немає on-chain. У корені репо: npm run md1:deploy-mark-claimed (Movement CLI + гаманець publisher модуля). Потім познач 3 гаманці MD1 або npm run md1:mark-prior-claims.",
+    heroStateTitle: "Hero на головній · Офіційна сітка",
+    heroStateHint:
+      "Результати підтягуються автоматично з football-data.org (FOOTBALL_DATA_TOKEN). Hero на головній оновлюється кожні ~30 с — публікувати вручну не потрібно. Ручне редагування — лише якщо API помиляється.",
+    heroStateAutoSyncOn: "Авто-синк · live",
+    heroStateAutoSyncOff: "Авто-синк вимкнено · задай FOOTBALL_DATA_TOKEN",
+    heroStateOverrideTitle: "Ручне виправлення",
+    heroStateOverrideHint:
+      "Виправлення зберігаються поверх live API. Зберігай лише коли треба підправити помилковий результат.",
+    heroStateAdminKeyLabel: "Admin key",
+    heroStateAdminKeyPlaceholder: "WC_BRACKET_STATE_ADMIN_KEY",
+    heroStateRefreshButton: "Оновити превʼю",
+    heroStateSaveButton: "Зберегти виправлення",
+    heroStateSaving: "Збереження…",
+    heroStateLastUpdated: (iso, source) => `Останній синк: ${new Date(iso).toLocaleString()} · ${source}`,
+    heroStateSaveSuccess: "Виправлення збережено — live API заповнить решту.",
+    heroStateSaveError: "Не вдалося зберегти виправлення.",
+    heroStateKeyRequired: "Введи WC_BRACKET_STATE_ADMIN_KEY для збереження.",
   },
   faq: {
     pageTitle: "Часті питання",

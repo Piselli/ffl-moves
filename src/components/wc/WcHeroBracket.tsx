@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { BRACKET_ROUNDS, type BracketNode } from "@/components/wc/wcBracket";
+import { WcFlagChip } from "@/components/wc/WcGroupCard";
+import type { HeroMatchDisplay } from "@/lib/wcHeroDisplay";
 
 /**
  * Compact broadcast knockout bracket for the hero. Built recursively: every node
@@ -17,20 +19,82 @@ const LINE = "border-white/20";
 const BOX_W = "w-[66px]"; // column stride is BOX_W + ELBOW_W (20px) = 86px
 const ELBOW_W = "w-[20px]";
 
-function Box({ node, mirror }: { node: BracketNode; mirror?: boolean }) {
+function BoxContent({
+  node,
+  display,
+  mirror,
+}: {
+  node: BracketNode;
+  display?: HeroMatchDisplay;
+  mirror?: boolean;
+}) {
+  const flip = mirror ? "[transform:scaleX(-1)]" : undefined;
+
+  if (display?.winner) {
+    return (
+      <span className={cn("flex items-center justify-center", flip)}>
+        <WcFlagChip code={display.winner.code} name={display.winner.name} className="h-3.5 w-[22px]" />
+      </span>
+    );
+  }
+
+  const home = display?.home ?? null;
+  const away = display?.away ?? null;
+
+  if (home && away) {
+    return (
+      <span className={cn("flex items-center justify-center gap-0.5 px-0.5", flip)}>
+        <WcFlagChip code={home.code} name={home.name} className="h-3 w-[18px]" />
+        <WcFlagChip code={away.code} name={away.name} className="h-3 w-[18px]" />
+      </span>
+    );
+  }
+
+  if (home) {
+    return (
+      <span className={cn("flex items-center justify-center", flip)}>
+        <WcFlagChip code={home.code} name={home.name} className="h-3 w-[18px]" />
+      </span>
+    );
+  }
+
+  if (away) {
+    return (
+      <span className={cn("flex items-center justify-center", flip)}>
+        <WcFlagChip code={away.code} name={away.name} className="h-3 w-[18px]" />
+      </span>
+    );
+  }
+
+  return (
+    <span className={cn("tabular-nums", flip)}>{node.code}</span>
+  );
+}
+
+function Box({
+  node,
+  mirror,
+  display,
+}: {
+  node: BracketNode;
+  mirror?: boolean;
+  display?: HeroMatchDisplay;
+}) {
   const isLeaf = node.round === "R32";
+  const hasTeams = Boolean(display?.winner || display?.home || display?.away);
+
   return (
     <div
-      title={node.seeds ?? node.code}
+      title={hasTeams ? node.code : (node.seeds ?? node.code)}
       className={cn(
         BOX_W,
-        "flex h-[26px] items-center justify-center rounded-[5px] border font-wc-hero text-[11px] font-bold leading-none tracking-wide tabular-nums",
+        "flex h-[26px] items-center justify-center rounded-[5px] border font-wc-hero text-[11px] font-bold leading-none tracking-wide",
         isLeaf
           ? "border-white/12 bg-white/[0.035] text-white/60"
           : "border-[#00f948]/30 bg-[#00f948]/[0.07] text-[#00f948] shadow-[0_0_14px_-6px_rgba(0,249,72,0.6)]",
       )}
     >
-      <span className={mirror ? "[transform:scaleX(-1)]" : undefined}>{node.code}</span>
+      <BoxContent node={node} display={display} mirror={mirror} />
     </div>
   );
 }
@@ -47,23 +111,31 @@ function Elbow() {
   );
 }
 
-function Node({ node, mirror }: { node: BracketNode; mirror?: boolean }) {
+function Node({
+  node,
+  mirror,
+  displays,
+}: {
+  node: BracketNode;
+  mirror?: boolean;
+  displays?: Map<string, HeroMatchDisplay>;
+}) {
   if (!node.feeders) {
     return (
       <div className="flex flex-1 items-center justify-end">
-        <Box node={node} mirror={mirror} />
+        <Box node={node} mirror={mirror} display={displays?.get(node.code)} />
       </div>
     );
   }
   return (
     <div className="flex flex-1 items-stretch">
       <div className="flex flex-col">
-        <Node node={node.feeders[0]} mirror={mirror} />
-        <Node node={node.feeders[1]} mirror={mirror} />
+        <Node node={node.feeders[0]} mirror={mirror} displays={displays} />
+        <Node node={node.feeders[1]} mirror={mirror} displays={displays} />
       </div>
       <Elbow />
       <div className="flex items-center">
-        <Box node={node} mirror={mirror} />
+        <Box node={node} mirror={mirror} display={displays?.get(node.code)} />
       </div>
     </div>
   );
@@ -93,10 +165,12 @@ export function WcHeroBracket({
   root,
   side,
   height,
+  displays,
 }: {
   root: BracketNode;
   side: "left" | "right";
   height: number;
+  displays?: Map<string, HeroMatchDisplay>;
 }) {
   const mirror = side === "right";
   // Left reads R32→SF; right reads SF→R32 so labels stay outer→centre after the flip.
@@ -109,7 +183,7 @@ export function WcHeroBracket({
         style={{ height }}
         aria-hidden
       >
-        <Node node={root} mirror={mirror} />
+        <Node node={root} mirror={mirror} displays={displays} />
       </div>
     </div>
   );
