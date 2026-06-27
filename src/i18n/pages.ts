@@ -277,7 +277,9 @@ export type PagesMessages = {
     loading: string;
     seasonTag: (label: string) => string;
     pageTitle: string;
-    subtitle: string;
+    subtitleLead: string;
+    subtitleBenefits: string;
+    faqInlineLink: string;
     resolvedThrough: (from: number, through: number) => string;
     myScore: string;
     streakLabel: string;
@@ -829,8 +831,11 @@ export const pagesEn: PagesMessages = {
     loading: "Loading season standings…",
     seasonTag: (label) => `Season ${label}`,
     pageTitle: "Season Points",
-    subtitle:
-      "Season Points (SP) reward participation and top finishes across one season — World Cup tours first, then EPL. Streaks carry from WC into EPL. Separate from fantasy tour points.",
+    subtitleLead:
+      "Season Points (SP) are our way of measuring your contribution throughout the season. They reflect your activity, participation, and consistency across MoveMatch.",
+    subtitleBenefits:
+      "While SP don't provide any direct benefits today, they'll help us identify and reward the community's most dedicated members whenever new opportunities become available. Read more in the ",
+    faqInlineLink: "FAQ",
     resolvedThrough: (from, through) => `Counting resolved gameweeks GW ${from}–${through}`,
     myScore: "Your season score",
     streakLabel: "Best streak",
@@ -1506,9 +1511,33 @@ export const pagesEn: PagesMessages = {
             id: "season-points",
             q: "What are Season Points (SP)?",
             a: [
-              { type: "p", text: "Season Points are one loyalty season: World Cup tours first, then EPL gameweeks. The same streak counter runs across both — playing every WC round and continuing into EPL keeps your streak." },
-              { type: "p", text: "You earn SP from: registering (+25), first registration (+50 once), top-10 finishes (1st = 200 down to 10th = 25), streaks (+10 / +15 / +20 from 4+), and claiming (+10). The season starts when we enable it (from zero). WC ending does not end the SP season — EPL continues it." },
-              { type: "p", text: "Set `enabled: true` in config when launching. Optionally set `eplStartGw` before or when EPL joins. Live table: Season SP in the menu." },
+              {
+                type: "p",
+                text: "Season Points (SP) are a season-long loyalty score that tracks your activity across MoveMatch. The SP season begins with World Cup tournaments and continues into the EPL, with the same streak carrying over between both competitions.",
+              },
+              { type: "p", text: "You can earn SP by:" },
+              {
+                type: "ul",
+                items: [
+                  "Registering for a tournament (+25)",
+                  "Your first-ever registration (+50, one-time)",
+                  "Finishing in the Top 10 (1st = 200 SP, down to 10th = 25 SP)",
+                  "Maintaining a streak (+10 / +15 / +20 from 4+ consecutive rounds)",
+                  "Claiming your rewards (+10)",
+                ],
+              },
+              {
+                type: "p",
+                text: "Season Points don't affect gameplay or give any competitive advantage. They simply help us recognize the most active and consistent members of the MoveMatch community over time.",
+              },
+              {
+                type: "p",
+                text: "The SP season starts when the feature goes live, with everyone beginning from zero. After the World Cup ends, your Season Points and streak continue into the EPL without resetting.",
+              },
+              {
+                type: "p",
+                text: "You can always check your current Season Points and ranking on the Season SP page.",
+              },
             ],
           },
         ],
@@ -1837,8 +1866,11 @@ export const pagesUk: PagesMessages = {
     loading: "Завантаження сезонного рейтингу…",
     seasonTag: (label) => `Сезон ${label}`,
     pageTitle: "Season Points",
-    subtitle:
-      "Season Points (SP) — один сезон: спочатку тури ЧС, потім EPL. Стрік переноситься з ЧС на EPL. Це не фентезі-очки туру.",
+    subtitleLead:
+      "Season Points (SP) — це наш спосіб виміряти твій внесок протягом сезону. Вони відображають активність, участь і стабільність у MoveMatch.",
+    subtitleBenefits:
+      "Сьогодні SP не дають прямих бонусів, але допоможуть нам знаходити й винагороджувати найактивніших учасників, коли з’являться нові можливості. Детальніше в ",
+    faqInlineLink: "FAQ",
     resolvedThrough: (from, through) => `Враховано завершені тури GW ${from}–${through}`,
     myScore: "Твій сезонний рахунок",
     streakLabel: "Найкращий стрік",
@@ -2521,9 +2553,33 @@ export const pagesUk: PagesMessages = {
             id: "season-points",
             q: "Що таке Season Points (SP)?",
             a: [
-              { type: "p", text: "Season Points — один сезон лояльності: спочатку тури ЧС, потім EPL. Один лічильник стріку на обидві фази." },
-              { type: "p", text: "SP за реєстрацію (+25), першу реєстрацію (+50), топ-10 (1-ше = 200 … 10-те = 25), стріки (+10 / +15 / +20 з 4-го), клейм (+10). Сезон стартує з нуля, коли ми його ввімкнемо. Кінець ЧС не завершує SP-сезон — далі йде EPL." },
-              { type: "p", text: "У конфігу `enabled: true` при запуску. `eplStartGw` — коли EPL входить у той самий сезон. Таблиця — Season SP у меню." },
+              {
+                type: "p",
+                text: "Season Points (SP) — сезонний рахунок лояльності, який відстежує твою активність у MoveMatch. Сезон SP починається з турнірів Чемпіонату світу і продовжується в EPL — стрік зберігається між обома змаганнями.",
+              },
+              { type: "p", text: "SP можна отримати за:" },
+              {
+                type: "ul",
+                items: [
+                  "Реєстрацію в турнірі (+25)",
+                  "Першу реєстрацію взагалі (+50, одноразово)",
+                  "Місце в топ-10 (1-ше = 200 SP, 10-те = 25 SP)",
+                  "Стрік (+10 / +15 / +20 з 4+ турів поспіль)",
+                  "Клейм винагороди (+10)",
+                ],
+              },
+              {
+                type: "p",
+                text: "Season Points не впливають на геймплей і не дають конкурентної переваги. Вони допомагають нам бачити найактивніших і найстабільніших учасників спільноти MoveMatch.",
+              },
+              {
+                type: "p",
+                text: "Сезон SP стартує, коли функція стає активною — усі починають з нуля. Після завершення ЧС твої SP і стрік продовжуються в EPL без скидання.",
+              },
+              {
+                type: "p",
+                text: "Поточний рахунок і місце в рейтингу завжди можна переглянути на сторінці Season SP.",
+              },
             ],
           },
         ],

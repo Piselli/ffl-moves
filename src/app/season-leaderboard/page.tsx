@@ -65,7 +65,17 @@ export default function SeasonLeaderboardPage() {
         <h1 className="text-4xl font-display font-black text-white uppercase tracking-tight mt-1">
           {m.pageTitle}
         </h1>
-        <p className="text-white/45 text-sm mt-3 max-w-2xl leading-relaxed">{m.subtitle}</p>
+        <p className="text-white/45 text-sm mt-3 max-w-2xl leading-relaxed">{m.subtitleLead}</p>
+        <p className="text-white/45 text-sm mt-2 max-w-2xl leading-relaxed">
+          {m.subtitleBenefits}
+          <Link
+            href="/faq#scoring-and-rewards--season-points"
+            className="text-[#00f948]/80 hover:text-[#00f948] font-semibold underline underline-offset-2 decoration-[#00f948]/30 hover:decoration-[#00f948]/60 transition-colors"
+          >
+            {m.faqInlineLink}
+          </Link>
+          .
+        </p>
         {data?.status === "inactive" && (
           <p className="text-amber-400/80 text-xs mt-3 font-medium">{m.inactiveHint}</p>
         )}
