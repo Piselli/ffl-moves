@@ -1,4 +1,4 @@
-import { WC_TOUR_IDS, getWorldCupRound, isWorldCupTour } from "@/lib/worldcup";
+import { WC_TOUR_ID_BASE, WC_TOUR_IDS, getWorldCupRound, isWorldCupTour } from "@/lib/worldcup";
 
 /**
  * Season Points (SP) — meta-currency for loyalty, drops, and future rewards.
@@ -9,21 +9,24 @@ import { WC_TOUR_IDS, getWorldCupRound, isWorldCupTour } from "@/lib/worldcup";
  *
  * ── Launch / close (commit + push) ─────────────────────────────────────────
  *   enabled: false  → season OFF (empty leaderboard)
- *   enabled: true   → counting starts; WC tours + EPL GWs earn SP as they resolve
+ *   enabled: true   → counting starts from wcStartTourId (R32); MD1–MD3 excluded
  *   eplStartGw: 0   → EPL not in the timeline yet (WC-only phase)
  *   eplStartGw: N    → EPL joins the same season when those GWs resolve
  *   eplEndGw:   0    → open-ended
  *   eplEndGw:   M    → season ends after EPL GW M is resolved
  */
-export const SEASON_POINTS_RULES_VERSION = 2;
+export const SEASON_POINTS_RULES_VERSION = 3;
+
+/** First WC tour in the SP timeline (R32). Group stage MD1–MD3 are excluded. */
+export const SP_WC_START_TOUR_ID = WC_TOUR_ID_BASE + 4;
 
 export const CURRENT_SEASON = {
   id: 1,
   label: "2025/26",
-  /** Flip to `true` when launching — until then nothing counts. */
-  enabled: false,
-  /** WC tours in timeline order (same contract, ids 10001+). */
-  wcTourIds: WC_TOUR_IDS,
+  enabled: true,
+  wcStartTourId: SP_WC_START_TOUR_ID,
+  /** WC tours in timeline order from R32 onward (same contract, ids 10004+). */
+  wcTourIds: WC_TOUR_IDS.filter((id) => id >= SP_WC_START_TOUR_ID),
   /**
    * First EPL gameweek in this season. `0` until EPL phase begins.
    * Set before or when EPL starts — same season, streak continues from WC.
@@ -64,7 +67,7 @@ export function isSeasonWcEvent(eventId: number): boolean {
   return isWorldCupTour(eventId);
 }
 
-/** Awarded once per resolved gameweek where the wallet registered a squad. */
+/** Awarded per season event where the wallet registered (counts once tour exists on-chain). */
 export const SP_REGISTRATION = 25;
 
 /** One-time bonus for the first registration in the season window. */

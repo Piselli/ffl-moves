@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const ownerParam = searchParams.get("owner")?.trim().toLowerCase();
     const includeBreakdown = searchParams.get("includeBreakdown") === "1";
 
-    const cached = unstable_cache(loadLeaderboard, ["season-points-v1"], { revalidate: 120 });
+    const cached = unstable_cache(loadLeaderboard, ["season-points-v3"], { revalidate: 120 });
     const board = await cached();
 
     if (ownerParam) {

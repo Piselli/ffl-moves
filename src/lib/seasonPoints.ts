@@ -3,6 +3,7 @@ import {
   getGameweek,
   getGameweekTeams,
   getTeamResult,
+  hasRegisteredTeam,
   findHighestGameweekIdOnChain,
   findLatestResolvedGameweekId,
 } from "@/lib/movement";
@@ -93,8 +94,9 @@ async function mapInBatches<T, R>(
 }
 
 /**
- * Resolved season events in timeline order: WC tours first, then EPL gameweeks.
- * Skipped resolved events stay in the list so streaks break correctly.
+ * Season events in timeline order: WC tours first, then EPL gameweeks.
+ * Resolved events always count; the current open/closed WC tour is included so
+ * registrations earn SP before results publish. Future WC tours are omitted.
  */
 export async function getSeasonEventIds(): Promise<{
   eplStartGw: number;
@@ -118,10 +120,20 @@ export async function getSeasonEventIds(): Promise<{
     };
   }
 
-  const wcResolved: number[] = [];
+  const wcEvents: number[] = [];
+  let resolvedWcTourCount = 0;
   for (const tourId of CURRENT_SEASON.wcTourIds) {
     const g = await getGameweek(tourId);
-    if (g?.status === "resolved") wcResolved.push(tourId);
+    if (!g) break;
+    if (g.status === "resolved") {
+      wcEvents.push(tourId);
+      resolvedWcTourCount += 1;
+      continue;
+    }
+    if (g.status === "open" || g.status === "closed") {
+      wcEvents.push(tourId);
+      break;
+    }
   }
 
   let eplResolved: number[] = [];
@@ -145,14 +157,14 @@ export async function getSeasonEventIds(): Promise<{
     }
   }
 
-  const eventIds = [...wcResolved, ...eplResolved];
+  const eventIds = [...wcEvents, ...eplResolved];
   const status = getSeasonPointsStatus(resolvedEplThroughGw);
 
   return {
     eplStartGw,
     eplEndGw,
     resolvedEplThroughGw,
-    resolvedWcTourCount: wcResolved.length,
+    resolvedWcTourCount,
     status,
     eventIds,
   };
@@ -173,12 +185,15 @@ async function loadOwnerDataForEvents(
 ): Promise<OwnerGwData[]> {
   return mapInBatches(eventIds, 8, async (eventId) => {
     const result = await getTeamResult(owner, eventId);
-    if (!result) return { registered: false, rank: 0, claimed: false };
-    return {
-      registered: true,
-      rank: result.rank,
-      claimed: result.claimed,
-    };
+    if (result) {
+      return {
+        registered: true,
+        rank: result.rank,
+        claimed: result.claimed,
+      };
+    }
+    const registered = await hasRegisteredTeam(owner, eventId);
+    return { registered, rank: 0, claimed: false };
   });
 }
 
