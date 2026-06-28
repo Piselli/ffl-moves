@@ -29,6 +29,7 @@ import {
   fetchTourClaimHistoryFromApi,
   mergePriorClaimsIntoResults,
   ownerHasPriorClaimPrize,
+  tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
 import { getPrizeRankCount, getPrizeTiers, isRankInPrizeZone } from "@/lib/prize-distribution";
 
@@ -212,7 +213,7 @@ export default function WorldCupLeaderboardPage() {
   };
 
   const userResult = account?.address
-    ? leaderboardData.find((r) => r.owner === account.address.toString())
+    ? leaderboardData.find((r) => tourOwnersMatch(r.owner, account.address.toString()))
     : null;
 
   const tourLabel = (id: number) => wc.roundName(getWorldCupRound(id)?.key ?? "");
@@ -420,6 +421,12 @@ export default function WorldCupLeaderboardPage() {
             allowOwnSquadExpand
             catalogUrl="/api/wc-players"
             fplEnrichment={false}
+            onClaimPrize={
+              currentTour?.status === "resolved" && !isPreview
+                ? () => handleClaimPrize(selectedTour)
+                : undefined
+            }
+            isClaiming={isClaiming}
           />
         ) : (
           <div className="py-10 text-center">

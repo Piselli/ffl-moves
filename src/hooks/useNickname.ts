@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { normalizeMoveAccountAddress } from "@/lib/moveAddress";
 
 const STORAGE_KEY = "fflmove_nicknames";
 
@@ -22,9 +23,11 @@ export function useNickname(address?: string | null) {
 
   const getNickname = useCallback(
     (addr: string): string => {
-      const stored = nicknames[addr.toLowerCase()];
+      const key = normalizeMoveAccountAddress(addr);
+      const stored = nicknames[key] ?? nicknames[addr.toLowerCase()];
       if (stored) return stored;
-      return addr.slice(0, 6) + "..." + addr.slice(-4);
+      const short = normalizeMoveAccountAddress(addr);
+      return short.slice(0, 6) + "..." + short.slice(-4);
     },
     [nicknames]
   );
@@ -33,17 +36,17 @@ export function useNickname(address?: string | null) {
     const trimmed = name.trim().slice(0, 20);
     if (!trimmed) return;
     const all = readAll();
-    all[addr.toLowerCase()] = trimmed;
+    all[normalizeMoveAccountAddress(addr)] = trimmed;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     setNicknames({ ...all });
   }, []);
 
   const hasNickname = useCallback(
-    (addr: string): boolean => !!nicknames[addr.toLowerCase()],
+    (addr: string): boolean => !!nicknames[normalizeMoveAccountAddress(addr)],
     [nicknames]
   );
 
-  const myNickname = address ? nicknames[address.toLowerCase()] ?? null : null;
+  const myNickname = address ? nicknames[normalizeMoveAccountAddress(address)] ?? null : null;
 
   return { getNickname, setNickname, hasNickname, myNickname };
 }

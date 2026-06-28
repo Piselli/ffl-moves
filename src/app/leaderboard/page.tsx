@@ -30,6 +30,7 @@ import {
   fetchTourClaimHistoryFromApi,
   mergePriorClaimsIntoResults,
   ownerHasPriorClaimPrize,
+  tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
 
 export default function LeaderboardPage() {
@@ -235,7 +236,7 @@ export default function LeaderboardPage() {
   };
 
   const userResult = account?.address
-    ? leaderboardData.find((r) => r.owner === account.address.toString())
+    ? leaderboardData.find((r) => tourOwnersMatch(r.owner, account.address.toString()))
     : null;
 
   if (isLoading) {
@@ -475,6 +476,12 @@ export default function LeaderboardPage() {
               currentGameweek?.status === "resolved" ||
               (currentGameweek?.status === "closed" && isPreview)
             }
+            onClaimPrize={
+              currentGameweek?.status === "resolved" && !isPreview
+                ? () => handleClaimPrize(selectedGameweek)
+                : undefined
+            }
+            isClaiming={isClaiming}
           />
         ) : (
           <div className="py-10 text-center">

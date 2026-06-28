@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { DEFAULT_PRIZE_TIERS, getPrizeRankCount, getPrizeTiers } from "@/lib/prize-distribution";
+import { tourOwnersMatch } from "@/lib/tourClaimHistory";
 
 interface LeaderboardTableProps {
   results: (TeamResult & { owner: string })[];
@@ -31,6 +32,9 @@ interface LeaderboardTableProps {
   fplEnrichment?: boolean;
   /** When true, the connected wallet can expand its row even outside the top 10. */
   allowOwnSquadExpand?: boolean;
+  /** When set, the connected user's unclaimed row shows a Claim button (resolved tours). */
+  onClaimPrize?: () => void;
+  isClaiming?: boolean;
 }
 
 type LoadedSquad = {
@@ -109,9 +113,12 @@ export function LeaderboardTable({
   catalogUrl = "/api/players",
   fplEnrichment = true,
   allowOwnSquadExpand = false,
+  onClaimPrize,
+  isClaiming = false,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
+  const lb = siteMessages.pages.leaderboard;
   const g = siteMessages.pages.gameweek;
   const mr = siteMessages.pages.myResult;
   const posAbbrev = siteMessages.positionAbbrev;
@@ -139,7 +146,8 @@ export function LeaderboardTable({
   const canExpandRow = (rank: number, owner: string) =>
     showSquadView &&
     gameweekId > 0 &&
-    ((rank > 0 && rank <= prizeRankCap) || (allowOwnSquadExpand && owner === currentUser));
+    ((rank > 0 && rank <= prizeRankCap) ||
+      (allowOwnSquadExpand && !!currentUser && tourOwnersMatch(owner, currentUser)));
 
   const loadSquad = useCallback(
     async (owner: string) => {
@@ -288,7 +296,7 @@ export function LeaderboardTable({
         </thead>
         <tbody>
           {results.map((result, idx) => {
-            const isUser = currentUser === result.owner;
+            const isUser = !!currentUser && tourOwnersMatch(currentUser, result.owner);
             const medal = rankMedal[result.rank];
             const rColor = rankColor[result.rank];
             const isTop3 = result.rank <= 3;
@@ -391,12 +399,26 @@ export function LeaderboardTable({
                   </td>
 
                   <td className={cn("py-4 px-4 align-middle text-right whitespace-nowrap", !showSquadView && "last:rounded-r-xl")}>
-                    <StatusBadge
-                      hasPrize={hasPrize}
-                      claimed={result.claimed}
-                      claimedLabel={lt.claimed}
-                      notClaimedLabel={lt.notClaimed}
-                    />
+                    {isUser && hasPrize && !result.claimed && !isPreview && onClaimPrize ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClaimPrize();
+                        }}
+                        disabled={isClaiming}
+                        className="inline-flex min-w-[5.5rem] items-center justify-center rounded-lg bg-gradient-to-r from-emerald-500 to-[#00f948] px-3 py-2 font-display text-[10px] font-black uppercase tracking-wide text-black transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isClaiming ? lb.claiming : lb.claim}
+                      </button>
+                    ) : (
+                      <StatusBadge
+                        hasPrize={hasPrize}
+                        claimed={result.claimed}
+                        claimedLabel={lt.claimed}
+                        notClaimedLabel={lt.notClaimed}
+                      />
+                    )}
                   </td>
 
                   {showSquadView ? (

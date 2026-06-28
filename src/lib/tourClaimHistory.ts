@@ -1,4 +1,5 @@
 import type { TeamResult } from "@/lib/types";
+import { moveAddressesMatch, normalizeMoveAccountAddress } from "@/lib/moveAddress";
 
 const RPC = () =>
   (process.env.NEXT_PUBLIC_MOVEMENT_RPC_URL ?? process.env.NEXT_PUBLIC_APTOS_API ?? "").replace(
@@ -7,8 +8,11 @@ const RPC = () =>
   );
 
 export function normTourOwnerAddr(addr: string): string {
-  const t = addr.trim().toLowerCase();
-  return t.startsWith("0x") ? t : `0x${t}`;
+  return normalizeMoveAccountAddress(addr);
+}
+
+export function tourOwnersMatch(a: string, b: string): boolean {
+  return moveAddressesMatch(a, b);
 }
 
 /** Fetch claim history via server cache (preferred in browser). */
