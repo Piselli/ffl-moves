@@ -3,7 +3,12 @@
  * Fetches real match stats for oracle submission (EPL + World Cup).
  */
 
-import { WC_LEAGUE_ID, WC_SEASON, getWorldCupRound } from "./worldcup";
+import {
+  WC_LEAGUE_ID,
+  WC_SEASON,
+  WC_GOALS_CONCEDED_FROM_TOUR_ID,
+  getWorldCupRound,
+} from "./worldcup";
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const EPL_LEAGUE_ID = 39;
@@ -22,6 +27,8 @@ interface CompetitionStatsConfig {
   rounds: string[];
   /** Tour / gameweek id reported back in the result. */
   resultGameweekId: number;
+  /** When true, populate goalsConceded for GK/DEF from API-Sports / fixture score. */
+  includeGoalsConceded?: boolean;
 }
 
 // Player apiId -> internal mapping, cached per catalog url.
@@ -40,7 +47,7 @@ interface ApiPlayerStats {
   player: { id: number; name: string };
   statistics: Array<{
     games: { minutes: number | null; position: string; rating: string | null };
-    goals: { total: number | null; assists: number | null; saves: number | null };
+    goals: { total: number | null; assists: number | null; saves: number | null; conceded?: number | null };
     penalty: { saved: number | null; missed: number | null };
     cards: { yellow: number | null; red: number | null };
     tackles: { total: number | null; interceptions: number | null };
@@ -72,6 +79,8 @@ export interface OraclePlayerStats {
   interceptions: number;
   successfulDribbles: number;
   freeKickGoals: number;
+  /** GK/DEF: goals conceded while on pitch (FPL-style −1 per 2). */
+  goalsConceded?: number;
 }
 
 export interface GameweekStatsResult {
@@ -111,6 +120,41 @@ function mapApiPosition(pos: string): number {
   if (pos === "M") return 2;
   if (pos === "F") return 3;
   return 2;
+}
+
+/** API-Sports short statuses where fixture + player stats are final (incl. knockout shootouts). */
+function isCompletedFixtureStatus(status: string): boolean {
+  return status === "FT" || status === "AET" || status === "PEN";
+}
+
+/** GK/DEF goals conceded for knockout tours (fixture score is RT+ET, excludes shootout). */
+function resolveGoalsConceded(
+  positionId: number,
+  minutesPlayed: number,
+  apiConceded: number | null | undefined,
+  teamGoalsAgainst: number,
+  includeGoalsConceded: boolean,
+): number {
+  if (!includeGoalsConceded || positionId > 1 || minutesPlayed <= 0) return 0;
+
+  const teamGc = Math.max(0, teamGoalsAgainst);
+  const apiGc =
+    apiConceded != null && Number.isFinite(apiConceded) && apiConceded > 0
+      ? Math.floor(apiConceded)
+      : 0;
+
+  // GK: API-Sports reliably reports goals.conceded for the full match.
+  if (positionId === 0) {
+    if (apiConceded != null && Number.isFinite(apiConceded) && apiConceded >= 0) {
+      return Math.floor(apiConceded);
+    }
+    return teamGc;
+  }
+
+  // DEF: API often leaves goals.conceded at 0 for outfield players. Team goals against
+  // (RT+ET) applies for 60+ min; shorter subs only get a positive API value.
+  if (minutesPlayed >= 60) return apiGc > 0 ? apiGc : teamGc;
+  return apiGc;
 }
 
 /**
@@ -168,7 +212,7 @@ async function fetchStatsForCompetition(
 
       const fixtures: ApiFixture[] = fixturesData.response || [];
       for (const f of fixtures) {
-        if (f.fixture.status.short === "FT" || f.fixture.status.short === "AET") {
+        if (isCompletedFixtureStatus(f.fixture.status.short)) {
           completedFixtures.push(f);
         }
       }
@@ -190,6 +234,9 @@ async function fetchStatsForCompetition(
     }
 
     // 2. Per-player stats per fixture.
+    // Minutes: API-Sports `games.minutes` only. The feed does not publish per-half added time
+    // after the match; reconstructing stoppage from events is incomplete — edit JSON manually
+    // in admin when a knockout score needs correction before oracle submit.
     for (const fixture of completedFixtures) {
       try {
         const statsUrl = `${API_BASE_URL}/fixtures/players?fixture=${fixture.fixture.id}`;
@@ -201,6 +248,10 @@ async function fetchStatsForCompetition(
         for (const teamData of statsData.response) {
           const teamId = teamData.team.id;
           const hadCleanSheet = cleanSheetTeams.has(teamId);
+          const isHome = teamId === fixture.teams.home.id;
+          const teamGoalsAgainst = isHome
+            ? (fixture.goals.away ?? 0)
+            : (fixture.goals.home ?? 0);
 
           for (const playerData of teamData.players as ApiPlayerStats[]) {
             const stats = playerData.statistics[0];
@@ -240,6 +291,13 @@ async function fetchStatsForCompetition(
               interceptions: stats.tackles?.interceptions || 0,
               successfulDribbles: stats.dribbles?.success || 0,
               freeKickGoals: 0,
+              goalsConceded: resolveGoalsConceded(
+                positionId,
+                mins,
+                stats.goals?.conceded,
+                teamGoalsAgainst,
+                cfg.includeGoalsConceded === true,
+              ),
             });
           }
         }
@@ -273,8 +331,8 @@ export async function fetchGameweekStats(
 /**
  * World Cup oracle stats for one tour id (group matchday or knockout round).
  * Uses the API-Sports World Cup league/season and the WC catalog (apiId mapping).
- * FPL-only fields (bonus, goals_conceded) are not produced here — the admin submit
- * defaults them to 0 for WC; match ratings from API-Sports are real (better than EPL/FPL).
+ * From R32 onward, goalsConceded is populated for GK/DEF (MD1–MD3 were settled without it).
+ * FPL bonus is still not produced here — admin submit defaults bonus to 0 for WC.
  */
 export async function fetchWorldCupRoundStats(
   apiKey: string,
@@ -295,6 +353,7 @@ export async function fetchWorldCupRoundStats(
     mappingsUrl: "/data/wc-players.json",
     rounds: round.apiRounds,
     resultGameweekId: tourId,
+    includeGoalsConceded: tourId >= WC_GOALS_CONCEDED_FROM_TOUR_ID,
   });
 }
 

@@ -21,6 +21,8 @@ export const WC_SEASON = 2026;
 
 /** First on-chain tour id reserved for the World Cup. */
 export const WC_TOUR_ID_BASE = 10000;
+/** First WC tour where oracle submits goals_conceded for GK/DEF (R32 onward). MD1–MD3 were settled without it. */
+export const WC_GOALS_CONCEDED_FROM_TOUR_ID = WC_TOUR_ID_BASE + 4;
 /** First internal player id reserved for the World Cup catalog. */
 export const WC_PLAYER_ID_BASE = 900000;
 
