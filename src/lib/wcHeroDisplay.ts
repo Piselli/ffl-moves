@@ -66,15 +66,6 @@ export function buildHeroMatchDisplays(state: WcBracketState | null): Map<string
     const koIdx = knockoutMatchIndex(matchId);
     const winnerIdx = koIdx >= 0 ? state.knockoutWinners[koIdx] ?? -1 : -1;
 
-    if (winnerIdx >= 0) {
-      out.set(matchId, {
-        home: null,
-        away: null,
-        winner: teamRef(winnerIdx),
-      });
-      continue;
-    }
-
     const r32Seeds = R32_SEEDS.get(matchId);
     if (r32Seeds) {
       const [homeSeed, awaySeed] = r32Seeds.split(" v ");
@@ -84,7 +75,16 @@ export function buildHeroMatchDisplays(state: WcBracketState | null): Map<string
       out.set(matchId, {
         home: homeOk ? teamRef(p.home) : null,
         away: awayOk ? teamRef(p.away) : null,
-        winner: null,
+        winner: winnerIdx >= 0 ? teamRef(winnerIdx) : null,
+      });
+      continue;
+    }
+
+    if (winnerIdx >= 0) {
+      out.set(matchId, {
+        home: null,
+        away: null,
+        winner: teamRef(winnerIdx),
       });
       continue;
     }

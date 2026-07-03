@@ -29,23 +29,43 @@ function BoxContent({
   mirror?: boolean;
 }) {
   const flip = mirror ? "[transform:scaleX(-1)]" : undefined;
+  const home = display?.home ?? null;
+  const away = display?.away ?? null;
+  const winner = display?.winner ?? null;
 
-  if (display?.winner) {
+  if (home && away) {
+    const homeWon = winner?.code === home.code;
+    const awayWon = winner?.code === away.code;
+    const decided = Boolean(winner);
+
     return (
-      <span className={cn("flex items-center justify-center", flip)}>
-        <WcFlagChip code={display.winner.code} name={display.winner.name} className="h-3.5 w-[22px]" />
+      <span className={cn("flex items-center justify-center gap-0.5 px-0.5", flip)}>
+        <WcFlagChip
+          code={home.code}
+          name={home.name}
+          className={cn(
+            "h-3 w-[18px]",
+            decided && !homeWon && "opacity-35 grayscale",
+            homeWon && "h-3.5 w-[21px] ring-[#00f948]/70",
+          )}
+        />
+        <WcFlagChip
+          code={away.code}
+          name={away.name}
+          className={cn(
+            "h-3 w-[18px]",
+            decided && !awayWon && "opacity-35 grayscale",
+            awayWon && "h-3.5 w-[21px] ring-[#00f948]/70",
+          )}
+        />
       </span>
     );
   }
 
-  const home = display?.home ?? null;
-  const away = display?.away ?? null;
-
-  if (home && away) {
+  if (winner) {
     return (
-      <span className={cn("flex items-center justify-center gap-0.5 px-0.5", flip)}>
-        <WcFlagChip code={home.code} name={home.name} className="h-3 w-[18px]" />
-        <WcFlagChip code={away.code} name={away.name} className="h-3 w-[18px]" />
+      <span className={cn("flex items-center justify-center", flip)}>
+        <WcFlagChip code={winner.code} name={winner.name} className="h-3.5 w-[22px]" />
       </span>
     );
   }
