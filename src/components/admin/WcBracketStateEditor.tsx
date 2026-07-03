@@ -82,7 +82,7 @@ export function WcBracketStateEditor({ copy }: Props) {
     return () => window.clearInterval(id);
   }, [refreshLive]);
 
-  const autoSync = live?.meta?.source === "api" || live?.meta?.source === "mixed";
+  const autoSync = live?.meta?.source === "api" || live?.meta?.source === "mixed" || live?.meta?.source === "static";
 
   const handleSaveOverride = async () => {
     if (!adminKey) {

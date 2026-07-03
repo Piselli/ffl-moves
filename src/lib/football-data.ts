@@ -37,6 +37,11 @@ export interface WcFixture {
   started: boolean;
   scoreH: number | null;
   scoreA: number | null;
+  /** Penalty shootout score, when a knockout tie is decided on penalties. */
+  penaltyH?: number | null;
+  penaltyA?: number | null;
+  /** Winner after extra time / penalties. Needed when full-time scores are level. */
+  winner?: "home" | "away" | null;
   /** Group letter (A..L) for group-stage matches, else null. */
   group: string | null;
   /** Our internal round key (md1/md2/md3/r32/r16/qf/sf/final). */
@@ -60,7 +65,11 @@ interface FdMatch {
   matchday: number | null;
   homeTeam: FdTeam;
   awayTeam: FdTeam;
-  score?: { fullTime?: { home: number | null; away: number | null } };
+  score?: {
+    winner?: "HOME_TEAM" | "AWAY_TEAM" | "DRAW" | null;
+    fullTime?: { home: number | null; away: number | null };
+    penalties?: { home: number | null; away: number | null };
+  };
 }
 
 interface MatchesCacheEntry {
@@ -115,6 +124,13 @@ function isStarted(status: string): boolean {
 }
 
 function normalizeMatch(m: FdMatch): WcFixture {
+  const winner =
+    m.score?.winner === "HOME_TEAM"
+      ? "home"
+      : m.score?.winner === "AWAY_TEAM"
+        ? "away"
+        : null;
+
   return {
     id: m.id,
     kickoffTime: m.utcDate ?? null,
@@ -128,6 +144,9 @@ function normalizeMatch(m: FdMatch): WcFixture {
     started: isStarted(m.status),
     scoreH: m.score?.fullTime?.home ?? null,
     scoreA: m.score?.fullTime?.away ?? null,
+    penaltyH: m.score?.penalties?.home ?? null,
+    penaltyA: m.score?.penalties?.away ?? null,
+    winner,
     group: parseGroupLetter(m.group),
     roundKey: mapStageToRoundKey(m.stage, m.matchday),
   };

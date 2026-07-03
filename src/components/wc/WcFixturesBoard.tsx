@@ -23,6 +23,9 @@ interface ApiFixture {
   started: boolean;
   scoreH: number | null;
   scoreA: number | null;
+  penaltyH?: number | null;
+  penaltyA?: number | null;
+  winner?: "home" | "away" | null;
   group: string | null;
   roundKey: string | null;
 }
@@ -120,6 +123,7 @@ function MatchRow({ f, delay }: { f: ApiFixture; delay: number }) {
   const tbd = isTbd(f);
   const kick = formatKickoff(f.kickoffTime, locale);
   const hasScore = (status === "finished" || status === "live") && f.scoreH != null && f.scoreA != null;
+  const hasPens = hasScore && f.penaltyH != null && f.penaltyA != null;
 
   return (
     <motion.div
@@ -146,7 +150,11 @@ function MatchRow({ f, delay }: { f: ApiFixture; delay: number }) {
           <div className="flex w-[78px] shrink-0 flex-col items-center">
             {hasScore ? (
               <span className="font-display text-lg font-black tabular-nums leading-none text-white">
-                {f.scoreH}<span className="px-1 text-white/30">-</span>{f.scoreA}
+                {f.scoreH}
+                {hasPens ? <span className="text-xs text-white/45">({f.penaltyH})</span> : null}
+                <span className="px-1 text-white/30">-</span>
+                {f.scoreA}
+                {hasPens ? <span className="text-xs text-white/45">({f.penaltyA})</span> : null}
               </span>
             ) : (
               <span className="font-display text-sm font-bold tabular-nums leading-none text-white/70">

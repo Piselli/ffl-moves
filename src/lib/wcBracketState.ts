@@ -12,7 +12,7 @@ import {
 
 export interface WcBracketStateMeta {
   updatedAt: string | null;
-  source: "manual" | "api" | "mixed" | null;
+  source: "manual" | "api" | "mixed" | "static" | null;
   note?: string;
   /** Per group A→L: all six group-stage matches finished. */
   groupsFinal?: boolean[];

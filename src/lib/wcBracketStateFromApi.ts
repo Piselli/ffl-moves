@@ -20,6 +20,7 @@ import { fetchWcMatches, hasFootballDataToken } from "@/lib/football-data";
 import type { WcBracketState } from "@/lib/wcBracketState";
 import { loadWcBracketState } from "@/lib/wcBracketStateStore";
 import { annexCCombinationKey, lookupAnnexC } from "@/lib/wcFifaAnnexC";
+import { getAllStaticWcFixtures } from "@/lib/wcStaticFixtures";
 
 interface StandingRow {
   teamIdx: number;
@@ -177,7 +178,16 @@ function applyKnockoutFromFixtures(
     const awayIdx = lookupTeamIndex(f.away, f.awayCode);
     if (homeIdx == null || awayIdx == null) continue;
 
-    const winnerIdx = f.scoreH > f.scoreA ? homeIdx : f.scoreH < f.scoreA ? awayIdx : null;
+    const winnerIdx =
+      f.winner === "home"
+        ? homeIdx
+        : f.winner === "away"
+          ? awayIdx
+          : f.scoreH > f.scoreA
+            ? homeIdx
+            : f.scoreH < f.scoreA
+              ? awayIdx
+              : null;
     if (winnerIdx == null) continue;
 
     for (const matchId of WC_KNOCKOUT_MATCH_IDS) {
@@ -204,28 +214,48 @@ export interface SyncFromApiResult {
   errors: string[];
 }
 
-/** Merge football-data results into an existing state (API fills; manual values kept where API has no data). */
+function hasFinishedGroupData(fixtures: WcFixture[]): boolean {
+  return fixtures.some((f) => Boolean(f.group) && f.finished);
+}
+
+function liveSourceLabel(apiFixtures: WcFixture[] | null, fixtures: WcFixture[]): "api" | "static" | null {
+  if (apiFixtures && apiFixtures.length > 0) return "api";
+  if (fixtures.length > 0) return "static";
+  return null;
+}
+
+/** Merge football-data/static results into an existing state (feed fills; manual values kept where the feed has no data). */
 export async function syncBracketStateFromApi(base: WcBracketState): Promise<SyncFromApiResult> {
   const errors: string[] = [];
-  const fixtures = await fetchWcMatches();
+  const apiFixtures = await fetchWcMatches();
+  const fixtures = apiFixtures && apiFixtures.length > 0 ? apiFixtures : getAllStaticWcFixtures();
+  const source = liveSourceLabel(apiFixtures, fixtures);
 
-  if (!fixtures || fixtures.length === 0) {
+  if (fixtures.length === 0) {
     return {
       state: base,
       fixturesUsed: 0,
       groupsComplete: 0,
       knockoutFilled: 0,
-      errors: ["football-data.org unavailable — set FOOTBALL_DATA_TOKEN or check the API."],
+      errors: ["No World Cup fixture feed available — set FOOTBALL_DATA_TOKEN or update public/data/wc-fixtures.json."],
     };
   }
 
+  if (!apiFixtures || apiFixtures.length === 0) {
+    errors.push("Using static World Cup fixture fallback; set FOOTBALL_DATA_TOKEN for live provider sync.");
+  }
+
+  const hasGroupData = hasFinishedGroupData(fixtures);
   const apiGroupRanks = computeGroupRanksFromFixtures(fixtures);
   const groupRanks = [...base.groupRanks] as GroupRanks;
-  const groupsFinal = computeGroupsFinal(fixtures);
+  const computedGroupsFinal = computeGroupsFinal(fixtures);
+  const groupsFinal = hasGroupData
+    ? computedGroupsFinal
+    : (base.meta.groupsFinal ?? computedGroupsFinal);
 
   let groupsComplete = 0;
   for (let g = 0; g < WC_GROUPS.length; g++) {
-    if (groupsFinal[g]) {
+    if (hasGroupData && groupsFinal[g]) {
       groupsComplete++;
       for (let s = 0; s < 4; s++) {
         const idx = g * 4 + s;
@@ -235,7 +265,7 @@ export async function syncBracketStateFromApi(base: WcBracketState): Promise<Syn
     }
 
     const letter = WC_GROUPS[g]!.letter;
-    if (!fixtures.some((f) => f.group === letter && f.finished)) continue;
+    if (!hasGroupData || !fixtures.some((f) => f.group === letter && f.finished)) continue;
 
     for (let s = 0; s < 4; s++) {
       const idx = g * 4 + s;
@@ -244,7 +274,7 @@ export async function syncBracketStateFromApi(base: WcBracketState): Promise<Syn
   }
 
   let thirdPlaceOrder = [...base.thirdPlaceOrder] as ThirdPlaceOrder;
-  if (groupsFinal.every(Boolean)) {
+  if (hasGroupData && groupsFinal.every(Boolean)) {
     const apiThirds = computeThirdPlaceOrderFromFixtures(fixtures, groupRanks);
     if (apiThirds.some((r) => r > 0)) {
       thirdPlaceOrder = apiThirds;
@@ -268,7 +298,7 @@ export async function syncBracketStateFromApi(base: WcBracketState): Promise<Syn
       ...merged,
       meta: {
         updatedAt: new Date().toISOString(),
-        source: base.meta.source === "manual" ? "mixed" : "api",
+        source: base.meta.source === "manual" && source ? "mixed" : source,
         groupsFinal,
         r32SeedingFinal,
       },
@@ -283,7 +313,7 @@ export async function syncBracketStateFromApi(base: WcBracketState): Promise<Syn
 /** Live hero state: stored overrides + football-data.org results (when configured). */
 export async function resolveLiveWcBracketState(): Promise<WcBracketState> {
   const stored = await loadWcBracketState();
-  if (!hasFootballDataToken()) return stored;
+  if (!hasFootballDataToken() && getAllStaticWcFixtures().length === 0) return stored;
 
   const { state } = await syncBracketStateFromApi(stored);
   return state;

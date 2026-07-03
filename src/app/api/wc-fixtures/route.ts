@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs";
-import path from "node:path";
 import { WC_ROUNDS, getWorldCupRound, getWorldCupRoundByKey } from "@/lib/worldcup";
 import { getWcRoundFixtures } from "@/lib/football-data";
+import { getStaticWcRoundFixtures } from "@/lib/wcStaticFixtures";
 
 /**
  * GET /api/wc-fixtures?tour=10001  (or ?round=md1)
@@ -15,32 +14,6 @@ import { getWcRoundFixtures } from "@/lib/football-data";
  * player oracle (incompatible ids), so mixing the two sources is safe.
  */
 export const dynamic = "force-dynamic";
-
-interface WcFixtureFile {
-  [roundKey: string]: {
-    deadlineTime?: string | null;
-    fixtures?: Array<{
-      id?: number;
-      kickoffTime?: string | null;
-      home?: string;
-      away?: string;
-      finished?: boolean;
-      scoreH?: number | null;
-      scoreA?: number | null;
-    }>;
-  };
-}
-
-function loadFile(): WcFixtureFile {
-  try {
-    const file = path.join(process.cwd(), "public", "data", "wc-fixtures.json");
-    const raw = fs.readFileSync(file, "utf8");
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as WcFixtureFile) : {};
-  } catch {
-    return {};
-  }
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -69,23 +42,15 @@ export async function GET(request: Request) {
   }
 
   // 2. Fall back to the static file.
-  const file = loadFile();
-  const entry = file[round.key] ?? {};
-  const fixtures = Array.isArray(entry.fixtures) ? entry.fixtures : [];
-
-  const deadlineTime = entry.deadlineTime ?? null;
-  const deadlineEpochMs =
-    typeof deadlineTime === "string" && deadlineTime.length > 0
-      ? (Number.isFinite(Date.parse(deadlineTime)) ? Date.parse(deadlineTime) : null)
-      : null;
+  const fallback = getStaticWcRoundFixtures(round.key);
 
   return NextResponse.json(
     {
       tour: { id: round.tourId, key: round.key, stage: round.stage },
       source: "static",
-      deadlineTime,
-      deadlineEpochMs,
-      fixtures,
+      deadlineTime: fallback?.deadlineTime ?? null,
+      deadlineEpochMs: fallback?.deadlineEpochMs ?? null,
+      fixtures: fallback?.fixtures ?? [],
     },
     { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
   );
