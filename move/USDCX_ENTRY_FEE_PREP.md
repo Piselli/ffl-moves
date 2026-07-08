@@ -74,7 +74,7 @@ Clears on-chain entries + `UserTeams` for that id, sets `prize_pool` to 0, reope
 
 ### 5. Migrate prize vault (if switching mid-season)
 
-Withdraw remaining MOVE from the prize vault (admin `admin_withdraw_prize_vault`), then sponsor USDCx before resolving the next gameweek.
+Withdraw remaining MOVE from the prize vault via `admin_withdraw_legacy_move_from_vault` (admin UI: **Withdraw legacy MOVE from prize vault**), then sponsor USDCx before resolving the next gameweek. While entry fees use USDCx, `admin_withdraw_prize_vault` only moves USDCx — legacy MOVE requires the dedicated recovery entry.
 
 ### 6. Frontend deploy
 

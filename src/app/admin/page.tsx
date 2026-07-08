@@ -10,6 +10,7 @@ import {
   findOpenGameweekFromChain,
   hasAdminSponsorPrizePoolOnChain,
   hasAdminWithdrawPrizeVaultOnChain,
+  hasAdminWithdrawLegacyMoveFromVaultOnChain,
   hasAdminMarkPrizeClaimedOnChain,
   getBracketChallengeStatus,
   getBracketChallengeEntries,
@@ -69,6 +70,7 @@ export default function AdminPage() {
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
   const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
   const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
+  const [withdrawLegacyTxAvailable, setWithdrawLegacyTxAvailable] = useState<boolean | null>(null);
   const [markClaimedTxAvailable, setMarkClaimedTxAvailable] = useState<boolean | null>(null);
   const [bracketAbiLive, setBracketAbiLive] = useState<boolean | null>(null);
   const [bracketStatus, setBracketStatus] = useState<number | null>(null);
@@ -88,6 +90,7 @@ export default function AdminPage() {
   const [sponsorAmountMove, setSponsorAmountMove] = useState("");
   const [withdrawRecipient, setWithdrawRecipient] = useState("");
   const [withdrawAmountMove, setWithdrawAmountMove] = useState("");
+  const [withdrawLegacyAmountMove, setWithdrawLegacyAmountMove] = useState("");
   const [feeEntryMove, setFeeEntryMove] = useState("");
   const [feeTitleMove, setFeeTitleMove] = useState("");
   const [feeGuildMove, setFeeGuildMove] = useState("");
@@ -108,16 +111,18 @@ export default function AdminPage() {
     setIsLoading(true);
     setSponsorTxAvailable(null);
     setWithdrawTxAvailable(null);
+    setWithdrawLegacyTxAvailable(null);
     setMarkClaimedTxAvailable(null);
     setBracketAbiLive(null);
     setBracketStatus(null);
     setBracketEntries(null);
     setBracketPrizeGw(null);
     try {
-      const [configData, sponsorOk, withdrawOk, markClaimedOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
+      const [configData, sponsorOk, withdrawOk, withdrawLegacyOk, markClaimedOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
         getConfig(),
         hasAdminSponsorPrizePoolOnChain(),
         hasAdminWithdrawPrizeVaultOnChain(),
+        hasAdminWithdrawLegacyMoveFromVaultOnChain(),
         hasAdminMarkPrizeClaimedOnChain(),
         hasRegisterBracketPredictionOnChain(),
         getBracketChallengeStatus(),
@@ -126,6 +131,7 @@ export default function AdminPage() {
       ]);
       setSponsorTxAvailable(sponsorOk);
       setWithdrawTxAvailable(withdrawOk);
+      setWithdrawLegacyTxAvailable(withdrawLegacyOk);
       setMarkClaimedTxAvailable(markClaimedOk);
       setBracketAbiLive(bracketOk);
       setBracketStatus(bracketSt);
@@ -585,6 +591,47 @@ export default function AdminPage() {
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to withdraw prize vault:", error);
+      alert(ad.alertFailed(formatTxError(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleWithdrawLegacyMoveFromVault = async () => {
+    if (!connected) return;
+
+    const recipient = normalizeMoveAccountAddress(withdrawRecipient || "");
+    if (!recipient) {
+      alert(ad.withdrawInvalidRecipient);
+      return;
+    }
+
+    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
+    const amt = parseMove(withdrawLegacyAmountMove || "");
+    if (!Number.isFinite(amt) || amt <= 0) {
+      alert(ad.withdrawInvalidAmount("MOVE"));
+      return;
+    }
+    const octas = displayAmountToRaw(amt, "move");
+    if (octas < 1) {
+      alert(ad.withdrawAmountTooSmall);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signAndSubmitTransaction({
+        data: {
+          function: moduleFunction("admin_withdraw_legacy_move_from_vault"),
+          typeArguments: [],
+          functionArguments: [recipient, String(octas)],
+        },
+      });
+      alert(ad.withdrawLegacySuccess(recipient, formatMOVE(octas)));
+      setWithdrawLegacyAmountMove("");
+      await loadChainConfig();
+    } catch (error: unknown) {
+      console.error("Failed to withdraw legacy MOVE from prize vault:", error);
       alert(ad.alertFailed(formatTxError(error)));
     } finally {
       setIsSubmitting(false);
@@ -1545,6 +1592,71 @@ export default function AdminPage() {
               className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-700 text-white rounded-xl font-medium hover:from-orange-500 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.withdrawSubmit}
+            </button>
+          </div>
+        )}
+
+        {/* Legacy MOVE in prize vault — recovery after USDCx migration */}
+        {isAdmin && config?.usdcxEntryLive && (
+          <div className="glass-card rounded-2xl p-6 border border-violet-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">{ad.withdrawLegacySectionTitle}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{ad.withdrawLegacySectionHint}</p>
+              </div>
+            </div>
+            {withdrawLegacyTxAvailable === false && (
+              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
+                {ad.withdrawLegacyNotOnChain}
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <label className="flex flex-col gap-1 sm:col-span-2">
+                <span className="text-xs text-muted-foreground">{ad.withdrawRecipientLabel}</span>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={withdrawRecipient}
+                  onChange={(e) => setWithdrawRecipient(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 border border-border font-mono text-sm"
+                  placeholder="0x…"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{ad.withdrawLegacyAmountLabel}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={withdrawLegacyAmountMove}
+                  onChange={(e) => setWithdrawLegacyAmountMove(e.target.value)}
+                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 border border-border"
+                  placeholder="83.37"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleWithdrawLegacyMoveFromVault}
+              disabled={
+                isSubmitting ||
+                !withdrawRecipient.trim() ||
+                !withdrawLegacyAmountMove ||
+                withdrawLegacyTxAvailable !== true
+              }
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-xl font-medium hover:from-violet-500 hover:to-purple-600 transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50"
+            >
+              {isSubmitting ? "..." : ad.withdrawLegacySubmit}
             </button>
           </div>
         )}

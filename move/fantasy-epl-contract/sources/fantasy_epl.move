@@ -723,7 +723,7 @@ module fantasy_epl_addr::fantasy_epl {
         };
     }
 
-    /// Withdraw MOVE from the prize vault to any address. Admin only.
+    /// Withdraw the current entry-fee asset (USDCx or MOVE) from the prize vault. Admin only.
     /// Does not enforce prize liabilities: leave enough for `claim_prize` or claims will fail.
     public entry fun admin_withdraw_prize_vault(
         sender: &signer,
@@ -748,6 +748,35 @@ module fantasy_epl_addr::fantasy_epl {
             admin: sender_addr,
             recipient,
             amount,
+        });
+    }
+
+    /// Recover AptosCoin left in the prize vault after switching entry fees to USDCx. Admin only.
+    /// Does not touch USDCx balances or on-chain prize_pool / claim flags.
+    public entry fun admin_withdraw_legacy_move_from_vault(
+        sender: &signer,
+        recipient: address,
+        amount_octas: u64,
+    ) acquires Config, TreasuryAuth, EntryFeeAssetConfig {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@fantasy_epl_addr);
+        assert!(is_admin(sender_addr, config), ENOT_ADMIN);
+        assert!(exists<TreasuryAuth>(@fantasy_epl_addr), ETREASURY_AUTH_NOT_REGISTERED);
+        assert!(entry_fee_uses_usdcx(), EINVALID_ENTRY_FEE_ASSET);
+        assert!(amount_octas > 0, EZERO_VAULT_WITHDRAW);
+
+        let auth = borrow_global<TreasuryAuth>(@fantasy_epl_addr);
+        let vault_addr = account::get_signer_capability_address(&auth.cap);
+        let bal = coin::balance<AptosCoin>(vault_addr);
+        assert!(bal >= amount_octas, EINSUFFICIENT_VAULT_BALANCE);
+
+        let treasury = account::create_signer_with_capability(&auth.cap);
+        coin::transfer<AptosCoin>(&treasury, recipient, amount_octas);
+
+        event::emit(PrizeVaultWithdrawn {
+            admin: sender_addr,
+            recipient,
+            amount: amount_octas,
         });
     }
 
@@ -2954,6 +2983,27 @@ module fantasy_epl_addr::fantasy_epl {
 
         admin_mark_prize_claimed(admin, 1, @0x123);
         claim_prize(user1, 1); // Should fail — already marked claimed
+    }
+
+    #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
+    fun test_admin_withdraw_legacy_move_from_vault(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer,
+    ) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
+        setup_test(aptos_framework, admin, user1, user2);
+
+        create_gameweek(admin, 1);
+        let (player_ids, positions, clubs) = create_test_team_data();
+        register_team(user1, 1, player_ids, positions, clubs);
+
+        let bal_before = coin::balance<AptosCoin>(@0x123);
+        set_entry_fee_asset(admin, ENTRY_FEE_ASSET_USDCX, USDCX_METADATA_MAINNET, DEFAULT_ENTRY_FEE_USDCX);
+
+        admin_withdraw_legacy_move_from_vault(admin, @0x123, 100_00000000);
+
+        assert!(coin::balance<AptosCoin>(@0x123) == bal_before + 100_00000000, 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]

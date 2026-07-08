@@ -485,6 +485,12 @@ export type PagesMessages = {
     withdrawInvalidAmount: (symbol: string) => string;
     withdrawAmountTooSmall: string;
     withdrawNotOnChain: string;
+    withdrawLegacySectionTitle: string;
+    withdrawLegacySectionHint: string;
+    withdrawLegacyAmountLabel: string;
+    withdrawLegacySubmit: string;
+    withdrawLegacySuccess: (recipient: string, amountLabel: string) => string;
+    withdrawLegacyNotOnChain: string;
     bracketSectionTitle: string;
     bracketSectionHint: string;
     bracketAbiLive: string;
@@ -1068,6 +1074,15 @@ export const pagesEn: PagesMessages = {
     withdrawAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
     withdrawNotOnChain:
       "This deployment’s module has no admin_withdraw_prize_vault entry on-chain. Upgrade the published package from this repo so the function appears in the ABI.",
+    withdrawLegacySectionTitle: "Withdraw legacy MOVE from prize vault",
+    withdrawLegacySectionHint:
+      "Recovers AptosCoin left in the prize vault from before USDCx entry fees. Does not touch USDCx balances or on-chain prize_pool / claim flags. Swap MOVE → USDCx on Yuzu after withdrawal.",
+    withdrawLegacyAmountLabel: "Amount (MOVE)",
+    withdrawLegacySubmit: "Withdraw legacy MOVE",
+    withdrawLegacySuccess: (recipient, amountLabel) =>
+      `Sent ${amountLabel} legacy MOVE from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawLegacyNotOnChain:
+      "This deployment’s module has no admin_withdraw_legacy_move_from_vault entry on-chain. Publish a package upgrade from this repo first.",
     bracketSectionTitle: "World Cup · Bracket Challenge go-live",
     bracketSectionHint:
       "After publishing the package upgrade (register_bracket_prediction on-chain), run these steps in order. First admin_init_bracket_challenge must be signed by the module publisher wallet (0xf598…).",
@@ -2103,6 +2118,15 @@ export const pagesUk: PagesMessages = {
     withdrawAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
     withdrawNotOnChain:
       "У задеплоєному модулі on-chain немає entry admin_withdraw_prize_vault. Онови пакет із цього репозиторію, щоб функція з’явилася в ABI.",
+    withdrawLegacySectionTitle: "Вивести legacy MOVE з prize vault",
+    withdrawLegacySectionHint:
+      "Забирає AptosCoin, що залишився у prize vault після переходу на USDCx-внески. USDCx-баланс і on-chain prize_pool / claim flags не змінюються. Після виводу свопни MOVE → USDCx на Yuzu.",
+    withdrawLegacyAmountLabel: "Сума (MOVE)",
+    withdrawLegacySubmit: "Вивести legacy MOVE",
+    withdrawLegacySuccess: (recipient, amountLabel) =>
+      `З vault відправлено ${amountLabel} legacy MOVE → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
+    withdrawLegacyNotOnChain:
+      "У задеплоєному модулі on-chain немає entry admin_withdraw_legacy_move_from_vault. Спочатку publish оновлення пакета з цього репозиторію.",
     bracketSectionTitle: "ЧС · Запуск Bracket Challenge",
     bracketSectionHint:
       "Після publish оновлення пакета (register_bracket_prediction on-chain) виконай кроки по порядку. Перший admin_init_bracket_challenge має підписати гаманець модуля (0xf598…).",
