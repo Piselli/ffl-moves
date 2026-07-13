@@ -80,10 +80,13 @@ export function buildHeroMatchDisplays(state: WcBracketState | null): Map<string
       continue;
     }
 
+    const homeTeam = teamRef(p.home);
+    const awayTeam = teamRef(p.away);
+
     if (winnerIdx >= 0) {
       out.set(matchId, {
-        home: null,
-        away: null,
+        home: homeTeam,
+        away: awayTeam,
         winner: teamRef(winnerIdx),
       });
       continue;
