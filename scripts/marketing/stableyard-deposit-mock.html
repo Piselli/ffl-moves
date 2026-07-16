@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1400" />
+  <title>MoveMatch · Stableyard deposit mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1400px;
+      height: 900px;
+      overflow: hidden;
+      font-family: Inter, system-ui, sans-serif;
+      background: #0D0F12;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+    }
+    .display { font-family: Oswald, sans-serif; }
+
+    /* ── Navbar ── */
+    .nav {
+      position: absolute; top: 0; left: 0; right: 0; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(13,15,18,0.92);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo { height: 28px; opacity: 0.95; }
+    .nav-links { display: flex; gap: 28px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.45); }
+    .nav-links .active { color: #00f948; }
+    .nav-wallet {
+      font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── Page layout ── */
+    .page { padding: 96px 32px 32px; height: 100%; }
+    .header-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 28px;
+    }
+    .header-title {
+      font-size: 32px; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1.1;
+    }
+    .header-sub { margin-top: 6px; font-size: 14px; color: rgba(255,255,255,0.38); }
+
+    /* RegistrationCostPanel */
+    .cost-panel {
+      border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03); padding: 16px 20px;
+    }
+    .cost-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3); margin-bottom: 12px;
+    }
+    .cost-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .cost-amount { display: flex; align-items: center; gap: 12px; }
+    .usdc-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #2775ca, #1a5fb4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: #fff;
+    }
+    .cost-value { font-family: Oswald; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+    .topup-btn {
+      padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04); color: #00f948;
+      font-family: Oswald; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    /* ── Main grid ── */
+    .main { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; height: calc(100% - 120px); }
+
+    /* Pitch */
+    .pitch-wrap {
+      position: relative; border-radius: 20px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, #0f2a1c 0%, #0a1f14 100%);
+      min-height: 520px;
+    }
+    .pitch-lines {
+      position: absolute; inset: 0; opacity: 0.25;
+      background:
+        linear-gradient(90deg, transparent 49.5%, rgba(255,255,255,0.5) 49.5%, rgba(255,255,255,0.5) 50.5%, transparent 50.5%),
+        radial-gradient(circle at 50% 50%, transparent 58px, rgba(255,255,255,0.35) 59px, rgba(255,255,255,0.35) 61px, transparent 62px);
+    }
+    .pitch-inner { position: relative; height: 100%; padding: 24px 20px 20px; display: flex; flex-direction: column; }
+    .formation-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 8px; }
+    .rows { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 8px 0 4px; }
+    .row { display: flex; justify-content: center; gap: 14px; }
+    .player {
+      width: 78px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.35); backdrop-filter: blur(4px); padding: 8px 6px 6px; text-align: center;
+    }
+    .player-pos {
+      display: inline-block; font-size: 8px; font-weight: 800; letter-spacing: 0.06em;
+      padding: 2px 5px; border-radius: 4px; margin-bottom: 4px;
+    }
+    .pos-gk { background: rgba(244,63,94,0.2); color: #fb7185; }
+    .pos-def { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .pos-mid { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .pos-fwd { background: rgba(16,185,129,0.2); color: #34d399; }
+    .player-name { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1.2; }
+    .player-team { font-size: 8px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    .bench {
+      margin-top: 12px; padding: 14px; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+    }
+    .bench-title { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.28); margin-bottom: 10px; }
+    .bench-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .bench-slot {
+      padding: 8px 10px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.1);
+      font-size: 11px; color: rgba(255,255,255,0.25);
+    }
+    .actions { display: flex; gap: 10px; margin-top: 12px; }
+    .btn-random {
+      padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5);
+      font-family: Oswald; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    }
+    .btn-register {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(90deg, #10b981, #00f948); color: #000;
+      font-family: Oswald; font-size: 14px; font-weight: 700; text-transform: uppercase;
+      box-shadow: 0 0 30px rgba(0,249,72,0.22);
+    }
+
+    /* Player list panel */
+    .list-panel {
+      border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03); padding: 16px; display: flex; flex-direction: column;
+    }
+    .search {
+      height: 40px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.25); padding: 0 14px 0 38px; font-size: 13px; color: rgba(255,255,255,0.35);
+      position: relative; margin-bottom: 12px;
+    }
+    .search::before {
+      content: "⌕"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: rgba(255,255,255,0.25); font-size: 16px;
+    }
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 10px; margin-bottom: 4px;
+    }
+    .list-item:nth-child(odd) { background: rgba(255,255,255,0.02); }
+    .list-name { font-size: 13px; font-weight: 600; }
+    .list-meta { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+    /* ── Modal overlay ── */
+    .overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal {
+      width: 380px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+      background: #111214; box-shadow: 0 24px 80px rgba(0,0,0,0.6); overflow: hidden;
+    }
+    .modal-accent { height: 2px; background: linear-gradient(90deg, transparent, rgba(0,249,72,0.6), transparent); }
+    .modal-body { padding: 28px 24px 24px; text-align: center; }
+    .modal-icon {
+      width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 50%;
+      background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25);
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .modal-title {
+      font-family: Oswald; font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em;
+    }
+    .modal-text { margin-top: 12px; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.55); }
+    .modal-hint { margin-top: 10px; font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.38); }
+    .modal-gas {
+      margin-top: 10px; font-size: 12px; line-height: 1.45; color: #00f948;
+      padding: 8px 12px; border-radius: 10px; background: rgba(0,249,72,0.08); border: 1px solid rgba(0,249,72,0.15);
+    }
+    .modal-actions { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+    .modal-cta {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: linear-gradient(90deg, #10b981, #00f948); color: #000;
+      font-family: Oswald; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .modal-cancel {
+      width: 100%; padding: 10px; border: none; background: none;
+      font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.38);
+    }
+
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <img class="nav-logo" src="../../public/movematch_lockup_hires.png" alt="MoveMatch" />
+    <div class="nav-links display">
+      <span class="active">Склад</span>
+      <span>Лідерборд</span>
+      <span>Матчі</span>
+      <span>FAQ</span>
+    </div>
+    <div class="nav-wallet">0x7a3b…c4f2</div>
+  </nav>
+
+  <div class="page">
+    <div class="header-row">
+      <div>
+        <h1 class="header-title display">Тур 38 · Склад</h1>
+        <p class="header-sub">Обери 11 гравців у формації 4-3-3</p>
+      </div>
+      <div class="cost-panel">
+        <p class="cost-label">Вартість реєстрації</p>
+        <div class="cost-row">
+          <div class="cost-amount">
+            <div class="usdc-icon">$</div>
+            <span class="cost-value">5.00 USDCx</span>
+          </div>
+          <button type="button" class="topup-btn">Поповнити з іншої мережі</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div>
+        <div class="pitch-wrap">
+          <div class="pitch-lines"></div>
+          <div class="pitch-inner">
+            <div class="formation-label">4-3-3</div>
+            <div class="rows">
+              <div class="row">
+                <div class="player"><span class="player-pos pos-gk">GK</span><div class="player-name">Raya</div><div class="player-team">ARS</div></div>
+              </div>
+              <div class="row">
+                <div class="player"><span class="player-pos pos-def">DEF</span><div class="player-name">Saliba</div><div class="player-team">ARS</div></div>
+                <div class="player"><span class="player-pos pos-def">DEF</span><div class="player-name">Gabriel</div><div class="player-team">ARS</div></div>
+                <div class="player"><span class="player-pos pos-def">DEF</span><div class="player-name">White</div><div class="player-team">ARS</div></div>
+                <div class="player"><span class="player-pos pos-def">DEF</span><div class="player-name">Trippier</div><div class="player-team">NEW</div></div>
+              </div>
+              <div class="row">
+                <div class="player"><span class="player-pos pos-mid">MID</span><div class="player-name">Ødegaard</div><div class="player-team">ARS</div></div>
+                <div class="player"><span class="player-pos pos-mid">MID</span><div class="player-name">Rice</div><div class="player-team">ARS</div></div>
+                <div class="player"><span class="player-pos pos-mid">MID</span><div class="player-name">Saka</div><div class="player-team">ARS</div></div>
+              </div>
+              <div class="row">
+                <div class="player"><span class="player-pos pos-fwd">FWD</span><div class="player-name">Haaland</div><div class="player-team">MCI</div></div>
+                <div class="player"><span class="player-pos pos-fwd">FWD</span><div class="player-name">Isak</div><div class="player-team">NEW</div></div>
+                <div class="player"><span class="player-pos pos-fwd">FWD</span><div class="player-name">Watkins</div><div class="player-team">AVL</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bench">
+          <div class="bench-title">Запасні (0/3)</div>
+          <div class="bench-row">
+            <div class="bench-slot">Запасний 1</div>
+            <div class="bench-slot">Запасний 2</div>
+            <div class="bench-slot">Запасний 3</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-random">Random</button>
+          <button type="button" class="btn-register">Підтвердити · 5.00 USDCx</button>
+        </div>
+      </div>
+
+      <div class="list-panel">
+        <div class="search">Пошук гравця…</div>
+        <div class="list-item"><div><div class="list-name">Erling Haaland</div><div class="list-meta">MCI · FWD</div></div></div>
+        <div class="list-item"><div><div class="list-name">Bukayo Saka</div><div class="list-meta">ARS · MID</div></div></div>
+        <div class="list-item"><div><div class="list-name">Martin Ødegaard</div><div class="list-meta">ARS · MID</div></div></div>
+        <div class="list-item"><div><div class="list-name">Alexander Isak</div><div class="list-meta">NEW · FWD</div></div></div>
+        <div class="list-item"><div><div class="list-name">Declan Rice</div><div class="list-meta">ARS · MID</div></div></div>
+        <div class="list-item"><div><div class="list-name">Ollie Watkins</div><div class="list-meta">AVL · FWD</div></div></div>
+        <div class="list-item"><div><div class="list-name">William Saliba</div><div class="list-meta">ARS · DEF</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay">
+    <div class="modal">
+      <div class="modal-accent"></div>
+      <div class="modal-body">
+        <div class="modal-icon">🚀</div>
+        <h2 class="modal-title">Майже готово!</h2>
+        <p class="modal-text">Реєстрація коштує 5.00 USDCx у Movement. На гаманці не вистачає коштів.</p>
+        <p class="modal-hint">Комісія ~$0.01 на основних мережах. Кошти на Movement зазвичай за 30 секунд.</p>
+        <p class="modal-gas">+ 2 MOVE на газ — автоматично, якщо MOVE на гаманці не вистачає</p>
+        <div class="modal-actions">
+          <button type="button" class="modal-cta">Поповнити з іншої мережі</button>
+          <button type="button" class="modal-cancel">Скасувати</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

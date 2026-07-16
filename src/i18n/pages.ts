@@ -199,6 +199,12 @@ export type PagesMessages = {
     registrationTopUpBtnShort: string;
     insufficientFundsTitle: string;
     insufficientFundsBody: (entryFeeLabel: string) => string;
+    insufficientFundsDepositTitle: string;
+    insufficientFundsDepositDescLine1: (extraChainCount: number) => string;
+    insufficientFundsDepositDescLine2: string;
+    insufficientFundsGasTitle: string;
+    insufficientFundsGasBadge: string;
+    insufficientFundsGasDesc: string;
     insufficientFundsTopUp: string;
     insufficientFundsCancel: string;
     stableyardDepositBtn: string;
@@ -779,10 +785,15 @@ export const pagesEn: PagesMessages = {
       "Paid directly from your connected Movement wallet.",
     registrationTopUpBtn: "Top up from another chain",
     registrationTopUpBtnShort: "Top up",
-    insufficientFundsTitle: "Almost ready!",
-    insufficientFundsBody: (entryFeeLabel) =>
-      `Registration costs ${entryFeeLabel} on Movement. Your connected wallet doesn't have enough funds.`,
-    insufficientFundsTopUp: "Top up from another network",
+    insufficientFundsTitle: "Insufficient balance",
+    insufficientFundsBody: (entryFeeLabel) => `Need ${entryFeeLabel} on Movement to register.`,
+    insufficientFundsDepositTitle: "Deposit from any supported chain",
+    insufficientFundsDepositDescLine1: (extra) => `Ethereum, Solana, Base +${extra} chains`,
+    insufficientFundsDepositDescLine2: "USDCx on your Movement wallet in ~30 sec",
+    insufficientFundsGasTitle: "Gas sponsored",
+    insufficientFundsGasBadge: "+2 MOVE",
+    insufficientFundsGasDesc: "Will be added automatically",
+    insufficientFundsTopUp: "Deposit from another network",
     insufficientFundsCancel: "Cancel",
     stableyardDepositBtn: "Deposit from another chain",
     stableyardDepositOpening: "Opening…",
@@ -1847,10 +1858,16 @@ export const pagesUk: PagesMessages = {
       "Оплата знімається з підключеного Movement-гаманця.",
     registrationTopUpBtn: "Поповнити з іншої мережі",
     registrationTopUpBtnShort: "Поповнити",
-    insufficientFundsTitle: "Майже готово!",
+    insufficientFundsTitle: "Недостатньо коштів",
     insufficientFundsBody: (entryFeeLabel) =>
-      `Реєстрація коштує ${entryFeeLabel} у Movement. На гаманці не вистачає коштів.`,
-    insufficientFundsTopUp: "Поповнити з іншої мережі",
+      `Потрібно ${entryFeeLabel} на Movement для реєстрації.`,
+    insufficientFundsDepositTitle: "Депозит з будь-якої підтримуваної мережі",
+    insufficientFundsDepositDescLine1: (extra) => `Ethereum, Solana, Base +${extra} мереж`,
+    insufficientFundsDepositDescLine2: "USDCx на твій Movement-гаманець за ~30 сек",
+    insufficientFundsGasTitle: "Gas sponsored",
+    insufficientFundsGasBadge: "+2 MOVE",
+    insufficientFundsGasDesc: "Додасться автоматично",
+    insufficientFundsTopUp: "Депозит з іншої мережі",
     insufficientFundsCancel: "Скасувати",
     stableyardDepositBtn: "Поповнити з іншої мережі",
     stableyardDepositOpening: "Відкриваємо…",

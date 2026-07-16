@@ -1,7 +1,17 @@
 import { ENTRY_FEE_USDCX, usdcxMetadataForRpc, MOVEMENT_RPC_URL } from "./constants";
 
-/** Stableyard routing chain id for Movement (mainnet). */
+/** Settlement chain — excluded from “pay from” source count in UI copy. */
 export const STABLEYARD_MOVEMENT_CHAIN_ID = 10002;
+
+/** Highlight chains shown by name; remainder shown as “+N chains”. From routing-api.stableyard.fi/v1/chains. */
+export const STABLEYARD_HIGHLIGHT_CHAINS = ["Ethereum", "Base", "Solana"] as const;
+
+/** Supported mainnet source chains (routing API total minus Movement destination). */
+export const STABLEYARD_SOURCE_CHAIN_COUNT = 12;
+
+export function stableyardExtraChainCount(): number {
+  return Math.max(0, STABLEYARD_SOURCE_CHAIN_COUNT - STABLEYARD_HIGHLIGHT_CHAINS.length);
+}
 
 export const STABLEYARD_USDCX_TOKEN = "USDCx";
 export const STABLEYARD_USDCX_DECIMALS = 6;
