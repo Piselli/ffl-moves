@@ -1,7 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-
-/** Parse KEY=VAL lines (no export). */
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
   const raw = fs.readFileSync(filePath, "utf8");
@@ -48,9 +46,20 @@ function publicEnvFromEnvLocal() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["@stableyard/widget", "@privy-io/react-auth"],
   env: publicEnvFromEnvLocal(),
   webpack: (config, { dev, webpack: webpackApi }) => {
-    config.resolve.fallback = { fs: false, net: false, tls: false };
+    config.resolve.fallback = {
+      fs: false,
+      net: false,
+      tls: false,
+      buffer: require.resolve("buffer/"),
+    };
+    config.plugins.push(
+      new webpackApi.ProvidePlugin({
+        Buffer: ["buffer", "Buffer"],
+      }),
+    );
     // macOS часто дає EMFILE на нативному watch — polling зменшує кількість file descriptors
     if (dev) {
       config.watchOptions = {

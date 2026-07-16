@@ -36,6 +36,11 @@ import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
+import { RegistrationCostPanel } from "@/components/RegistrationCostPanel";
+import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
+import { useStableyardDeposit } from "@/hooks/useStableyardDeposit";
+import { hasEnoughUsdcxForEntry } from "@/lib/usdcxBalance";
+import { isStableyardEnabled } from "@/lib/stableyard";
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -154,6 +159,7 @@ export default function GameweekPage() {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[], bench: Player[] } | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [insufficientFundsOpen, setInsufficientFundsOpen] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
   const [gameweekStats, setGameweekStats] = useState<Record<string, Record<string, unknown>>>({});
@@ -201,6 +207,24 @@ export default function GameweekPage() {
     if (!config) return "—";
     return prize.formatLabel(config.entryFee);
   }, [config, prize]);
+
+  const showStableyardDeposit =
+    isStableyardEnabled() &&
+    prize.usdcxEntryLive &&
+    !alreadyRegistered &&
+    currentGameweek?.status === "open";
+
+  const stableyard = useStableyardDeposit(
+    account?.address.toString(),
+    config?.entryFee,
+  );
+
+  useEffect(() => {
+    if (stableyard.depositReady && insufficientFundsOpen) {
+      setInsufficientFundsOpen(false);
+      stableyard.reset();
+    }
+  }, [stableyard.depositReady, insufficientFundsOpen, stableyard.reset]);
 
   useEffect(() => {
     fetch("/api/players")
@@ -602,6 +626,15 @@ export default function GameweekPage() {
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
 
+    if (showStableyardDeposit) {
+      const requiredRaw = config?.entryFee && config.entryFee > 0 ? config.entryFee : 5_000_000;
+      const hasFunds = await hasEnoughUsdcxForEntry(account.address.toString(), requiredRaw);
+      if (!hasFunds) {
+        setInsufficientFundsOpen(true);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const allPlayers = [...starters, ...bench] as Player[];
@@ -946,56 +979,51 @@ export default function GameweekPage() {
           </div>
         )}
         {/* Desktop header */}
-        <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 mb-8 items-start">
           <div>
             <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">
               {g.headerTitle(currentGameweek?.id ?? 0)}
             </h1>
             <p className="text-white/40 text-sm">{g.pickPlayersHint}</p>
           </div>
-          <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
-            <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
-              {entryFeeLabel}
-            </p>
-            {prize.usdcxEntryLive && (
-              <Link
-                href="/faq#web3-101--how-to-get-move"
-                className="text-[10px] text-sky-400/80 hover:text-sky-300 mt-1.5 block transition-colors"
-              >
-                {g.entryFeeUsdcxHint}
-              </Link>
-            )}
-          </div>
+          {showStableyardDeposit ? (
+            <RegistrationCostPanel
+              entryFeeLabel={entryFeeLabel}
+              onTopUp={() => void stableyard.openDeposit()}
+              topUpOpening={stableyard.opening}
+            />
+          ) : (
+            <div className="flex justify-end">
+              <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
+                <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
+                  {entryFeeLabel}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between mb-4">
+        <div className="lg:hidden mb-4 space-y-3">
           <div>
             <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">
               {g.headerTitle(currentGameweek?.id ?? 0)}
             </h1>
             <p className="text-white/30 text-xs mt-0.5">{g.maxThreeHint}</p>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>
-            <p className="text-base font-display font-black text-[#00f948]">
-              {entryFeeLabel}
-            </p>
-            {prize.usdcxEntryLive && (
-              <Link
-                href="/faq#web3-101--how-to-get-move"
-                className="text-[9px] text-sky-400/80 hover:text-sky-300 mt-0.5 block transition-colors"
-              >
-                {g.entryFeeUsdcxHint}
-              </Link>
-            )}
-          </div>
+          {showStableyardDeposit && (
+            <RegistrationCostPanel
+              entryFeeLabel={entryFeeLabel}
+              onTopUp={() => void stableyard.openDeposit()}
+              topUpOpening={stableyard.opening}
+            />
+          )}
         </div>
       </div>
 
       {/* ── Desktop layout (2 columns) ────────────────────────────────────── */}
       <div className="hidden lg:block max-w-7xl mx-auto px-4 pb-8">
-        <div className="grid lg:grid-cols-2 gap-8 lg:items-start">
+        <div className="grid lg:grid-cols-2 gap-8 lg:items-stretch">
           {/* Formation */}
           <div className="flex flex-col">
             <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
@@ -1040,8 +1068,9 @@ export default function GameweekPage() {
           </div>
 
           {/* Player List */}
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)', position: 'sticky', top: '88px' }}>
-          <div className="mb-4 space-y-3">
+          <div className="relative min-h-0">
+            <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col min-h-0 overflow-hidden">
+          <div className="mb-4 space-y-3 shrink-0">
             {/* Search */}
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1139,7 +1168,8 @@ export default function GameweekPage() {
               })
             )}
           </div>
-        </div>
+          </div>
+          </div>
         </div>{/* end desktop grid */}
       </div>{/* end desktop layout */}
 
@@ -1327,6 +1357,19 @@ export default function GameweekPage() {
           </div>
         )}
       </div>
+
+      <InsufficientFundsModal
+        open={insufficientFundsOpen}
+        entryFeeLabel={entryFeeLabel}
+        onClose={() => {
+          setInsufficientFundsOpen(false);
+          stableyard.reset();
+        }}
+        onTopUp={() => void stableyard.openDeposit()}
+        topUpOpening={stableyard.opening}
+        depositPhase={stableyard.phase}
+        depositError={stableyard.loadError}
+      />
 
     </div>
   );

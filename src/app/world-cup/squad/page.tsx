@@ -34,6 +34,11 @@ import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadRes
 import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
+import { RegistrationCostPanel } from "@/components/RegistrationCostPanel";
+import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
+import { useStableyardDeposit } from "@/hooks/useStableyardDeposit";
+import { hasEnoughUsdcxForEntry } from "@/lib/usdcxBalance";
+import { isStableyardEnabled } from "@/lib/stableyard";
 import { buildRandomSquad } from "@/lib/randomSquad";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -138,6 +143,7 @@ export default function WorldCupSquadPage() {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{ starters: Player[]; bench: Player[] } | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [insufficientFundsOpen, setInsufficientFundsOpen] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
   const [tourStats, setTourStats] = useState<Record<string, Record<string, unknown>>>({});
@@ -186,6 +192,21 @@ export default function WorldCupSquadPage() {
     if (!prize.ready || entryFee == null) return "—";
     return prize.formatLabel(entryFee);
   }, [entryFee, prize]);
+
+  const showStableyardDeposit =
+    isStableyardEnabled() &&
+    prize.asset === "usdcx" &&
+    !alreadyRegistered &&
+    currentTour?.status === "open";
+
+  const stableyard = useStableyardDeposit(account?.address.toString(), entryFee);
+
+  useEffect(() => {
+    if (stableyard.depositReady && insufficientFundsOpen) {
+      setInsufficientFundsOpen(false);
+      stableyard.reset();
+    }
+  }, [stableyard.depositReady, insufficientFundsOpen, stableyard.reset]);
 
   // WC player catalog (API-Sports based), fallback to bundled JSON.
   useEffect(() => {
@@ -568,6 +589,16 @@ export default function WorldCupSquadPage() {
 
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentTour) return;
+
+    if (showStableyardDeposit && entryFee != null) {
+      const requiredRaw = entryFee > 0 ? entryFee : 5_000_000;
+      const hasFunds = await hasEnoughUsdcxForEntry(account.address.toString(), requiredRaw);
+      if (!hasFunds) {
+        setInsufficientFundsOpen(true);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const allPlayers = [...starters, ...bench] as Player[];
@@ -860,62 +891,63 @@ export default function WorldCupSquadPage() {
             {wc.backToHub}
           </Link>
         </div>
-        <div className="hidden lg:flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 mb-8 items-start">
           <div>
             <h1 className="text-3xl font-display font-black text-white uppercase tracking-tight">
               {wc.squadTitle}
             </h1>
             <p className="text-white/40 text-sm">{roundLabel} · {wc.pickHint}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/world-cup/my-result"
-              className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-2 rounded-xl transition-colors"
+              className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948]"
             >
               {wc.mySquadsCta}
             </Link>
-            <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
-            <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
-              {entryFeeLabel}
-            </p>
-            {prize.asset === "usdcx" && (
+          </div>
+          {showStableyardDeposit ? (
+            <RegistrationCostPanel
+              entryFeeLabel={entryFeeLabel}
+              onTopUp={() => void stableyard.openDeposit()}
+              topUpOpening={stableyard.opening}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <Link
-                href="/faq#web3-101--how-to-get-move"
-                className="text-[10px] text-sky-400/80 hover:text-sky-300 mt-1.5 block transition-colors"
+                href="/world-cup/my-result"
+                className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-2 rounded-xl transition-colors"
               >
-                {g.entryFeeUsdcxHint}
+                {wc.mySquadsCta}
               </Link>
-            )}
-          </div>
-          </div>
+              <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
+                <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
+                  {entryFeeLabel}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="lg:hidden flex items-center justify-between mb-4 gap-3">
-          <div className="min-w-0">
+        <div className="lg:hidden mb-4 space-y-3">
+          <div>
             <h1 className="text-lg font-display font-black text-white uppercase tracking-tight leading-none">{wc.squadTitle}</h1>
             <p className="text-white/30 text-xs mt-0.5">{wc.maxThreeNation}</p>
             <Link href="/world-cup/my-result" className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70">
               {wc.mySquadsCta}
             </Link>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">{g.entryShort}</p>
-            <p className="text-base font-display font-black text-[#00f948]">{entryFeeLabel}</p>
-            {prize.asset === "usdcx" && (
-              <Link
-                href="/faq#web3-101--how-to-get-move"
-                className="text-[9px] text-sky-400/80 hover:text-sky-300 mt-0.5 block transition-colors"
-              >
-                {g.entryFeeUsdcxHint}
-              </Link>
-            )}
-          </div>
+          {showStableyardDeposit && (
+            <RegistrationCostPanel
+              entryFeeLabel={entryFeeLabel}
+              onTopUp={() => void stableyard.openDeposit()}
+              topUpOpening={stableyard.opening}
+            />
+          )}
         </div>
       </div>
 
       {/* Desktop */}
       <div className="hidden lg:block max-w-7xl mx-auto px-4 pb-8">
-        <div className="grid lg:grid-cols-2 gap-8 lg:items-start">
+        <div className="grid lg:grid-cols-2 gap-8 lg:items-stretch">
           <div className="flex flex-col">
             <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
             <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
@@ -953,8 +985,9 @@ export default function WorldCupSquadPage() {
             </div>
           </div>
 
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col" style={{ maxHeight: "calc(100vh - 120px)", position: "sticky", top: "88px" }}>
-            <div className="mb-4 space-y-3">
+          <div className="relative min-h-0">
+            <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col min-h-0 overflow-hidden">
+            <div className="mb-4 space-y-3 shrink-0">
               <div className="relative">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1032,6 +1065,7 @@ export default function WorldCupSquadPage() {
                 })
               )}
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -1187,6 +1221,19 @@ export default function WorldCupSquadPage() {
           </div>
         )}
       </div>
+
+      <InsufficientFundsModal
+        open={insufficientFundsOpen}
+        entryFeeLabel={entryFeeLabel}
+        onClose={() => {
+          setInsufficientFundsOpen(false);
+          stableyard.reset();
+        }}
+        onTopUp={() => void stableyard.openDeposit()}
+        topUpOpening={stableyard.opening}
+        depositPhase={stableyard.phase}
+        depositError={stableyard.loadError}
+      />
     </div>
   );
 }

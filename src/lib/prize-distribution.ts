@@ -24,6 +24,8 @@ export const WC_MD3_TOUR_ID = WC_TOUR_ID_BASE + 3;
 export const WC_R32_TOUR_ID = WC_TOUR_ID_BASE + 4;
 /** WC R16 (10005): 5 squads — top 3 unchanged; ranks 6–10 share redistributed to 4–5. */
 export const WC_R16_TOUR_ID = WC_TOUR_ID_BASE + 5;
+/** WC QF (10006): 2 squads — ranks 3–10 share redistributed to 1–2 (30:20 → 60:40). */
+export const WC_QF_TOUR_ID = WC_TOUR_ID_BASE + 6;
 
 export const WC_MD3_PRIZE_TIERS: readonly PrizeTier[] = [
   { rank: 1, pct: 30 },
@@ -45,10 +47,17 @@ export const WC_R16_PRIZE_TIERS: readonly PrizeTier[] = [
   { rank: 5, pct: 16 },
 ];
 
+/** Top 2 only; merge default ranks 3–10 share (+50%) into ranks 1–2 (30:20 → 60:40). */
+export const WC_QF_PRIZE_TIERS: readonly PrizeTier[] = [
+  { rank: 1, pct: 60 },
+  { rank: 2, pct: 40 },
+];
+
 const TOUR_PRIZE_OVERRIDES: Readonly<Record<number, readonly PrizeTier[]>> = {
   [WC_MD3_TOUR_ID]: WC_MD3_PRIZE_TIERS,
   [WC_R32_TOUR_ID]: WC_MD3_PRIZE_TIERS,
   [WC_R16_TOUR_ID]: WC_R16_PRIZE_TIERS,
+  [WC_QF_TOUR_ID]: WC_QF_PRIZE_TIERS,
 };
 
 export function getPrizeTiers(gameweekId: number): readonly PrizeTier[] {

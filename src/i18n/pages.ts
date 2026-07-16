@@ -194,6 +194,27 @@ export type PagesMessages = {
     maxThreeHint: string;
     entryFeeLabel: string;
     entryFeeUsdcxHint: string;
+    registrationPaymentHint: string;
+    registrationTopUpBtn: string;
+    registrationTopUpBtnShort: string;
+    insufficientFundsTitle: string;
+    insufficientFundsBody: (entryFeeLabel: string) => string;
+    insufficientFundsTopUp: string;
+    insufficientFundsCancel: string;
+    stableyardDepositBtn: string;
+    stableyardDepositOpening: string;
+    stableyardDepositHint: string;
+    stableyardDepositSuccess: string;
+    stableyardDepositProcessing: string;
+    stableyardDepositDelayed: string;
+    stableyardDepositError: string;
+    stableyardBalanceReady: (amount: string) => string;
+    stableyardBalanceLow: (have: string, need: string) => string;
+    stableyardBalanceChecking: string;
+    stableyardConnectFirst: string;
+    stableyardOr: string;
+    stableyardSwapLink: string;
+    stableyardFaqLink: string;
     entryFeeLegacyBanner: (chargedLabel: string) => string;
     entryShort: string;
     benchTitle: (n: number, max: number) => string;
@@ -754,6 +775,30 @@ export const pagesEn: PagesMessages = {
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
     entryFeeUsdcxHint: "Need USDCx? Swap in Motion, Nightly, or Yuzu →",
+    registrationPaymentHint:
+      "Paid directly from your connected Movement wallet.",
+    registrationTopUpBtn: "Top up from another chain",
+    registrationTopUpBtnShort: "Top up",
+    insufficientFundsTitle: "Almost ready!",
+    insufficientFundsBody: (entryFeeLabel) =>
+      `Registration costs ${entryFeeLabel} on Movement. Your connected wallet doesn't have enough funds.`,
+    insufficientFundsTopUp: "Top up from another network",
+    insufficientFundsCancel: "Cancel",
+    stableyardDepositBtn: "Deposit from another chain",
+    stableyardDepositOpening: "Opening…",
+    stableyardDepositHint: "Typical fee ~$0.01 on major chains. Funds arrive on Movement in under 30 seconds.",
+    stableyardDepositSuccess: "Ready to register.",
+    stableyardDepositProcessing: "Settling on Movement…",
+    stableyardDepositDelayed:
+      "Balance still below the registration fee — deposit at least the amount shown above, or wait for settlement and try Register again.",
+    stableyardDepositError: "Could not open the deposit widget. Try again or use Yuzu swap.",
+    stableyardBalanceReady: (amount) => `${amount} USDCx in wallet`,
+    stableyardBalanceLow: (have, need) => `You have ${have} USDCx — need ${need} to register`,
+    stableyardBalanceChecking: "checking",
+    stableyardConnectFirst: "Connect your Movement wallet to use cross-chain deposit.",
+    stableyardOr: "or",
+    stableyardSwapLink: "Swap on Yuzu (Movement)",
+    stableyardFaqLink: "How to get USDCx",
     entryFeeLegacyBanner: (chargedLabel) =>
       `On-chain entry is still ${chargedLabel} (MOVE) — USDCx activates after a contract upgrade. The wallet will charge MOVE, not USDCx.`,
     entryShort: "Entry",
@@ -1798,6 +1843,30 @@ export const pagesUk: PagesMessages = {
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
     entryFeeUsdcxHint: "Потрібен USDCx? Motion, Nightly Swap або Yuzu →",
+    registrationPaymentHint:
+      "Оплата знімається з підключеного Movement-гаманця.",
+    registrationTopUpBtn: "Поповнити з іншої мережі",
+    registrationTopUpBtnShort: "Поповнити",
+    insufficientFundsTitle: "Майже готово!",
+    insufficientFundsBody: (entryFeeLabel) =>
+      `Реєстрація коштує ${entryFeeLabel} у Movement. На гаманці не вистачає коштів.`,
+    insufficientFundsTopUp: "Поповнити з іншої мережі",
+    insufficientFundsCancel: "Скасувати",
+    stableyardDepositBtn: "Поповнити з іншої мережі",
+    stableyardDepositOpening: "Відкриваємо…",
+    stableyardDepositHint: "Комісія ~$0.01 на основних мережах. Кошти на Movement зазвичай за 30 секунд.",
+    stableyardDepositSuccess: "Можна реєструвати.",
+    stableyardDepositProcessing: "Підтвердження на Movement…",
+    stableyardDepositDelayed:
+      "Баланс ще менший за вартість реєстрації — поповни щонайменше суму вище або дочекайся підтвердження і натисни «Зареєструвати» знову.",
+    stableyardDepositError: "Не вдалося відкрити віджет. Спробуй ще раз або своп на Yuzu.",
+    stableyardBalanceReady: (amount) => `${amount} USDCx у гаманці`,
+    stableyardBalanceLow: (have, need) => `У тебе ${have} USDCx — потрібно ${need} для реєстрації`,
+    stableyardBalanceChecking: "перевіряємо",
+    stableyardConnectFirst: "Підключи Movement-гаманець, щоб поповнити з іншої мережі.",
+    stableyardOr: "або",
+    stableyardSwapLink: "Своп на Yuzu (Movement)",
+    stableyardFaqLink: "Як отримати USDCx",
     entryFeeLegacyBanner: (chargedLabel) =>
       `On-chain внесок досі ${chargedLabel} (MOVE) — USDCx увімкнеться після оновлення контракту. З гаманця зніметься MOVE, не USDCx.`,
     entryShort: "Внесок",
