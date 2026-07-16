@@ -31,22 +31,18 @@ export function MovementWalletRows({ rows, pending = false, onConnect, variant =
   const safari = isSafariBrowser();
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 
+  const shellInstall =
+    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.14] transition-all text-left";
+  const shellConnect =
+    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#00f948]/30 transition-all text-left disabled:opacity-50 cursor-pointer";
+  const iconShell =
+    "w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 flex shrink-0 items-center justify-center";
+
   return (
     <div className={`flex flex-col gap-1.5 ${pad}`}>
       {rows.map((row) => {
-        const isPrimary = row.walletId === "motion";
         const installSub =
           row.walletId === "motion" ? m.nav.walletMotionInstallSub : m.nav.walletNightlyInstallSub;
-
-        const shellPrimary =
-          "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-[#00f948]/25 bg-[#00f948]/[0.06] hover:bg-[#00f948]/[0.1] hover:border-[#00f948]/40 transition-all text-left";
-        const shellSecondary =
-          "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.14] transition-all text-left";
-        const shellConnect =
-          "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#00f948]/30 transition-all text-left disabled:opacity-50 cursor-pointer";
-
-        const iconPrimary = "w-10 h-10 rounded-xl bg-black/40 border border-[#00f948]/20 p-2 flex shrink-0 items-center justify-center";
-        const iconSecondary = "w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 flex shrink-0 items-center justify-center";
 
         if (row.mode === "extension-missing") {
           return (
@@ -55,23 +51,19 @@ export function MovementWalletRows({ rows, pending = false, onConnect, variant =
               href={installHref(row, safari)}
               target="_blank"
               rel="noopener noreferrer"
-              className={isPrimary ? shellPrimary : shellSecondary}
+              className={shellInstall}
             >
-              <div className={isPrimary ? iconPrimary : iconSecondary}>
+              <div className={iconShell}>
                 {row.icon ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={row.icon} alt="" className="w-full h-full object-contain" />
                 ) : null}
               </div>
               <div className="min-w-0 flex-1">
-                <p
-                  className={`text-[15px] font-display font-bold leading-tight ${isPrimary ? "text-[#00f948]" : "text-white"}`}
-                >
+                <p className="text-[15px] font-display font-bold leading-tight text-white">
                   {row.displayName}
                 </p>
-                <p className={`text-[11px] mt-1 leading-snug ${isPrimary ? "text-white/50" : "text-white/45"}`}>
-                  {installSub}
-                </p>
+                <p className="text-[11px] mt-1 leading-snug text-white/45">{installSub}</p>
               </div>
               <ExternalIcon />
             </a>
@@ -91,18 +83,16 @@ export function MovementWalletRows({ rows, pending = false, onConnect, variant =
             type="button"
             disabled={pending}
             onClick={() => onConnect(row.name)}
-            className={isPrimary ? shellPrimary : shellConnect}
+            className={shellConnect}
           >
-            <div className={isPrimary ? iconPrimary : iconSecondary}>
+            <div className={iconShell}>
               {row.icon ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={row.icon} alt="" className="w-full h-full object-contain" />
               ) : null}
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p
-                className={`text-[15px] font-display font-bold leading-tight ${isPrimary ? "text-[#00f948]" : "text-white"}`}
-              >
+              <p className="text-[15px] font-display font-bold leading-tight text-white">
                 {row.displayName}
               </p>
               <p className="text-[11px] font-semibold text-[#00f948]/80 uppercase tracking-wide mt-1">{connectLabel}</p>
