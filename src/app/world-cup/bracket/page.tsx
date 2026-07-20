@@ -9,9 +9,11 @@ import {
   isThirdsStepReady,
   type BracketStep,
 } from "@/components/wc/WcBracketPredictor";
+import { WcBracketResultsPanel } from "@/components/wc/WcBracketResultsPanel";
 import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { useWcBracketState } from "@/hooks/useWcBracketState";
 import {
   client,
   hasBracketPrediction,
@@ -29,6 +31,7 @@ import {
   WC_BRACKET_PERFECT_BONUS_USDCX,
   WC_BRACKET_PERFECT_SCORE,
   WC_BRACKET_PRIZES_USDCX,
+  countDecidedPlaces,
   decodeBracketPrediction,
   defaultGroupRanks,
   defaultThirdPlaceOrder,
@@ -37,10 +40,13 @@ import {
   encodeKnockoutWinners,
   encodeThirdPlaceOrder,
   isCompletePrediction,
+  isOfficialBracketComplete,
   knockoutPicksRemaining,
   needsFinalKnockoutPicks,
+  scoreBracketPrediction,
   type BracketPrediction,
 } from "@/lib/wcBracketPrediction";
+import { hasPublishedState } from "@/lib/wcBracketState";
 import { getErrorMessage, cn } from "@/lib/utils";
 
 const PRIZE_LABELS = WC_BRACKET_PRIZES_USDCX.map((u) => `$${u / 1_000_000}`);
@@ -78,6 +84,7 @@ export default function WorldCupBracketPage() {
   const m = useSiteMessages();
   const bc = m.pages.worldCup.bracket;
   const g = m.pages.gameweek;
+  const { state: officialState, loading: officialLoading } = useWcBracketState();
 
   const [prediction, setPrediction] = useState<BracketPrediction>(initialPrediction);
   const [step, setStep] = useState<BracketStep>("groups");
@@ -98,6 +105,42 @@ export default function WorldCupBracketPage() {
   const koRemaining = knockoutPicksRemaining(prediction.knockoutWinners);
   const pastDeadline = Date.now() >= new Date(WC_BRACKET_DEADLINE_ISO).getTime();
   const registrationClosed = status === 1 || status === 2 || pastDeadline;
+
+  const officialReady = Boolean(officialState && hasPublishedState(officialState));
+  const tournamentComplete = officialReady && officialState
+    ? isOfficialBracketComplete(officialState)
+    : false;
+  const decidedPlaces = officialReady && officialState
+    ? countDecidedPlaces(officialState).total
+    : 0;
+  const userScore = useMemo(() => {
+    if (!submitted || !officialReady || !officialState) return null;
+    return scoreBracketPrediction(prediction, officialState);
+  }, [submitted, officialReady, officialState, prediction]);
+
+  const resultsCopy = useMemo(
+    () => ({
+      resultsEyebrow: bc.resultsEyebrow,
+      resultsTitle: bc.resultsTitle,
+      resultsScoringLive: bc.resultsScoringLive,
+      resultsScoringComplete: bc.resultsScoringComplete,
+      resultsPrizesPendingTitle: bc.resultsPrizesPendingTitle,
+      resultsPrizesPendingBody: bc.resultsPrizesPendingBody,
+      resultsYourScore: bc.resultsYourScore,
+      resultsNoEntry: bc.resultsNoEntry,
+      resultsConnectHint: bc.resultsConnectHint,
+      resultsWaitingOfficial: bc.resultsWaitingOfficial,
+      resultsLoading: bc.resultsLoading,
+      resultsGroups: bc.resultsGroups,
+      resultsThirds: bc.resultsThirds,
+      resultsKnockout: bc.resultsKnockout,
+      resultsOfMax: bc.resultsOfMax,
+      resultsDecided: bc.resultsDecided,
+      resultsPerfectHit: bc.resultsPerfectHit,
+      resultsViewPrediction: bc.resultsViewPrediction,
+    }),
+    [bc],
+  );
 
   const submitBlockHint = useMemo(() => {
     if (submitting) return null;
@@ -342,6 +385,21 @@ export default function WorldCupBracketPage() {
         </div>
       </div>
 
+      {registrationClosed ? (
+        <WcBracketResultsPanel
+          className="mt-8"
+          loading={officialLoading || (connected && walletLoading)}
+          connected={connected}
+          officialReady={officialReady}
+          tournamentComplete={tournamentComplete}
+          decidedPlaces={decidedPlaces}
+          hasEntry={submitted}
+          score={userScore}
+          copy={resultsCopy}
+          onViewPrediction={submitted ? scrollToPredictor : undefined}
+        />
+      ) : null}
+
       <div className="mt-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0c0f]">
         <div className="border-b border-white/[0.06] bg-[#00f948]/[0.05] px-5 py-4 sm:px-6">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{bc.prizePoolLabel}</p>
@@ -349,6 +407,9 @@ export default function WorldCupBracketPage() {
             {usdcxUsd(WC_BRACKET_ADVERTISED_POOL_USDCX)}
             <span className="ml-2 text-base font-bold text-white/40">USDCx</span>
           </p>
+          {registrationClosed ? (
+            <p className="mt-2 text-xs leading-relaxed text-white/40">{bc.prizePayoutsPendingNote}</p>
+          ) : null}
         </div>
 
         <div className="p-5 sm:p-6">
@@ -389,7 +450,7 @@ export default function WorldCupBracketPage() {
         ) : null}
       </div>
 
-      {registrationClosed ? (
+      {registrationClosed && !submitted ? (
         <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5">
           <p className="text-sm font-semibold text-amber-200">{bc.registrationClosedTitle}</p>
           <p className="mt-1.5 text-xs leading-relaxed text-white/50">{bc.registrationClosedBanner}</p>
@@ -411,7 +472,9 @@ export default function WorldCupBracketPage() {
         <div id="wc-bracket-predictor" className="mt-10 scroll-mt-28">
           <div className="mb-6 rounded-xl border border-[#00f948]/25 bg-[#00f948]/[0.06] px-4 py-3">
             <p className="text-sm font-semibold text-[#00f948]">{bc.submittedTitle}</p>
-            <p className="mt-1 text-xs text-white/45">{bc.submittedHint}</p>
+            <p className="mt-1 text-xs text-white/45">
+              {registrationClosed ? bc.submittedHintClosed : bc.submittedHint}
+            </p>
           </div>
           <WcBracketPredictor
             value={prediction}

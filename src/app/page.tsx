@@ -12,7 +12,6 @@ import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
 import { GwRecapSection } from "@/components/GwRecapSection";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { PrizeTickerInline } from "@/components/PrizeTickerInline";
-import { WorldCupPromoBanner } from "@/components/WorldCupPromoBanner";
 import { HomeHeroCarousel } from "@/components/home/HomeHeroCarousel";
 import { AplHeroSlide } from "@/components/home/AplHeroSlide";
 import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
@@ -893,8 +892,6 @@ export default function Home() {
         <PrizeTickerInline />
       </div>
 
-      {!wcCampaign ? <WorldCupPromoBanner /> : null}
-
       {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
       <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-8 sm:pt-10 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
         <div className="max-w-7xl mx-auto space-y-24">
@@ -1037,7 +1034,7 @@ export default function Home() {
             className="relative z-10 w-full mx-auto flex flex-col items-center"
           >
             {/* Content: Left=Chest, Right=Table */}
-            <RewardsLeaderboardTable totalPoolRaw={prizePoolRaw} />
+            <RewardsLeaderboardTable />
           </motion.div>
         </section>
           

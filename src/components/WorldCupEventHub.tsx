@@ -7,6 +7,7 @@ import {
   WC_ROUNDS,
   getWorldCupRound,
   getWorldCupTourSummaries,
+  isWorldCupCampaignActive,
   pickWorldCupPrizePoolTour,
 } from "@/lib/worldcup";
 import type { GameweekSummary } from "@/lib/movement";
@@ -327,6 +328,7 @@ export function WorldCupEventHub() {
     !loading &&
     !deadlineLoading &&
     (!registrationOpen || (kickoffTargetMs != null && kickoffTargetMs <= Date.now()));
+  const archiveMode = !isWorldCupCampaignActive() || showRegistrationClosed;
 
   function statusLabel(s: GameweekSummary | undefined): { text: string; cls: string } {
     if (!s) return { text: wc.statusUpcoming, cls: "text-white/30 bg-white/[0.04] border-white/10" };
@@ -347,10 +349,19 @@ export function WorldCupEventHub() {
       <section className="relative flex min-h-[100svh] flex-col">
         <div className="relative z-20 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 pb-28 pt-28 text-center sm:px-6">
           <motion.div {...fade} transition={{ duration: 0.55, ease: EASE_OUT }} className="flex flex-col items-center">
-            {/* Live badge */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00f948]/30 bg-[#00f948]/[0.08] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#00f948]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00f948]" />
-              {wc.badge}
+            {/* Live / archive badge */}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em]",
+                archiveMode
+                  ? "border-white/15 bg-white/[0.05] text-white/55"
+                  : "border-[#00f948]/30 bg-[#00f948]/[0.08] text-[#00f948]",
+              )}
+            >
+              {!archiveMode ? (
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00f948]" />
+              ) : null}
+              {archiveMode ? wc.badgeArchive : wc.badge}
             </span>
 
             {/* Official wordmark logo */}
@@ -381,7 +392,9 @@ export function WorldCupEventHub() {
               </span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/55 sm:text-lg">{wc.landingSubtitle}</p>
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/55 sm:text-lg">
+              {archiveMode ? wc.landingSubtitleArchive : wc.landingSubtitle}
+            </p>
 
             {/* KPI strip — prize pool · registered teams · kickoff (same trio as the PL hero) */}
             <div className="mt-8 grid w-full max-w-[600px] grid-cols-1 gap-2.5 min-[480px]:grid-cols-3 sm:gap-3">
@@ -427,7 +440,30 @@ export function WorldCupEventHub() {
             {/* CTAs */}
             <div className="mt-7 flex flex-col items-center gap-6">
               <div className="flex flex-wrap items-center justify-center gap-3">
-                {registrationOpen ? (
+                {archiveMode ? (
+                  <>
+                    <Link
+                      href="/world-cup/bracket"
+                      className="group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 font-wc-hero text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]"
+                    >
+                      <span className="text-[15px] font-extrabold uppercase tracking-[0.04em]">{wc.bracket.hubCta}</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[#00f948]">
+                        <svg className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </span>
+                    </Link>
+                    <Link
+                      href="/world-cup/leaderboard"
+                      className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 font-wc-hero text-xs font-bold uppercase tracking-[0.06em] text-white/90 transition-colors hover:border-[#00f948]/30 hover:bg-[#00f948]/[0.08] hover:text-[#00f948]"
+                    >
+                      {wc.leaderboardCta}
+                      <svg className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </Link>
+                  </>
+                ) : registrationOpen ? (
                   <Link
                     href="/world-cup/squad"
                     className="group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 font-wc-hero text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]"
@@ -452,15 +488,17 @@ export function WorldCupEventHub() {
                     </span>
                   </Link>
                 )}
-                <Link
-                  href="/world-cup/bracket"
-                  className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 font-wc-hero text-xs font-bold uppercase tracking-[0.06em] text-white/90 transition-colors hover:border-[#00f948]/30 hover:bg-[#00f948]/[0.08] hover:text-[#00f948]"
-                >
-                  {wc.bracket.hubCta}
-                  <svg className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </Link>
+                {!archiveMode ? (
+                  <Link
+                    href="/world-cup/bracket"
+                    className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 font-wc-hero text-xs font-bold uppercase tracking-[0.06em] text-white/90 transition-colors hover:border-[#00f948]/30 hover:bg-[#00f948]/[0.08] hover:text-[#00f948]"
+                  >
+                    {wc.bracket.hubCta}
+                    <svg className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </Link>
+                ) : null}
               </div>
               <p className="max-w-md text-center text-xs text-white/40">{wc.bracket.hubTeaser}</p>
             </div>

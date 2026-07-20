@@ -252,9 +252,36 @@ export interface BracketScoreBreakdown {
   maxPossible: number;
 }
 
+/** How many official places are set (partial scoring while the tournament finishes). */
+export function countDecidedPlaces(actual: BracketPrediction): {
+  groups: number;
+  thirds: number;
+  knockout: number;
+  total: number;
+} {
+  let groups = 0;
+  for (let i = 0; i < WC_TEAM_COUNT; i++) {
+    if ((actual.groupRanks[i] ?? 0) >= 1) groups++;
+  }
+  let thirds = 0;
+  for (let i = 0; i < WC_THIRD_PLACE_COUNT; i++) {
+    if ((actual.thirdPlaceOrder[i] ?? 0) >= 1) thirds++;
+  }
+  let knockout = 0;
+  for (let i = 0; i < WC_KNOCKOUT_MATCH_COUNT; i++) {
+    if ((actual.knockoutWinners[i] ?? -1) >= 0) knockout++;
+  }
+  return { groups, thirds, knockout, total: groups + thirds + knockout };
+}
+
+/** True when every place that can award a point is published. */
+export function isOfficialBracketComplete(actual: BracketPrediction): boolean {
+  return countDecidedPlaces(actual).total === WC_BRACKET_PERFECT_SCORE;
+}
+
 /**
  * Strict scoring: 1 pt per exact group rank, 1 pt per exact third-among-thirds rank,
- * 1 pt per correct knockout winner.
+ * 1 pt per correct knockout winner. Unset official places are skipped (not wrong).
  */
 export function scoreBracketPrediction(
   predicted: BracketPrediction,

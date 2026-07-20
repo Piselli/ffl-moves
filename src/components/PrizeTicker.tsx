@@ -57,6 +57,9 @@ const fetchTickerData = unstable_cache(
         .slice(0, 10);
 
       if (!winners.length) return null;
+      // Legacy MOVE prize amounts misread as USDCx look absurd — skip those tours.
+      const maxPrize = Math.max(...winners.map((w) => w.prizeAmount));
+      if (maxPrize > 50_000_000_000) return null;
       return { gwId: resolvedGwId, winners };
     } catch (e) {
       console.error("[PrizeTicker] fetch error:", e);

@@ -10,6 +10,11 @@ import { DEFAULT_PRIZE_TIERS } from "@/lib/prize-distribution";
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
 const PRIZE_TIERS = DEFAULT_PRIZE_TIERS;
 
+/** Marketing example pool for the homepage rewards section (USDCx, 6 decimals). */
+const DEMO_POOL_USDCX_RAW = 1_000_000_000; // $1,000
+/** Legacy MOVE demo (8 decimals) if chain still reports MOVE. */
+const DEMO_POOL_MOVE_RAW = 1_000_00000000; // 1,000 MOVE
+
 /* ── Row styles ────────────────────────────────────────────────────────────── */
 const VIP_STYLES = {
   1: {
@@ -42,17 +47,14 @@ const VIP_STYLES = {
 } as const;
 
 /* ── Main Component ────────────────────────────────────────────────────────── */
-export function RewardsLeaderboardTable({ totalPoolRaw }: { totalPoolRaw: number | null }) {
+export function RewardsLeaderboardTable() {
   const m = useSiteMessages();
   const prize = usePrizeAsset();
   const { locale } = useSiteLocale();
   const placeLabel = locale === "uk" ? formatRewardPlaceUk : formatRewardPlaceEn;
+  // Marketing example only — live GW pools can be tiny (e.g. one entry ≈ entry fee).
   const poolRaw =
-    totalPoolRaw && totalPoolRaw > 0
-      ? totalPoolRaw
-      : prize.asset === "usdcx"
-        ? 5_000_000
-        : 300_00000000;
+    prize.asset === "usdcx" ? DEMO_POOL_USDCX_RAW : DEMO_POOL_MOVE_RAW;
 
   const allTiers = PRIZE_TIERS.map(tier => {
     let type = "standard";

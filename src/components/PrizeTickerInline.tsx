@@ -20,7 +20,7 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 type Winner = { address: string; rank: number; prizeAmount: number };
 type TickerData = { gwId: number; winners: Winner[] };
 
-const sessionKey = () => (isWorldCupCampaignActive() ? "prize_ticker_wc_v1" : "prize_ticker_v1");
+const sessionKey = () => (isWorldCupCampaignActive() ? "prize_ticker_wc_v2" : "prize_ticker_v2");
 const CACHE_TTL = 5 * 60 * 1000; // 5 min — same as server-side revalidate
 
 function readCache(): TickerData | null {
@@ -66,6 +66,9 @@ async function fetchWinnersForTour(resolvedGwId: number): Promise<TickerData | n
     .slice(0, 10);
 
   if (!winners.length) return null;
+  // Legacy MOVE prizes (8 decimals) misread as USDCx (6) look absurdly large — skip those tours.
+  const maxPrize = Math.max(...winners.map((w) => w.prizeAmount));
+  if (maxPrize > 50_000_000_000) return null; // > $50k to one wallet in one GW → not USDCx-era data
   return { gwId: resolvedGwId, winners };
 }
 

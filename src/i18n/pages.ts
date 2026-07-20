@@ -32,8 +32,11 @@ export type PagesMessages = {
   languageSwitcherAria: string;
   worldCup: {
     badge: string;
+    /** Post-tournament hub framing when WC is no longer the primary campaign. */
+    badgeArchive: string;
     landingTitle: string;
     landingSubtitle: string;
+    landingSubtitleArchive: string;
     playCta: string;
     heroRegistrationLabel: string;
     heroRegistrationClosedHint: string;
@@ -157,6 +160,27 @@ export type PagesMessages = {
       koTapHint: string;
       hubCta: string;
       hubTeaser: string;
+      /** Post-registration results (score vs official bracket; prizes not claimable yet). */
+      resultsEyebrow: string;
+      resultsTitle: string;
+      resultsScoringLive: string;
+      resultsScoringComplete: string;
+      resultsPrizesPendingTitle: string;
+      resultsPrizesPendingBody: string;
+      resultsYourScore: string;
+      resultsNoEntry: string;
+      resultsConnectHint: string;
+      resultsWaitingOfficial: string;
+      resultsLoading: string;
+      resultsGroups: string;
+      resultsThirds: string;
+      resultsKnockout: string;
+      resultsOfMax: (score: number, max: number) => string;
+      resultsDecided: (decided: number, max: number) => string;
+      resultsPerfectHit: string;
+      resultsViewPrediction: string;
+      submittedHintClosed: string;
+      prizePayoutsPendingNote: string;
       predictor: {
         stepGroups: string;
         stepThirds: string;
@@ -610,9 +634,12 @@ export const pagesEn: PagesMessages = {
   languageSwitcherAria: "Site language",
   worldCup: {
     badge: "World Cup 2026",
+    badgeArchive: "Tournament results",
     landingTitle: "Fantasy World Cup",
     landingSubtitle:
       "Build a squad of national-team stars, score from real World Cup matches, and share the on-chain prize pool — round after round, from the group stage to the final.",
+    landingSubtitleArchive:
+      "The World Cup event is over. Browse round leaderboards, locked squads, and your bracket prediction score. Prize claim opens once the pool is funded.",
     playCta: "Build your squad",
     heroRegistrationLabel: "Registration",
     heroRegistrationClosedHint:
@@ -726,6 +753,8 @@ export const pagesEn: PagesMessages = {
         "Bracket entry required an md1 squad before the first match kickoff. That registration window has also closed.",
       submittedTitle: "Prediction locked on-chain",
       submittedHint: "No edits after submission. Results and prizes after the tournament.",
+      submittedHintClosed:
+        "No edits. Your score updates against the official bracket — prize claim opens once the pool is funded.",
       contractPending: "On-chain registration opens after the next contract upgrade is live on mainnet.",
       submitCta: "Lock prediction on-chain",
       submitting: "Submitting…",
@@ -741,8 +770,30 @@ export const pagesEn: PagesMessages = {
       koFinal: "Final",
       koThirdPlace: "3rd place",
       koTapHint: "Tap a nation to pick the winner of each tie. Pairs in the Round of 32 come from your group and third-place picks.",
-      hubCta: "Bracket challenge",
-      hubTeaser: "Predict the full tournament — $500 USDCx prize pool (+$300 perfect bracket bonus)",
+      hubCta: "Bracket results",
+      hubTeaser: "See your score vs the official bracket — $500 USDCx prizes claim later when funded",
+      resultsEyebrow: "Your result",
+      resultsTitle: "Bracket score",
+      resultsScoringLive: "Scoring against published official results. Remaining knockout ties still update your total.",
+      resultsScoringComplete: "Final score against the completed official bracket.",
+      resultsPrizesPendingTitle: "Prizes pending",
+      resultsPrizesPendingBody:
+        "Top-5 and perfect-bracket payouts are not open yet. Claim will unlock when the USDCx pool is funded — no action needed for now.",
+      resultsYourScore: "Your points",
+      resultsNoEntry:
+        "No locked prediction on this wallet. Connect the wallet you used before kickoff, or you did not enter.",
+      resultsConnectHint: "Connect the wallet you used to lock your prediction to see your score.",
+      resultsWaitingOfficial: "Official bracket results are still being published. Check back soon.",
+      resultsLoading: "Loading official results…",
+      resultsGroups: "Groups",
+      resultsThirds: "Best 3rds",
+      resultsKnockout: "Knockout",
+      resultsOfMax: (score, max) => `${score} of ${max} possible points`,
+      resultsDecided: (decided, max) => `${decided}/${max} official places scored so far`,
+      resultsPerfectHit: "Perfect bracket",
+      resultsViewPrediction: "View your locked picks ↓",
+      prizePayoutsPendingNote:
+        "Advertised pool stays the same — payouts and claim open after the prize pool is funded.",
       predictor: {
         stepGroups: "Groups",
         stepThirds: "Best 3rds",
@@ -1674,9 +1725,12 @@ export const pagesUk: PagesMessages = {
   languageSwitcherAria: "Мова сайту",
   worldCup: {
     badge: "Чемпіонат світу 2026",
+    badgeArchive: "Результати турніру",
     landingTitle: "Фентезі Чемпіонат світу",
     landingSubtitle:
       "Збери склад із зірок збірних, набирай очки з реальних матчів ЧС і ділíть on-chain призовий фонд — раунд за раундом, від групового етапу до фіналу.",
+    landingSubtitleArchive:
+      "Івент ЧС завершено. Дивись лідерборди турів, зафіксовані склади та скор bracket challenge. Claim призів відкриється після фінансування пулу.",
     playCta: "Зібрати склад",
     heroRegistrationLabel: "Реєстрація",
     heroRegistrationClosedHint:
@@ -1792,6 +1846,8 @@ export const pagesUk: PagesMessages = {
         "Для участі потрібен був склад md1 до старту першого матчу. Реєстрація складів теж уже закрита.",
       submittedTitle: "Прогноз зафіксовано on-chain",
       submittedHint: "Редагування неможливе. Результати й призи — після турніру.",
+      submittedHintClosed:
+        "Редагування неможливе. Скор оновлюється за офіційною сіткою — claim призів відкриється, коли буде профінансовано пул.",
       contractPending: "On-chain реєстрація відкриється після оновлення контракту на mainnet.",
       submitCta: "Зафіксувати прогноз on-chain",
       submitting: "Надсилання…",
@@ -1814,8 +1870,31 @@ export const pagesUk: PagesMessages = {
       koFinal: "Фінал",
       koThirdPlace: "3-тє місце",
       koTapHint: "Натисни на збірну, щоб обрати переможця матчу. Пари 1/16 будуються з твоїх групових прогнозів і рейтингу третіх місць.",
-      hubCta: "Прогноз турніру",
-      hubTeaser: "Прогнозуй весь турнір — $500 USDCx фонд (+$300 бонус за ідеальний прогноз)",
+      hubCta: "Результати прогнозу",
+      hubTeaser: "Подивись свій скор проти офіційної сітки — $500 USDCx claim пізніше, коли буде пул",
+      resultsEyebrow: "Твій результат",
+      resultsTitle: "Скор прогнозу",
+      resultsScoringLive:
+        "Рахуємо за опублікованими офіційними результатами. Решта матчів плей-оф ще оновить твій тотал.",
+      resultsScoringComplete: "Фінальний скор проти завершеної офіційної сітки.",
+      resultsPrizesPendingTitle: "Призи поки на паузі",
+      resultsPrizesPendingBody:
+        "Виплати топ-5 і бонусу за ідеальний прогноз ще не відкриті. Claim з’явиться, коли пул USDCx буде профінансовано — зараз нічого робити не треба.",
+      resultsYourScore: "Твої очки",
+      resultsNoEntry:
+        "На цьому гаманці немає зафіксованого прогнозу. Підключи той, з якого подавав до старту, або ти не брав участі.",
+      resultsConnectHint: "Підключи гаманець, з якого фіксував прогноз, щоб побачити свій скор.",
+      resultsWaitingOfficial: "Офіційні результати сітки ще публікуються. Заглянь трохи згодом.",
+      resultsLoading: "Завантажуємо офіційні результати…",
+      resultsGroups: "Групи",
+      resultsThirds: "Кращі 3-ті",
+      resultsKnockout: "Плей-оф",
+      resultsOfMax: (score, max) => `${score} з ${max} можливих очок`,
+      resultsDecided: (decided, max) => `${decided}/${max} офіційних місць уже пораховано`,
+      resultsPerfectHit: "Ідеальний прогноз",
+      resultsViewPrediction: "Дивитись свій прогноз ↓",
+      prizePayoutsPendingNote:
+        "Заявлений фонд той самий — виплати й claim відкриються після фінансування пулу.",
       predictor: {
         stepGroups: "Групи",
         stepThirds: "Кращі 3-ті",
