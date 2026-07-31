@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { SeasonLeaderboardTable } from "@/components/SeasonLeaderboardTable";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import {

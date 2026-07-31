@@ -5,7 +5,7 @@ import Link from "next/link";
 import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { shortenAddress } from "@/lib/utils";
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
@@ -19,9 +19,17 @@ import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
 import { SOCIAL_X_URL } from "@/lib/constants";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 
+const HIDE_NAV_PATHS = new Set([
+  "/",
+  "/design-preview/homepage",
+  "/design-lab/locker-hero",
+  "/design-lab/locker-leaderboard",
+]);
+
 export function Navbar() {
   const m = useSiteMessages();
   const { locale } = useSiteLocale();
+  const pathname = usePathname();
   const wcCampaign = isWorldCupCampaignActive();
   const navLinks = wcCampaign
     ? [
@@ -49,31 +57,34 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navShellRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
   const cinematicHeroTop = wcCampaign && pathname === "/" && !scrolled;
 
   const address = account?.address?.toString() ?? null;
   const { setNickname, hasNickname, myNickname } = useNickname(address);
+  const hideNav = HIDE_NAV_PATHS.has(pathname);
 
   // Auto-open nickname modal on first connection
   useEffect(() => {
+    if (hideNav) return;
     if (connected && address && mounted && !hasNickname(address)) {
       const timer = setTimeout(() => setShowNicknameModal(true), 600);
       return () => clearTimeout(timer);
     }
-  }, [connected, address, mounted, hasNickname]);
+  }, [hideNav, connected, address, mounted, hasNickname]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
+    if (hideNav) return;
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [hideNav]);
 
   useEffect(() => {
+    if (hideNav) return;
     function handleClickOutside(event: MouseEvent) {
       const t = event.target as Node;
       if (dropdownRef.current && !dropdownRef.current.contains(t)) {
@@ -85,7 +96,7 @@ export function Navbar() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [hideNav]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -95,6 +106,8 @@ export function Navbar() {
     if (!connected) return;
     setShowWalletList(false);
   }, [connected]);
+
+  if (hideNav) return null;
 
   const logoEl = (
     <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">

@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
-  client,
   getConfig,
   getGameweek,
   findOpenGameweekFromChain,
@@ -15,10 +14,10 @@ import {
   getGameweekTeams,
   getUserTeam,
   getGameweekStats,
-  moduleFunction,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { buildClaimPrize } from "@/lib/chainClient";
 import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, formatTxError } from "@/lib/utils";
@@ -34,7 +33,7 @@ import {
 } from "@/lib/tourClaimHistory";
 
 export default function LeaderboardPage() {
-  const { account, connected, signTransaction } = useWallet();
+  const { account, connected, signAndSubmit } = useWallet();
   const lb = useSiteMessages().pages.leaderboard;
   const prize = usePrizeAsset();
   const [config, setConfig] = useState<ChainConfig | null>(null);
@@ -204,25 +203,7 @@ export default function LeaderboardPage() {
 
     setIsClaiming(true);
     try {
-      // Same path as gameweek registration: build on Movement fullnode, sign raw tx.
-      // `signAndSubmitTransaction` always runs wallet-adapter `getAptosConfig` and breaks on Movement ("custom").
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("claim_prize"),
-          typeArguments: [],
-          functionArguments: [gameweekId.toString()],
-        },
-      });
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 30, checkSuccess: true },
-      });
+      await signAndSubmit(await buildClaimPrize(account.address, gameweekId));
       alert(lb.claimSuccess(prize.symbol));
       // setSelectedGameweek(gameweekId) here is a no-op (same value) — React skips state updates,
       // so the leaderboard would never reflect `claimed: true` until the user changes the dropdown.

@@ -1,660 +1,84 @@
-import { Aptos, AptosConfig } from "@aptos-labs/ts-sdk";
-import { NETWORK, MODULE_ADDRESS, MODULE_NAME, MOVEMENT_RPC_URL } from "./constants";
+/**
+ * Phase 4 compatibility facade. New modules import `chainClient` directly;
+ * legacy page shapes remain numeric until their presentation code is migrated.
+ */
+import * as solana from "@/lib/chainClient";
 
-/** Movement fullnode client (Aptos-compatible API). */
-const config = new AptosConfig({
-  network: NETWORK,
-  fullnode: MOVEMENT_RPC_URL,
-});
-export const client = new Aptos(config);
-
-// Helper to build module function name
-export const moduleFunction = (functionName: string): `${string}::${string}::${string}` => {
-  return `${MODULE_ADDRESS}::${MODULE_NAME}::${functionName}` as `${string}::${string}::${string}`;
+export type ChainConfig = Omit<solana.ChainConfig, "entryFee" | "titleFee" | "guildFee" | "totalPrizeObligation"> & {
+  entryFee: number;
+  titleFee: number;
+  guildFee: number;
+  totalPrizeObligation: number;
 };
-
-/** `false` if the RPC has no module or the entry is missing (stale publish vs this repo). */
-export async function hasAdminSponsorPrizePoolOnChain(): Promise<boolean> {
-  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
-  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
-  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = (await res.json()) as {
-      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
-    };
-    const funcs = data.abi?.exposed_functions ?? [];
-    return funcs.some((f) => f.is_entry && f.name === "admin_sponsor_prize_pool");
-  } catch {
-    return false;
-  }
-}
-
-export async function hasAdminMarkPrizeClaimedOnChain(): Promise<boolean> {
-  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
-  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
-  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = (await res.json()) as {
-      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
-    };
-    const funcs = data.abi?.exposed_functions ?? [];
-    return funcs.some((f) => f.is_entry && f.name === "admin_mark_prize_claimed");
-  } catch {
-    return false;
-  }
-}
-
-/** `false` if the RPC module ABI has no `admin_withdraw_prize_vault` entry. */
-export async function hasAdminWithdrawPrizeVaultOnChain(): Promise<boolean> {
-  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
-  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
-  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = (await res.json()) as {
-      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
-    };
-    const funcs = data.abi?.exposed_functions ?? [];
-    return funcs.some((f) => f.is_entry && f.name === "admin_withdraw_prize_vault");
-  } catch {
-    return false;
-  }
-}
-
-/** `false` if the RPC module ABI has no `admin_withdraw_legacy_move_from_vault` entry. */
-export async function hasAdminWithdrawLegacyMoveFromVaultOnChain(): Promise<boolean> {
-  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
-  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
-  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = (await res.json()) as {
-      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
-    };
-    const funcs = data.abi?.exposed_functions ?? [];
-    return funcs.some((f) => f.is_entry && f.name === "admin_withdraw_legacy_move_from_vault");
-  } catch {
-    return false;
-  }
-}
-
-// View function helpers
-/** `null` when the deployed package has no `get_entry_fee_asset` view yet. */
-export async function getEntryFeeAssetOnChain(): Promise<{
-  asset: number;
-  usdcMetadata: string;
-} | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_entry_fee_asset"),
-        typeArguments: [],
-        functionArguments: [],
-      },
-    });
-    return {
-      asset: viewNum(result[0]),
-      usdcMetadata: String(result[1] ?? "0x0"),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function getConfig() {
-  try {
-    const [configResult, entryAsset] = await Promise.all([
-      client.view({
-        payload: {
-          function: moduleFunction("get_config"),
-          typeArguments: [],
-          functionArguments: [],
-        },
-      }),
-      getEntryFeeAssetOnChain(),
-    ]);
-    const result = configResult;
-    return {
-      admins: result[0] as string[],  // Now returns array of admins
-      oracle: result[1] as string,
-      entryFee: viewNum(result[2]),
-      titleFee: viewNum(result[3]),
-      guildFee: viewNum(result[4]),
-      prizePoolPercent: viewNum(result[5]),
-      currentGameweek: viewNum(result[6]),
-      /** `0` (MOVE) until `get_entry_fee_asset` exists and returns `1`. */
-      entryFeeAsset: entryAsset?.asset ?? 0,
-      usdcMetadataAddr: entryAsset?.usdcMetadata ?? "0x0",
-      usdcxEntryLive: entryAsset !== null && entryAsset.asset === 1,
-    };
-  } catch (e) {
-    console.error("Failed to get config:", e);
-    return null;
-  }
-}
-
-export type ChainConfig = NonNullable<Awaited<ReturnType<typeof getConfig>>>;
-
-export async function isAdmin(address: string) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("is_admin_address"),
-        typeArguments: [],
-        functionArguments: [address],
-      },
-    });
-    return result[0] as boolean;
-  } catch (e) {
-    return false;
-  }
-}
-
-/** Normalize Move u8 / u64 returned from view (number, bigint, decimal string, 0x hex). */
-function viewNum(v: unknown): number {
-  if (typeof v === "bigint") return Number(v);
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const t = v.trim();
-    if (t.startsWith("0x") || t.startsWith("0X")) return parseInt(t, 16);
-    const n = Number(t);
-    return Number.isFinite(n) ? n : NaN;
-  }
-  return NaN;
-}
-
-export type GameweekSummary = {
-  id: number;
-  status: "open" | "closed" | "resolved";
+export type GameweekSummary = Omit<solana.GameweekSummary, "prizePool" | "prizeAllocated" | "prizeClaimed"> & {
   prizePool: number;
-  totalEntries: number;
+  prizeAllocated: number;
+  prizeClaimed: number;
 };
+export type OnChainPlayerStats = solana.OnChainPlayerStats;
 
-export async function getGameweek(gameweekId: number): Promise<GameweekSummary | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_gameweek"),
-        typeArguments: [],
-        functionArguments: [gameweekId.toString()],
-      },
-    });
-    const st = viewNum(result[1]);
-    const status: GameweekSummary["status"] =
-      st === 0 ? "open" : st === 1 ? "closed" : "resolved";
-    return {
-      id: viewNum(result[0]),
-      status,
-      prizePool: viewNum(result[2]),
-      totalEntries: viewNum(result[3]),
-    };
-  } catch (e) {
-    console.error("Failed to get gameweek:", e);
-    return null;
-  }
+export async function getConfig(): Promise<ChainConfig | null> {
+  const config = await solana.getConfig();
+  return config && {
+    ...config,
+    entryFee: Number(config.entryFee),
+    titleFee: Number(config.titleFee),
+    guildFee: Number(config.guildFee),
+    totalPrizeObligation: Number(config.totalPrizeObligation),
+  };
 }
-
-/** Run an async fn over `ids` in batches of `concurrency`, preserving order. */
-async function mapInBatches<T, R>(
-  ids: T[],
-  concurrency: number,
-  fn: (id: T) => Promise<R>,
-): Promise<R[]> {
-  const out: R[] = new Array(ids.length);
-  for (let start = 0; start < ids.length; start += concurrency) {
-    const slice = ids.slice(start, start + concurrency);
-    const results = await Promise.all(slice.map((id) => fn(id)));
-    for (let i = 0; i < results.length; i++) out[start + i] = results[i];
-  }
-  return out;
+export const isAdmin = solana.isAdmin;
+export async function getGameweek(id: number): Promise<GameweekSummary | null> {
+  const gameweek = await solana.getGameweek(id);
+  return gameweek && {
+    ...gameweek,
+    prizePool: Number(gameweek.prizePool),
+    prizeAllocated: Number(gameweek.prizeAllocated),
+    prizeClaimed: Number(gameweek.prizeClaimed),
+  };
 }
-
-/** World Cup tour ids start here — must match `WC_TOUR_ID_BASE` in worldcup.ts. */
-const WC_TOUR_ID_BASE = 10000;
-
-/**
- * Resolves the gameweek players should use for registration (first OPEN week).
- * Uses `config.current_gameweek` as a hint, then scans forward/backward so we
- * still find an open week if the pointer lags, a view fails once, or `current_gameweek` is 0.
- */
-export async function findOpenGameweekFromChain(
-  configData: Awaited<ReturnType<typeof getConfig>>,
-): Promise<GameweekSummary | null> {
-  if (!configData) return null;
-  const c = Number(configData.currentGameweek);
-  if (!Number.isFinite(c) || c < 0) return null;
-
-  // Config pointer on a WC tour (10001+) — use findOpenWorldCupTourFromChain instead.
-  // Scanning 1..c-1 here would fan out ~10k RPC calls and freeze the admin UI.
-  if (c >= WC_TOUR_ID_BASE) return null;
-
-  // Build the candidate scan order once, then batch the RPC fan-out so the leaderboard /
-  // gameweek pages don't make 60+ sequential round-trips on every load.
-  const candidates: number[] = [];
-  if (c === 0) {
-    for (let i = 1; i <= 80; i++) candidates.push(i);
-  } else {
-    for (let i = c; i <= c + 60; i++) candidates.push(i);
-    for (let i = c - 1; i >= 1; i--) candidates.push(i);
-  }
-
-  const results = await mapInBatches(candidates, 12, (id) => getGameweek(id));
-  for (const g of results) {
-    if (g?.status === "open") return g;
-  }
-  return null;
+export const findHighestGameweekIdOnChain = async (_?: ChainConfig | null) => solana.findHighestGameweekId();
+export const findLatestResolvedGameweekId = solana.findLatestResolvedGameweekId;
+export const findLatestUserRegisteredGameweek = solana.findLatestUserRegisteredGameweek;
+export const findOpenGameweekFromChain = async (_?: ChainConfig | null) => {
+  const config = await solana.getConfig();
+  return config ? getGameweek(config.currentGameweek) : null;
+};
+export const findActiveGameweekFromChain = findOpenGameweekFromChain;
+export const hasRegisteredTeam = solana.hasRegisteredTeam;
+export async function getUserTeam(owner: string, gameweekId: number) {
+  const team = await solana.getUserTeam(owner, gameweekId);
+  return team && { playerIds: team.playerIds, playerPositions: team.positions, clubs: team.clubs };
 }
-
-/**
- * Like `findOpenGameweekFromChain` but also returns "closed" gameweeks
- * (registration closed, results not yet announced). Used for homepage stats
- * so prize pool and entry count remain visible after the deadline.
- */
-export async function findActiveGameweekFromChain(
-  configData: Awaited<ReturnType<typeof getConfig>>,
-): Promise<GameweekSummary | null> {
-  if (!configData) return null;
-  const c = Number(configData.currentGameweek);
-  if (!Number.isFinite(c) || c < 0) return null;
-  if (c >= WC_TOUR_ID_BASE) return null;
-
-  const candidates: number[] = [];
-  if (c === 0) {
-    for (let i = 1; i <= 80; i++) candidates.push(i);
-  } else {
-    for (let i = c; i <= c + 60; i++) candidates.push(i);
-    for (let i = c - 1; i >= 1; i--) candidates.push(i);
-  }
-
-  const results = await mapInBatches(candidates, 12, (id) => getGameweek(id));
-  // Prefer open, then closed — skip resolved
-  const open = results.find((g) => g?.status === "open");
-  if (open) return open;
-  const closed = results.find((g) => g?.status === "closed");
-  return closed ?? null;
-}
-
-/**
- * Highest gameweek id that exists on-chain.
- *
- * Important: do **not** stop at the first missing id — `Table` ids may be non-contiguous
- * (e.g. GW 34 exists while GW 33 was never stored), and a single RPC failure would also
- * truncate the range incorrectly.
- */
-export async function findHighestGameweekIdOnChain(
-  configData: Awaited<ReturnType<typeof getConfig>>,
-): Promise<number> {
-  if (!configData) return 0;
-  const hint = Number(configData.currentGameweek);
-  // Config pointer on a WC tour (10001+) — ignore it; scan only the EPL id range.
-  const eplHint = hint >= WC_TOUR_ID_BASE ? 0 : hint;
-  const maxScan =
-    Number.isFinite(eplHint) && eplHint >= 1
-      ? Math.min(Math.max(eplHint + 80, 120), 200)
-      : 120;
-  const ids = Array.from({ length: maxScan }, (_, i) => i + 1);
-  const results = await mapInBatches(ids, 16, (id) => getGameweek(id));
-  let maxId = 0;
-  for (let i = 0; i < results.length; i++) {
-    if (results[i]) maxId = ids[i];
-  }
-  return maxId;
-}
-
-/**
- * Highest GW id where `owner` has registered a squad (scan down from chain tip).
- * Used when `current` GW is already open but this wallet never registered it — show latest recap instead.
- */
-export async function findLatestUserRegisteredGameweek(
-  owner: string,
-  configData: Awaited<ReturnType<typeof getConfig>>,
-): Promise<GameweekSummary | null> {
-  if (!configData) return null;
-  const hi = await findHighestGameweekIdOnChain(configData);
-  if (hi < 1) return null;
-  const ids: number[] = [];
-  for (let id = hi; id >= 1; id--) ids.push(id);
-  const regs = await mapInBatches(ids, 16, (id) => hasRegisteredTeam(owner, id));
-  for (let i = 0; i < ids.length; i++) {
-    if (!regs[i]) continue;
-    const g = await getGameweek(ids[i]);
-    if (g) return g;
-  }
-  return null;
-}
-
-/** Latest resolved GW at or below `highestId` — best default for the leaderboard after publishing results. */
-export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
-  if (highestId < 1) return 0;
-  for (let id = highestId; id >= 1; id--) {
-    const g = await getGameweek(id);
-    if (g?.status === "resolved") return id;
-  }
-  return 0;
-}
-
-export async function getUserTitle(owner: string) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_user_title"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    return {
-      titleType: Number(result[0]),
-      multiplier: Number(result[1]),
-      season: Number(result[2]),
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function getUserGuild(owner: string) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_user_guild"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    return {
-      multiplier: Number(result[0]),
-      season: Number(result[1]),
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function hasTitle(owner: string): Promise<boolean> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("has_title"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    return result[0] as boolean;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function hasGuild(owner: string): Promise<boolean> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("has_guild"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    return result[0] as boolean;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function hasRegisteredTeam(owner: string, gameweekId: number): Promise<boolean> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("has_registered_team"),
-        typeArguments: [],
-        functionArguments: [owner, gameweekId.toString()],
-      },
-    });
-    return result[0] as boolean;
-  } catch (e) {
-    return false;
-  }
-}
-
+export const getGameweekTeams = solana.getGameweekEntrants;
+export const getPlayerStats = solana.getPlayerStats;
+export const getGameweekStats = solana.getGameweekStats;
 export async function getTeamResult(owner: string, gameweekId: number) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_team_result"),
-        typeArguments: [],
-        functionArguments: [owner, gameweekId.toString()],
-      },
-    });
-    const ratingBonus = Number(result[1]);
-    const ratingBonusNegative = result[2] as boolean;
-    return {
-      owner,
-      basePoints: Number(result[0]),
-      ratingBonus: ratingBonusNegative ? -ratingBonus : ratingBonus,
-      titleTriggered: result[3] as boolean,
-      titleMultiplier: Number(result[4]),
-      guildTriggered: result[5] as boolean,
-      guildMultiplier: Number(result[6]),
-      finalPoints: Number(result[7]),
-      rank: Number(result[8]),
-      prizeAmount: Number(result[9]),
-      claimed: result[10] as boolean,
-    };
-  } catch (e) {
-    return null;
-  }
+  const result = await solana.getTeamResult(owner, gameweekId);
+  return result && {
+    ...result,
+    prizeAmount: Number(result.prizeAmount),
+  };
 }
 
-/** Normalize Move `vector<u8>` from view (array, Uint8Array, or hex string "0x…"). */
-function viewU8Vector(raw: unknown): number[] {
-  if (raw == null) return [];
-  if (Array.isArray(raw)) return raw.map((x) => viewNum(x));
-  if (raw instanceof Uint8Array) return Array.from(raw);
-  // Movement/Aptos SDK encodes vector<u8> as a hex string "0xABCD…"
-  if (typeof raw === "string" && /^0x[0-9a-fA-F]*$/.test(raw)) {
-    const hex = raw.slice(2);
-    const out: number[] = [];
-    for (let i = 0; i < hex.length; i += 2) {
-      out.push(parseInt(hex.slice(i, i + 2), 16));
-    }
-    return out;
-  }
-  return [];
-}
+export const getBracketChallengeStatus = async (): Promise<number | null> => null;
+export const getBracketChallengeEntries = async (): Promise<number | null> => null;
+export const hasBracketPrediction = async (_owner: string): Promise<boolean> => false;
+export const getBracketPrediction = async (_owner: string): Promise<{
+  groupRanks: number[]; thirdPlaceOrder: number[]; knockoutWinners: number[]; submittedAt: number;
+} | null> => null;
+export const hasRegisterBracketPredictionOnChain = async () => false;
+export const hasAdminSponsorPrizePoolOnChain = async () => true;
+export const hasAdminMarkPrizeClaimedOnChain = async () => false;
+export const hasAdminWithdrawPrizeVaultOnChain = async () => true;
+export const hasAdminWithdrawLegacyMoveFromVaultOnChain = async () => false;
+export const getEntryFeeAssetOnChain = async () => ({ asset: 1, usdcMetadata: "" });
+export const getUserTitle = async (_owner: string) => null;
+export const getUserGuild = async (_owner: string) => null;
+export const hasTitle = async (_owner: string) => false;
+export const hasGuild = async (_owner: string) => false;
 
-export async function getUserTeam(
-  owner: string,
-  gameweekId: number,
-): Promise<{ playerIds: number[]; playerPositions: number[] } | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_user_team"),
-        typeArguments: [],
-        functionArguments: [owner, gameweekId.toString()],
-      },
-    });
-    const rawIds = result[0] as unknown[];
-    const posArr = viewU8Vector(result[1]);
-    // Must stay index-aligned with on-chain vectors (14 slots: 11 + bench). Filtering
-    // ids dropped entries and paired wrong positions — squads looked short/wrong.
-    const n = rawIds.length;
-    const playerIds: number[] = new Array(n);
-    const playerPositions: number[] = new Array(n);
-    for (let i = 0; i < n; i++) {
-      const id = viewNum(rawIds[i]);
-      playerIds[i] = Number.isFinite(id) ? id : 0;
-      const v = posArr[i];
-      playerPositions[i] = Number.isFinite(v) && v >= 0 && v <= 3 ? v : 2;
-    }
-    return { playerIds, playerPositions };
-  } catch (e) {
-    console.error("getUserTeam error:", e);
-    return null;
-  }
-}
-
-export async function getGameweekTeams(gameweekId: number): Promise<string[]> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_gameweek_teams"),
-        typeArguments: [],
-        functionArguments: [gameweekId.toString()],
-      },
-    });
-    return (result[0] as string[]).map(addr => addr.toString());
-  } catch (e) {
-    console.error("Failed to get gameweek teams:", e);
-    return [];
-  }
-}
-
-export async function getPlayerStats(gameweekId: number, playerId: number) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_player_stats"),
-        typeArguments: [],
-        functionArguments: [gameweekId.toString(), playerId.toString()],
-      },
-    });
-    return {
-      position: Number(result[0]),
-      minutes_played: Number(result[1]),
-      goals: Number(result[2]),
-      assists: Number(result[3]),
-      clean_sheet: result[4] as boolean,
-      saves: Number(result[5]),
-      penalties_saved: Number(result[6]),
-      penalties_missed: Number(result[7]),
-      own_goals: Number(result[8]),
-      yellow_cards: Number(result[9]),
-      red_cards: Number(result[10]),
-      rating: Number(result[11]),
-      tackles: Number(result[12]),
-      interceptions: Number(result[13]),
-      successful_dribbles: Number(result[14]),
-      free_kick_goals: Number(result[15]),
-      goals_conceded: Number(result[16]),
-      bonus: Number(result[17]),
-      fpl_clean_sheets: (result[18] as boolean) ? 1 : 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export type OnChainPlayerStats = NonNullable<Awaited<ReturnType<typeof getPlayerStats>>>;
-
-export async function getGameweekStats(
-  gameweekId: number,
-  playerIds: number[],
-): Promise<Record<number, OnChainPlayerStats>> {
-  const results = await Promise.allSettled(
-    playerIds.map((id) => getPlayerStats(gameweekId, id))
-  );
-  const stats: Record<number, OnChainPlayerStats> = {};
-  results.forEach((r, i) => {
-    if (r.status === "fulfilled" && r.value) {
-      stats[playerIds[i]] = r.value;
-    }
-  });
-  return stats;
-}
-
-/** Bracket challenge lifecycle: 255 = not initialised, 0 = open, 1 = closed, 2 = resolved. */
-export async function getBracketChallengeStatus(): Promise<number | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("bracket_challenge_status"),
-        typeArguments: [],
-        functionArguments: [],
-      },
-    });
-    return Number(result[0]);
-  } catch {
-    return null;
-  }
-}
-
-export async function getBracketChallengeEntries(): Promise<number | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("bracket_challenge_entries"),
-        typeArguments: [],
-        functionArguments: [],
-      },
-    });
-    return Number(result[0]);
-  } catch {
-    return null;
-  }
-}
-
-export async function hasBracketPrediction(owner: string): Promise<boolean> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("has_bracket_prediction"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    return result[0] as boolean;
-  } catch {
-    return false;
-  }
-}
-
-export async function getBracketPrediction(
-  owner: string,
-): Promise<{ groupRanks: number[]; thirdPlaceOrder: number[]; knockoutWinners: number[]; submittedAt: number } | null> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_bracket_prediction"),
-        typeArguments: [],
-        functionArguments: [owner],
-      },
-    });
-    const [groupRanks, thirdPlaceOrder, knockoutWinners, submittedAt] = result as [
-      unknown,
-      unknown,
-      unknown,
-      number | string,
-    ];
-    return {
-      groupRanks: viewU8Vector(groupRanks),
-      thirdPlaceOrder: viewU8Vector(thirdPlaceOrder),
-      knockoutWinners: viewU8Vector(knockoutWinners),
-      submittedAt: Number(submittedAt),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function hasRegisterBracketPredictionOnChain(): Promise<boolean> {
-  const base = MOVEMENT_RPC_URL.replace(/\/$/, "");
-  const pathAddr = MODULE_ADDRESS.startsWith("0x") ? MODULE_ADDRESS : `0x${MODULE_ADDRESS}`;
-  const url = `${base}/accounts/${pathAddr}/module/${encodeURIComponent(MODULE_NAME)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = (await res.json()) as {
-      abi?: { exposed_functions?: { name: string; is_entry: boolean }[] };
-    };
-    const funcs = data.abi?.exposed_functions ?? [];
-    return funcs.some((f) => f.is_entry && f.name === "register_bracket_prediction");
-  } catch {
-    return false;
-  }
-}
+/** Temporary guard while write pages move to chainClient `build*` APIs. */
+const removed = () => { throw new Error("Movement transactions have been removed. Use chainClient."); };
+export const client: any = { transaction: { build: { simple: removed }, submit: { simple: removed } }, waitForTransaction: removed };
+export const moduleFunction = (name: string): never => { throw new Error(`Movement entry ${name} is unavailable on Solana.`); };

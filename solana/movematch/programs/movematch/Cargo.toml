@@ -1,0 +1,26 @@
+[package]
+name = "movematch"
+version = "0.1.0"
+description = "MoveMatch tournament treasury and settlement program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "movematch"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+custom-heap = []
+custom-panic = []
+anchor-debug = []
+bracket = []
+
+[dependencies]
+anchor-lang = "1.1.2"
+anchor-spl = "1.1.2"
+solana-keccak-hasher = "3"

@@ -82,3 +82,79 @@ export function getPrizeRecalcArgs(gameweekId: number): {
     prizePercentages: tiers.map((t) => t.pct),
   };
 }
+
+/** Percentage attached to an ordinal finishing slot (1 = first); 0 outside the table. */
+function pctForSlot(tiers: readonly PrizeTier[], slot: number): number {
+  return tiers.find((t) => t.rank === slot)?.pct ?? 0;
+}
+
+export type Standing<Owner = string> = {
+  owner: Owner;
+  /** Points after every multiplier — the value the leaderboard sorts on. */
+  finalPoints: number;
+};
+
+export type PrizeAward<Owner = string> = {
+  owner: Owner;
+  /** Competition rank: 1, 2, 2, 4, … */
+  rank: number;
+  finalPoints: number;
+  /** Smallest unit of the payout asset (USDC micro-units on Solana, octas on Movement). */
+  amount: bigint;
+};
+
+/**
+ * Splits a prize pool across a leaderboard. This is the settlement rule the chain
+ * is paid out against, so it lives here rather than in any one chain client.
+ *
+ * Ties take a competition rank and share the summed percentages of every slot the
+ * group occupies (a two-way tie for 4th splits 8% + 7%). The integer remainder of
+ * that split is handed out one unit at a time to the earliest members in sort
+ * order, matching `fantasy_epl::calculate_results_v3`.
+ *
+ * Sorting by points is stable, so the caller's own ordering inside a tie decides
+ * who receives the extra unit.
+ */
+export function allocatePrizes<Owner>(
+  prizePool: bigint,
+  standings: readonly Standing<Owner>[],
+  gameweekId: number,
+): PrizeAward<Owner>[] {
+  const tiers = getPrizeTiers(gameweekId);
+  const sorted = [...standings].sort((a, b) => b.finalPoints - a.finalPoints);
+  const awards: PrizeAward<Owner>[] = [];
+
+  let index = 0;
+  while (index < sorted.length) {
+    let end = index;
+    while (end + 1 < sorted.length && sorted[end + 1].finalPoints === sorted[index].finalPoints) {
+      end += 1;
+    }
+
+    const rank = index + 1;
+    const tieCount = BigInt(end - index + 1);
+    let sumPct = 0;
+    for (let slot = rank; slot <= end + 1; slot += 1) sumPct += pctForSlot(tiers, slot);
+
+    const groupTotal = (prizePool * BigInt(sumPct)) / BigInt(100);
+    const share = groupTotal / tieCount;
+    const remainder = groupTotal % tieCount;
+
+    for (let offset = 0; index + offset <= end; offset += 1) {
+      const member = sorted[index + offset];
+      awards.push({
+        owner: member.owner,
+        rank,
+        finalPoints: member.finalPoints,
+        amount: BigInt(offset) < remainder ? share + BigInt(1) : share,
+      });
+    }
+    index = end + 1;
+  }
+
+  return awards;
+}
+
+export function sumPrizeAwards<Owner>(awards: readonly PrizeAward<Owner>[]): bigint {
+  return awards.reduce((total, award) => total + award.amount, BigInt(0));
+}

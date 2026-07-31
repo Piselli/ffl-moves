@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
+const HIDE_FOOTER_PATHS = new Set([
+  "/",
+  "/design-lab/locker-hero",
+  "/design-lab/locker-leaderboard",
+  "/design-preview/homepage",
+]);
+
 export function SiteFooter() {
   const m = useSiteMessages();
+  const pathname = usePathname();
 
   // Discreet shortcut to the referral dashboard — only shown to people who have
   // already signed into it on this device (the key is saved in localStorage).
@@ -19,6 +28,8 @@ export function SiteFooter() {
       /* ignore */
     }
   }, []);
+
+  if (HIDE_FOOTER_PATHS.has(pathname)) return null;
 
   return (
     <footer className="relative z-10 border-t border-white/[0.06] bg-[#0A0C0F]/80">

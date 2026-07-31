@@ -1,0 +1,22 @@
+{
+  "name": "movematch-anchor",
+  "private": true,
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test",
+    "test:legacy-validator": "anchor test --validator legacy",
+    "deploy:devnet": "anchor deploy --provider.cluster devnet"
+  },
+  "devDependencies": {
+    "@anchor-lang/core": "^1.1.0",
+    "@noble/hashes": "^1.6.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.3",
+    "@types/chai": "^4.3.19",
+    "@types/mocha": "^10.0.10",
+    "chai": "^4.5.0",
+    "mocha": "^11.0.1",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.7.2"
+  }
+}

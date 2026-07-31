@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   WcBracketPredictor,
   isGroupsStepReady,
@@ -298,56 +298,11 @@ export default function WorldCupBracketPage() {
     goToStep("knockout");
   };
 
+  // The bracket instruction is not in the deployed Solana program: a prediction can
+  // still be built and reviewed locally, but there is nothing to commit it to.
   const handleSubmit = async () => {
     if (!connected || !account || !complete || !eligible || submitted) return;
-    setSubmitting(true);
-    try {
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("register_bracket_prediction"),
-          typeArguments: [],
-          functionArguments: [
-            encodeGroupRanks(prediction.groupRanks),
-            encodeThirdPlaceOrder(prediction.thirdPlaceOrder),
-            encodeKnockoutWinners(prediction.knockoutWinners),
-          ],
-        },
-        options: { expireTimestamp: Math.floor(Date.now() / 1000) + 120 },
-      });
-
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 30, checkSuccess: true },
-      });
-      setSubmitted(true);
-      setGroupsLocked(true);
-      setThirdsLocked(true);
-      setStep("knockout");
-      if (addr) {
-        try {
-          localStorage.removeItem(draftKey(addr));
-        } catch {
-          /* ignore */
-        }
-      }
-    } catch (error: unknown) {
-      const msg = getErrorMessage(error);
-      const msgLower = msg.toLowerCase();
-      const isUserRejection =
-        msgLower.includes("user rejected") ||
-        msgLower.includes("denied") ||
-        msgLower.includes("cancelled") ||
-        msgLower.includes("canceled");
-      if (!isUserRejection) window.alert(`${g.registerErrorPrefix} ${msg}`);
-    } finally {
-      setSubmitting(false);
-    }
+    window.alert(`${g.registerErrorPrefix} Bracket predictions are not available on Solana yet.`);
   };
 
   return (

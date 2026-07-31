@@ -1,7 +1,7 @@
 "use client";
 
 import type { WalletConnectRow } from "@/lib/walletNightly";
-import { NIGHTLY_DOWNLOAD_URL, isMobileBrowser, isSafariBrowser, movementWalletDef } from "@/lib/walletNightly";
+import { isMobileBrowser, solanaWalletDef } from "@/lib/walletNightly";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Props = {
@@ -11,9 +11,8 @@ type Props = {
   variant?: "navbar" | "cta";
 };
 
-function installHref(row: WalletConnectRow, safari: boolean) {
-  const def = movementWalletDef(row.walletId);
-  if (row.walletId === "nightly" && safari) return NIGHTLY_DOWNLOAD_URL;
+function installHref(row: WalletConnectRow) {
+  const def = solanaWalletDef(row.walletId);
   if (isMobileBrowser()) return def.downloadUrl;
   return def.chromeExtensionUrl;
 }
@@ -28,7 +27,6 @@ function ExternalIcon() {
 
 export function MovementWalletRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
   const m = useSiteMessages();
-  const safari = isSafariBrowser();
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 
   const shellInstall =
@@ -42,13 +40,13 @@ export function MovementWalletRows({ rows, pending = false, onConnect, variant =
     <div className={`flex flex-col gap-1.5 ${pad}`}>
       {rows.map((row) => {
         const installSub =
-          row.walletId === "motion" ? m.nav.walletMotionInstallSub : m.nav.walletNightlyInstallSub;
+          row.walletId === "phantom" ? "Install Phantom to connect." : "Install Solflare to connect.";
 
         if (row.mode === "extension-missing") {
           return (
             <a
               key={row.walletId + row.mode}
-              href={installHref(row, safari)}
+              href={installHref(row)}
               target="_blank"
               rel="noopener noreferrer"
               className={shellInstall}
@@ -73,9 +71,7 @@ export function MovementWalletRows({ rows, pending = false, onConnect, variant =
         const connectLabel =
           row.mode === "installed"
             ? m.nav.installed
-            : row.walletId === "motion"
-              ? m.nav.openInMotion
-              : m.nav.openInNightly;
+            : `Connect ${row.displayName}`;
 
         return (
           <button

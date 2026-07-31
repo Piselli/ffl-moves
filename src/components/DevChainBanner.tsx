@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { MOVEMENT_RPC_URL, MODULE_ADDRESS } from "@/lib/constants";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -26,6 +27,20 @@ export function DevChainBanner() {
           {m.devBanner.envHint}
         </div>
       )}
+      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        <Link
+          href="/design-preview"
+          className="font-semibold text-[#00f948] underline underline-offset-2 hover:text-[#00f948]/80"
+        >
+          Visual concepts →
+        </Link>
+        <Link
+          href="/design-preview/homepage"
+          className="font-semibold text-[#00f948] underline underline-offset-2 hover:text-[#00f948]/80"
+        >
+          Homepage nav redesign →
+        </Link>
+      </div>
     </div>
   );
 }

@@ -1,19 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
-  client,
   getGameweek,
   getTeamResult,
   getGameweekTeams,
   getUserTeam,
   getGameweekStats,
-  moduleFunction,
   type GameweekSummary,
 } from "@/lib/movement";
+import { buildClaimPrize } from "@/lib/chainClient";
 import {
   getWorldCupTourSummaries,
   findActiveWorldCupTourFromChain,
@@ -34,7 +33,7 @@ import {
 import { getPrizeRankCount, getPrizeTiers, isRankInPrizeZone } from "@/lib/prize-distribution";
 
 export default function WorldCupLeaderboardPage() {
-  const { account, connected, signTransaction } = useWallet();
+  const { account, connected, signAndSubmit } = useWallet();
   const msgs = useSiteMessages();
   const lb = msgs.pages.leaderboard;
   const wc = msgs.pages.worldCup;
@@ -186,23 +185,7 @@ export default function WorldCupLeaderboardPage() {
 
     setIsClaiming(true);
     try {
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("claim_prize"),
-          typeArguments: [],
-          functionArguments: [tourId.toString()],
-        },
-      });
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 30, checkSuccess: true },
-      });
+      await signAndSubmit(await buildClaimPrize(account.address, tourId));
       alert(lb.claimSuccess(prize.symbol));
       await fetchTourData(tourId);
     } catch (error: unknown) {

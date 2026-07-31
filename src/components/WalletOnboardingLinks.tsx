@@ -1,15 +1,6 @@
 "use client";
 
 import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
-import {
-  MOTION_CHROME_EXTENSION_URL,
-  MOTION_DOWNLOAD_URL,
-  MOTION_WALLET_FAQ_URL,
-  NIGHTLY_CHROME_EXTENSION_URL,
-  NIGHTLY_DOWNLOAD_URL,
-  YUZU_USDCX_SWAP_URL,
-  isMobileBrowser,
-} from "@/lib/walletNightly";
 
 const linkClass =
   "block w-full text-center rounded-xl px-3 py-2.5 text-xs font-display font-bold uppercase tracking-wider border transition-colors";
@@ -29,13 +20,11 @@ export function WalletOnboardingLinks({
   variant?: "full" | "footer";
   includeBeginnerHelp?: boolean;
 }) {
-  const desktop = !isMobileBrowser();
-
   if (variant === "footer") {
     const t =
       locale === "uk"
-        ? { refresh: "Після встановлення оновіть сторінку.", faq: "Motion FAQ", usdcx: "Yuzu → USDCx" }
-        : { refresh: "Refresh the page after installing.", faq: "Motion FAQ", usdcx: "Yuzu → USDCx" };
+        ? { refresh: "Після встановлення гаманця оновіть сторінку.", faq: "Phantom Help", usdc: "Circle USDC faucet" }
+        : { refresh: "Refresh after installing a wallet.", faq: "Phantom Help", usdc: "Circle USDC faucet" };
 
     return (
       <div className={`space-y-2 ${className}`}>
@@ -44,7 +33,7 @@ export function WalletOnboardingLinks({
           <p className="text-[10px] text-white/35 text-center leading-relaxed">{t.refresh}</p>
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px]">
             <a
-              href={MOTION_WALLET_FAQ_URL}
+              href="https://help.phantom.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/45 hover:text-white/75 transition-colors"
@@ -55,12 +44,12 @@ export function WalletOnboardingLinks({
               ·
             </span>
             <a
-              href={YUZU_USDCX_SWAP_URL}
+              href="https://faucet.circle.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-400/70 hover:text-sky-300 transition-colors"
             >
-              {t.usdcx}
+              {t.usdc}
             </a>
           </div>
         </div>
@@ -71,43 +60,43 @@ export function WalletOnboardingLinks({
   const t =
     locale === "uk"
       ? {
-          motion: desktop ? "Motion — розширення (Chrome)" : "Завантажити Motion",
-          nightly: desktop ? "Nightly — розширення (Chrome)" : "Завантажити Nightly",
-          usdcx: "Своп на Yuzu → USDCx",
+          phantom: "Встановити Phantom",
+          solflare: "Встановити Solflare",
+          usdc: "Отримати devnet USDC",
         }
       : {
-          motion: desktop ? "Motion extension (Chrome)" : "Download Motion",
-          nightly: desktop ? "Nightly extension (Chrome)" : "Download Nightly",
-          usdcx: "Swap on Yuzu → USDCx",
+          phantom: "Install Phantom",
+          solflare: "Install Solflare",
+          usdc: "Get devnet USDC",
         };
 
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       {includeBeginnerHelp ? <WalletBeginnerHelp locale={locale} /> : null}
       <a
-        href={desktop ? MOTION_CHROME_EXTENSION_URL : MOTION_DOWNLOAD_URL}
+        href="https://phantom.com/download"
         target="_blank"
         rel="noopener noreferrer"
         className={primaryLinkClass}
       >
-        {t.motion}
+        {t.phantom}
       </a>
       <a
-        href={desktop ? NIGHTLY_CHROME_EXTENSION_URL : NIGHTLY_DOWNLOAD_URL}
+        href="https://solflare.com/download"
         target="_blank"
         rel="noopener noreferrer"
         className={secondaryLinkClass}
       >
-        {t.nightly}
+        {t.solflare}
       </a>
       <a
-        href={YUZU_USDCX_SWAP_URL}
+        href="https://faucet.circle.com/"
         target="_blank"
         rel="noopener noreferrer"
-        title={locale === "uk" ? "Офіційний DEX Movement — своп у USDCx" : "Official Movement DEX — swap to USDCx"}
+        title={locale === "uk" ? "Офіційний faucet Circle для devnet USDC" : "Official Circle faucet for devnet USDC"}
         className={`${linkClass} border-sky-400/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 hover:border-sky-400/50`}
       >
-        {t.usdcx}
+        {t.usdc}
       </a>
     </div>
   );

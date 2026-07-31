@@ -11,6 +11,8 @@ export interface Player {
   teamId: number;
   position: "GK" | "DEF" | "MID" | "FWD";
   positionId: number;
+  /** Real squad shirt number from FPL `squad_number` (null when unset). */
+  squadNumber?: number | null;
   price?: number;          // kept for backward-compat, no longer shown in UI
   photo?: string;          // FPL photo URL
   /** FPL `elements[].code` — used with local photo sprite atlas */

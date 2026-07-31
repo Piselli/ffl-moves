@@ -1,0 +1,1229 @@
+"use client";
+
+import { useWallet } from "@/hooks/useSolanaWallet";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useMemo } from "react";
+import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
+import {
+  findActiveWorldCupTourFromChain,
+  isWorldCupCampaignActive,
+} from "@/lib/worldcup";
+import { RewardsLeaderboardTable } from "@/components/RewardsLeaderboardTable";
+import { GwRecapSection } from "@/components/GwRecapSection";
+import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { PrizeTickerInline } from "@/components/PrizeTickerInline";
+import { HomeHeroCarousel } from "@/components/home/HomeHeroCarousel";
+import { AplHeroSlide } from "@/components/home/AplHeroSlide";
+import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
+import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { DEFAULT_ENTRY_FEE_RAW } from "@/lib/entryFee";
+import { ENTRY_FEE_MOVE } from "@/lib/constants";
+import { moveToOctas } from "@/lib/utils";
+import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import type { SiteMessages } from "@/i18n/messages";
+import {
+  ASSIST_POINTS,
+  CLEAN_SHEET_POINTS,
+  DEDUCTIONS,
+  GK_SAVE_BATCH,
+  GK_SAVE_POINTS_PER_BATCH,
+  GOAL_POINTS,
+  GOALS_CONCEDED_DIVISOR,
+  HAT_TRICK_BONUS,
+  MINUTES_POINTS,
+  PENALTY_SAVE_POINTS,
+  RATING_BONUS_TIERS,
+  RATING_SUB_POINTS,
+} from "@/lib/scoring-rules";
+
+// ─── Animated step (How It Works) ─────────────────────────────────────────────
+function AnimatedStep({
+  title,
+  desc,
+  subheader,
+  visual,
+  reverse = false,
+}: {
+  title: string;
+  desc: string;
+  subheader: string;
+  visual: React.ReactNode;
+  reverse?: boolean;
+}) {
+  return (
+    <div className={`flex flex-col gap-12 lg:gap-20 items-center ${reverse ? "lg:flex-row-reverse" : "lg:flex-row"}`}>
+      {/* Text Content */}
+      <motion.div
+        initial={{ opacity: 0, x: reverse ? 40 : -40 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="flex-1 w-full max-w-xl"
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00f948]/10 border border-[#00f948]/25 text-[#00f948] text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00f948]" />
+            {subheader}
+          </div>
+        </div>
+        <h3 className="text-4xl md:text-5xl lg:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-6 drop-shadow-xl">
+          {title}
+        </h3>
+        <p className="text-lg md:text-xl text-white/50 leading-relaxed font-medium">
+          {desc}
+        </p>
+      </motion.div>
+
+      {/* Visual Content */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 40 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="flex-1 w-full relative flex items-center justify-center p-8"
+      >
+        {visual}
+      </motion.div>
+    </div>
+  );
+}
+
+
+// ─── Score row (Tactical HUD) ─────────────────────────────────────────────────
+function ScoreRow({ label, pts, color = "text-white/60" }: { label: string; pts: string; color?: string }) {
+  return (
+    <motion.li
+      whileHover={{ x: 6, backgroundColor: "rgba(255,255,255,0.03)" }}
+      transition={{ duration: 0.15 }}
+      className="flex justify-between items-center py-3 px-3 rounded-xl cursor-default"
+    >
+      <span className="text-sm text-white/50 font-medium">{label}</span>
+      <span className={`font-display font-black text-xl tabular-nums ${color}`}>{pts}</span>
+    </motion.li>
+  );
+}
+
+// ─── CSS Pitch SVG ────────────────────────────────────────────────────────────
+function PitchSVG() {
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 650 1000" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        {/* Subtle grass shadowing */}
+        <radialGradient id="pitchGlow" cx="50%" cy="50%" r="70%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.2)" />
+        </radialGradient>
+      </defs>
+
+      {/* Surface ambient darkening */}
+      <rect x="0" y="0" width="650" height="1000" fill="url(#pitchGlow)" rx="2" />
+
+      {/* Realistic Solid White Lines WITHOUT extra margins */}
+      <g stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Pitch Outer Bounds */}
+        <rect x="0" y="0" width="650" height="1000" />
+        {/* Center Line */}
+        <line x1="0" y1="500" x2="650" y2="500" />
+        {/* Center Circle */}
+        <circle cx="325" cy="500" r="90" />
+        <circle cx="325" cy="500" r="3" fill="rgba(255,255,255,0.75)" />
+        
+        {/* Penalty Box (Bottom) */}
+        <rect x="125" y="850" width="400" height="150" />
+        {/* Goal Area (Bottom) */}
+        <rect x="235" y="940" width="180" height="60" />
+        <circle cx="325" cy="900" r="3" fill="rgba(255,255,255,0.75)" />
+        {/* Penalty Arc (Bottom) */}
+        <path d="M 265 850 A 70 70 0 0 0 385 850" />
+        
+        {/* Penalty Box (Top) */}
+        <rect x="125" y="0" width="400" height="150" />
+        {/* Goal Area (Top) */}
+        <rect x="235" y="0" width="180" height="60" />
+        <circle cx="325" cy="100" r="3" fill="rgba(255,255,255,0.75)" />
+        {/* Penalty Arc (Top) */}
+        <path d="M 265 150 A 70 70 0 0 1 385 150" />
+      </g>
+    </svg>
+  );
+}
+
+// ─── Player cutout ────────────────────────────────────────────────────────────
+function PlayerCutout({
+  name,
+  pos,
+  pts,
+  imgUrl,
+  style,
+  delay = 0,
+}: {
+  name: string;
+  pos: string;
+  pts: number;
+  imgUrl: string;
+  style?: React.CSSProperties;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={style}
+      className="absolute flex flex-col items-center select-none"
+    >
+      {/* Score badge */}
+      <div className="mb-0.5 z-10 text-[0px]"> {/* closer to the card */}
+        <div className="px-2 py-0.5 rounded-full bg-[#00f948] text-black text-[11px] font-black font-display shadow-lg shadow-[#00f948]/30 leading-none">
+          {pts}
+        </div>
+      </div>
+      {/* Player image — sprite atlas when built */}
+      <div className="relative w-20 h-24 sm:w-24 sm:h-28 flex items-center justify-center">
+        <FplPhotoAvatar
+          fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(imgUrl) ?? undefined}
+          photoUrl={
+            imgUrl.startsWith("http")
+              ? imgUrl
+              : `https://resources.premierleague.com/premierleague/photos/players/250x250/${imgUrl}`
+          }
+          alt={name}
+          size={96}
+          teamName={name}
+          initials={initialsFromDisplayName(name)}
+          className="rounded-xl shadow-2xl"
+        />
+      </div>
+      {/* Name + position */}
+      <div className="-mt-1 text-center"> {/* Pulled up slightly */}
+        <div className="text-[10px] font-bold text-white/90 uppercase tracking-wider leading-none bg-[#0D0F12]/95 border border-white/[0.12] px-2 py-0.5 rounded shadow-lg">
+          {name}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Position Scoring Cards (values from `scoring-rules.ts` = chain + `calculateFantasyPoints`) ───
+type CardGain = { label: string; pts: string; value?: number; negative?: true };
+
+type PositionCardModel = {
+  pos: string;
+  posEn: string;
+  player: string;
+  img: string;
+  color: string;
+  colorClass: string;
+  bgClass: string;
+  borderClass: string;
+  gains: CardGain[];
+};
+
+function buildPositionCards(m: SiteMessages): PositionCardModel[] {
+  const g = m.scoringGains;
+  const h = m.home;
+  const a = m.positionAbbrev;
+  return [
+    {
+      pos: a.GK,
+      posEn: "GK",
+      player: "Jordan Pickford",
+      img: "p111234.png",
+      color: "#F43F5E",
+      colorClass: "text-rose-400",
+      bgClass: "bg-rose-500/15",
+      borderClass: "border-rose-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.GK}`, value: GOAL_POINTS.GK },
+        { label: g.penSave, pts: `+${PENALTY_SAVE_POINTS}`, value: PENALTY_SAVE_POINTS },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        {
+          label: h.scoringSavesEvery.replace("{n}", String(GK_SAVE_BATCH)),
+          pts: `+${GK_SAVE_POINTS_PER_BATCH}`,
+          value: GK_SAVE_POINTS_PER_BATCH,
+        },
+        {
+          label: h.scoringConcededGoal.replace("{n}", String(GOALS_CONCEDED_DIVISOR)),
+          pts: "−1",
+          negative: true,
+        },
+      ],
+    },
+    {
+      pos: a.DEF,
+      posEn: "DEF",
+      player: "William Saliba",
+      img: "p462424.png",
+      color: "#F59E0B",
+      colorClass: "text-amber-400",
+      bgClass: "bg-amber-500/15",
+      borderClass: "border-amber-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.DEF}`, value: GOAL_POINTS.DEF },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.GK_DEF}`, value: CLEAN_SHEET_POINTS.GK_DEF },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        {
+          label: h.scoringConcededGoal.replace("{n}", String(GOALS_CONCEDED_DIVISOR)),
+          pts: "−1",
+          negative: true,
+        },
+      ],
+    },
+    {
+      pos: a.MID,
+      posEn: "MID",
+      player: "Cole Palmer",
+      img: "p244851.png",
+      color: "#3B82F6",
+      colorClass: "text-blue-400",
+      bgClass: "bg-blue-500/15",
+      borderClass: "border-blue-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.MID}`, value: GOAL_POINTS.MID },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+        { label: g.cleanSheet, pts: `+${CLEAN_SHEET_POINTS.MID}`, value: CLEAN_SHEET_POINTS.MID },
+      ],
+    },
+    {
+      pos: a.FWD,
+      posEn: "FWD",
+      player: "Erling Haaland",
+      img: "p223094.png",
+      color: "#10B981",
+      colorClass: "text-emerald-400",
+      bgClass: "bg-emerald-500/15",
+      borderClass: "border-emerald-500/40",
+      gains: [
+        { label: g.goal, pts: `+${GOAL_POINTS.FWD}`, value: GOAL_POINTS.FWD },
+        { label: g.assist, pts: `+${ASSIST_POINTS}`, value: ASSIST_POINTS },
+      ],
+    },
+  ];
+}
+
+function sumPositiveCardValues(gains: CardGain[]): number {
+  return gains.filter((g) => !g.negative).reduce((s, g) => s + (g.value ?? 0), 0);
+}
+
+function buildUniversalBonuses(m: SiteMessages) {
+  const g = m.scoringGains;
+  const tierLabels: Record<number, string> = {
+    90: g.rating90,
+    80: g.rating80,
+    75: g.rating75,
+  };
+  const ratingBonuses = RATING_BONUS_TIERS.map((tier) => ({
+    label: tierLabels[tier.minTenths],
+    pts: `+${tier.points}`,
+    color: "text-[#00f948]" as const,
+  }));
+  return [
+    ...ratingBonuses,
+    { label: g.hattrick, pts: `+${HAT_TRICK_BONUS}`, color: "text-[#00f948]" },
+    { label: g.minutes60, pts: `+${MINUTES_POINTS.full}`, color: "text-[#00f948]" },
+    { label: g.minutesPartial, pts: `+${MINUTES_POINTS.partial}`, color: "text-[#00f948]" },
+  ];
+}
+
+function buildUniversalPenalties(m: SiteMessages) {
+  const g = m.scoringGains;
+  return [
+    { label: g.redCard, pts: `−${DEDUCTIONS.redCardMultiplier}` },
+    { label: g.ownGoal, pts: `−${DEDUCTIONS.ownGoal}` },
+    { label: g.penMiss, pts: `−${DEDUCTIONS.penaltyMissed}` },
+    { label: g.yellowCard, pts: `−${DEDUCTIONS.yellowCard}` },
+    { label: g.lowRating, pts: `−${RATING_SUB_POINTS}` },
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Live Data Carousel (Swipeable) — locale text merged in `LiveDataCarousel` ───
+const CAROUSEL_MATCH_BASE = [
+  {
+    league: "Premier League",
+    time: "74:12",
+    scoreH: 2,
+    scoreA: 1,
+    teamH: {
+      name: "MANCHESTER CITY",
+      short: "MNC",
+      badge: "https://resources.premierleague.com/premierleague/badges/t43.png",
+      color: "#87CEEB",
+    },
+    teamA: {
+      name: "ARSENAL",
+      short: "ARS",
+      badge: "https://resources.premierleague.com/premierleague/badges/t3.png",
+      color: "#EF0107",
+    },
+    stadium: "Etihad Stadium",
+    matchday: 26,
+    events: [
+      {
+        player: "E. Haaland",
+        pts: "+5",
+        color: "#00f948",
+        icon: "⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png",
+      },
+      {
+        player: "P. Foden",
+        pts: "+3",
+        color: "#00f948",
+        icon: "👟",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png",
+      },
+      {
+        player: "B. Saka",
+        pts: "-1",
+        color: "#F87171",
+        icon: "🟨",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png",
+      },
+    ],
+  },
+  {
+    league: "Premier League",
+    time: "FT",
+    scoreH: 1,
+    scoreA: 3,
+    teamH: {
+      name: "TOTTENHAM",
+      short: "TOT",
+      badge: "https://resources.premierleague.com/premierleague/badges/t6.png",
+      color: "#FFFFFF",
+    },
+    teamA: {
+      name: "CHELSEA",
+      short: "CHE",
+      badge: "https://resources.premierleague.com/premierleague/badges/t8.png",
+      color: "#034694",
+    },
+    stadium: "Hotspur Stadium",
+    matchday: 26,
+    events: [
+      {
+        player: "C. Palmer",
+        pts: "+10",
+        color: "#00f948",
+        icon: "⚽️⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p214285.png",
+      },
+      {
+        player: "P. Porro",
+        pts: `+${ASSIST_POINTS}`,
+        color: "#00f948",
+        icon: "👟",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png",
+      },
+      {
+        player: "S. Heung-Min",
+        pts: `+${GOAL_POINTS.FWD}`,
+        color: "#00f948",
+        icon: "⚽️",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p85971.png",
+      },
+    ],
+  },
+  {
+    league: "Premier League",
+    time: "24:00",
+    scoreH: 0,
+    scoreA: 0,
+    teamH: {
+      name: "EVERTON",
+      short: "EVE",
+      badge: "https://resources.premierleague.com/premierleague/badges/t11.png",
+      color: "#003399",
+    },
+    teamA: {
+      name: "LIVERPOOL",
+      short: "LIV",
+      badge: "https://resources.premierleague.com/premierleague/badges/t14.png",
+      color: "#C8102E",
+    },
+    stadium: "Goodison Park",
+    matchday: 26,
+    events: [
+      {
+        player: "J. Pickford",
+        pts: "+2",
+        color: "#00f948",
+        icon: "🧤",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png",
+      },
+      {
+        player: "T. Alex-Arnold",
+        pts: "+1",
+        color: "#00f948",
+        icon: "🎯",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p169187.png",
+      },
+      {
+        player: "J. Branthwaite",
+        pts: "+2",
+        color: "#00f948",
+        icon: "🛡",
+        image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p437746.png",
+      },
+    ],
+  },
+];
+
+type MarqueeStatRow = { icon: string; text: string };
+type MarqueePlayerCard = {
+  player: string;
+  stats: MarqueeStatRow[];
+  pts: string;
+  color: string;
+  image: string;
+};
+
+const MARQUEE_PLAYERS_BASE = [
+  { player: "J. Pickford", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p111234.png" },
+  { player: "M. Cucurella", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p179268.png" },
+  { player: "W. Saliba", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p462424.png" },
+  { player: "Gabriel M.", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p226597.png" },
+  { player: "P. Porro", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p441164.png" },
+  { player: "B. Guimarães", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p208706.png" },
+  { player: "C. Palmer", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p244851.png" },
+  { player: "P. Foden", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p209244.png" },
+  { player: "O. Watkins", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p178301.png" },
+  { player: "E. Haaland", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223094.png" },
+  { player: "B. Saka", color: "#00f948", image: "https://resources.premierleague.com/premierleague/photos/players/110x140/p223340.png" },
+];
+
+/** Stat icons per player row (same order as `MARQUEE_PLAYERS_BASE`). */
+const MARQUEE_STATS_ICONS: [string, string][] = [
+  ["🧤", "🛡"],
+  ["🛡", "⏱"],
+  ["🛡", "⏱"],
+  ["🛡", "🟨"],
+  ["👟", "🛡"],
+  ["⚽️", "⏱"],
+  ["⚽️⚽️", "🌟"],
+  ["👟", "⚡️"],
+  ["⚽️", "👟"],
+  ["⚽️⚽️", "⏱"],
+  ["⚽️", "⚡️"],
+];
+
+function LiveDataCarousel() {
+  const m = useSiteMessages();
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % CAROUSEL_MATCH_BASE.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const slideBase = CAROUSEL_MATCH_BASE[activeIndex];
+  const slideI18n = m.carousel.slides[activeIndex];
+  const slide = {
+    ...slideBase,
+    statusText: slideI18n.statusText,
+    halfText: slideI18n.halfText,
+    events: slideBase.events.map((e, j) => ({
+      ...e,
+      action: slideI18n.events[j]?.action ?? "",
+    })),
+  };
+
+  const marqueePlayers: MarqueePlayerCard[] = [...MARQUEE_PLAYERS_BASE, ...MARQUEE_PLAYERS_BASE].map((p, i) => {
+    const idx = i % MARQUEE_PLAYERS_BASE.length;
+    const row = m.marquee[idx];
+    const icons = MARQUEE_STATS_ICONS[idx];
+    return {
+      ...p,
+      stats: row.stats.map((s, si) => ({
+        icon: icons[si] ?? "",
+        text: s.text,
+      })),
+      pts: row.pts,
+    };
+  });
+
+  return (
+    <div className="relative w-full flex flex-col items-center">
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+      {/* Container for both panels */}
+      <div className="relative w-full rounded-[2.5rem] bg-[#0A0D14]/90 backdrop-blur-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.6)] flex flex-col xl:flex-row p-3 sm:p-4 md:p-5 lg:p-6 gap-3 md:gap-4 lg:gap-5 overflow-hidden items-stretch mb-4">
+        
+        {/* TOP/LEFT: Live Match Panel */}
+        <div className="w-full xl:w-[35%] h-auto min-h-[300px] flex flex-col bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] border border-white/5 p-4 sm:p-5 md:p-6 relative overflow-hidden justify-between shrink-0">
+          {/* (Glow removed) */}
+          
+          <div className="flex flex-col flex-1 w-full relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeIndex + "left"}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.4 }}
+                className="flex flex-col items-center justify-center relative w-full h-full"
+              >
+                {/* Match Status Pill */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full mb-4 sm:mb-5">
+                  {slide.statusText === "LIVE" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mt-px" />}
+                  <span className={`text-[9px] font-bold tracking-[0.15em] uppercase leading-none flex items-center gap-1.5 ${slide.statusText === "LIVE" ? "text-red-500" : "text-white/40"}`}>
+                    {slide.statusText} 
+                    {slide.halfText && <><span className="text-white/20">•</span> <span className="text-[#00f948]">{slide.halfText}</span></>}
+                    <span className="text-white/20">•</span> <span className="text-white tracking-widest">{slide.time}</span>
+                  </span>
+                </div>
+
+                <div className="flex flex-row items-center justify-between w-full relative">
+                  {/* Team Home */}
+                  <div className="flex flex-col items-center z-10 w-[30%] min-w-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex shrink-0 items-center justify-center mb-2">
+                      <img src={slide.teamH.badge} alt={slide.teamH.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110 relative z-10" />
+                    </div>
+                    <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center uppercase">{slide.teamH.short}</span>
+                  </div>
+                  
+                  {/* Center Info - BIG SCORE */}
+                  <div className="flex flex-col items-center justify-center z-10 w-[40%] min-w-0 mb-3">
+                    <div className="text-5xl sm:text-6xl md:text-7xl font-display font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] leading-none flex items-center justify-center w-full transition-all duration-300">
+                      {slide.scoreH}<span className="text-white/10 mx-2 sm:mx-3 font-normal">-</span>{slide.scoreA}
+                    </div>
+                  </div>
+                  
+                  {/* Team Away */}
+                  <div className="flex flex-col items-center text-center w-[30%] min-w-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center mb-2">
+                      <img src={slide.teamA.badge} alt={slide.teamA.short} className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col mt-0 w-full">
+                      <span className="text-white font-black text-lg lg:text-xl font-display tracking-wider text-center uppercase">{slide.teamA.short}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          
+          {/* Static Location (Not animated so it stays still) */}
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 text-white/50 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] mt-auto pt-4 md:pt-6 border-t border-white/5 font-medium w-full relative z-10">
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              {m.home.matchday} {slide.matchday}
+            </div>
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={slide.stadium}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="whitespace-nowrap"
+                >{slide.stadium}</motion.span>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: MARQUEE PLAYER FEED */}
+        <div className="w-full xl:w-[68%] min-h-[300px] flex flex-col bg-[#0D1017] rounded-[1.5rem] border border-white/5 p-0 relative shadow-inner overflow-hidden justify-center items-center">
+          
+          <div className="flex-1 w-full relative overflow-hidden flex items-center h-[300px]">
+            <div className="flex gap-4 sm:gap-5 w-max animate-[marquee_50s_linear_infinite] px-4 sm:px-6 hover:[animation-play-state:paused] items-center h-full">
+              {marqueePlayers.map((ev, i) => (
+                 <div key={i} className="flex flex-col items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] p-4 sm:p-5 rounded-2xl border border-white/10 transition-all duration-300 w-[200px] sm:w-[240px] md:w-[260px] h-[250px] shrink-0 group relative overflow-hidden backdrop-blur-md">
+                   {/* Background Glow */}
+                   <div className="absolute top-0 right-0 w-32 h-32 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-40" style={{ backgroundColor: ev.color }} />
+                   
+                   <div
+                     className="rounded-full border-2 bg-[#0A0D14] shrink-0 overflow-hidden mb-2 transition-transform duration-300 group-hover:scale-110"
+                     style={{ borderColor: ev.color, boxShadow: `0 0 15px ${ev.color}4D` }}
+                   >
+                     <FplPhotoAvatar
+                       photoUrl={ev.image}
+                       alt={ev.player}
+                       size={64}
+                       teamName={ev.player}
+                       initials={initialsFromDisplayName(ev.player)}
+                       className="rounded-full"
+                     />
+                   </div>
+                   
+                   <span className="text-white font-black text-base sm:text-lg tracking-wide truncate text-center w-full mb-2">{ev.player}</span>
+                   
+                   {/* Multiple Player Stats Line */}
+                   <div className="flex flex-col gap-1 w-full mb-3 px-2">
+                     {ev.stats.map((stat: MarqueeStatRow, idx: number) => (
+                       <div key={idx} className="flex items-center justify-between w-full opacity-80 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 truncate">{stat.text}</span>
+                         <span className="text-[9px] sm:text-[10px] font-bold" style={{ color: ev.color }}>{stat.icon}</span>
+                       </div>
+                     ))}
+                   </div>
+
+                   <div className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:brightness-125 w-full mt-auto tracking-wider" style={{ borderColor: ev.color, backgroundColor: `${ev.color}1A`, boxShadow: `0 0 15px ${ev.color}40` }}>
+                      <span className="text-sm sm:text-base font-black whitespace-nowrap" style={{ color: ev.color, textShadow: `0 0 12px ${ev.color}90` }}>{ev.pts}</span>
+                   </div>
+                 </div>
+              ))}
+            </div>
+            {/* Edge Gradients for smooth fade in/out */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-r from-[#0D1017] to-transparent pointer-events-none z-10" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-l from-[#0D1017] to-transparent pointer-events-none z-10" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Slider Dots */}
+      <div className="flex items-center justify-center gap-2 md:gap-3 mt-1 md:mt-2">
+        {CAROUSEL_MATCH_BASE.map((_, i) => (
+           <button key={i} onClick={() => setActiveIndex(i)} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? "bg-[#00f948] w-6 sm:w-8 shadow-[0_0_10px_rgba(0,249,72,0.8)]" : "bg-white/20 hover:bg-white/40"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** `/api/fixtures` success JSON (subset used on the homepage). */
+type FixturesApiPayload = {
+  gameweek: {
+    id: number;
+    name?: string;
+    deadlineTime: string | null;
+    deadlineEpochMs?: number | null;
+    isCurrent?: boolean;
+    isNext?: boolean;
+  };
+  fixtures?: unknown[];
+};
+
+export default function Home() {
+  const m = useSiteMessages();
+  const { locale } = useSiteLocale();
+  const positionCards = useMemo(() => buildPositionCards(m), [m]);
+  const universalBonuses = useMemo(() => buildUniversalBonuses(m), [m]);
+  const universalPenalties = useMemo(() => buildUniversalPenalties(m), [m]);
+
+  const wcCampaign = isWorldCupCampaignActive();
+  const { connected } = useWallet();
+  const prize = usePrizeAsset();
+
+  // Live on-chain data (open gameweek only — pool + entries are for this tour, not all-time)
+  /** Raw on-chain prize pool units (USDCx micro-units). */
+  const [prizePoolRaw, setPrizePoolRaw] = useState<number | null>(null);
+  const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
+  const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  
+  // Fixtures / deadline
+  const [fixturesData, setFixturesData] = useState<FixturesApiPayload | null>(null);
+  const [aplFixturesData, setAplFixturesData] = useState<FixturesApiPayload | null>(null);
+
+  // Accordion state
+  const [openAccordion, setOpenAccordion] = useState<number | null>(0);
+
+  useEffect(() => {
+    async function fetchOnChainData() {
+      try {
+        if (wcCampaign) {
+          const regTour = await findActiveWorldCupTourFromChain();
+          if (regTour) {
+            setPrizePoolRaw(regTour.prizePool);
+            setTourEntryCount(regTour.totalEntries);
+            setOpenGameweekId(regTour.id);
+          }
+        } else {
+          const cfg = await getConfig();
+          const gw = await findActiveGameweekFromChain(cfg);
+          if (gw) {
+            setPrizePoolRaw(gw.prizePool);
+            setTourEntryCount(gw.totalEntries);
+            setOpenGameweekId(gw.id);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch on-chain data:", e);
+      } finally {
+        setDataLoading(false);
+      }
+    }
+    fetchOnChainData();
+  }, [wcCampaign]);
+
+  useEffect(() => {
+    if (wcCampaign) {
+      fetch(`/api/fixtures`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: FixturesApiPayload & { error?: string }) => {
+          if (!d.error) setAplFixturesData(d);
+        })
+        .catch(() => {});
+      return;
+    }
+    const qs =
+      openGameweekId != null && Number.isFinite(openGameweekId) && openGameweekId >= 1
+        ? `?registrationGw=${openGameweekId}`
+        : "";
+    fetch(`/api/fixtures${qs}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: FixturesApiPayload & { error?: string }) => {
+        if (!d.error) setFixturesData(d);
+      })
+      .catch(() => {});
+  }, [openGameweekId, wcCampaign]);
+
+  // ── How It Works steps ─────────────────────────────────────────────────────
+  const steps = useMemo(
+    () => [
+      {
+        num: "01",
+        title: locale === "uk" ? "Збери склад" : "Build your squad",
+        desc:
+          locale === "uk"
+            ? "Вибери 11 гравців з Англійської Прем'єр-ліги на поточний тур. Будь-який гравець, жодних обмежень бюджету."
+            : "Pick 11 players from the Premier League for the current gameweek. Any player, no budget cap.",
+        accent: "from-[#00f948] to-[#0077FF]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      },
+      {
+        num: "02",
+        title: locale === "uk" ? "Зареєструй склад" : "Register on-chain",
+        desc:
+          locale === "uk"
+            ? `Сплати ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} і зафіксуй склад смарт-контрактом на Movement.`
+            : `Pay ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} and lock your squad on Movement.`,
+        accent: "from-[#8B5CF6] to-[#EC4899]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+      },
+      {
+        num: "03",
+        title: locale === "uk" ? "Перемагай" : "Win prizes",
+        desc:
+          locale === "uk"
+            ? `Топ-10 туру ділять призовий пул у ${prize.symbol}. Забери виграш на лідерборді після публікації результатів.`
+            : `Top 10 split the prize pool in ${prize.symbol}. Claim on the leaderboard after results are published.`,
+        accent: "from-[#00f948] to-[#00bcd4]",
+        icon: (
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        ),
+      },
+    ],
+    [locale, prize],
+  );
+
+  const statsGwLabel =
+    openGameweekId ?? (fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null);
+  const siteLocale = locale === "uk" ? "uk" : "en";
+  const aplStatsGwLabel =
+    aplFixturesData?.gameweek?.id != null ? Number(aplFixturesData.gameweek.id) : statsGwLabel;
+
+  // ── 11-Man Squad for hero pitch (Broadcast Style Formation)
+  const squad11 = [
+    // GK - В воротарській
+    { name: "Pickford", pos: "GK", pts: 7, imgUrl: "p111234.png", left: "50%", top: "99%", z: 10, delay: 0.1 },
+    // DEF — Строго в ряд
+    { name: "Cucurella", pos: "DEF", pts: 6, imgUrl: "p179268.png", left: "15%", top: "80%", z: 20, delay: 0.2 },
+    { name: "Saliba", pos: "DEF", pts: 8, imgUrl: "p462424.png", left: "38.3%", top: "80%", z: 20, delay: 0.3 },
+    { name: "Gabriel", pos: "DEF", pts: 6, imgUrl: "p226597.png", left: "61.6%", top: "80%", z: 20, delay: 0.4 },
+    { name: "Porro", pos: "DEF", pts: 9, imgUrl: "p441164.png", left: "85%", top: "80%", z: 20, delay: 0.5 },
+    // MID — Бруно, Палмер, Фоден (строго в ряд)
+    { name: "Bruno", pos: "MID", pts: 11, imgUrl: "p208706.png", left: "25%", top: "56%", z: 30, delay: 0.6 },
+    { name: "Palmer", pos: "MID", pts: 12, imgUrl: "p244851.png", left: "50%", top: "56%", z: 30, delay: 0.7 },
+    { name: "Foden", pos: "MID", pts: 8, imgUrl: "p209244.png", left: "75%", top: "56%", z: 30, delay: 0.8 },
+    // FWD — Строго в ряд
+    { name: "Watkins", pos: "FWD", pts: 15, imgUrl: "p178301.png", left: "25%", top: "32%", z: 40, delay: 0.9 },
+    { name: "Haaland", pos: "FWD", pts: 18, imgUrl: "p223094.png", left: "50%", top: "32%", z: 40, delay: 1.0 },
+    { name: "Saka", pos: "FWD", pts: 14, imgUrl: "p223340.png", left: "75%", top: "32%", z: 40, delay: 1.1 },
+  ];
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  return (
+    <div className="bg-[#0D0F12] text-white overflow-x-hidden min-h-screen">
+
+      {/* ═══════════════════ SECTION A: HERO ═══════════════════════════════════ */}
+      {wcCampaign ? (
+        <HomeHeroCarousel
+          prizePoolRaw={prizePoolRaw}
+          tourEntryCount={tourEntryCount}
+          dataLoading={dataLoading}
+          statsGwLabel={aplStatsGwLabel}
+          aplDeadlineTime={aplFixturesData?.gameweek?.deadlineTime ?? null}
+          aplDeadlineGwId={
+            aplFixturesData?.gameweek?.id != null ? Number(aplFixturesData.gameweek.id) : null
+          }
+          connected={connected}
+          locale={siteLocale}
+          aplPaused
+        />
+      ) : (
+        <AplHeroSlide
+          prizePoolRaw={prizePoolRaw}
+          tourEntryCount={tourEntryCount}
+          dataLoading={dataLoading}
+          statsGwLabel={statsGwLabel}
+          deadlineTime={fixturesData?.gameweek?.deadlineTime ?? null}
+          deadlineGwId={fixturesData?.gameweek?.id != null ? Number(fixturesData.gameweek.id) : null}
+          connected={connected}
+          locale={siteLocale}
+        />
+      )}
+
+      {/* Prize ticker — outside hero; extra top margin so it clears the image fade */}
+      <div className={`relative z-10 ${wcCampaign ? "mt-0" : "mt-6 sm:mt-10"}`}>
+        <PrizeTickerInline />
+      </div>
+
+      {/* ═══════════════════ SECTION B: HOW IT WORKS (Animated Steps) ════════════ */}
+      <section id="how-it-works" className="relative px-6 sm:px-10 lg:px-16 pt-8 sm:pt-10 pb-4 overflow-hidden" style={{ scrollMarginTop: '72px' }}>
+        <div className="max-w-7xl mx-auto space-y-24">
+          
+          <AnimatedStep
+            subheader={m.home.step1Sub}
+            title={m.home.step1Title}
+            desc={m.home.step1Desc}
+            visual={
+              <div 
+                className="relative w-full max-w-4xl mx-auto h-[450px] sm:h-[650px] flex items-center justify-center mt-10 mb-20 md:mb-0"
+                style={{ perspective: '1800px' }}
+              >
+                {/* 3D Floor (The Pitch) — levitating tactical board */}
+                <div 
+                  className="absolute w-[95%] sm:w-[85%] h-[130%] origin-center"
+                  style={{ 
+                    transformStyle: 'preserve-3d', 
+                    transform: 'rotateX(55deg) scale(1.1)',
+                  }}
+                >
+                  {/* 3D Realistic Striped Green Grass Surface */}
+                  <div 
+                    className="absolute inset-0 shadow-[0_30px_80px_rgba(0,0,0,0.7)]"
+                    style={{
+                      backgroundColor: '#388E3C', // Base emerald green
+                      backgroundImage: `repeating-linear-gradient(
+                        0deg,
+                        transparent,
+                        transparent 50px,
+                        rgba(0, 0, 0, 0.08) 50px,
+                        rgba(0, 0, 0, 0.08) 100px
+                      )`,
+                      border: '4px solid #2E7D32' // Darker green turf boundary
+                    }}
+                  />
+
+                  <PitchSVG />
+
+                  {/* 3D Players layer — overflow-visible so labels at edges show fully */}
+                  <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d', overflow: 'visible' }}>
+                    {squad11.map((p, i) => (
+                      <motion.div 
+                        key={p.name}
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: p.delay, duration: 0.6, type: "spring" }}
+                        className="absolute cursor-pointer group hover:!z-[999]"
+                        style={{ left: p.left, top: p.top, zIndex: p.z, transformStyle: 'preserve-3d' }}
+                      >
+                        {/* STAND-UP counter-rotation */}
+                        <div 
+                          className="absolute flex flex-col items-center"
+                          style={{ 
+                            transform: 'translateX(-50%) translateY(-100%) rotateX(-55deg)',
+                            transformOrigin: 'bottom center'
+                          }}
+                        >
+                          {/* HOVER WRAPPER: Both card and nameplate scale and move up together */}
+                          <div className="flex flex-col items-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-4">
+                            {/* Player Card */}
+                            <div className="relative w-14 h-20 sm:w-16 sm:h-22 bg-gradient-to-t from-[#1A1F2B] to-[#0A0E17]/60 border border-white/10 rounded-xl flex items-end justify-center overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] transition-colors duration-300 group-hover:border-white/30">
+                              <div className="scale-[1.35] translate-y-2 pointer-events-none drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                                <FplPhotoAvatar
+                                  fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(p.imgUrl) ?? undefined}
+                                  photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${p.imgUrl}`}
+                                  alt={p.name}
+                                  size={72}
+                                  teamName={p.name}
+                                  initials={initialsFromDisplayName(p.name)}
+                                  className="rounded-lg"
+                                />
+                              </div>
+                              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+                            </div>
+                            
+                            {/* Premium Dark Glassmorphism Nameplate */}
+                            <div className="mt-1.5 bg-black/40 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.6)] transition-all duration-300 group-hover:bg-black/60 group-hover:border-white/30 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] z-10 flex items-center justify-center">
+                              <span className="text-[9px] sm:text-[10px] font-black uppercase text-white tracking-[0.15em] whitespace-nowrap leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{p.name}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            }
+          />
+
+        {!wcCampaign ? <GwRecapSection /> : null}
+
+        {/* STEP 2: Cinematic Full-Width */}
+        <div id="step-2" className="mt-8 md:mt-16 w-full mx-auto relative z-10 flex flex-col items-center">
+          {/* subtle backdrop for step 2 — no color tint */}
+          
+          <div className="w-full max-w-4xl mx-auto px-4 text-center mb-6 sm:mb-10 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-3 sm:mb-4">
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#00f948] shadow-[0_0_8px_#00f948]"></span>
+                <span className="text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest text-[#00f948] uppercase">
+                  {m.home.step2Badge}
+                </span>
+              </div>
+              <h3 className="text-3xl sm:text-4xl md:text-6xl font-display font-black text-white leading-tight mb-3 sm:mb-4 tracking-tight uppercase">
+                {m.home.step2Title1} <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">{m.home.step2Title2}</span>
+              </h3>
+              <p className="text-xs sm:text-sm md:text-base text-white/50 max-w-3xl mx-auto leading-relaxed">
+                {m.home.step2Desc}
+              </p>
+            </motion.div>
+          </div>
+          
+          <div className="w-full px-2 sm:px-4 lg:px-8 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <LiveDataCarousel />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* ═══════════════════ STEP 3: REWARDS (SORARE STYLE) ═══════════════════ */}
+        <section id="step-3" className="relative mt-8 md:mt-12 w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 w-full mx-auto flex flex-col items-center"
+          >
+            {/* Content: Left=Chest, Right=Table */}
+            <RewardsLeaderboardTable />
+          </motion.div>
+        </section>
+          
+        </div>
+      </section>
+
+      {/* ═══════════════════ SECTION C: SCORING BY POSITION ════════════════════ */}
+      <section id="scoring" className="relative px-6 sm:px-10 lg:px-16 pt-10 pb-14 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05)_0%,transparent_65%)] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto">
+
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+            className="mb-8"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-widest mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+              {m.home.scoringBadge}
+            </div>
+            <h2 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1] mb-2">
+              {m.home.scoringTitle}
+            </h2>
+            <p className="text-white/40 text-sm leading-relaxed">
+              {m.home.scoringSubtitle}
+            </p>
+          </motion.div>
+
+          {/* 4 Position Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-5">
+            {positionCards.map((card, i) => (
+              <motion.div
+                key={card.posEn}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="relative bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden flex flex-col group hover:border-white/[0.12] transition-colors duration-300"
+              >
+                {/* Top color accent */}
+                <div className="h-0.5 w-full" style={{ backgroundColor: card.color, opacity: 0.7 }} />
+
+                {/* Player header */}
+                <div className="relative flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/[0.05]">
+                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/[0.08] bg-white/[0.04] relative z-10">
+                    <FplPhotoAvatar
+                      fplPhotoCode={fplPhotoCodeFromFilenameOrUrl(card.img) ?? undefined}
+                      photoUrl={`https://resources.premierleague.com/premierleague/photos/players/250x250/${card.img}`}
+                      alt={card.player}
+                      size={44}
+                      teamName={card.player}
+                      initials={initialsFromDisplayName(card.player)}
+                      className="scale-110 rounded-xl"
+                    />
+                  </div>
+                  <div className="relative z-10 min-w-0">
+                    <div className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest mb-0.5 ${card.bgClass} border ${card.borderClass} ${card.colorClass}`}>
+                      {card.pos}
+                    </div>
+                    <p className="text-xs font-bold text-white truncate leading-tight">{card.player}</p>
+                  </div>
+                </div>
+
+                {/* Scoring rows — position-specific only */}
+                <div className="flex-1 px-4 py-2.5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1.5 px-1">{m.home.positionScores}</p>
+                  <ul className="space-y-0.5">
+                    {card.gains.map((g) => (
+                      <li key={g.label} className="flex items-center justify-between px-1 py-1 rounded-lg hover:bg-white/[0.03] transition-colors">
+                        <span className="text-xs text-white/50">{g.label}</span>
+                        <span className={`text-sm font-display font-black tabular-nums ${'negative' in g && g.negative ? 'text-rose-400/80' : 'text-[#00f948]'}`}>{g.pts}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2.5 border-t border-white/[0.04]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] text-white/20 uppercase tracking-widest">{m.home.maxPerGw}</span>
+                    <span className="text-sm font-display font-black tabular-nums text-[#00f948]">
+                      {sumPositiveCardValues(card.gains)} {m.home.pointsWord}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Universal rules row: Bonuses + Penalties */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+          >
+            {/* Penalties — all positions */}
+            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-xs">🟥</div>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">{m.home.penaltiesTitle}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">{m.home.penaltiesSubtitle}</p>
+                </div>
+              </div>
+              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
+                {universalPenalties.map((p) => (
+                  <li key={p.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
+                    <span className="text-xs text-white/50">{p.label}</span>
+                    <span className="text-sm font-display font-black tabular-nums text-rose-400">{p.pts}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Bonuses — all positions */}
+            <div className="bg-[#111214]/90 border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center text-xs">⭐</div>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-wider">{m.home.bonusesTitle}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest">{m.home.bonusesSubtitle}</p>
+                </div>
+              </div>
+              <ul className="px-4 py-2 grid grid-cols-2 gap-x-4">
+                {universalBonuses.map((b) => (
+                  <li key={b.label} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
+                    <span className="text-xs text-white/50">{b.label}</span>
+                    <span className={`text-sm font-display font-black tabular-nums ${b.color}`}>{b.pts}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
+
+        </div>
+      </section>
+
+
+      {/* ═══════════════════ SECTION E: TALENTS TEASER ══════════════════════════ */}
+      <section className="px-6 sm:px-10 lg:px-16 pt-2 pb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative max-w-7xl mx-auto rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden px-8 py-6 md:px-10 md:py-7"
+        >
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10">
+
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/35 text-[10px] font-bold uppercase tracking-widest mb-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
+                {m.home.talentsBadge}
+              </div>
+              <h2 className="text-xl sm:text-2xl font-display font-black text-white/70 uppercase mb-2">
+                {m.home.talentsTitle}
+              </h2>
+              <p className="text-white/35 text-sm leading-relaxed max-w-xl">
+                {m.home.talentsBodyStart}
+                <span className="text-white/55 font-semibold">{m.home.talentsHighlight}</span>
+                {m.home.talentsBodyEnd}
+              </p>
+            </div>
+
+            {/* Multiplier pills */}
+            <div className="shrink-0 flex flex-row md:flex-col gap-2">
+              {["+5%", "+10%", "+15%"].map((pct, i) => (
+                <div key={pct} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center opacity-50">
+                  <span className="text-base font-display font-black text-white/60">{pct}</span>
+                  <p className="text-[8px] text-white/20 uppercase tracking-widest mt-0.5">
+                    {[
+                      m.home.rarityCommon,
+                      m.home.rarityRare,
+                      m.home.rarityEpic,
+                    ][i]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+    </div>
+  );
+}

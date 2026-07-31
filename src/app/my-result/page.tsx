@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats, findActiveGameweekFromChain } from "@/lib/movement";

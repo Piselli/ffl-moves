@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { TitleCard } from "@/components/TitleCard";
 import { TITLE_TYPES, MULTIPLIER_DISPLAY } from "@/lib/constants";
-import { moduleFunction, getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild, type ChainConfig } from "@/lib/movement";
-import { formatMOVE, getMultiplierDisplay, cn, getErrorMessage } from "@/lib/utils";
+import { getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild, type ChainConfig } from "@/lib/movement";
+import { formatMOVE, getMultiplierDisplay, cn } from "@/lib/utils";
 import type { UserGuild, UserTitle } from "@/lib/types";
 
+/** Titles and guilds are Movement-era features that v1 of the Solana program does not carry. */
+const UNAVAILABLE_ON_SOLANA =
+  "Titles and guilds are not part of the Solana release. Your existing multipliers are frozen.";
+
 export default function TitlesPage() {
-  const { connected, account, signAndSubmitTransaction } = useWallet();
+  const { connected, account } = useWallet();
 
   const [config, setConfig] = useState<ChainConfig | null>(null);
   const [userTitle, setUserTitle] = useState<UserTitle | null>(null);
@@ -50,103 +54,10 @@ export default function TitlesPage() {
     fetchData();
   }, [account?.address]);
 
-  const handleBuyTitle = async () => {
-    if (!connected || !account) return;
-
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("buy_title"),
-          typeArguments: [],
-          functionArguments: ["1"], // season 1
-        },
-      });
-
-      // Refresh data
-      const titleData = await getUserTitle(account.address.toString());
-      setUserTitle(titleData);
-      setHasTitleFlag(true);
-    } catch (error: unknown) {
-      console.error("Failed to buy title:", error);
-      alert(`Failed to buy title: ${getErrorMessage(error)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRerollTitle = async () => {
-    if (!connected || !account || !hasTitleFlag) return;
-
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("reroll_title"),
-          typeArguments: [],
-          functionArguments: [],
-        },
-      });
-
-      // Refresh data
-      const titleData = await getUserTitle(account.address.toString());
-      setUserTitle(titleData);
-    } catch (error: unknown) {
-      console.error("Failed to reroll title:", error);
-      alert(`Failed to reroll title: ${getErrorMessage(error)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleBuyGuild = async () => {
-    if (!connected || !account) return;
-
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("buy_guild"),
-          typeArguments: [],
-          functionArguments: ["1"], // season 1
-        },
-      });
-
-      // Refresh data
-      const guildData = await getUserGuild(account.address.toString());
-      setUserGuild(guildData);
-      setHasGuildFlag(true);
-    } catch (error: unknown) {
-      console.error("Failed to buy guild:", error);
-      alert(`Failed to buy guild: ${getErrorMessage(error)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRerollGuild = async () => {
-    if (!connected || !account || !hasGuildFlag) return;
-
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("reroll_guild"),
-          typeArguments: [],
-          functionArguments: [],
-        },
-      });
-
-      // Refresh data
-      const guildData = await getUserGuild(account.address.toString());
-      setUserGuild(guildData);
-    } catch (error: unknown) {
-      console.error("Failed to reroll guild:", error);
-      alert(`Failed to reroll guild: ${getErrorMessage(error)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleBuyTitle = async () => alert(UNAVAILABLE_ON_SOLANA);
+  const handleRerollTitle = async () => alert(UNAVAILABLE_ON_SOLANA);
+  const handleBuyGuild = async () => alert(UNAVAILABLE_ON_SOLANA);
+  const handleRerollGuild = async () => alert(UNAVAILABLE_ON_SOLANA);
 
   if (!connected) {
     return (

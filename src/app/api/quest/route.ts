@@ -1,78 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
-
-const RPC_URL = process.env.NEXT_PUBLIC_MOVEMENT_RPC_URL ?? "https://mainnet.movementnetwork.xyz/v1";
-const MODULE_ADDRESS = process.env.NEXT_PUBLIC_MODULE_ADDRESS ?? "";
-const MODULE_NAME = "fantasy_epl";
-
-const client = new Aptos(
-  new AptosConfig({ network: Network.CUSTOM, fullnode: RPC_URL }),
-);
-
-function moduleFunction(fn: string) {
-  return `${MODULE_ADDRESS}::${MODULE_NAME}::${fn}` as `${string}::${string}::${string}`;
-}
-
-async function getConfig() {
-  const result = await client.view({
-    payload: { function: moduleFunction("get_config"), typeArguments: [], functionArguments: [] },
-  });
-  return { currentGameweek: Number(result[6]) };
-}
-
-async function hasRegisteredTeam(owner: string, gameweekId: number): Promise<boolean> {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("has_registered_team"),
-        typeArguments: [],
-        functionArguments: [owner, gameweekId.toString()],
-      },
-    });
-    return result[0] as boolean;
-  } catch {
-    return false;
-  }
-}
-
-async function getTeamResult(owner: string, gameweekId: number) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_team_result"),
-        typeArguments: [],
-        functionArguments: [owner, gameweekId.toString()],
-      },
-    });
-    return {
-      finalPoints: Number(result[7]),
-      rank: Number(result[8]),
-      prizeAmount: Number(result[9]),
-      claimed: result[10] as boolean,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function getGameweek(gameweekId: number) {
-  try {
-    const result = await client.view({
-      payload: {
-        function: moduleFunction("get_gameweek"),
-        typeArguments: [],
-        functionArguments: [gameweekId.toString()],
-      },
-    });
-    const st = Number(result[1]);
-    return {
-      id: Number(result[0]),
-      status: st === 0 ? "open" : st === 1 ? "closed" : "resolved",
-    };
-  } catch {
-    return null;
-  }
-}
+import { getConfig, getGameweek, getTeamResult, hasRegisteredTeam } from "@/lib/chainClient";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -138,6 +65,12 @@ async function resolveParams(
   }
 
   const config = await getConfig();
+  if (!config) {
+    return NextResponse.json(
+      { result: false, eligible: false, reason: "MoveMatch has not been initialized." },
+      { status: 503, headers: CORS_HEADERS },
+    );
+  }
   const currentGw = config.currentGameweek;
 
   let gwsToCheck: number[];

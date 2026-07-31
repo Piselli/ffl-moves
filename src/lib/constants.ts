@@ -1,7 +1,7 @@
-import { Network } from "@aptos-labs/ts-sdk";
+import { clusterApiUrl } from "@solana/web3.js";
 
-/** Movement uses a custom fullnode; `Network` enum is from the compatible TS SDK. */
-export const NETWORK = Network.CUSTOM;
+/** @deprecated Movement networking is retained only for Phase 5 cleanup. */
+export const NETWORK = "custom";
 
 /** Dev fallback — production must set NEXT_PUBLIC_* (see .env.example). */
 const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
@@ -110,3 +110,36 @@ export const SOCIAL_X_HANDLE = "@MoveMatchxyz";
 /** Official Telegram channel — questions, bugs, support. */
 export const SOCIAL_TG_URL = "https://t.me/movematch";
 export const SOCIAL_TG_HANDLE = "@movematch";
+
+/** Solana deployment settings. Only public values belong in NEXT_PUBLIC_* variables. */
+export const SOLANA_CLUSTER =
+  publicEnv(process.env.NEXT_PUBLIC_SOLANA_CLUSTER) === "mainnet-beta"
+    ? "mainnet-beta"
+    : "devnet";
+
+export const SOLANA_RPC_URL =
+  publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ?? clusterApiUrl(SOLANA_CLUSTER);
+
+export const MOVEMATCH_PROGRAM_ID =
+  publicEnv(process.env.NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID) ??
+  "A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5";
+
+/** Circle's canonical six-decimal USDC mint on Solana devnet. */
+export const SOLANA_USDC_MINT =
+  publicEnv(process.env.NEXT_PUBLIC_USDC_MINT) ??
+  (SOLANA_CLUSTER === "mainnet-beta"
+    ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    : "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+
+export const USDC_DECIMALS = 6;
+
+/**
+ * Public bucket the oracle uploads committed stats to. It is public on purpose:
+ * `StatsCommit` stores the hash of these bytes, so anyone can re-verify them.
+ * Unset means the app serves the files itself from `public/data`.
+ */
+export const STATS_PUBLISH_BASE_URL = publicEnv(process.env.NEXT_PUBLIC_STATS_BASE_URL);
+
+/** Paths the app serves oracle files from when no external bucket is configured. */
+export const SELF_HOSTED_STATS_PATH = "/data/stats";
+export const SELF_HOSTED_RESULTS_PATH = "/data/results";

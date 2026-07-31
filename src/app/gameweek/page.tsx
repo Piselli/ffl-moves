@@ -8,15 +8,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import {
-  client,
-  moduleFunction,
   getConfig,
   findActiveGameweekFromChain,
   hasRegisteredTeam,
@@ -26,6 +24,7 @@ import {
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
+import { buildRegisterTeam } from "@/lib/chainClient";
 import Link from "next/link";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -140,7 +139,7 @@ function tryHydrateTeamDraftFromStorage(
 }
 
 export default function GameweekPage() {
-  const { connected, account, signTransaction } = useWallet();
+  const { connected, account, signAndSubmit } = useWallet();
   const siteMessages = useSiteMessages();
   const g = siteMessages.pages.gameweek;
   const ss = siteMessages.pages.squadShare;
@@ -208,11 +207,9 @@ export default function GameweekPage() {
     return prize.formatLabel(config.entryFee);
   }, [config, prize]);
 
-  const showStableyardDeposit =
-    isStableyardEnabled() &&
-    prize.usdcxEntryLive &&
-    !alreadyRegistered &&
-    currentGameweek?.status === "open";
+  // Funding is handled by the connected Solana wallet. Stableyard is retained
+  // only as archived code until Phase 5 and must not appear in the user flow.
+  const showStableyardDeposit = false;
 
   const stableyard = useStableyardDeposit(
     account?.address.toString(),
@@ -648,50 +645,12 @@ export default function GameweekPage() {
       console.log("positions:", playerPositions);
       console.log("clubs:", playerClubs);
 
-      // Build the transaction via TS SDK (fullnode from NEXT_PUBLIC_MOVEMENT_RPC_URL)
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("register_team"),
-          typeArguments: [],
-          functionArguments: [
-            currentGameweek.id,
-            playerIds,
-            playerPositions,
-            playerClubs,
-          ],
-        },
-        options: {
-          expireTimestamp: Math.floor(Date.now() / 1000) + 120,
-        },
-      });
-
-      // Sign via the wallet extension. Some wallets leave the promise pending if the popup
-      // is closed without confirm — `finally` never runs and the CTA stays stuck. Race a timeout.
-      const signDeadlineMs = 4 * 60 * 1000;
-      const signResult = await Promise.race([
-        signTransaction({ transactionOrPayload: transaction }),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(() => {
-            reject(new Error("Wallet signing timed out. Close the wallet popup and tap Register again."));
-          }, signDeadlineMs);
-        }),
-      ]);
-
-      // Submit to the configured Movement fullnode
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-
-      console.log("TX submitted, hash:", pending.hash);
-
-      // Wait for on-chain confirmation
-      const confirmed = await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 30, checkSuccess: true },
-      });
-      console.log("TX confirmed:", confirmed.success, confirmed.vm_status);
+      const signature = await signAndSubmit(await buildRegisterTeam(
+        account.address,
+        currentGameweek.id,
+        { playerIds, positions: playerPositions, clubs: playerClubs },
+      ));
+      console.log("Solana transaction submitted:", signature);
 
       // Save the team snapshot for display (in memory + localStorage)
       const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };

@@ -9,21 +9,20 @@ import {
   type SetStateAction,
 } from "react";
 import Link from "next/link";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
 import { MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import {
-  client,
-  moduleFunction,
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
   getUserTeam,
   type GameweekSummary,
 } from "@/lib/movement";
+import { buildRegisterTeam } from "@/lib/chainClient";
 import { findActiveWorldCupTourFromChain, getWorldCupRound } from "@/lib/worldcup";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -124,7 +123,7 @@ function tryHydrateTeamDraftFromStorage(
 }
 
 export default function WorldCupSquadPage() {
-  const { connected, account, signTransaction } = useWallet();
+  const { connected, account, signAndSubmit } = useWallet();
   const siteMessages = useSiteMessages();
   const wc = siteMessages.pages.worldCup;
   const g = siteMessages.pages.gameweek;
@@ -193,11 +192,8 @@ export default function WorldCupSquadPage() {
     return prize.formatLabel(entryFee);
   }, [entryFee, prize]);
 
-  const showStableyardDeposit =
-    isStableyardEnabled() &&
-    prize.asset === "usdcx" &&
-    !alreadyRegistered &&
-    currentTour?.status === "open";
+  // Users fund their own Solana wallet with devnet USDC. No bridge/deposit CTA.
+  const showStableyardDeposit = false;
 
   const stableyard = useStableyardDeposit(account?.address.toString(), entryFee);
 
@@ -606,35 +602,11 @@ export default function WorldCupSquadPage() {
       const playerPositions = allPlayers.map((p) => p.positionId);
       const playerClubs = allPlayers.map((p) => p.teamId);
 
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("register_team"),
-          typeArguments: [],
-          functionArguments: [currentTour.id, playerIds, playerPositions, playerClubs],
-        },
-        options: { expireTimestamp: Math.floor(Date.now() / 1000) + 120 },
-      });
-
-      const signDeadlineMs = 4 * 60 * 1000;
-      const signResult = await Promise.race([
-        signTransaction({ transactionOrPayload: transaction }),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(
-            () => reject(new Error("Wallet signing timed out. Close the wallet popup and tap Register again.")),
-            signDeadlineMs,
-          );
-        }),
-      ]);
-
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 30, checkSuccess: true },
-      });
+      await signAndSubmit(await buildRegisterTeam(
+        account.address,
+        currentTour.id,
+        { playerIds, positions: playerPositions, clubs: playerClubs },
+      ));
 
       const teamSnapshot = {
         starters: starters.filter(Boolean) as Player[],

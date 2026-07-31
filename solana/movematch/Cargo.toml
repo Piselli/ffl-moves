@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "programs/movematch",
+]
+resolver = "2"
+
+[profile.release]
+overflow-checks = true

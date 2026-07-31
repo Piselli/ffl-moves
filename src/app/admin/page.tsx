@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import {
-  client,
-  moduleFunction,
   getConfig,
   getGameweek,
   findOpenGameweekFromChain,
@@ -18,8 +16,24 @@ import {
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/movement";
-import { getPrizeRecalcArgs } from "@/lib/prize-distribution";
-import { MODULE_ADDRESS } from "@/lib/constants";
+import {
+  buildCloseGameweek,
+  buildCommitStats,
+  buildCreateGameweek,
+  buildPublishResults,
+  buildReopenGameweek,
+  buildSetFees,
+  buildSetPrizePoolBps,
+  buildSponsorPrizePool,
+  buildWithdrawTreasury,
+} from "@/lib/chainClient";
+import { allocatePrizes } from "@/lib/prize-distribution";
+import {
+  SELF_HOSTED_RESULTS_PATH,
+  SELF_HOSTED_STATS_PATH,
+  SOLANA_CLUSTER,
+  STATS_PUBLISH_BASE_URL,
+} from "@/lib/constants";
 import {
   WC_BRACKET_ADVERTISED_POOL_USDCX,
   WC_BRACKET_EVENT_ID,
@@ -40,19 +54,47 @@ function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
 }
 
-/** Normalize pasted Movement / Aptos account address for transactions (32-byte hex). */
+/** Accepts a base58 Solana address; returns null when it is not a valid pubkey. */
 function normalizeMoveAccountAddress(raw: string): string | null {
-  let t = raw.trim();
-  if (!t) return null;
-  if (!/^0x/i.test(t)) t = `0x${t}`;
-  if (!/^0x[0-9a-fA-F]+$/.test(t)) return null;
-  const hex = t.slice(2);
-  if (hex.length < 1 || hex.length > 64) return null;
-  return `0x${hex.padStart(64, "0")}`;
+  const trimmed = raw.trim();
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/**
+ * The URI is written into `StatsCommit` and can never be edited, so mainnet
+ * refuses to guess it from whatever origin the admin happens to be open on.
+ */
+function publishedStatsUri(gameweekId: number): string {
+  if (!STATS_PUBLISH_BASE_URL && SOLANA_CLUSTER === "mainnet-beta") {
+    throw new Error("Set NEXT_PUBLIC_STATS_BASE_URL before committing stats on mainnet.");
+  }
+  const base = (
+    STATS_PUBLISH_BASE_URL ?? `${window.location.origin}${SELF_HOSTED_STATS_PATH}`
+  ).replace(/\/$/, "");
+  return `${base}/${gameweekId}.json`;
+}
+
+/**
+ * Where the operator must put a downloaded file. The results bucket is a
+ * server-only variable, so the browser can only name both possible homes.
+ */
+function publishDestination(path: string, gameweekId: number): string {
+  return `${gameweekId}.json in the results bucket, or public${path}/${gameweekId}.json if the app serves them`;
+}
+
+/** Hands the operator the exact bytes that were committed, for upload to the bucket. */
+function downloadTextFile(filename: string, contents: string) {
+  const url = URL.createObjectURL(new Blob([contents], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminPage() {
-  const { connected, account, signAndSubmitTransaction, signTransaction } = useWallet();
+  const { connected, account, signAndSubmit } = useWallet();
   const m = useSiteMessages();
   const ad = m.pages.admin;
   const wc = m.pages.worldCup;
@@ -295,13 +337,7 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("create_gameweek"),
-          typeArguments: [],
-          functionArguments: [String(idNum)],
-        },
-      });
+      await signAndSubmit(await buildCreateGameweek(account!.address, idNum));
       alert(ad.alertGwCreated(idNum));
       const gwData = await getGameweek(idNum);
       if (idNum >= 10001) {
@@ -329,13 +365,7 @@ export default function AdminPage() {
     if (!connected) return;
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("close_gameweek"),
-          typeArguments: [],
-          functionArguments: [String(id)],
-        },
-      });
+      await signAndSubmit(await buildCloseGameweek(account!.address, id));
       alert(ad.alertGwClosed(id));
       await loadChainConfig();
     } catch (error: unknown) {
@@ -377,13 +407,7 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("reopen_gameweek"),
-          typeArguments: [],
-          functionArguments: [String(idNum)],
-        },
-      });
+      await signAndSubmit(await buildReopenGameweek(account!.address, idNum));
       alert(ad.alertReopenDone(idNum));
       await loadChainConfig();
     } catch (error: unknown) {
@@ -404,13 +428,10 @@ export default function AdminPage() {
     
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("set_prize_pool_percent"),
-          typeArguments: [],
-          functionArguments: [newPrizePoolPct.toString()],
-        },
-      });
+      // The program stores basis points; the form still speaks percent.
+      await signAndSubmit(
+        await buildSetPrizePoolBps(account!.address, Math.round(Number(newPrizePoolPct) * 100)),
+      );
       alert(ad.alertPrizePoolUpdated);
       const configData = await getConfig();
       setConfig(configData);
@@ -436,13 +457,11 @@ export default function AdminPage() {
     }
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_sponsor_prize_pool"),
-          typeArguments: [],
-          functionArguments: [String(WC_BRACKET_EVENT_ID), String(WC_BRACKET_ADVERTISED_POOL_USDCX)],
-        },
-      });
+      await signAndSubmit(await buildSponsorPrizePool(
+        account!.address,
+        WC_BRACKET_EVENT_ID,
+        BigInt(WC_BRACKET_ADVERTISED_POOL_USDCX),
+      ));
       alert(ad.sponsorSuccess(WC_BRACKET_EVENT_ID, prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDCX)));
       await loadChainConfig();
     } catch (error: unknown) {
@@ -453,56 +472,14 @@ export default function AdminPage() {
     }
   };
 
+  // The bracket module sits behind a disabled cargo feature in the deployed program,
+  // so both controls report that rather than sending an instruction that cannot exist.
   const handleInitBracketChallenge = async () => {
-    if (!connected) return;
-    if (!bracketAbiLive) {
-      alert(ad.bracketNotOnChain);
-      return;
-    }
-    const moduleNorm = normAddr(MODULE_ADDRESS);
-    const walletNorm = normAddr(account?.address?.toString());
-    if (bracketStatus === 255 && walletNorm !== moduleNorm) {
-      alert(ad.bracketInitModuleWalletHint);
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_init_bracket_challenge"),
-          typeArguments: [],
-          functionArguments: [],
-        },
-      });
-      alert(ad.bracketInitSuccess);
-      await loadChainConfig();
-    } catch (error: unknown) {
-      console.error("Failed to init bracket challenge:", error);
-      alert(ad.alertFailed(formatTxError(error)));
-    } finally {
-      setIsSubmitting(false);
-    }
+    alert(ad.bracketNotOnChain);
   };
 
   const handleCloseBracketChallenge = async () => {
-    if (!connected || bracketStatus !== 0) return;
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_close_bracket_challenge"),
-          typeArguments: [],
-          functionArguments: [],
-        },
-      });
-      alert(ad.bracketCloseSuccess);
-      await loadChainConfig();
-    } catch (error: unknown) {
-      console.error("Failed to close bracket challenge:", error);
-      alert(ad.alertFailed(formatTxError(error)));
-    } finally {
-      setIsSubmitting(false);
-    }
+    alert(ad.bracketNotOnChain);
   };
 
   const handleSponsorPrizePool = async () => {
@@ -538,13 +515,7 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_sponsor_prize_pool"),
-          typeArguments: [],
-          functionArguments: [String(idNum), String(octas)],
-        },
-      });
+      await signAndSubmit(await buildSponsorPrizePool(account!.address, idNum, BigInt(octas)));
       alert(ad.sponsorSuccess(idNum, prize.formatLabel(octas)));
       setSponsorAmountMove("");
       await loadChainConfig();
@@ -579,13 +550,7 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_withdraw_prize_vault"),
-          typeArguments: [],
-          functionArguments: [recipient, String(octas)],
-        },
-      });
+      await signAndSubmit(await buildWithdrawTreasury(account!.address, recipient, BigInt(octas)));
       alert(ad.withdrawSuccess(recipient, prize.formatLabel(octas)));
       setWithdrawAmountMove("");
       await loadChainConfig();
@@ -618,24 +583,9 @@ export default function AdminPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_withdraw_legacy_move_from_vault"),
-          typeArguments: [],
-          functionArguments: [recipient, String(octas)],
-        },
-      });
-      alert(ad.withdrawLegacySuccess(recipient, formatMOVE(octas)));
-      setWithdrawLegacyAmountMove("");
-      await loadChainConfig();
-    } catch (error: unknown) {
-      console.error("Failed to withdraw legacy MOVE from prize vault:", error);
-      alert(ad.alertFailed(formatTxError(error)));
-    } finally {
-      setIsSubmitting(false);
-    }
+    // The Solana treasury only ever holds USDC, so there is no legacy native leg to drain.
+    void octas;
+    alert(ad.withdrawLegacyNotOnChain);
   };
 
   const handleUpdateFees = async () => {
@@ -651,17 +601,10 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("set_fees"),
-          typeArguments: [],
-          functionArguments: [
-            String(displayAmountToRaw(entry, prize.asset)),
-            String(moveToOctas(title)),
-            String(moveToOctas(guild)),
-          ],
-        },
-      });
+      // Titles and guilds were dropped on Solana; only the entry fee is on-chain now.
+      await signAndSubmit(
+        await buildSetFees(account!.address, BigInt(displayAmountToRaw(entry, prize.asset))),
+      );
       alert(ad.feesUpdated);
       await loadChainConfig();
     } catch (error: unknown) {
@@ -672,47 +615,11 @@ export default function AdminPage() {
     }
   };
 
+  // A ClaimReceipt PDA only exists once the winner actually pulls the money, so there
+  // is no equivalent of the Movement "mark as paid without transferring" escape hatch.
   const handleMarkPrizeClaimed = async () => {
-    if (!connected) return;
-
-    if (markClaimedTxAvailable === false) {
-      alert(ad.markClaimedNotOnChain);
-      return;
-    }
-
-    const gw = Number.parseInt((markClaimedGwId || "").trim(), 10);
-    if (!Number.isFinite(gw) || gw < 1) {
-      alert(ad.markClaimedInvalidGw);
-      return;
-    }
-
-    const owner = normalizeMoveAccountAddress(markClaimedOwner || "");
-    if (!owner) {
-      alert(ad.markClaimedInvalidOwner);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await signAndSubmitTransaction({
-        data: {
-          function: moduleFunction("admin_mark_prize_claimed"),
-          typeArguments: [],
-          functionArguments: [String(gw), owner],
-        },
-      });
-      alert(ad.markClaimedSuccess);
-    } catch (error: unknown) {
-      console.error("Failed to mark prize claimed:", error);
-      alert(ad.alertFailed(formatTxError(error)));
-    } finally {
-      setIsSubmitting(false);
-    }
+    alert(ad.markClaimedNotOnChain);
   };
-
-  // Smaller batches avoid Movement mainnet EXECUTION_LIMIT_REACHED on submit_player_stats (max_gas cap 2M).
-  // Each player contributes ~152 bytes in vectors; 100 × 152 ≈ 15 KB.
-  const STATS_BATCH_SIZE = 100;
 
   const handleSubmitStats = async () => {
     if (!connected || !account || !statsJson) return;
@@ -731,98 +638,46 @@ export default function AdminPage() {
       if (allPlayers.length === 0) throw new Error("No players in JSON");
 
       const gwId = Number(stats.gameweekId);
-      const totalBatches = Math.ceil(allPlayers.length / STATS_BATCH_SIZE);
-
-      for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
-        const batch = allPlayers.slice(batchIdx * STATS_BATCH_SIZE, (batchIdx + 1) * STATS_BATCH_SIZE);
-
-        // Numeric vectors + bools — u64 on chain; APIs may send negatives (e.g. FPL bps).
-        const playerIds = batch.map((p) => {
-          const id = toU64Stat(p.playerId);
-          if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
-          return id;
-        });
-        const positions = batch.map((p) => {
-          const pos = toU64Stat(p.position);
-          if (pos > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
-          return pos;
-        });
-        const minutesPlayed = batch.map((p) => toU64Stat(p.minutesPlayed));
-        const goals = batch.map((p) => toU64Stat(p.goals));
-        const assists = batch.map((p) => toU64Stat(p.assists));
-        const cleanSheets = batch.map((p) => Boolean(p.cleanSheet));
-        const saves = batch.map((p) => toU64Stat(p.saves));
-        const penaltiesSaved = batch.map((p) => toU64Stat(p.penaltiesSaved));
-        const penaltiesMissed = batch.map((p) => toU64Stat(p.penaltiesMissed));
-        const ownGoals = batch.map((p) => toU64Stat(p.ownGoals));
-        const yellowCards = batch.map((p) => toU64Stat(p.yellowCards));
-        const redCards = batch.map((p) => toU64Stat(p.redCards));
-        const ratings = batch.map((p) => toU64Stat(p.rating));
-        const tackles = batch.map((p) => toU64Stat(p.tackles));
-        const interceptions = batch.map((p) => toU64Stat(p.interceptions));
-        const successfulDribbles = batch.map((p) => toU64Stat(p.successfulDribbles));
-        const freeKickGoals = batch.map((p) => toU64Stat(p.freeKickGoals));
-        const goalsConceded = batch.map((p) =>
-          toU64Stat(p.goalsConceded ?? p.goals_conceded),
-        );
-        const fplBonus = batch.map((p) => {
-          const b = Number(p.bonus ?? p.fpl_bonus ?? 0);
-          return Math.max(0, Math.min(3, Number.isFinite(b) ? Math.floor(b) : 0));
-        });
-        const fplCleanSheet = batch.map((p) => {
-          const v = p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet;
-          return Boolean(v === true || v === 1 || v === "1");
-        });
-
-        const transaction = await client.transaction.build.simple({
-          sender: account.address.toString(),
-          data: {
-            function: moduleFunction("submit_player_stats"),
-            typeArguments: [],
-            functionArguments: [
-              gwId,
-              playerIds,
-              positions,
-              minutesPlayed,
-              goals,
-              assists,
-              cleanSheets,
-              saves,
-              penaltiesSaved,
-              penaltiesMissed,
-              ownGoals,
-              yellowCards,
-              redCards,
-              ratings,
-              tackles,
-              interceptions,
-              successfulDribbles,
-              freeKickGoals,
-              goalsConceded,
-              fplBonus,
-              fplCleanSheet,
-            ],
-          },
-        });
-
-        const signResult = await signTransaction({ transactionOrPayload: transaction });
-        const pending = await client.transaction.submit.simple({
-          transaction,
-          senderAuthenticator: signResult.authenticator,
-        });
-        await client.waitForTransaction({
-          transactionHash: pending.hash,
-          options: { timeoutSecs: 90, checkSuccess: true },
-        });
-
-        console.log(`Stats batch ${batchIdx + 1}/${totalBatches} confirmed (${batch.length} players)`);
+      const players: Record<string, Record<string, number | boolean>> = {};
+      for (const p of allPlayers) {
+        const id = toU64Stat(p.playerId);
+        if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
+        const position = toU64Stat(p.position);
+        if (position > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
+        players[String(id)] = {
+          position,
+          minutes_played: toU64Stat(p.minutesPlayed),
+          goals: toU64Stat(p.goals),
+          assists: toU64Stat(p.assists),
+          clean_sheet: Boolean(p.cleanSheet),
+          saves: toU64Stat(p.saves),
+          penalties_saved: toU64Stat(p.penaltiesSaved),
+          penalties_missed: toU64Stat(p.penaltiesMissed),
+          own_goals: toU64Stat(p.ownGoals),
+          yellow_cards: toU64Stat(p.yellowCards),
+          red_cards: toU64Stat(p.redCards),
+          rating: toU64Stat(p.rating),
+          tackles: toU64Stat(p.tackles),
+          interceptions: toU64Stat(p.interceptions),
+          successful_dribbles: toU64Stat(p.successfulDribbles),
+          free_kick_goals: toU64Stat(p.freeKickGoals),
+          goals_conceded: toU64Stat(p.goalsConceded ?? p.goals_conceded),
+          bonus: Math.max(0, Math.min(3, toU64Stat(p.bonus ?? p.fpl_bonus))),
+          fpl_clean_sheets: toU64Stat(p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet) ? 1 : 0,
+        };
       }
 
-      alert(
-        totalBatches > 1
-          ? `${ad.alertStatsSubmitted} (${totalBatches} batches, ${allPlayers.length} players)`
-          : ad.alertStatsSubmitted,
-      );
+      // Solana keeps only the digest on-chain. Readers fetch these exact bytes from
+      // `uri` and re-hash them, so the published file must be byte-identical.
+      const canonicalJson = JSON.stringify({ gameweekId: gwId, players });
+      const uri = publishedStatsUri(gwId);
+      downloadTextFile(`stats-${gwId}.json`, canonicalJson);
+
+      await signAndSubmit(await buildCommitStats(account.address, gwId, canonicalJson, uri));
+      const statsHome = STATS_PUBLISH_BASE_URL
+        ? uri
+        : `public${SELF_HOSTED_STATS_PATH}/${gwId}.json (commit + deploy), served at ${uri}`;
+      alert(`${ad.alertStatsSubmitted}\n\n${allPlayers.length} players committed.\nPut the downloaded file at: ${statsHome}`);
     } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
       alert(ad.alertFailed(formatTxError(error)));
@@ -879,34 +734,46 @@ export default function AdminPage() {
       });
       scored.sort((a, b) => b.finalPts - a.finalPts);
 
-      const { prizeRanks, prizePercentages } = getPrizeRecalcArgs(gw);
+      const gameweek = await getGameweek(gw);
+      if (!gameweek) throw new Error(`Gameweek ${gw} does not exist on chain.`);
 
-      const transaction = await client.transaction.build.simple({
-        sender: account.address.toString(),
-        data: {
-          function: moduleFunction("calculate_results_v3"),
-          typeArguments: [],
-          functionArguments: [
-            gw,
-            scored.map((x) => x.addr),
-            scored.map((x) => x.basePts),
-            scored.map((x) => x.finalPts),
-            prizeRanks,
-            prizePercentages,
-          ],
-        },
-      });
+      // Payouts come from the shared settlement rule, so the tree the oracle publishes
+      // and the amounts the UI shows can never drift apart.
+      const awards = allocatePrizes(
+        BigInt(gameweek.prizePool),
+        scored.map((x) => ({ owner: x.addr, finalPoints: x.finalPts })),
+        gw,
+      );
+      const basePointsByOwner = new Map(scored.map((x) => [x.addr, x.basePts]));
+      const rows = awards.map((award) => ({
+        owner: award.owner,
+        rank: award.rank,
+        finalPoints: award.finalPoints,
+        amount: award.amount,
+      }));
 
-      const signResult = await signTransaction({ transactionOrPayload: transaction });
-      const pending = await client.transaction.submit.simple({
-        transaction,
-        senderAuthenticator: signResult.authenticator,
-      });
-      await client.waitForTransaction({
-        transactionHash: pending.hash,
-        options: { timeoutSecs: 90, checkSuccess: true },
-      });
-      alert(ad.alertResultsCalculated(String(resultsGameweekId)));
+      const published = await buildPublishResults(account.address, gw, rows, scored.length);
+      await signAndSubmit(published.instructions);
+
+      // Winners cannot claim without their proof, so it ships with the results file.
+      downloadTextFile(`results-${gw}.json`, JSON.stringify({
+        gameweek: gw,
+        root: published.root,
+        prizeAllocated: published.total.toString(),
+        results: rows.map((row, index) => ({
+          owner: row.owner,
+          rank: row.rank,
+          finalPoints: row.finalPoints,
+          basePoints: basePointsByOwner.get(row.owner) ?? 0,
+          prizeAmount: row.amount.toString(),
+          proof: published.proofs[index].map((node) => ({
+            hash: node.hash.toString("hex"),
+            sum: node.sum.toString(),
+          })),
+        })),
+      }));
+
+      alert(`${ad.alertResultsCalculated(String(resultsGameweekId))}\n\nWinners cannot claim until the downloaded file is published as ${publishDestination(SELF_HOSTED_RESULTS_PATH, gw)}.`);
     } catch (error: unknown) {
       console.error("Failed to calculate results:", error);
       alert(ad.alertFailed(formatTxError(error)));

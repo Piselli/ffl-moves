@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
