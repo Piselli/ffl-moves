@@ -1,0 +1,44 @@
+[
+  {
+    "owner": "0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47",
+    "basePoints": "12",
+    "ratingBonus": "0",
+    "ratingBonusNegative": false,
+    "titleTriggered": false,
+    "titleMultiplier": "0",
+    "guildTriggered": false,
+    "guildMultiplier": "0",
+    "finalPoints": "12",
+    "rank": "3",
+    "prizeAmount": "36000000",
+    "claimed": true
+  },
+  {
+    "owner": "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb",
+    "basePoints": "98",
+    "ratingBonus": "0",
+    "ratingBonusNegative": false,
+    "titleTriggered": false,
+    "titleMultiplier": "0",
+    "guildTriggered": false,
+    "guildMultiplier": "0",
+    "finalPoints": "98",
+    "rank": "1",
+    "prizeAmount": "72000000",
+    "claimed": true
+  },
+  {
+    "owner": "0xe315ed7f11079d36f1bf9a488a5de89bac2d59f878571dd44a1c2c3e7d655688",
+    "basePoints": "44",
+    "ratingBonus": "0",
+    "ratingBonusNegative": false,
+    "titleTriggered": false,
+    "titleMultiplier": "0",
+    "guildTriggered": false,
+    "guildMultiplier": "0",
+    "finalPoints": "44",
+    "rank": "2",
+    "prizeAmount": "48000000",
+    "claimed": true
+  }
+]

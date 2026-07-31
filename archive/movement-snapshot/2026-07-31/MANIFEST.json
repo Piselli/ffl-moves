@@ -1,0 +1,407 @@
+{
+  "takenAt": "2026-07-31T20:37:33.249Z",
+  "rpc": "https://mainnet.movementnetwork.xyz/v1",
+  "module": "0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47::fantasy_epl",
+  "chainId": 126,
+  "ledgerVersion": "186095171",
+  "ledgerTimestamp": "1785530128506775",
+  "gameweeks": [
+    {
+      "id": 32,
+      "status": 2,
+      "owners": 2,
+      "results": 2
+    },
+    {
+      "id": 33,
+      "status": 2,
+      "owners": 3,
+      "results": 3
+    },
+    {
+      "id": 34,
+      "status": 2,
+      "owners": 3,
+      "results": 3
+    },
+    {
+      "id": 35,
+      "status": 2,
+      "owners": 14,
+      "results": 14
+    },
+    {
+      "id": 36,
+      "status": 2,
+      "owners": 137,
+      "results": 137
+    },
+    {
+      "id": 37,
+      "status": 2,
+      "owners": 126,
+      "results": 126
+    },
+    {
+      "id": 38,
+      "status": 2,
+      "owners": 137,
+      "results": 137
+    },
+    {
+      "id": 10001,
+      "status": 2,
+      "owners": 21,
+      "results": 21
+    },
+    {
+      "id": 10002,
+      "status": 2,
+      "owners": 10,
+      "results": 10
+    },
+    {
+      "id": 10003,
+      "status": 2,
+      "owners": 8,
+      "results": 8
+    },
+    {
+      "id": 10004,
+      "status": 2,
+      "owners": 8,
+      "results": 8
+    },
+    {
+      "id": 10005,
+      "status": 2,
+      "owners": 5,
+      "results": 5
+    },
+    {
+      "id": 10006,
+      "status": 2,
+      "owners": 2,
+      "results": 2
+    },
+    {
+      "id": 10999,
+      "status": 1,
+      "owners": 0,
+      "results": 0
+    }
+  ],
+  "owners": 264,
+  "viewCalls": 3169,
+  "files": [
+    {
+      "path": "config.json",
+      "bytes": 440,
+      "sha256": "a0a0b08f2e0280d4798f376d9f2bd80b4c7471fd1176770b638737312a769db9"
+    },
+    {
+      "path": "module-abi.json",
+      "bytes": 75735,
+      "sha256": "dfaeeeb6077c39f120d0d5df736d3a86dbbb68c3f1c2c03b7951cf6020c1d0f9"
+    },
+    {
+      "path": "gameweeks/32.json",
+      "bytes": 245,
+      "sha256": "7fa0f21f47f36a491b4fbbae8138af9a732d94945d7df546e5487f802eaf3c5b"
+    },
+    {
+      "path": "teams/32.json",
+      "bytes": 695,
+      "sha256": "edc34eb09e5571c63e35e259cf8d41006fe3492269a8118e3979cdab4d8efd33"
+    },
+    {
+      "path": "results/32.json",
+      "bytes": 765,
+      "sha256": "2460e2731274ab90699159edffeeb39f6fd606cfcd0340695e690353117143a3"
+    },
+    {
+      "path": "stats/32.json",
+      "bytes": 7595,
+      "sha256": "d9d39e28516bc463a423ea361d60ea45de0b4aeae029cf83ecf3b3df9345de63"
+    },
+    {
+      "path": "gameweeks/33.json",
+      "bytes": 318,
+      "sha256": "74bdd0eaa1de3a09cb6036db03582ecf7a2ca31db90a3b0c539b15d14088b871"
+    },
+    {
+      "path": "teams/33.json",
+      "bytes": 1037,
+      "sha256": "ee6802b7e9ff62ad97a3cac54a5310c0c380d5edaa4e3cc70879247aabdc4739"
+    },
+    {
+      "path": "results/33.json",
+      "bytes": 1150,
+      "sha256": "acaa1e8b2f7ac102b183856860ac7efa8b5cb04a9ab8851e1aeedf63b5eb32c6"
+    },
+    {
+      "path": "stats/33.json",
+      "bytes": 11861,
+      "sha256": "0b580bce769cb24d54532b99226ee6a853004d9739ce17bd4597f822de217b3a"
+    },
+    {
+      "path": "gameweeks/34.json",
+      "bytes": 319,
+      "sha256": "6c9aab3e63f237632e91a2948db0c33caf9bb82145449d2082f17681f72e4b56"
+    },
+    {
+      "path": "teams/34.json",
+      "bytes": 1037,
+      "sha256": "0a39aaa271801471059272b27b9a357f4379536a581f6a968b556eeb0567b54f"
+    },
+    {
+      "path": "results/34.json",
+      "bytes": 1146,
+      "sha256": "3e899ea435a18f20113f185b56d68a3ab24ecad6199ff2ae62368d15b8742571"
+    },
+    {
+      "path": "stats/34.json",
+      "bytes": 12324,
+      "sha256": "bfde0a83cb0e340deee0cfe50c6cfffbf56779a8df05d2e17c405dc15bd1ff68"
+    },
+    {
+      "path": "gameweeks/35.json",
+      "bytes": 1137,
+      "sha256": "6150d8cddd155172c1f99e68f072441efb30d7207bd01ac08e617eb6e4a9fa83"
+    },
+    {
+      "path": "teams/35.json",
+      "bytes": 4801,
+      "sha256": "a9bc60089522349e3729416e97b7fb6f910964ef294909b9762583e9c251749f"
+    },
+    {
+      "path": "results/35.json",
+      "bytes": 5343,
+      "sha256": "16f3af01ae86031bd204115a5cfa91dc3781420e18603ba600d89432f3620237"
+    },
+    {
+      "path": "stats/35.json",
+      "bytes": 30836,
+      "sha256": "2743c157bf541cdcc16fd3a62da367afe5b5b48f206691b82db529fcad13f2c9"
+    },
+    {
+      "path": "gameweeks/36.json",
+      "bytes": 10237,
+      "sha256": "652be8b472624c44d70fbb3dd371f432c5a93e4a0edd6ec12f44ee54e9ac6eb4"
+    },
+    {
+      "path": "teams/36.json",
+      "bytes": 47018,
+      "sha256": "60913c8db11835c24bb4e215ebd6e5ce1ee2dca803c92f992d9d47af95d1b2ae"
+    },
+    {
+      "path": "results/36.json",
+      "bytes": 51630,
+      "sha256": "c03cc67d59799403b7c321089f4faad76f4473f513a8540602a397659ee640a4"
+    },
+    {
+      "path": "stats/36.json",
+      "bytes": 136902,
+      "sha256": "08ef6bdb3539e899b3207f108123bdec7d6f27e3b3f3a8ecf89435676fb96fbc"
+    },
+    {
+      "path": "gameweeks/37.json",
+      "bytes": 9422,
+      "sha256": "dd52c941f024f0d4061c3601b1ec5a8529635381ca7f10d66f7f2db70a96b2d2"
+    },
+    {
+      "path": "teams/37.json",
+      "bytes": 43257,
+      "sha256": "4988e30dc24f857eb803484ff76b361d0f22d1c40125fc4fbe1d5f8a46d0a764"
+    },
+    {
+      "path": "results/37.json",
+      "bytes": 47503,
+      "sha256": "baa672c4cfe407f1282a62faed9cf195bcf76952a4ffafcf363c82b468852947"
+    },
+    {
+      "path": "stats/37.json",
+      "bytes": 117560,
+      "sha256": "402059099dad65ac94a086a784c62c88e28234c1a54836f8ca77bcbfb141b76f"
+    },
+    {
+      "path": "gameweeks/38.json",
+      "bytes": 10236,
+      "sha256": "181a81c0ff83d61b59306803f53fa65399cef87c70bd38968fe328da1f0665f6"
+    },
+    {
+      "path": "teams/38.json",
+      "bytes": 47057,
+      "sha256": "5cbe2bc789b2d0ac8e31f47d7189da70a325e69b62f039209fb2c8a0709c9578"
+    },
+    {
+      "path": "results/38.json",
+      "bytes": 51606,
+      "sha256": "8023fe074029628e39137fb22ff0327bda74ba240888f8532b3371f3bdba3e3e"
+    },
+    {
+      "path": "stats/38.json",
+      "bytes": 119903,
+      "sha256": "b6ef402eef7566557f6134160e2a80f89971e85705f182faf1a32f8705ee5094"
+    },
+    {
+      "path": "gameweeks/10001.json",
+      "bytes": 1653,
+      "sha256": "7dc4f83a856c674c9c3af8a376d2d84f86cd8be482be1ee4fb2e076e337de8c6"
+    },
+    {
+      "path": "teams/10001.json",
+      "bytes": 8212,
+      "sha256": "d0f6809f95d8a0dc877225fdeaba4e3abc6c1bdc1b16c7f35d38b90a4b7e16a7"
+    },
+    {
+      "path": "results/10001.json",
+      "bytes": 7949,
+      "sha256": "f84ec10cdfa43483aa9486e57f1aa37e27f393d2e34c2c0e4057eb044c111c1d"
+    },
+    {
+      "path": "stats/10001.json",
+      "bytes": 53487,
+      "sha256": "333eee3a5116a0671c632795eda2340d68602c0ae5738701af8c5831cda34105"
+    },
+    {
+      "path": "gameweeks/10002.json",
+      "bytes": 840,
+      "sha256": "19f868ef29d8c0ca6269f3acc297eda25bca05b962ee88789c19c907a3c98c77"
+    },
+    {
+      "path": "teams/10002.json",
+      "bytes": 3913,
+      "sha256": "50653022c6b644cd07aa848bf141bc08ec4dd5383f46fad6b05a7149a880b482"
+    },
+    {
+      "path": "results/10002.json",
+      "bytes": 3806,
+      "sha256": "57b6247edca2fedffcb9a95212af997b410f1d9be8f2f580e0989a86fa415e00"
+    },
+    {
+      "path": "stats/10002.json",
+      "bytes": 22439,
+      "sha256": "6ed0985e6d26cde306f99ac7c24ab1f8b8f714429b7a861ca552fb4bc3d1b0e9"
+    },
+    {
+      "path": "gameweeks/10003.json",
+      "bytes": 690,
+      "sha256": "bf7c017d4afce80dfd136734b2040c6b396dfe693315508387b7e091da856ab1"
+    },
+    {
+      "path": "teams/10003.json",
+      "bytes": 3130,
+      "sha256": "9361bff1c350a1b020e00ae0e4215eb85062b72ed517e26ef4a49d141e2b6bb3"
+    },
+    {
+      "path": "results/10003.json",
+      "bytes": 3042,
+      "sha256": "f6c3753cd4f3840d39028d64f0a4167038c9b61242b268396621ef35729c2749"
+    },
+    {
+      "path": "stats/10003.json",
+      "bytes": 30078,
+      "sha256": "6a1049ca69ad231d4a0835bbbd5cbdf6010353540e9bc81a189bd40fc6f63b62"
+    },
+    {
+      "path": "gameweeks/10004.json",
+      "bytes": 690,
+      "sha256": "5b5414d6fd0daf140fbe5cb99e1806b82ca337a52299aad61ef47bff43e6211d"
+    },
+    {
+      "path": "teams/10004.json",
+      "bytes": 3130,
+      "sha256": "9e61e64b642aaad2582a86141fe96279e33f369c77585310857dc3fbff4219c3"
+    },
+    {
+      "path": "results/10004.json",
+      "bytes": 3042,
+      "sha256": "464a9b40d5c7f3693356b666b28d43395c117d2b7ac8f4a7a72e901f616fb7f4"
+    },
+    {
+      "path": "stats/10004.json",
+      "bytes": 26771,
+      "sha256": "44b4beb83210b6dc8487c6a47a8be763926d3e8f995133fa223cc6c4ba2263ee"
+    },
+    {
+      "path": "gameweeks/10005.json",
+      "bytes": 469,
+      "sha256": "8e441788e4b10d33af542a46aa1e47c52170952f62fad31ecbc580d39ff66096"
+    },
+    {
+      "path": "teams/10005.json",
+      "bytes": 1958,
+      "sha256": "907d53e41524ed3521865fcdfb8f7c79f0b479ec884efc4573f961e659e8a9e9"
+    },
+    {
+      "path": "results/10005.json",
+      "bytes": 1906,
+      "sha256": "222fa61c22fa2ff172e97ffbca93b8d21db6cdcd744669d243d8c9516882c840"
+    },
+    {
+      "path": "stats/10005.json",
+      "bytes": 20548,
+      "sha256": "17a349d844dd9d0cb4d7dda11d18e9bffd1b007b5a686c9723fe3ea0c771add1"
+    },
+    {
+      "path": "gameweeks/10006.json",
+      "bytes": 247,
+      "sha256": "73185a662b4247d1b2b5d6549f02c9399f71fbe39eb040b37b182691d8442833"
+    },
+    {
+      "path": "teams/10006.json",
+      "bytes": 785,
+      "sha256": "2dbe47eabf28a06cafa52a8ba3bf47686eaf8adc55da2b372ccba74539807af2"
+    },
+    {
+      "path": "results/10006.json",
+      "bytes": 763,
+      "sha256": "21461901f6a31a2986061547f3faf2839f44baa43c4a6e6e02c0c25056807312"
+    },
+    {
+      "path": "stats/10006.json",
+      "bytes": 10047,
+      "sha256": "1a7b60925bb3edf52eea4173ed68b6ef3c135b7c306e4f62e1438fbb54adbf4e"
+    },
+    {
+      "path": "gameweeks/10999.json",
+      "bytes": 97,
+      "sha256": "3ecce1b257b44cfca232f689d0d2603cd8c9e9170c49a0cd930e7d51b060ff55"
+    },
+    {
+      "path": "teams/10999.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "results/10999.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "stats/10999.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "titles-guilds.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "bracket.json",
+      "bytes": 7730,
+      "sha256": "d9bd6bd790252f7c7518e3b96572806b37b866ebca21dc9a3394c053423ab758"
+    },
+    {
+      "path": "owners.json",
+      "bytes": 19000,
+      "sha256": "8bf16b29dbd2f96058bb5412ec5620060da31742baf5cb404ba9522b026e151b"
+    }
+  ],
+  "notes": [
+    "Module events (event::emit) are not readable over the REST API and are not included.",
+    "Derived state (gameweeks, squads, results, claim flags, stats, bracket) is complete."
+  ]
+}

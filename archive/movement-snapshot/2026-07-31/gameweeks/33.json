@@ -1,0 +1,11 @@
+{
+  "id": 33,
+  "status": 2,
+  "prizePool": "240000000",
+  "totalEntries": 3,
+  "owners": [
+    "0x1f23a0e229b72294b63727d543fa9331c59d264227186504c849ffd2a512d3cb",
+    "0xcc4aedc5740510f7efec7fa5e4b66643dd8995fde3469b6ffc4d240d05518e6",
+    "0xc9fee485c0aeac178dfb658036de0b035c23d6d61dee3bec71c819b1ce5e5546"
+  ]
+}
