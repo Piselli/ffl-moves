@@ -168,10 +168,31 @@ describe("movematch", () => {
       .rpc();
   }
 
+  async function commitStats(id: number, payload = `gameweek-${id}-stats`) {
+    const hash = Array.from(keccak_256(Buffer.from(payload)));
+    const uri = `https://movematch.example/stats/${id}.json`;
+    await program.methods
+      .commitStats(hash, uri)
+      .accountsPartial({
+        config,
+        oracle: oracle.publicKey,
+        gameweek: gameweekPda(id),
+        statsCommit: statsPda(id),
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([oracle])
+      .rpc();
+  }
+
   async function publish(id: number, root: Buffer, entries: number, allocated: bigint) {
     await program.methods
       .publishResults([...root], entries, new anchor.BN(allocated.toString()))
-      .accountsPartial({ config, oracle: oracle.publicKey, gameweek: gameweekPda(id) })
+      .accountsPartial({
+        config,
+        oracle: oracle.publicKey,
+        gameweek: gameweekPda(id),
+        statsCommit: statsPda(id),
+      })
       .signers([oracle])
       .rpc();
   }
@@ -233,6 +254,7 @@ describe("movematch", () => {
         .rpc();
     }
     await closeGameweek(id);
+    await commitStats(id);
 
     const gameweek = await program.account.gameweek.fetch(gameweekPda(id));
     const pool = BigInt(gameweek.prizePool.toString());
@@ -445,6 +467,7 @@ describe("movematch", () => {
     );
     const tree = buildResultsTree(id, awardsToLeaves(awards));
 
+    await commitStats(id);
     await expectFailure(
       publish(id, tree.root, 1, tree.total),
       "publish before the gameweek closes",
@@ -455,7 +478,12 @@ describe("movematch", () => {
     await expectFailure(
       program.methods
         .publishResults([...tree.root], 1, new anchor.BN(PRIZE_LEG))
-        .accountsPartial({ config, oracle: outsider.publicKey, gameweek: gameweekPda(id) })
+        .accountsPartial({
+          config,
+          oracle: outsider.publicKey,
+          gameweek: gameweekPda(id),
+          statsCommit: statsPda(id),
+        })
         .signers([outsider])
         .rpc(),
       "publish signed by a non-oracle",
@@ -475,12 +503,33 @@ describe("movematch", () => {
     await publish(id, tree.root, 1, tree.total);
   });
 
+  it("rejects publish without a prior stats commit", async () => {
+    const id = 17;
+    await createGameweek(id);
+    const player = await fundedPlayer();
+    await register(id, player);
+    await closeGameweek(id);
+
+    const awards = allocatePrizes(
+      BigInt(PRIZE_LEG),
+      [{ owner: player.key.publicKey, finalPoints: 44 }],
+      id
+    );
+    const tree = buildResultsTree(id, awardsToLeaves(awards));
+
+    await expectFailure(
+      publish(id, tree.root, 1, tree.total),
+      "publish with no stats commit on chain"
+    );
+  });
+
   it("refuses to settle a tree that pays more than the oracle declared", async () => {
     const id = 10;
     await createGameweek(id);
     const players = [await fundedPlayer(), await fundedPlayer()];
     for (const player of players) await register(id, player);
     await closeGameweek(id);
+    await commitStats(id);
 
     // A root whose leaves total the whole pool, published as if it cost almost nothing.
     const greedy: ResultLeaf[] = [
@@ -882,6 +931,7 @@ describe("movematch", () => {
       const player = await fundedPlayer();
       await register(id, player);
       await closeGameweek(id);
+      await commitStats(id);
 
       const entry = await program.account.entry.fetch(entryPda(id, player.key.publicKey));
       const playerIds: number[] = entry.playerIds.map((value: number) => Number(value));

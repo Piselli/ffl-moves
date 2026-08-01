@@ -374,6 +374,7 @@ pub mod movematch {
             ErrorCode::UnauthorizedOracle
         );
         require!(uri.as_bytes().len() <= MAX_URI_BYTES, ErrorCode::UriTooLong);
+        require!(stats_hash != [0u8; 32], ErrorCode::InvalidStatsHash);
         let commit = &mut ctx.accounts.stats_commit;
         commit.gameweek_id = ctx.accounts.gameweek.id;
         commit.stats_hash = stats_hash;
@@ -393,6 +394,14 @@ pub mod movematch {
             ctx.accounts.config.oracle,
             ctx.accounts.oracle.key(),
             ErrorCode::UnauthorizedOracle
+        );
+        require!(
+            ctx.accounts.stats_commit.gameweek_id == ctx.accounts.gameweek.id,
+            ErrorCode::StatsNotCommitted
+        );
+        require!(
+            ctx.accounts.stats_commit.stats_hash != [0u8; 32],
+            ErrorCode::StatsNotCommitted
         );
         let gameweek = &mut ctx.accounts.gameweek;
         require!(gameweek.status == CLOSED, ErrorCode::GameweekNotClosed);
@@ -783,6 +792,11 @@ pub struct PublishResults<'info> {
     pub oracle: Signer<'info>,
     #[account(mut, seeds = [b"gw".as_ref(), &gameweek.id.to_le_bytes()], bump = gameweek.bump)]
     pub gameweek: Account<'info, Gameweek>,
+    #[account(
+        seeds = [b"stats".as_ref(), &gameweek.id.to_le_bytes()],
+        bump = stats_commit.bump,
+    )]
+    pub stats_commit: Account<'info, StatsCommit>,
 }
 
 #[derive(Accounts)]
@@ -1284,6 +1298,10 @@ pub enum ErrorCode {
     InvalidFormation,
     #[msg("The URI is too long.")]
     UriTooLong,
+    #[msg("Stats must be committed before results can be published.")]
+    StatsNotCommitted,
+    #[msg("The stats hash cannot be empty.")]
+    InvalidStatsHash,
     #[msg("The published count does not equal registered entries.")]
     UnexpectedEntryCount,
     #[msg("An entry can be closed only while the gameweek is OPEN or CLOSED.")]

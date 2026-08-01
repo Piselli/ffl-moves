@@ -5,6 +5,7 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   getConfig,
   getGameweek,
+  getStatsCommit,
   findOpenGameweek,
   hasAdminSponsorPrizePoolOnChain,
   hasAdminWithdrawPrizeVaultOnChain,
@@ -684,7 +685,14 @@ export default function AdminPage() {
       const gameweek = await getGameweek(gw);
       if (!gameweek) throw new Error(`Gameweek ${gw} does not exist on chain.`);
 
-      // Payouts come from the shared settlement rule, so the tree the oracle publishes
+      const statsCommit = await getStatsCommit(gw);
+      if (!statsCommit?.hash || statsCommit.hash === "0".repeat(64)) {
+        throw new Error(
+          `Gameweek ${gw} has no stats commit on chain. Submit stats before publishing results.`,
+        );
+      }
+
+      // Payouts come from the shared settlement rule
       // and the amounts the UI shows can never drift apart.
       const awards = allocatePrizes(
         BigInt(gameweek.prizePool),

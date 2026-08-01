@@ -167,7 +167,7 @@ devnet-версію проти mainnet.
 | 3. Дедлайн | `close_gameweek` | admin |
 | 4. Зібрати статистику | `npm run fpl:gw -- <gw>` | — |
 | 5. Опублікувати статистику | `commit_stats(hash, uri)` | oracle |
-| 6. Опублікувати результати | `publish_results(root, entries, allocated)` | oracle |
+| 6. Опублікувати результати | `publish_results(root, entries, allocated)` | oracle — **вимагає `StatsCommit` PDA** для того ж туру |
 | 7. Виплати | `claim_prize` | гравець |
 | 8. Залишок пулу | `release_unallocated` | admin |
 
@@ -176,10 +176,10 @@ devnet-версію проти mainnet.
 `NEXT_PUBLIC_STATS_BASE_URL`; на mainnet він обов'язковий, `/admin` без нього
 кидає помилку.
 
-Знати про `publish_results`: він перевіряє підпис оракула, але **не** звіряється
-з `StatsCommit` того ж туру (знахідка #13 з фази 3). Тобто оракул технічно може
-опублікувати корінь, що не відповідає закомміченій статистиці. Захист поки
-процедурний.
+Знати про `publish_results`: він перевіряє підпис оракула і **вимагає ініціалізований
+`StatsCommit`** для того ж gameweek (з 2026-08-01). Без попереднього `commit_stats`
+інструкція відхиляється. Це не перевіряє, що Merkle-дерево побудоване з тих самих
+байтів, що й hash — лише що stats були закоммічені перед settlement.
 
 ## 7. Ротація ключів
 

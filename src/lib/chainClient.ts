@@ -692,7 +692,12 @@ export async function buildPublishResults(
   const tree = buildResultsTree(gameweekId, leaves);
   const instruction = ix(
     "publish_results",
-    [meta(configPda()), meta(key(oracle), true), meta(gameweekPda(gameweekId), false, true)],
+    [
+      meta(configPda()),
+      meta(key(oracle), true),
+      meta(gameweekPda(gameweekId), false, true),
+      meta(statsPda(gameweekId)),
+    ],
     tree.root, u32le(totalEntries), u64le(tree.total),
   );
   return {
