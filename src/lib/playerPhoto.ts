@@ -47,6 +47,7 @@ export function playerPhotoCandidates(
   player: Pick<Player, "photo" | "imageUrl" | "fplPhotoCode" | "apiId">,
 ): string[] {
   const seen = new Set<string>();
+  const out: string[] = [];
   const add = (raw: string | null | undefined) => {
     const resolved = resolvePlayerPhotoUrl(raw);
     if (resolved && !seen.has(resolved)) {
@@ -61,22 +62,30 @@ export function playerPhotoCandidates(
     }
   };
 
-  const out: string[] = [];
+  const hasFpl = player.fplPhotoCode != null && player.fplPhotoCode > 0;
+  const hasApi = player.apiId != null && player.apiId > 0;
   const direct = player.photo || player.imageUrl;
 
-  // World Cup — shortest stable same-origin URL.
-  if (player.apiId != null && player.apiId > 0) {
-    addPath(apiSportsPhotoProxyPath(player.apiId));
+  // World Cup / no FPL code — API-Sports first.
+  if (hasApi && !hasFpl) {
+    addPath(apiSportsPhotoProxyPath(player.apiId!));
+    add(apiSportsPlayerPhotoUrl(player.apiId!));
   }
 
   if (direct?.startsWith("/api/player-photo")) addPath(direct);
 
-  if (player.apiId != null && player.apiId > 0) {
-    add(apiSportsPlayerPhotoUrl(player.apiId));
+  if (hasFpl) {
+    add(fplPlayerPhotoUrl(player.fplPhotoCode!));
+    // Smaller PL cut often works when 250×250 is 403 for new signings.
+    add(
+      `https://${PL_PHOTO_HOST}/premierleague/photos/players/110x140/p${player.fplPhotoCode}.png`,
+    );
   }
 
-  if (player.fplPhotoCode != null && player.fplPhotoCode > 0) {
-    add(fplPlayerPhotoUrl(player.fplPhotoCode));
+  // EPL fallback when PL CDN has no asset yet (summer arrivals, etc.).
+  if (hasApi && hasFpl) {
+    addPath(apiSportsPhotoProxyPath(player.apiId!));
+    add(apiSportsPlayerPhotoUrl(player.apiId!));
   }
 
   if (direct && !direct.startsWith("/api/player-photo")) add(direct);
@@ -89,4 +98,50 @@ export function playerPhotoSrc(
   player: Pick<Player, "photo" | "imageUrl" | "fplPhotoCode" | "apiId">,
 ): string | null {
   return playerPhotoCandidates(player)[0] ?? null;
+}
+
+/**
+ * Pitch cutout chips — prefer PL 110×140 busts (consistent framing; some
+ * 250×250 codes 403, e.g. Virgil). Then 250×250, then API-Sports.
+ */
+export function pitchCutoutPhotoCandidates(
+  player: Pick<Player, "photo" | "imageUrl" | "fplPhotoCode" | "apiId">,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (raw: string | null | undefined) => {
+    const resolved = resolvePlayerPhotoUrl(raw);
+    if (resolved && !seen.has(resolved)) {
+      seen.add(resolved);
+      out.push(resolved);
+    }
+  };
+  const addPath = (path: string) => {
+    if (!seen.has(path)) {
+      seen.add(path);
+      out.push(path);
+    }
+  };
+
+  const hasFpl = player.fplPhotoCode != null && player.fplPhotoCode > 0;
+  const hasApi = player.apiId != null && player.apiId > 0;
+  const code = player.fplPhotoCode;
+
+  if (hasFpl && code) {
+    add(
+      `https://${PL_PHOTO_HOST}/premierleague/photos/players/110x140/p${code}.png`,
+    );
+    add(fplPlayerPhotoUrl(code));
+  }
+
+  if (hasApi) {
+    addPath(apiSportsPhotoProxyPath(player.apiId!));
+    add(apiSportsPlayerPhotoUrl(player.apiId!));
+  }
+
+  const direct = player.photo || player.imageUrl;
+  if (direct?.startsWith("/api/player-photo")) addPath(direct);
+  else if (direct) add(direct);
+
+  return out;
 }

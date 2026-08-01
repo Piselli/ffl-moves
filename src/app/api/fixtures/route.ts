@@ -104,8 +104,11 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
 /**
  * FPL "live" pick stays on the earliest GW that still has unfinished *displayed* fixtures.
  * On-chain registration can open the next GW while that slate is still playing — pass
- * `registrationGw` from `findActiveGameweekFromChain` so deadline/fixtures match the squad tour.
+ * `registrationGw` from `findActiveGameweek` so deadline/fixtures match the squad tour.
  * If the chain lags behind FPL, `registrationGw <= fplPick` and we keep the FPL pick.
+ *
+ * Cap the look-ahead at +1: after a season reset FPL returns to GW1 while chain may still
+ * expose last-season GW 36–38; treating that as "chain ahead" would show the wrong slate.
  */
 function mergeRegistrationEventPreference(
   fplPick: number,
@@ -118,6 +121,9 @@ function mergeRegistrationEventPreference(
     registrationGw < 1 ||
     registrationGw <= fplPick
   ) {
+    return fplPick;
+  }
+  if (registrationGw > fplPick + 1) {
     return fplPick;
   }
   const exists = eventsMeta.some((e) => e.id === registrationGw);

@@ -103,9 +103,9 @@ export function FplPhotoAvatar({
       ? String(fplPhotoCode)
       : fplPhotoCodeFromUrl(photoUrl || undefined);
   const frame = code ? getFplPhotoFrame(code) : null;
-  // World Cup portraits use API-Sports — never route through the FPL sprite atlas.
-  const useSprite =
-    !(apiId != null && apiId > 0) && hasFplAtlas() && frame != null;
+  // World Cup portraits use API-Sports. FPL atlas wins whenever we have a frame
+  // (even if apiId is present as a CDN fallback for missing PL assets).
+  const useSprite = hasFplAtlas() && frame != null;
 
   const showImg = Boolean(resolvedPhotoUrl) && !imgFailed;
   const fallbackVisible = !imgLoaded || imgFailed;

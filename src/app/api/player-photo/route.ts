@@ -10,47 +10,91 @@ import { apiSportsPlayerPhotoUrl, isProxiedPhotoHost } from "@/lib/playerPhoto";
  */
 export const dynamic = "force-dynamic";
 
+/** Browser-like headers — PL CDN 403s bare bots on many 250×250 assets. */
 const UPSTREAM_HEADERS = {
-  Accept: "image/*",
-  "User-Agent": "MoveMatch/1.0 (+https://movematch.xyz)",
+  Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Referer: "https://fantasy.premierleague.com/",
+  Origin: "https://fantasy.premierleague.com",
 };
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function proxyImage(upstreamUrl: string) {
-  let lastStatus = 502;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await sleep(120 * attempt);
-
-    try {
-      const upstream = await fetch(upstreamUrl, {
-        headers: UPSTREAM_HEADERS,
-        cache: "no-store",
-      });
-
-      if (upstream.ok) {
-        const bytes = await upstream.arrayBuffer();
-        const contentType = upstream.headers.get("content-type") || "image/png";
-        return new NextResponse(bytes, {
-          headers: {
-            "Content-Type": contentType,
-            "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-          },
-        });
+/**
+ * PL headshots often 403 at 250×250 for new / transferred players while 110×140 works.
+ * Also try png↔jpg.
+ */
+function expandPremierLeaguePhotoUrls(upstreamUrl: string): string[] {
+  try {
+    const u = new URL(upstreamUrl);
+    if (u.hostname !== "resources.premierleague.com") return [upstreamUrl];
+    const m = u.pathname.match(
+      /^\/premierleague\/photos\/players\/(\d+x\d+)\/(p\d+)\.(png|jpe?g)$/i,
+    );
+    if (!m) return [upstreamUrl];
+    const file = m[2]!;
+    const sizes = ["250x250", "110x140"] as const;
+    const exts = ["png", "jpg"] as const;
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const push = (path: string) => {
+      if (seen.has(path)) return;
+      seen.add(path);
+      out.push(`https://resources.premierleague.com${path}`);
+    };
+    // Prefer the requested URL first, then other size/ext combos.
+    push(u.pathname);
+    for (const size of sizes) {
+      for (const ext of exts) {
+        push(`/premierleague/photos/players/${size}/${file}.${ext}`);
       }
-
-      lastStatus = upstream.status === 404 ? 404 : 502;
-      if (lastStatus === 404) break;
-    } catch (err) {
-      console.error("player-photo upstream attempt failed:", err);
-      lastStatus = 502;
     }
+    return out;
+  } catch {
+    return [upstreamUrl];
+  }
+}
+
+async function fetchUpstreamImage(upstreamUrl: string): Promise<Response | null> {
+  try {
+    const upstream = await fetch(upstreamUrl, {
+      headers: UPSTREAM_HEADERS,
+      cache: "no-store",
+    });
+    if (!upstream.ok) return null;
+    const contentType = upstream.headers.get("content-type") || "";
+    // PL sometimes returns XML/HTML error bodies with a 200 — reject non-images.
+    if (contentType && !contentType.startsWith("image/")) return null;
+    return upstream;
+  } catch (err) {
+    console.error("player-photo upstream attempt failed:", err);
+    return null;
+  }
+}
+
+async function proxyImage(upstreamUrl: string) {
+  const candidates = expandPremierLeaguePhotoUrls(upstreamUrl);
+
+  for (let attempt = 0; attempt < candidates.length; attempt++) {
+    if (attempt > 0) await sleep(40);
+    const upstream = await fetchUpstreamImage(candidates[attempt]!);
+    if (!upstream) continue;
+
+    const bytes = await upstream.arrayBuffer();
+    const contentType = upstream.headers.get("content-type") || "image/png";
+    return new NextResponse(bytes, {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      },
+    });
   }
 
-  return new NextResponse(null, { status: lastStatus });
+  return new NextResponse(null, { status: 502 });
 }
 
 export async function GET(req: NextRequest) {

@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { NextResponse } from "next/server";
 import { CLEAN_SHEET_POINTS, GOAL_POINTS } from "@/lib/scoring-rules";
 import { playerPhotoSrc } from "@/lib/playerPhoto";
@@ -26,6 +28,12 @@ interface FplElementSeasonTotals {
   own_goals?: number;
   penalties_missed?: number;
 }
+
+type ApiSportsCatalogRow = {
+  apiId?: number;
+  name?: string;
+  position?: string;
+};
 
 function goalPointsForPosition(position: "GK" | "DEF" | "MID" | "FWD"): number {
   if (position === "GK") return GOAL_POINTS.GK;
@@ -57,6 +65,55 @@ function calcOurForm(el: FplElementSeasonTotals, position: "GK" | "DEF" | "MID" 
 
   return parseFloat((pts / starts).toFixed(2));
 }
+
+function normName(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Map FPL webName → API-Sports id for photo fallback when PL CDN has no asset.
+ * Catalog names look like "F. Wirtz" / "G. Donnarumma"; index by last token + position.
+ */
+function buildApiIdIndex(catalog: ApiSportsCatalogRow[]): Map<string, number> {
+  const index = new Map<string, number>();
+  const ambiguous = new Set<string>();
+
+  for (const row of catalog) {
+    if (row.apiId == null || row.apiId <= 0 || !row.name) continue;
+    const parts = row.name.trim().split(/\s+/);
+    const last = normName(parts[parts.length - 1] || "");
+    if (last.length < 3) continue;
+    const pos = (row.position || "").toUpperCase();
+    const key = `${last}|${pos}`;
+    if (ambiguous.has(key)) continue;
+    if (index.has(key) && index.get(key) !== row.apiId) {
+      index.delete(key);
+      ambiguous.add(key);
+      continue;
+    }
+    index.set(key, row.apiId);
+  }
+  return index;
+}
+
+const API_ID_BY_NAME_POS = buildApiIdIndex(
+  (() => {
+    try {
+      const raw = readFileSync(
+        join(process.cwd(), "public/data/players.json"),
+        "utf8",
+      );
+      return JSON.parse(raw) as ApiSportsCatalogRow[];
+    } catch (err) {
+      console.warn("players: api-sports catalog unavailable", err);
+      return [];
+    }
+  })(),
+);
 
 /** No `revalidate` / Data Cache: FPL bootstrap JSON exceeds Next’s ~2MB fetch cache limit — we use `cache: "no-store"` below. */
 
@@ -96,24 +153,32 @@ export async function GET() {
       .map((el: Record<string, unknown>) => {
         const elementType = Number(el.element_type);
         const pos = POSITION_MAP[elementType] || "MID";
+        const webName = el.web_name as string;
+        const apiId =
+          API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ?? undefined;
         return {
-        id: el.id as number,
-        fplId: el.id as number,
-        name: (el.known_name as string) || `${el.first_name} ${el.second_name}`,
-        webName: el.web_name as string,
-        team: teamMap[el.team as number] || "Unknown",
-        teamId: el.team as number,
-        position: pos,
-        positionId: elementType - 1,
-        photo: `${PHOTO_BASE}${el.code}.png`,
-        fplPhotoCode: el.code as number,
-        status: el.status as string, // a, d, i, s (FPL)
-        chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,
-        news: (el.news as string) || "",
-        totalPoints: el.total_points as number,
-        form: calcOurForm(el as FplElementSeasonTotals, pos),
-        selectedByPercent: parseFloat(String(el.selected_by_percent)),
-      };
+          id: el.id as number,
+          fplId: el.id as number,
+          name: (el.known_name as string) || `${el.first_name} ${el.second_name}`,
+          webName,
+          team: teamMap[el.team as number] || "Unknown",
+          teamId: el.team as number,
+          position: pos,
+          positionId: elementType - 1,
+          squadNumber:
+            el.squad_number == null || el.squad_number === ""
+              ? null
+              : Number(el.squad_number),
+          photo: `${PHOTO_BASE}${el.code}.png`,
+          fplPhotoCode: el.code as number,
+          apiId,
+          status: el.status as string, // a, d, i, s (FPL)
+          chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,
+          news: (el.news as string) || "",
+          totalPoints: el.total_points as number,
+          form: calcOurForm(el as FplElementSeasonTotals, pos),
+          selectedByPercent: parseFloat(String(el.selected_by_percent)),
+        };
       });
 
     const withProxiedPhotos = (players as Player[]).map((p) => {
