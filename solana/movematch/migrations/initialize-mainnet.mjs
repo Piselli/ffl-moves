@@ -9,7 +9,7 @@
  * Env:
  *   MOVEMATCH_PROGRAM_ID   — deployed program id (required)
  *   SOLANA_RPC_URL         — default https://api.mainnet-beta.solana.com
- *   MOVEMATCH_ENTRY_FEE    — default 5000000 (5 USDC)
+ *   MOVEMATCH_ENTRY_FEE    — default 100000 (0.1 USDC pilot; raise via set_fees before public launch)
  *   MOVEMATCH_PRIZE_POOL_BPS — default 8000
  *   MOVEMATCH_ORACLE_KEY   — path to oracle keypair (default .keys/oracle.json)
  *   MOVEMATCH_HOUSE_KEY    — path to house keypair (default .keys/house.json)
@@ -48,7 +48,7 @@ if (!programIdStr) {
 const programId = new PublicKey(programIdStr);
 const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const rpc = process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
-const entryFee = BigInt(process.env.MOVEMATCH_ENTRY_FEE ?? "5000000");
+const entryFee = BigInt(process.env.MOVEMATCH_ENTRY_FEE ?? "100000");
 const prizePoolBps = Number(process.env.MOVEMATCH_PRIZE_POOL_BPS ?? "8000");
 
 async function loadKey(path) {

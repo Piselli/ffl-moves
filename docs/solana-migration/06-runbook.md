@@ -17,7 +17,7 @@
 | Anchor / Solana | `anchor 1.1.2`, `solana 3.1.10` (`Anchor.toml`) |
 | USDC devnet | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
 | USDC mainnet | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
-| Внесок | `5_000_000` (5 USDC), `prize_pool_bps = 8000` |
+| Внесок | `5_000_000` (5 USDC prod), **pilot mainnet: `100_000` (0.1 USDC)** | `prize_pool_bps = 8000` |
 
 PDA-адреси (сіди без ідентифікатора кластера, тож на devnet і mainnet вони
 збігаються — розрізняє лише кластер):
@@ -153,6 +153,12 @@ devnet-версію проти mainnet.
 
 Після ініціалізації звірити on-chain `Config` з наміром: `usdc_mint`, `oracle`,
 `house_wallet`, `entry_fee`, `prize_pool_bps`, `admins[0]`.
+
+**Pilot entry fee:** для першого mainnet-туру можна стартувати з **0.1 USDC**
+(`MOVEMATCH_ENTRY_FEE=100000`) або навіть **0.01 USDC** (`10000`), якщо USDC
+мало. Фронтенд читає `entry_fee` з ланцюга — окремий redeploy не потрібен.
+Перед публічним запуском підняти через `/admin` → Set fees (`set_fees`) до
+5 USDC (`5000000`).
 
 ## 6. Цикл туру
 
