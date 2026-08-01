@@ -35,6 +35,21 @@ move/**/build/
 # vercel
 .vercel
 
+# numba JIT cache from the design asset scripts
+/.numba_cache/
+
+# Design-lab intermediates: generation batches, reference scrapes and contact
+# sheets that nothing imports. Kept on the designer's disk, not in history.
+public/design-lab/locker-hero/kit/filled-plates/
+public/design-lab/locker-hero/kit/bay-refs/
+public/design-lab/locker-hero/kit/bay/
+public/design-lab/locker-hero/kit/bay-cavity/
+public/design-lab/locker-hero/kit/_review/
+
+# Locker plate iterations — only the shipped v25 is tracked.
+public/design-lab/locker-hero/variants/*
+!public/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

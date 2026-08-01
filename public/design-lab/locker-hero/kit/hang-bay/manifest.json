@@ -1,0 +1,449 @@
+{
+  "plate": "v25",
+  "mode": "bay-columns-metal-lock",
+  "source": "download (1)",
+  "y0_pct": 25.5,
+  "y1_mode": "per-bay-seat",
+  "y1_fallback_pct": 48.8,
+  "feather_top_px": 40,
+  "feather_bot_px": 16,
+  "feather_side_px": 7,
+  "lock_thr": [
+    5.0,
+    18.0
+  ],
+  "bays": [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "h7",
+    "h8",
+    "h9",
+    "h10",
+    "h11",
+    "hb1",
+    "hb2",
+    "hb3"
+  ],
+  "seat_y1_pct": {
+    "h1": 52.45,
+    "h2": 51.2,
+    "h3": 50.14,
+    "h4": 49.49,
+    "h5": 48.94,
+    "h6": 48.56,
+    "h7": 48.52,
+    "h8": 48.56,
+    "h9": 48.52,
+    "h10": 48.7,
+    "h11": 48.98,
+    "hb1": 50.42,
+    "hb2": 51.39,
+    "hb3": 52.41
+  },
+  "teams": {
+    "1": {
+      "club": "arsenal",
+      "file": "Recolor_shirts_for_Arsenal_202607270409.jpeg",
+      "files": [
+        "t1/h1.webp",
+        "t1/h2.webp",
+        "t1/h3.webp",
+        "t1/h4.webp",
+        "t1/h5.webp",
+        "t1/h6.webp",
+        "t1/h7.webp",
+        "t1/h8.webp",
+        "t1/h9.webp",
+        "t1/h10.webp",
+        "t1/h11.webp",
+        "t1/hb1.webp",
+        "t1/hb2.webp",
+        "t1/hb3.webp"
+      ]
+    },
+    "2": {
+      "club": "villa",
+      "file": "Recolor_shirts_for_Aston_Villa_202607270409.jpeg",
+      "files": [
+        "t2/h1.webp",
+        "t2/h2.webp",
+        "t2/h3.webp",
+        "t2/h4.webp",
+        "t2/h5.webp",
+        "t2/h6.webp",
+        "t2/h7.webp",
+        "t2/h8.webp",
+        "t2/h9.webp",
+        "t2/h10.webp",
+        "t2/h11.webp",
+        "t2/hb1.webp",
+        "t2/hb2.webp",
+        "t2/hb3.webp"
+      ]
+    },
+    "3": {
+      "club": "bournemouth",
+      "file": "Recolor_shirts_for_Bournemouth_202607270409.jpeg",
+      "files": [
+        "t3/h1.webp",
+        "t3/h2.webp",
+        "t3/h3.webp",
+        "t3/h4.webp",
+        "t3/h5.webp",
+        "t3/h6.webp",
+        "t3/h7.webp",
+        "t3/h8.webp",
+        "t3/h9.webp",
+        "t3/h10.webp",
+        "t3/h11.webp",
+        "t3/hb1.webp",
+        "t3/hb2.webp",
+        "t3/hb3.webp"
+      ]
+    },
+    "4": {
+      "club": "brentford",
+      "file": "Recolor_shirts_for_Brentford_202607270409.jpeg",
+      "files": [
+        "t4/h1.webp",
+        "t4/h2.webp",
+        "t4/h3.webp",
+        "t4/h4.webp",
+        "t4/h5.webp",
+        "t4/h6.webp",
+        "t4/h7.webp",
+        "t4/h8.webp",
+        "t4/h9.webp",
+        "t4/h10.webp",
+        "t4/h11.webp",
+        "t4/hb1.webp",
+        "t4/hb2.webp",
+        "t4/hb3.webp"
+      ]
+    },
+    "5": {
+      "club": "brighton",
+      "file": "Recolor_shirts_for_Brighton_202607270409.jpeg",
+      "files": [
+        "t5/h1.webp",
+        "t5/h2.webp",
+        "t5/h3.webp",
+        "t5/h4.webp",
+        "t5/h5.webp",
+        "t5/h6.webp",
+        "t5/h7.webp",
+        "t5/h8.webp",
+        "t5/h9.webp",
+        "t5/h10.webp",
+        "t5/h11.webp",
+        "t5/hb1.webp",
+        "t5/hb2.webp",
+        "t5/hb3.webp"
+      ]
+    },
+    "6": {
+      "club": "chelsea",
+      "file": "Recolor_shirts_to_Chelsea_202607270409.jpeg",
+      "files": [
+        "t6/h1.webp",
+        "t6/h2.webp",
+        "t6/h3.webp",
+        "t6/h4.webp",
+        "t6/h5.webp",
+        "t6/h6.webp",
+        "t6/h7.webp",
+        "t6/h8.webp",
+        "t6/h9.webp",
+        "t6/h10.webp",
+        "t6/h11.webp",
+        "t6/hb1.webp",
+        "t6/hb2.webp",
+        "t6/hb3.webp"
+      ]
+    },
+    "7": {
+      "club": "coventry",
+      "file": "Recolor_shirts_for_Coventry_City_202607270409.jpeg",
+      "files": [
+        "t7/h1.webp",
+        "t7/h2.webp",
+        "t7/h3.webp",
+        "t7/h4.webp",
+        "t7/h5.webp",
+        "t7/h6.webp",
+        "t7/h7.webp",
+        "t7/h8.webp",
+        "t7/h9.webp",
+        "t7/h10.webp",
+        "t7/h11.webp",
+        "t7/hb1.webp",
+        "t7/hb2.webp",
+        "t7/hb3.webp"
+      ]
+    },
+    "8": {
+      "club": "palace",
+      "file": "Recolor_shirts_for_Crystal_Palace_202607270409.jpeg",
+      "files": [
+        "t8/h1.webp",
+        "t8/h2.webp",
+        "t8/h3.webp",
+        "t8/h4.webp",
+        "t8/h5.webp",
+        "t8/h6.webp",
+        "t8/h7.webp",
+        "t8/h8.webp",
+        "t8/h9.webp",
+        "t8/h10.webp",
+        "t8/h11.webp",
+        "t8/hb1.webp",
+        "t8/hb2.webp",
+        "t8/hb3.webp"
+      ]
+    },
+    "9": {
+      "club": "everton",
+      "file": "Recolor_shirts_for_Everton_202607270409.jpeg",
+      "files": [
+        "t9/h1.webp",
+        "t9/h2.webp",
+        "t9/h3.webp",
+        "t9/h4.webp",
+        "t9/h5.webp",
+        "t9/h6.webp",
+        "t9/h7.webp",
+        "t9/h8.webp",
+        "t9/h9.webp",
+        "t9/h10.webp",
+        "t9/h11.webp",
+        "t9/hb1.webp",
+        "t9/hb2.webp",
+        "t9/hb3.webp"
+      ]
+    },
+    "10": {
+      "club": "fulham",
+      "file": "Recolor_shirts_for_Fulham_2K_202607270428.jpeg",
+      "files": [
+        "t10/h1.webp",
+        "t10/h2.webp",
+        "t10/h3.webp",
+        "t10/h4.webp",
+        "t10/h5.webp",
+        "t10/h6.webp",
+        "t10/h7.webp",
+        "t10/h8.webp",
+        "t10/h9.webp",
+        "t10/h10.webp",
+        "t10/h11.webp",
+        "t10/hb1.webp",
+        "t10/hb2.webp",
+        "t10/hb3.webp"
+      ]
+    },
+    "11": {
+      "club": "hull",
+      "file": "Recolor_shirts_for_Hull_City_202607270409.jpeg",
+      "files": [
+        "t11/h1.webp",
+        "t11/h2.webp",
+        "t11/h3.webp",
+        "t11/h4.webp",
+        "t11/h5.webp",
+        "t11/h6.webp",
+        "t11/h7.webp",
+        "t11/h8.webp",
+        "t11/h9.webp",
+        "t11/h10.webp",
+        "t11/h11.webp",
+        "t11/hb1.webp",
+        "t11/hb2.webp",
+        "t11/hb3.webp"
+      ]
+    },
+    "12": {
+      "club": "ipswich",
+      "file": "Recolor_shirts_for_Ipswich_Town_202607270409.jpeg",
+      "files": [
+        "t12/h1.webp",
+        "t12/h2.webp",
+        "t12/h3.webp",
+        "t12/h4.webp",
+        "t12/h5.webp",
+        "t12/h6.webp",
+        "t12/h7.webp",
+        "t12/h8.webp",
+        "t12/h9.webp",
+        "t12/h10.webp",
+        "t12/h11.webp",
+        "t12/hb1.webp",
+        "t12/hb2.webp",
+        "t12/hb3.webp"
+      ]
+    },
+    "13": {
+      "club": "leeds",
+      "file": "Recolor_shirts_for_Leeds_202607270409.jpeg",
+      "files": [
+        "t13/h1.webp",
+        "t13/h2.webp",
+        "t13/h3.webp",
+        "t13/h4.webp",
+        "t13/h5.webp",
+        "t13/h6.webp",
+        "t13/h7.webp",
+        "t13/h8.webp",
+        "t13/h9.webp",
+        "t13/h10.webp",
+        "t13/h11.webp",
+        "t13/hb1.webp",
+        "t13/hb2.webp",
+        "t13/hb3.webp"
+      ]
+    },
+    "14": {
+      "club": "liverpool",
+      "file": "Recolor_shirts_for_Liverpool_202607270409.jpeg",
+      "files": [
+        "t14/h1.webp",
+        "t14/h2.webp",
+        "t14/h3.webp",
+        "t14/h4.webp",
+        "t14/h5.webp",
+        "t14/h6.webp",
+        "t14/h7.webp",
+        "t14/h8.webp",
+        "t14/h9.webp",
+        "t14/h10.webp",
+        "t14/h11.webp",
+        "t14/hb1.webp",
+        "t14/hb2.webp",
+        "t14/hb3.webp"
+      ]
+    },
+    "15": {
+      "club": "mancity",
+      "file": "Recolor_shirts_for_Man_City_202607270409.jpeg",
+      "files": [
+        "t15/h1.webp",
+        "t15/h2.webp",
+        "t15/h3.webp",
+        "t15/h4.webp",
+        "t15/h5.webp",
+        "t15/h6.webp",
+        "t15/h7.webp",
+        "t15/h8.webp",
+        "t15/h9.webp",
+        "t15/h10.webp",
+        "t15/h11.webp",
+        "t15/hb1.webp",
+        "t15/hb2.webp",
+        "t15/hb3.webp"
+      ]
+    },
+    "16": {
+      "club": "manutd",
+      "file": "Recolor_shirts_to_Man_Utd_202607270409.jpeg",
+      "files": [
+        "t16/h1.webp",
+        "t16/h2.webp",
+        "t16/h3.webp",
+        "t16/h4.webp",
+        "t16/h5.webp",
+        "t16/h6.webp",
+        "t16/h7.webp",
+        "t16/h8.webp",
+        "t16/h9.webp",
+        "t16/h10.webp",
+        "t16/h11.webp",
+        "t16/hb1.webp",
+        "t16/hb2.webp",
+        "t16/hb3.webp"
+      ]
+    },
+    "17": {
+      "club": "newcastle",
+      "file": "Recolor_shirts_for_Newcastle_202607270409.jpeg",
+      "files": [
+        "t17/h1.webp",
+        "t17/h2.webp",
+        "t17/h3.webp",
+        "t17/h4.webp",
+        "t17/h5.webp",
+        "t17/h6.webp",
+        "t17/h7.webp",
+        "t17/h8.webp",
+        "t17/h9.webp",
+        "t17/h10.webp",
+        "t17/h11.webp",
+        "t17/hb1.webp",
+        "t17/hb2.webp",
+        "t17/hb3.webp"
+      ]
+    },
+    "18": {
+      "club": "forest",
+      "file": "Recolor_shirts_to_Nott'm_Forest_202607270429.jpeg",
+      "files": [
+        "t18/h1.webp",
+        "t18/h2.webp",
+        "t18/h3.webp",
+        "t18/h4.webp",
+        "t18/h5.webp",
+        "t18/h6.webp",
+        "t18/h7.webp",
+        "t18/h8.webp",
+        "t18/h9.webp",
+        "t18/h10.webp",
+        "t18/h11.webp",
+        "t18/hb1.webp",
+        "t18/hb2.webp",
+        "t18/hb3.webp"
+      ]
+    },
+    "19": {
+      "club": "spurs",
+      "file": "Recolor_shirts_for_Spurs_202607270409.jpeg",
+      "files": [
+        "t19/h1.webp",
+        "t19/h2.webp",
+        "t19/h3.webp",
+        "t19/h4.webp",
+        "t19/h5.webp",
+        "t19/h6.webp",
+        "t19/h7.webp",
+        "t19/h8.webp",
+        "t19/h9.webp",
+        "t19/h10.webp",
+        "t19/h11.webp",
+        "t19/hb1.webp",
+        "t19/hb2.webp",
+        "t19/hb3.webp"
+      ]
+    },
+    "20": {
+      "club": "sunderland",
+      "file": "Recolor_shirts_for_Sunderland_202607270409.jpeg",
+      "files": [
+        "t20/h1.webp",
+        "t20/h2.webp",
+        "t20/h3.webp",
+        "t20/h4.webp",
+        "t20/h5.webp",
+        "t20/h6.webp",
+        "t20/h7.webp",
+        "t20/h8.webp",
+        "t20/h9.webp",
+        "t20/h10.webp",
+        "t20/h11.webp",
+        "t20/hb1.webp",
+        "t20/hb2.webp",
+        "t20/hb3.webp"
+      ]
+    }
+  }
+}

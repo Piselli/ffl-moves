@@ -1,0 +1,1 @@
+Shared locks are inlined in each club prompt — see COPY_ALL.md

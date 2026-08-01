@@ -1,0 +1,13 @@
+Attach locker-plate-v25-slate-hangers.png. Edit that photo ONLY — same camera, lockers, chrome hooks, matte-black plastic hangers, black seats, floor, ceiling lights, door. Do not redesign the room. Do not repaint upper locker doors or the cavity ceiling above the hooks. Do not change hanger shape, colour, or position.
+
+Hang Premier League 2026/27 Fulham (FUL) kits on all 14 hangers (back facing camera). Bay layout LEFT → RIGHT:
+
+1) h1 (first locker, always GK): Purple Adidas GK with white accents, blank back. No name, no number, no sponsor text on the back.
+
+2–14) h2 through h11, then hb1 hb2 hb3: Crisp white with black branding, red flash on collar, subtle embossed chevron-wave Thames texture. Same home shirt on every one of these 13 hangers. No name, no number, no sponsor text on the back.
+
+SIZE LOCK: every shirt is the same adult medium — GK and home must match in scale (only colour/cut differ). Collar on the hanger bar with no gap. Hem clears the seat by about one fist on center bays. Same sleeve length and hem line relative to the seat on all hooks; only foreshortening changes on the sides. Do not make side shirts mini or oversized. Sleeves must not touch the chrome rails.
+
+Keep every matte-black hanger identical to the empty plate. Soft contact shadow on the locker back. Cool overhead LED light. Photoreal, 16:9.
+
+Save as: t10-fulham-plate.png

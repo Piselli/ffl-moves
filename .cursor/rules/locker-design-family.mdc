@@ -1,0 +1,29 @@
+---
+description: MoveMatch design-lab guidance for locker-era and leaderboard exploration
+globs: src/components/design-lab/locker-*/**/*
+alwaysApply: false
+---
+
+# Design lab — MoveMatch product surfaces
+
+## Homepage / locker-hero
+Keep the locked locker language: warm dark slate, Oswald, restrained `#00f948`, room + tablet.
+
+## Leaderboard, menu & later product pages
+May **diverge from the locker photo** when the user asks to move on. Keep product continuity via brand (wordmark, green as accent only, Oswald), not by cloning the hero background.
+
+Leaderboard lab (`/design-lab/locker-leaderboard`): **locked Lounge TV**
+(Supporters’ lounge + wall TV). Tablet = interactive this-GW team sheet
+(claim / XI / find me); wall = passive auto-cycle **previous GW ↔ season
+highlights**. Raise/lower like homepage. Never squad-pick locker photo.
+Never A/B other rooms (cabinet / bar / greenroom) in the shipping path.
+Brand via wordmark / Oswald / `#00f948` only.
+
+## Still banned unless explicitly requested
+- Terminal / schema / wireframe / mono “dev tool” UIs
+- Giant kinetic numeral portfolio pages
+- Random unrelated genre packs (contour maps, tabloid, passport) sold as filler
+
+## How to explore
+Propose 2–3 **composition metaphors** (broadcast strip, spatial glass, tactile ladder, etc.), not color theme swaps of the same table.
+If unsure — one question, then build.

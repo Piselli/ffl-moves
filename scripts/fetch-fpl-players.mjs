@@ -45,7 +45,12 @@ async function main() {
       teamId: el.team,
       position: POSITION_MAP[el.element_type] || "MID",
       positionId: el.element_type - 1,
-      photo: `${PHOTO_BASE}${el.code}.jpg`,
+      squadNumber:
+        el.squad_number == null || el.squad_number === ""
+          ? null
+          : Number(el.squad_number),
+      photo: `${PHOTO_BASE}${el.code}.png`,
+      fplPhotoCode: el.code,
       status: el.status, // 'a' = available, 'd' = doubtful, 'i' = injured
       chanceOfPlaying: el.chance_of_playing_next_round,
       news: el.news || "",
