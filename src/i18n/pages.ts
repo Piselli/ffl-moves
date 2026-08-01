@@ -181,6 +181,23 @@ export type PagesMessages = {
       resultsViewPrediction: string;
       submittedHintClosed: string;
       prizePayoutsPendingNote: string;
+      leaderboard: {
+        eyebrow: string;
+        title: string;
+        subtitle: string;
+        backToBracket: string;
+        entriesChip: (n: number) => string;
+        payoutNoteTitle: string;
+        payoutNoteBody: (topFivePool: string) => string;
+        partialOfficial: (decided: number, max: number) => string;
+        loadError: string;
+        empty: string;
+        colRank: string;
+        colWallet: string;
+        colScore: string;
+        colPayout: string;
+        generatedAt: (when: string) => string;
+      };
       predictor: {
         stepGroups: string;
         stepThirds: string;
@@ -757,6 +774,26 @@ export const pagesEn: PagesMessages = {
       resultsViewPrediction: "View your locked picks ↓",
       prizePayoutsPendingNote:
         "Advertised pool stays the same — payouts and claim open after the prize pool is funded.",
+      leaderboard: {
+        eyebrow: "Bracket Challenge · Tour 10999",
+        title: "Official leaderboard",
+        subtitle:
+          "Movement mainnet entries scored against the published official bracket. Prizes are paid manually to the Movement wallet shown — there is no on-chain claim for this challenge.",
+        backToBracket: "← Bracket hub",
+        entriesChip: (n) => `${n} locked predictions`,
+        payoutNoteTitle: "Off-chain payouts",
+        payoutNoteBody: (topFivePool) =>
+          `Suggested USDC amounts for manual transfer: top-5 pool ${topFivePool} plus the $300 perfect-bracket bonus if anyone hits all 92 places.`,
+        partialOfficial: (decided, max) =>
+          `Official bracket is partial (${decided}/${max} places) — scores will shift as more results publish.`,
+        loadError: "Could not load the leaderboard file. Run npm run wc:bracket:leaderboard.",
+        empty: "No entries in the archive snapshot.",
+        colRank: "Rank",
+        colWallet: "Movement wallet",
+        colScore: "Points",
+        colPayout: "Suggested payout",
+        generatedAt: (when) => `Generated ${when}`,
+      },
       predictor: {
         stepGroups: "Groups",
         stepThirds: "Best 3rds",
@@ -1813,6 +1850,26 @@ export const pagesUk: PagesMessages = {
       resultsViewPrediction: "Дивитись свій прогноз ↓",
       prizePayoutsPendingNote:
         "Заявлений фонд той самий — виплати й claim відкриються після фінансування пулу.",
+      leaderboard: {
+        eyebrow: "Прогноз турніру · Тур 10999",
+        title: "Офіційний рейтинг",
+        subtitle:
+          "Заявки з Movement mainnet, оцінені за опублікованою офіційною сіткою. Призи виплачуються вручну на вказаний Movement-гаманець — on-chain claim для цього челенджу немає.",
+        backToBracket: "← До прогнозу",
+        entriesChip: (n) => `${n} зафіксованих прогнозів`,
+        payoutNoteTitle: "Off-chain виплати",
+        payoutNoteBody: (topFivePool) =>
+          `Рекомендовані суми USDC для ручного переказу: топ-5 ${topFivePool} плюс бонус $300 за ідеальний прогноз, якщо хтось набере усі 92 очки.`,
+        partialOfficial: (decided, max) =>
+          `Офіційна сітка ще неповна (${decided}/${max} місць) — скор зміниться після нових результатів.`,
+        loadError: "Не вдалося завантажити рейтинг. Запусти npm run wc:bracket:leaderboard.",
+        empty: "У архівному знімку немає заявок.",
+        colRank: "Місце",
+        colWallet: "Movement-гаманець",
+        colScore: "Очки",
+        colPayout: "Реком. виплата",
+        generatedAt: (when) => `Згенеровано ${when}`,
+      },
       predictor: {
         stepGroups: "Групи",
         stepThirds: "Кращі 3-ті",

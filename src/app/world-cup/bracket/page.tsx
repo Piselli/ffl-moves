@@ -335,6 +335,12 @@ export default function WorldCupBracketPage() {
               {bc.entriesLabel(entries)}
             </span>
           ) : null}
+          <Link
+            href="/world-cup/bracket/results"
+            className="rounded-full border border-[#00f948]/25 bg-[#00f948]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#00f948] transition hover:bg-[#00f948]/15"
+          >
+            {bc.hubCta}
+          </Link>
         </div>
       </div>
 

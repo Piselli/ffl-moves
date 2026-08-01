@@ -227,20 +227,20 @@ async function main() {
         `fund player ${index + 1} with SOL`,
       );
     }
-    if (index > 0 && (await getUsdcBalance(player.publicKey.toBase58())) < entryFee) {
-      const source = getAssociatedTokenAddressSync(usdcMint, players[0].publicKey);
+    if ((await getUsdcBalance(player.publicKey.toBase58())) < entryFee) {
+      const source = getAssociatedTokenAddressSync(usdcMint, admin.publicKey);
       const destination = getAssociatedTokenAddressSync(usdcMint, player.publicKey);
       await send(
         [
           createAssociatedTokenAccountIdempotentInstruction(
-            players[0].publicKey,
+            admin.publicKey,
             destination,
             player.publicKey,
             usdcMint,
           ),
-          createTransferInstruction(source, destination, players[0].publicKey, entryFee),
+          createTransferInstruction(source, destination, admin.publicKey, entryFee),
         ],
-        [players[0]],
+        [admin],
         `fund player ${index + 1} with USDC`,
       );
     }
@@ -295,6 +295,25 @@ async function main() {
   step("Close gameweek");
   await send(await buildCloseGameweek(admin.publicKey.toBase58(), gameweekId), [admin], "close_gameweek");
   check("gameweek is closed", (await getGameweek(gameweekId))?.status === "closed");
+
+  step("Stats gate — reject publish before commit_stats");
+  const gateAwards = allocatePrizes(
+    (await getGameweek(gameweekId))!.prizePool,
+    [{ owner: players[0].publicKey.toBase58(), finalPoints: 1 }],
+    gameweekId,
+  );
+  const gatePublished = await buildPublishResults(
+    admin.publicKey.toBase58(),
+    gameweekId,
+    gateAwards.map((award) => ({
+      owner: award.owner,
+      rank: award.rank,
+      finalPoints: award.finalPoints,
+      amount: award.amount,
+    })),
+    1,
+  );
+  await expectFailure(gatePublished.instructions, [admin], "publish without stats commit");
 
   step("Commit stats and publish the file");
   const teams = await Promise.all(
