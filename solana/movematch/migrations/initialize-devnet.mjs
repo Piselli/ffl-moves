@@ -13,6 +13,7 @@ import {
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotentInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
@@ -29,8 +30,27 @@ const [config] = PublicKey.findProgramAddressSync([Buffer.from("config")], progr
 const [treasury] = PublicKey.findProgramAddressSync([Buffer.from("treasury")], programId);
 const treasuryAta = getAssociatedTokenAddressSync(usdcMint, treasury, true);
 
+// `register_team` debits the house share into this account but the program never
+// creates it, so the deployment is only usable once it exists.
+async function ensureHouseAta(houseWallet) {
+  const houseAta = getAssociatedTokenAddressSync(usdcMint, houseWallet);
+  if (await connection.getAccountInfo(houseAta)) {
+    console.log(`House token account ready: ${houseAta}`);
+    return;
+  }
+  const signature = await sendAndConfirmTransaction(
+    connection,
+    new Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(deployer.publicKey, houseAta, houseWallet, usdcMint),
+    ),
+    [deployer],
+  );
+  console.log(`House token account created: ${houseAta} (${signature})`);
+}
+
 if (await connection.getAccountInfo(config)) {
   console.log(`Config already initialized: ${config}`);
+  await ensureHouseAta(deployer.publicKey);
   process.exit(0);
 }
 
@@ -58,6 +78,7 @@ const instruction = new TransactionInstruction({
 });
 
 const signature = await sendAndConfirmTransaction(connection, new Transaction().add(instruction), [deployer]);
+await ensureHouseAta(deployer.publicKey);
 console.log(JSON.stringify({
   signature,
   config: config.toBase58(),

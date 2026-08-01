@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { normalizeMoveAccountAddress } from "@/lib/moveAddress";
 
 const STORAGE_KEY = "fflmove_nicknames";
+
+/**
+ * Solana addresses are case-sensitive base58, so they are their own canonical
+ * form. The Move normalizer used here before lowercased them and prefixed `0x`,
+ * which both collided distinct wallets and rendered `0xbjcb…` in the UI.
+ */
+function addressKey(address: string): string {
+  return address.trim();
+}
 
 function readAll(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -23,11 +31,10 @@ export function useNickname(address?: string | null) {
 
   const getNickname = useCallback(
     (addr: string): string => {
-      const key = normalizeMoveAccountAddress(addr);
-      const stored = nicknames[key] ?? nicknames[addr.toLowerCase()];
+      const key = addressKey(addr);
+      const stored = nicknames[key];
       if (stored) return stored;
-      const short = normalizeMoveAccountAddress(addr);
-      return short.slice(0, 6) + "..." + short.slice(-4);
+      return key.length > 10 ? `${key.slice(0, 4)}...${key.slice(-4)}` : key;
     },
     [nicknames]
   );
@@ -36,17 +43,17 @@ export function useNickname(address?: string | null) {
     const trimmed = name.trim().slice(0, 20);
     if (!trimmed) return;
     const all = readAll();
-    all[normalizeMoveAccountAddress(addr)] = trimmed;
+    all[addressKey(addr)] = trimmed;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     setNicknames({ ...all });
   }, []);
 
   const hasNickname = useCallback(
-    (addr: string): boolean => !!nicknames[normalizeMoveAccountAddress(addr)],
+    (addr: string): boolean => !!nicknames[addressKey(addr)],
     [nicknames]
   );
 
-  const myNickname = address ? nicknames[normalizeMoveAccountAddress(address)] ?? null : null;
+  const myNickname = address ? nicknames[addressKey(address)] ?? null : null;
 
   return { getNickname, setNickname, hasNickname, myNickname };
 }

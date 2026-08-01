@@ -1,18 +1,17 @@
 import type { TeamResult } from "@/lib/types";
-import { moveAddressesMatch, normalizeMoveAccountAddress } from "@/lib/moveAddress";
+import { getClaimedOwners } from "@/lib/chainClient";
 
-const RPC = () =>
-  (process.env.NEXT_PUBLIC_MOVEMENT_RPC_URL ?? process.env.NEXT_PUBLIC_APTOS_API ?? "").replace(
-    /\/$/,
-    "",
-  );
-
+/**
+ * Solana addresses are base58 and case-sensitive, so the canonical form is the
+ * string itself. Running them through the Move normalizer would lowercase them
+ * and bolt on an `0x`, which can collide two distinct wallets.
+ */
 export function normTourOwnerAddr(addr: string): string {
-  return normalizeMoveAccountAddress(addr);
+  return addr.trim();
 }
 
 export function tourOwnersMatch(a: string, b: string): boolean {
-  return moveAddressesMatch(a, b);
+  return normTourOwnerAddr(a) === normTourOwnerAddr(b);
 }
 
 /** Fetch claim history via server cache (preferred in browser). */
@@ -36,50 +35,20 @@ export async function ownerHasPriorClaimPrize(
   const fromApi = await fetchTourClaimHistoryFromApi(tourId);
   if (fromApi.has(normalized)) return true;
   if (registeredAddresses?.length) {
-    const direct = await fetchOwnersWithClaimPrizeTx(tourId, [owner]);
+    const direct = await fetchOwnersWithClaimedPrize(tourId, [owner]);
     return direct.has(normalized);
   }
   return false;
 }
 
-type AccountTx = {
-  type?: string;
-  success?: boolean;
-  payload?: { function?: string; arguments?: unknown[] };
-};
-
-/** Wallets that successfully called `claim_prize` for this tour (includes pre-recalc claims). */
-export async function fetchOwnersWithClaimPrizeTx(
+/** Wallets already paid for this tour, read from their `ClaimReceipt` accounts. */
+export async function fetchOwnersWithClaimedPrize(
   tourId: number,
   ownerAddresses: string[],
 ): Promise<Set<string>> {
-  const base = RPC();
-  if (!base || ownerAddresses.length === 0) return new Set();
-
-  const claimed = new Set<string>();
-  const tourArg = String(tourId);
-
-  await mapPool(ownerAddresses, 4, async (owner) => {
-    const addr = normTourOwnerAddr(owner);
-    try {
-      const res = await fetch(`${base}/accounts/${addr}/transactions?limit=100`);
-      if (!res.ok) return;
-      const txs = (await res.json()) as AccountTx[];
-      for (const tx of txs) {
-        const fn = tx.payload?.function ?? "";
-        if (tx.type !== "user_transaction" || !tx.success || !fn.includes("claim_prize")) continue;
-        const args = tx.payload?.arguments ?? [];
-        if (String(args[0]) === tourArg) {
-          claimed.add(addr);
-          break;
-        }
-      }
-    } catch {
-      /* ignore per-wallet */
-    }
-  });
-
-  return claimed;
+  if (ownerAddresses.length === 0) return new Set();
+  const claimed = await getClaimedOwners(tourId, ownerAddresses.map(normTourOwnerAddr));
+  return new Set(claimed);
 }
 
 export function mergePriorClaimsIntoResults(
@@ -92,14 +61,4 @@ export function mergePriorClaimsIntoResults(
     if (!priorClaimedOwners.has(normTourOwnerAddr(r.owner))) return r;
     return { ...r, claimed: true };
   });
-}
-
-async function mapPool<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  for (let i = 0; i < items.length; i += concurrency) {
-    await Promise.all(items.slice(i, i + concurrency).map(fn));
-  }
 }

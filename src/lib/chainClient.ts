@@ -333,6 +333,25 @@ export async function isPrizeClaimed(owner: string, gameweekId: number): Promise
   return (await getConnection().getAccountInfo(claimPda(gameweekId, owner))) !== null;
 }
 
+/**
+ * Owners already paid for this gameweek. A `ClaimReceipt` PDA is the only
+ * authority on that: it is created by the payout itself and reopening a
+ * gameweek after a claim is refused, so it can never go stale.
+ */
+export async function getClaimedOwners(gameweekId: number, owners: string[]): Promise<string[]> {
+  const claimed: string[] = [];
+  for (let start = 0; start < owners.length; start += 100) {
+    const batch = owners.slice(start, start + 100);
+    const accounts = await getConnection().getMultipleAccountsInfo(
+      batch.map((owner) => claimPda(gameweekId, owner)),
+    );
+    batch.forEach((owner, index) => {
+      if (accounts[index]) claimed.push(owner);
+    });
+  }
+  return claimed;
+}
+
 export async function getStatsCommit(gameweekId: number): Promise<StatsCommit | null> {
   const account = await getConnection().getAccountInfo(statsPda(gameweekId));
   return account ? decodeStatsCommit(account.data) : null;
@@ -535,6 +554,11 @@ export async function buildRegisterTeam(
   return [
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_000 }),
     createAssociatedTokenAccountIdempotentInstruction(ownerKey, ownerAta, ownerKey, USDC_MINT),
+    // The program requires the house token account to exist but never creates it,
+    // so without this the first registration on a fresh deployment dead-ends on an
+    // opaque AccountNotInitialized. Operators should pre-create it (the migration
+    // does) — this only keeps registration from being the thing that discovers it.
+    createAssociatedTokenAccountIdempotentInstruction(ownerKey, houseAta, houseWallet, USDC_MINT),
     register,
   ];
 }
