@@ -7,11 +7,6 @@ import {
   getGameweek,
   getStatsCommit,
   findOpenGameweek,
-  hasAdminSponsorPrizePoolOnChain,
-  hasAdminWithdrawPrizeVaultOnChain,
-  getBracketChallengeStatus,
-  getBracketChallengeEntries,
-  hasRegisterBracketPredictionOnChain,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/chainClient";
@@ -33,21 +28,11 @@ import {
   SOLANA_CLUSTER,
   STATS_PUBLISH_BASE_URL,
 } from "@/lib/constants";
-import {
-  WC_BRACKET_ADVERTISED_POOL_USDC,
-  WC_BRACKET_EVENT_ID,
-} from "@/lib/wcBracketPrediction";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
-import { fetchGameweekStats, fetchGameweekStatsFPL, fetchWorldCupRoundStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
-import {
-  WC_ROUNDS,
-  getWorldCupTourSummaries,
-  isWorldCupTour,
-} from "@/lib/worldcup";
+import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { WcBracketStateEditor } from "@/components/admin/WcBracketStateEditor";
 
 function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
@@ -96,7 +81,6 @@ export default function AdminPage() {
   const { connected, account, signAndSubmit } = useWallet();
   const m = useSiteMessages();
   const ad = m.pages.admin;
-  const wc = m.pages.worldCup;
   const prize = usePrizeAsset();
 
   const [config, setConfig] = useState<ChainConfig | null>(null);
@@ -104,17 +88,8 @@ export default function AdminPage() {
   const [currentGameweek, setCurrentGameweek] = useState<GameweekSummary | null>(null);
   /** Фактичний OPEN-тур на ланцюгу (скан) — саме його треба закривати для зупинки реєстрації. */
   const [openGameweek, setOpenGameweek] = useState<GameweekSummary | null>(null);
-  const [openWcTour, setOpenWcTour] = useState<GameweekSummary | null>(null);
-  const [wcTourSummaries, setWcTourSummaries] = useState<GameweekSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
-  const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
-  const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
-  const [bracketAbiLive, setBracketAbiLive] = useState<boolean | null>(null);
-  const [bracketStatus, setBracketStatus] = useState<number | null>(null);
-  const [bracketEntries, setBracketEntries] = useState<number | null>(null);
-  const [bracketPrizeGw, setBracketPrizeGw] = useState<GameweekSummary | null>(null);
 
   // Form states
   const [newGameweekId, setNewGameweekId] = useState("");
@@ -130,9 +105,7 @@ export default function AdminPage() {
   const [feeEntryMove, setFeeEntryMove] = useState("");
 
   // API states
-  const [dataSource, setDataSource] = useState<"fpl" | "api-sports" | "wc">("fpl");
-  // World Cup tour id selected for stats fetching (defaults to the first round).
-  const [wcTourId, setWcTourId] = useState<number>(WC_ROUNDS[0].tourId);
+  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
   const [apiKey, setApiKey] = useState("");
   const [fetchGameweek, setFetchGameweek] = useState("");
   const [isFetchingApi, setIsFetchingApi] = useState(false);
@@ -143,46 +116,20 @@ export default function AdminPage() {
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
-    setSponsorTxAvailable(null);
-    setWithdrawTxAvailable(null);
-    setBracketAbiLive(null);
-    setBracketStatus(null);
-    setBracketEntries(null);
-    setBracketPrizeGw(null);
     try {
-      const [configData, sponsorOk, withdrawOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
-        getConfig(),
-        hasAdminSponsorPrizePoolOnChain(),
-        hasAdminWithdrawPrizeVaultOnChain(),
-        hasRegisterBracketPredictionOnChain(),
-        getBracketChallengeStatus(),
-        getBracketChallengeEntries(),
-        getGameweek(WC_BRACKET_EVENT_ID).catch(() => null),
-      ]);
-      setSponsorTxAvailable(sponsorOk);
-      setWithdrawTxAvailable(withdrawOk);
-      setBracketAbiLive(bracketOk);
-      setBracketStatus(bracketSt);
-      setBracketEntries(bracketEnt);
-      setBracketPrizeGw(bracketGw);
+      const configData = await getConfig();
       setConfig(configData);
       setCurrentGameweek(null);
       setOpenGameweek(null);
-      setOpenWcTour(null);
-      setWcTourSummaries([]);
       if (configData) {
-        const [pointerGw, openGw, wcTours] = await Promise.all([
+        const [pointerGw, openGw] = await Promise.all([
           configData.currentGameweek
             ? getGameweek(configData.currentGameweek).catch(() => null)
             : Promise.resolve(null),
           findOpenGameweek(),
-          getWorldCupTourSummaries(),
         ]);
         setCurrentGameweek(pointerGw);
         setOpenGameweek(openGw);
-        setWcTourSummaries(wcTours);
-        setOpenWcTour(wcTours.find((t) => t.status === "open") ?? null);
-        // Pre-fill re-open input when the config pointer is a closed/resolved tour.
         if (
           pointerGw &&
           (pointerGw.status === "closed" || pointerGw.status === "resolved") &&
@@ -242,8 +189,8 @@ export default function AdminPage() {
   };
 
   const handleFetchFromApi = async () => {
-    if (dataSource !== "wc" && !fetchGameweek) return;
-    if ((dataSource === "api-sports" || dataSource === "wc") && !apiKey) return;
+    if (!fetchGameweek) return;
+    if (dataSource === "api-sports" && !apiKey) return;
 
     setIsFetchingApi(true);
     setFetchError("");
@@ -253,9 +200,7 @@ export default function AdminPage() {
       const result: GameweekStatsResult =
         dataSource === "fpl"
           ? await fetchGameweekStatsFPL(parseInt(fetchGameweek))
-          : dataSource === "wc"
-            ? await fetchWorldCupRoundStats(apiKey, wcTourId)
-            : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
+          : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
@@ -274,7 +219,7 @@ export default function AdminPage() {
         setFetchedFixtures(result.fixtures);
       }
 
-      if (dataSource === "api-sports" || dataSource === "wc") {
+      if (dataSource === "api-sports") {
         await handleCheckApiStatus();
       }
     } catch (error: unknown) {
@@ -292,13 +237,12 @@ export default function AdminPage() {
     walletAddr && config?.oracle && normAddr(config.oracle) === walletAddr
   );
 
-  /** OPEN tour on-chain — EPL scanner misses WC ids (10001+), so fall back to WC + config pointer. */
+  /** OPEN tour on-chain — `config.current_gameweek` when status is open. */
   const activeOpenTour = useMemo((): GameweekSummary | null => {
     if (openGameweek?.status === "open") return openGameweek;
-    if (openWcTour?.status === "open") return openWcTour;
     if (currentGameweek?.status === "open") return currentGameweek;
     return null;
-  }, [openGameweek, openWcTour, currentGameweek]);
+  }, [openGameweek, currentGameweek]);
 
   const handleCreateGameweekById = async (idNum: number) => {
     if (!connected) return;
@@ -323,12 +267,6 @@ export default function AdminPage() {
     try {
       await signAndSubmit(await buildCreateGameweek(account!.address, idNum));
       alert(ad.alertGwCreated(idNum));
-      const gwData = await getGameweek(idNum);
-      if (idNum >= 10001) {
-        setOpenWcTour(gwData?.status === "open" ? gwData : null);
-      } else {
-        setCurrentGameweek(gwData);
-      }
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to create gameweek:", error);
@@ -426,44 +364,6 @@ export default function AdminPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSponsorBracketPool = async () => {
-    if (!connected) return;
-    const gw = await getGameweek(WC_BRACKET_EVENT_ID);
-    if (!gw) {
-      alert(ad.sponsorGwNotFound(WC_BRACKET_EVENT_ID));
-      return;
-    }
-    if (gw.status === "resolved") {
-      alert(ad.sponsorAlertResolved);
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await signAndSubmit(await buildSponsorPrizePool(
-        account!.address,
-        WC_BRACKET_EVENT_ID,
-        BigInt(WC_BRACKET_ADVERTISED_POOL_USDC),
-      ));
-      alert(ad.sponsorSuccess(WC_BRACKET_EVENT_ID, prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDC)));
-      await loadChainConfig();
-    } catch (error: unknown) {
-      console.error("Failed to sponsor bracket pool:", error);
-      alert(ad.alertFailed(formatTxError(error)));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // The bracket module sits behind a disabled cargo feature in the deployed program,
-  // so both controls report that rather than sending an instruction that cannot exist.
-  const handleInitBracketChallenge = async () => {
-    alert(ad.bracketNotOnChain);
-  };
-
-  const handleCloseBracketChallenge = async () => {
-    alert(ad.bracketNotOnChain);
   };
 
   const handleSponsorPrizePool = async () => {
@@ -817,7 +717,7 @@ export default function AdminPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
         <p className="text-muted-foreground">
-          Manage gameweeks and submit match results
+          Solana devnet — manage EPL gameweeks, fees, and settlement
         </p>
         <div className="mt-3 flex gap-3">
           {isAdmin && (
@@ -871,7 +771,7 @@ export default function AdminPage() {
             <p className="text-3xl font-bold text-emerald-300 tabular-nums">
               {activeOpenTour ? (
                 <>
-                  {isWorldCupTour(activeOpenTour.id) ? "WC" : "GW"} {activeOpenTour.id} · OPEN
+                  GW {activeOpenTour.id} · OPEN
                 </>
               ) : (
                 <span className="text-white/40 text-xl font-semibold">{ad.noOpenGw}</span>
@@ -904,7 +804,7 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Close / Re-open — includes WC tours (10001+) that the EPL-only scanner misses. */}
+        {/* Close / Re-open */}
         {isAdmin && (activeOpenTour || currentGameweek) && (
           <div className="glass-card rounded-2xl p-6 border border-white/[0.06]">
             <div className="flex items-center gap-3 mb-4">
@@ -994,7 +894,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Create Gameweek (Admin) — EPL ids 1,2,3… or WC ids 10001+ */}
+        {/* Create Gameweek (Admin) */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -1004,16 +904,14 @@ export default function AdminPage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Create Gameweek / Tour</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  EPL: 1, 2, 3… · World Cup: 10001 (md1), 10002 (md2), … 10008 (final)
-                </p>
+                <h2 className="text-xl font-bold text-white">Create Gameweek</h2>
+                <p className="text-xs text-muted-foreground mt-1">EPL gameweek id — e.g. 39, 40, 41…</p>
               </div>
             </div>
             <div className="flex gap-4">
               <input
                 type="number"
-                placeholder="Tour ID (EPL: 2 · WC md1: 10001)"
+                placeholder="Gameweek ID (e.g. 39)"
                 value={newGameweekId}
                 onChange={(e) => setNewGameweekId(e.target.value)}
                 className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary border border-border"
@@ -1027,249 +925,6 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        )}
-
-        {/* World Cup tours — same on-chain create_gameweek, ids 10001–10008 */}
-        {isAdmin && (
-          <div className="glass-card rounded-2xl p-6 border border-[#00f948]/15">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#00f948]/15 flex items-center justify-center">
-                  <svg className="h-5 w-5 text-[#00f948]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">World Cup 2026 · Tours</h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Opens <code className="text-[#00f948]/80">/world-cup/squad</code> when any tour is OPEN on-chain.
-                  </p>
-                </div>
-              </div>
-              {activeOpenTour && isWorldCupTour(activeOpenTour.id) ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#00f948]/30 bg-[#00f948]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#00f948]">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00f948]" />
-                    Tour {activeOpenTour.id} OPEN
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleCloseGameweekById(activeOpenTour.id)}
-                    disabled={isSubmitting}
-                    className="rounded-lg border border-amber-500/50 bg-amber-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 disabled:opacity-50"
-                  >
-                    Close tour
-                  </button>
-                </div>
-              ) : (
-                <span className="text-xs font-semibold uppercase tracking-wider text-white/35">No open WC tour</span>
-              )}
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              {WC_ROUNDS.map((round) => {
-                const summary = wcTourSummaries.find((t) => t.id === round.tourId);
-                const status = summary?.status;
-                const statusCls =
-                  status === "open"
-                    ? "text-[#00f948] border-[#00f948]/30 bg-[#00f948]/10"
-                    : status === "closed"
-                      ? "text-amber-400 border-amber-500/25 bg-amber-500/10"
-                      : status === "resolved"
-                        ? "text-sky-300 border-sky-500/25 bg-sky-500/10"
-                        : "text-white/30 border-white/10 bg-white/[0.03]";
-                return (
-                  <div
-                    key={round.tourId}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-secondary/30 px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">
-                        ID {round.tourId} · {round.key}
-                      </p>
-                      <p className="truncate text-sm font-semibold text-white">{wc.roundName(round.key)}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase", statusCls)}>
-                        {status ?? wc.statusUpcoming}
-                      </span>
-                      {!summary ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleCreateGameweekById(round.tourId)}
-                          disabled={isSubmitting}
-                          className="rounded-lg bg-[#00f948] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-black disabled:opacity-50"
-                        >
-                          Create
-                        </button>
-                      ) : status === "open" ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleCloseGameweekById(round.tourId)}
-                          disabled={isSubmitting}
-                          className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 disabled:opacity-50"
-                        >
-                          Close
-                        </button>
-                      ) : status === "closed" || status === "resolved" ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleReopenGameweekById(round.tourId)}
-                          disabled={isSubmitting}
-                          className="rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-200 disabled:opacity-50"
-                        >
-                          Re-open
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* WC Bracket Challenge go-live */}
-        {isAdmin && (
-          <div className="glass-card rounded-2xl p-6 border border-[#FFD700]/20">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">{ad.bracketSectionTitle}</h2>
-                <p className="text-xs text-muted-foreground mt-1 max-w-2xl">{ad.bracketSectionHint}</p>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
-                  bracketAbiLive
-                    ? "border-[#00f948]/30 bg-[#00f948]/10 text-[#00f948]"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-200",
-                )}
-              >
-                {bracketAbiLive ? ad.bracketAbiLive : ad.bracketAbiMissing}
-              </span>
-            </div>
-
-            <div className="mb-4 flex flex-wrap gap-2 text-xs">
-              {bracketStatus != null ? (
-                <span
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 font-bold uppercase",
-                    bracketStatus === 0
-                      ? "border-[#00f948]/30 bg-[#00f948]/10 text-[#00f948]"
-                      : "border-white/10 bg-white/[0.04] text-white/50",
-                  )}
-                >
-                  {ad.bracketStatusLabel(bracketStatus)}
-                </span>
-              ) : null}
-              {bracketEntries != null ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/45">
-                  {ad.bracketEntriesLabel(bracketEntries)}
-                </span>
-              ) : null}
-              {bracketPrizeGw ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/45">
-                  {ad.bracketGwPoolLabel(
-                    WC_BRACKET_EVENT_ID,
-                    prize.formatLabel(Number(bracketPrizeGw.prizePool ?? 0)),
-                  )}
-                </span>
-              ) : null}
-            </div>
-
-            {bracketAbiLive === false ? (
-              <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
-                {ad.bracketNotOnChain}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepPublish}</p>
-                <code className="block overflow-x-auto rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-[11px] text-white/60">
-                  npm run wc:bracket:deploy
-                </code>
-
-                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepCreateGw}</p>
-                <button
-                  type="button"
-                  onClick={() => void handleCreateGameweekById(WC_BRACKET_EVENT_ID)}
-                  disabled={isSubmitting || Boolean(bracketPrizeGw)}
-                  className="rounded-lg bg-[#FFD700]/90 px-4 py-2 text-xs font-bold uppercase tracking-wide text-black disabled:opacity-40"
-                >
-                  {ad.bracketCreateGwButton(WC_BRACKET_EVENT_ID)}
-                </button>
-
-                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepSponsor}</p>
-                <button
-                  type="button"
-                  onClick={() => void handleSponsorBracketPool()}
-                  disabled={
-                    isSubmitting ||
-                    !bracketPrizeGw ||
-                    bracketPrizeGw.status === "resolved" ||
-                    sponsorTxAvailable === false
-                  }
-                  className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 disabled:opacity-40"
-                >
-                  {ad.bracketSponsorButton(prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDC))}
-                </button>
-
-                <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepInit}</p>
-                <p className="text-xs text-white/40">{ad.bracketInitModuleWalletHint}</p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleInitBracketChallenge()}
-                    disabled={isSubmitting || !bracketAbiLive || bracketStatus === 0}
-                    className="rounded-lg bg-[#00f948] px-4 py-2 text-xs font-bold uppercase tracking-wide text-black disabled:opacity-40"
-                  >
-                    {ad.bracketInitButton}
-                  </button>
-                  {bracketStatus === 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleCloseBracketChallenge()}
-                      disabled={isSubmitting}
-                      className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-amber-100 disabled:opacity-40"
-                    >
-                      {ad.bracketCloseButton}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Homepage hero — official WC bracket state */}
-        {isAdmin && (
-          <WcBracketStateEditor
-            copy={{
-              title: ad.heroStateTitle,
-              hint: ad.heroStateHint,
-              autoSyncOn: ad.heroStateAutoSyncOn,
-              autoSyncOff: ad.heroStateAutoSyncOff,
-              overrideTitle: ad.heroStateOverrideTitle,
-              overrideHint: ad.heroStateOverrideHint,
-              adminKeyLabel: ad.heroStateAdminKeyLabel,
-              adminKeyPlaceholder: ad.heroStateAdminKeyPlaceholder,
-              refreshButton: ad.heroStateRefreshButton,
-              saveButton: ad.heroStateSaveButton,
-              saving: ad.heroStateSaving,
-              lastUpdated: ad.heroStateLastUpdated,
-              saveSuccess: ad.heroStateSaveSuccess,
-              saveError: ad.heroStateSaveError,
-              keyRequired: ad.heroStateKeyRequired,
-              predictor: {
-                ...wc.bracket.predictor,
-                final: wc.bracket.koFinal,
-                thirdPlace: wc.bracket.koThirdPlace,
-                tapHint: wc.bracket.koTapHint,
-              },
-              final: wc.bracket.koFinal,
-              thirdPlace: wc.bracket.koThirdPlace,
-              tapHint: wc.bracket.koTapHint,
-            }}
-          />
         )}
 
         {/* Adjust Prize Pool (Admin) */}
@@ -1319,11 +974,6 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground mt-1">{ad.sponsorSectionHint(prize.symbol)}</p>
               </div>
             </div>
-            {sponsorTxAvailable === false && (
-              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
-                {ad.sponsorNotOnChain}
-              </p>
-            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{ad.sponsorGwLabel}</span>
@@ -1349,12 +999,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={handleSponsorPrizePool}
-              disabled={
-                isSubmitting ||
-                !sponsorGwId ||
-                !sponsorAmountMove ||
-                sponsorTxAvailable !== true
-              }
+              disabled={isSubmitting || !sponsorGwId || !sponsorAmountMove}
               className="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-medium hover:from-cyan-500 hover:to-teal-500 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.sponsorSubmit}
@@ -1381,11 +1026,6 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground mt-1">{ad.withdrawSectionHint(prize.symbol)}</p>
               </div>
             </div>
-            {withdrawTxAvailable === false && (
-              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
-                {ad.withdrawNotOnChain}
-              </p>
-            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <label className="flex flex-col gap-1 sm:col-span-2">
                 <span className="text-xs text-muted-foreground">{ad.withdrawRecipientLabel}</span>
@@ -1396,7 +1036,7 @@ export default function AdminPage() {
                   value={withdrawRecipient}
                   onChange={(e) => setWithdrawRecipient(e.target.value)}
                   className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 border border-border font-mono text-sm"
-                  placeholder="0x…"
+                  placeholder="Solana address"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -1413,12 +1053,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={handleWithdrawPrizeVault}
-              disabled={
-                isSubmitting ||
-                !withdrawRecipient.trim() ||
-                !withdrawAmountMove ||
-                withdrawTxAvailable !== true
-              }
+              disabled={isSubmitting || !withdrawRecipient.trim() || !withdrawAmountMove}
               className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-700 text-white rounded-xl font-medium hover:from-orange-500 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.withdrawSubmit}
@@ -1506,18 +1141,6 @@ export default function AdminPage() {
                 <span className="block font-bold">API-Sports</span>
                 <span className="block text-[10px] mt-0.5 opacity-70">EPL &middot; 100 req/day &middot; Needs key</span>
               </button>
-              <button
-                onClick={() => setDataSource("wc")}
-                className={cn(
-                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                  dataSource === "wc"
-                    ? "bg-[#00f948]/20 text-[#00f948] border-[#00f948]/30 shadow-lg shadow-[#00f948]/10"
-                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
-                )}
-              >
-                <span className="block font-bold">World Cup</span>
-                <span className="block text-[10px] mt-0.5 opacity-70">API-Sports &middot; Needs key</span>
-              </button>
             </div>
 
             {dataSource === "fpl" && (
@@ -1539,21 +1162,8 @@ export default function AdminPage() {
               </p>
             )}
 
-            {dataSource === "wc" && (
-              <p className="text-muted-foreground text-sm mb-4">
-                Fetch FIFA World Cup 2026 stats from API-Sports (league 1) for the selected tour. Submits to the
-                matching on-chain tour id (10001+). Build the player catalog first with{" "}
-                <code className="text-[#00f948]">npm run wc:players</code>.
-                <br />
-                <span className="text-xs text-muted-foreground/60">
-                  Provides: goals, assists, saves, clean sheets, cards, penalties, real match ratings, tackles/interceptions/dribbles.
-                </span>
-              </p>
-            )}
-
             <div className="space-y-4">
-              {/* API Key Input — for API-Sports and World Cup */}
-              {(dataSource === "api-sports" || dataSource === "wc") && (
+              {dataSource === "api-sports" && (
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">API Key</label>
                   <div className="flex gap-3">
@@ -1587,47 +1197,24 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Round / Gameweek selector */}
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">
-                  {dataSource === "wc" ? "World Cup tour to fetch" : "Gameweek to Fetch"}
-                </label>
+                <label className="block text-sm text-muted-foreground mb-2">Gameweek to Fetch</label>
                 <div className="flex gap-3">
-                  {dataSource === "wc" ? (
-                    <select
-                      value={wcTourId}
-                      onChange={(e) => setWcTourId(Number(e.target.value))}
-                      className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00f948] border border-border"
-                    >
-                      {WC_ROUNDS.map((r) => (
-                        <option key={r.tourId} value={r.tourId} className="bg-[#0D0F12]">
-                          {r.tourId} · {r.key.toUpperCase()} ({r.stage})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="number"
-                      placeholder="e.g., 23"
-                      value={fetchGameweek}
-                      onChange={(e) => setFetchGameweek(e.target.value)}
-                      className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
-                    />
-                  )}
+                  <input
+                    type="number"
+                    placeholder="e.g., 23"
+                    value={fetchGameweek}
+                    onChange={(e) => setFetchGameweek(e.target.value)}
+                    className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border"
+                  />
                   <button
                     onClick={handleFetchFromApi}
-                    disabled={
-                      ((dataSource === "api-sports" || dataSource === "wc") && !apiKey) ||
-                      (dataSource !== "wc" && !fetchGameweek) ||
-                      isFetchingApi
-                    }
+                    disabled={(dataSource === "api-sports" && !apiKey) || !fetchGameweek || isFetchingApi}
                     className={cn(
                       "px-6 py-3 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
                       dataSource === "fpl"
                         ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 shadow-emerald-500/25"
-                        : dataSource === "wc"
-                          ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[#00f948]/25"
-                          : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25",
                     )}
                   >
                     {isFetchingApi ? (
@@ -1637,8 +1224,6 @@ export default function AdminPage() {
                       </span>
                     ) : dataSource === "fpl" ? (
                       "Fetch from FPL"
-                    ) : dataSource === "wc" ? (
-                      "Fetch World Cup"
                     ) : (
                       "Fetch from API-Sports"
                     )}
