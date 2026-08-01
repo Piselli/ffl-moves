@@ -19,6 +19,7 @@
     "preflight:movement": "node scripts/preflight-mainnet.mjs",
     "mainnet:keys": "node scripts/print-mainnet-key-manifest.mjs",
     "mainnet:deploy": "bash scripts/deploy-mainnet.sh",
+    "admin:add": "node scripts/add-admin-devnet.mjs",
     "verify:stats-gate": "npx tsx scripts/verify-stats-gate-devnet.mts",
     "e2e:devnet": "npx tsx scripts/e2e-devnet.mts",
     "wc:bracket:leaderboard": "npx tsx scripts/build-wc-bracket-leaderboard.mts",

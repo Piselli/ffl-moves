@@ -795,10 +795,18 @@ export default function AdminPage() {
           <p className="text-muted-foreground mb-4">
             You are not authorized to access admin functions.
           </p>
+          {walletAddr ? (
+            <p className="text-sm text-muted-foreground mb-4 font-mono break-all">
+              Connected: {account?.address?.toString()}
+            </p>
+          ) : null}
           <div className="text-sm text-muted-foreground space-y-1">
-            <p>Admins: {config?.admins?.length || 0} address(es)</p>
-            <p>Oracle: {config?.oracle?.slice(0, 10)}...</p>
+            <p>Admins: {config?.admins?.join(", ") || "—"}</p>
+            <p>Oracle: {config?.oracle ?? "—"}</p>
           </div>
+          <p className="mt-4 text-xs text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
+            Use Phantom on <strong className="text-white/70">Devnet</strong> — the app reads Solana devnet, not mainnet.
+          </p>
         </div>
       </div>
     );

@@ -604,6 +604,14 @@ export async function buildSetPaused(admin: string, paused: boolean): Promise<Tr
   return [adminIx("set_paused", admin, u8(paused ? 1 : 0))];
 }
 
+export async function buildAddAdmin(admin: string, newAdmin: string): Promise<TransactionInstruction[]> {
+  return [adminIx("add_admin", admin, key(newAdmin).toBytes())];
+}
+
+export async function buildSetOracle(admin: string, oracle: string): Promise<TransactionInstruction[]> {
+  return [adminIx("set_oracle", admin, key(oracle).toBytes())];
+}
+
 /** Frees the slice of the pool no winner was allocated, so treasury is not held forever. */
 export async function buildReleaseUnallocated(admin: string, gameweekId: number): Promise<TransactionInstruction[]> {
   return [ix("release_unallocated", [
