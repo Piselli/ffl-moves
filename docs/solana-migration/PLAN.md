@@ -80,10 +80,18 @@ On-chain state з Movement **не мігрує** — новий деплой, н
 - [x] Оновлено тексти, i18n, назви мережі й активу (FAQ обома мовами, admin)
 - [x] Лінт, типи, build
 
-### Фаза 6 — Opus 5 (перед mainnet)
+### Фаза 6 — Opus 5 (перед mainnet) — У РОБОТІ
 
-- Фінальне рев'ю дифу
-- Runbook: деплой, upgrade authority, oracle-ключ, ротація
-- Multisig (Squads) на upgrade authority і treasury
-- Snapshot лояльної бази з Movement, політика рефералів і season points
-- Sunset Movement: read-only архів, повідомлення гравцям
+- [x] Фінальне рев'ю дифу
+- [x] Runbook: деплой, upgrade authority, oracle-ключ, ротація — `06-runbook.md`
+- [x] `npm run preflight:solana` — перевірка оточення й стану ланцюга
+- [x] Snapshot лояльної бази — `npm run loyalty:snapshot`, 264 гаманці
+- [x] Sunset-план і чернетки повідомлень — `07-sunset.md`
+- [ ] Multisig (Squads) на upgrade authority і treasury — **рішення власника**
+- [ ] `INITIALIZER` у `lib.rs` перевести на операційний ключ і перезібрати
+- [ ] Доля bracket 10999 — **рішення власника**
+- [ ] Повний тур на mainnet: реєстрація → сеттл → claim
+- [ ] Політика рефералів і зарахування Movement-історії в season points
+
+Прив'язка Movement-адрес до Solana-адрес неможлива без окремого flow з підписом
+старим ключем. Деталі й наслідки — `07-sunset.md` §6.
