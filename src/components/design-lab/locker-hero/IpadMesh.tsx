@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Html, useGLTF } from "@react-three/drei";
 import {
   DoubleSide,
@@ -61,6 +61,7 @@ type Props = {
   children: ReactNode;
   interactive: boolean;
   onPointerInsideChange?: (inside: boolean) => void;
+  onModelReady?: () => void;
 };
 
 function isDisplayMaterial(mat: MeshStandardMaterial) {
@@ -116,9 +117,14 @@ export function IpadMesh({
   children,
   interactive,
   onPointerInsideChange,
+  onModelReady,
 }: Props) {
   const { scene } = useGLTF(IPAD_GLB_URL);
   const object = useMemo(() => buildIpad(scene), [scene]);
+
+  useEffect(() => {
+    onModelReady?.();
+  }, [object, onModelReady]);
 
   return (
     <group>

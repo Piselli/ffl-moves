@@ -6,12 +6,16 @@ import { cn } from "@/lib/utils";
 type Props = {
   className?: string;
   src?: string;
+  onImageLoad?: () => void;
+  onImageError?: () => void;
 };
 
 /** Locker plate: atmosphere is baked into the asset — keep the compositor thin. */
 export function LockerRoomBackground({
   className,
   src = "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png",
+  onImageLoad,
+  onImageError,
 }: Props) {
   return (
     <div className={cn("absolute inset-0 overflow-hidden bg-[#1a1816]", className)}>
@@ -26,6 +30,8 @@ export function LockerRoomBackground({
         sizes="100vw"
         className="object-cover object-center"
         style={{ imageRendering: "auto" }}
+        onLoad={onImageLoad}
+        onError={onImageError}
       />
       {/* Light edge falloff only — scene grade already carries mood */}
       <div

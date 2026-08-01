@@ -8,6 +8,7 @@ import type { Player } from "@/lib/types";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { LockerRoomBackground } from "./LockerRoomBackground";
+import { LockerHeroBoot } from "./LockerHeroBoot";
 import { LockerTablet } from "./LockerTablet";
 import { LockerKits } from "./LockerKits";
 import {
@@ -51,7 +52,8 @@ type LockerHeroProps = {
  * Scroll outside the tablet lowers it so the room becomes interactive.
  */
 export function LockerHero({ variant = "lab" }: LockerHeroProps) {
-  const isLab = variant === "lab";
+  const isSite = variant === "site";
+  const isLab = !isSite;
   const reduceMotion = useReducedMotion();
   const data = useLockerHeroData();
   const squad = useSquadPick();
@@ -59,11 +61,48 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const { locale } = useSiteLocale();
   const messages = useSiteMessages();
 
+  const [roomImageReady, setRoomImageReady] = useState(!isSite);
+  const [tabletReady, setTabletReady] = useState(!isSite);
+  const [bootVisible, setBootVisible] = useState(isSite);
+  const [bootMounted, setBootMounted] = useState(isSite);
+  const sceneReady = roomImageReady && tabletReady;
+
+  const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
+  const onRoomImageError = useCallback(() => setRoomImageReady(true), []);
+  const onTabletReady = useCallback(() => setTabletReady(true), []);
+
   const [tabletRaised, setTabletRaised] = useState(true);
   const [tabletSettledDown, setTabletSettledDown] = useState(false);
   const [pointerInTablet, setPointerInTablet] = useState(false);
   const [pitchStyleId, setPitchStyleId] =
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
+
+  useEffect(() => {
+    if (!isSite) return;
+    const img = new window.Image();
+    img.src = ROOM_BACKGROUND.src;
+    img.onload = () => setRoomImageReady(true);
+    img.onerror = () => setRoomImageReady(true);
+  }, [isSite]);
+
+  useEffect(() => {
+    if (!isSite || !sceneReady) return;
+    if (reduceMotion) {
+      setBootVisible(false);
+      setBootMounted(false);
+      return;
+    }
+    setBootVisible(false);
+  }, [isSite, reduceMotion, sceneReady]);
+
+  useEffect(() => {
+    if (!isSite) return;
+    const id = window.setTimeout(() => {
+      setRoomImageReady(true);
+      setTabletReady(true);
+    }, 12_000);
+    return () => window.clearTimeout(id);
+  }, [isSite]);
 
   useEffect(() => {
     setPitchStyleId(loadPitchStyleId());
@@ -119,7 +158,11 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
 
   return (
     <div className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white">
-      <LockerRoomBackground src={ROOM_BACKGROUND.src} />
+      <LockerRoomBackground
+        src={ROOM_BACKGROUND.src}
+        onImageLoad={onRoomImageLoad}
+        onImageError={onRoomImageError}
+      />
 
       <LockerKits
         starters={squad.starters}
@@ -192,6 +235,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
           raised={tabletRaised}
           reduceMotion={Boolean(reduceMotion)}
           onPointerInsideChange={setPointerInTablet}
+          onModelReady={onTabletReady}
         >
           <LockerTablet
             fixtures={data.fixtures}
@@ -217,6 +261,14 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
           />
         </TabletScene>
       </div>
+
+      {bootMounted ? (
+        <LockerHeroBoot
+          visible={bootVisible}
+          reduceMotion={Boolean(reduceMotion)}
+          onFadeComplete={() => setBootMounted(false)}
+        />
+      ) : null}
     </div>
   );
 }

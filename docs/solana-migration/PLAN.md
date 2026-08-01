@@ -89,7 +89,7 @@ On-chain state з Movement **не мігрує** — новий деплой, н
 - [x] Sunset-план і чернетки повідомлень — `07-sunset.md`
 - [ ] Multisig (Squads) на upgrade authority і treasury — **рішення власника**
 - [ ] `INITIALIZER` у `lib.rs` перевести на операційний ключ і перезібрати
-- [ ] Доля bracket 10999 — **рішення власника**
+- [x] Доля bracket 10999 — off-chain: сторінка результатів + прямий переказ переможцям (2026-08-01)
 - [ ] Повний тур на mainnet: реєстрація → сеттл → claim
 - [ ] Політика рефералів і зарахування Movement-історії в season points
 

@@ -3,6 +3,7 @@
 import {
   Component,
   Suspense,
+  useEffect,
   type ErrorInfo,
   type ReactNode,
 } from "react";
@@ -24,6 +25,7 @@ type Props = {
   reduceMotion: boolean;
   children: ReactNode;
   onPointerInsideChange?: (inside: boolean) => void;
+  onModelReady?: () => void;
 };
 
 /**
@@ -104,6 +106,7 @@ function IpadScene({
   raised,
   children,
   onPointerInsideChange,
+  onModelReady,
 }: Omit<Props, "reduceMotion">) {
   return (
     <>
@@ -120,6 +123,7 @@ function IpadScene({
         <IpadMesh
           interactive={raised}
           onPointerInsideChange={onPointerInsideChange}
+          onModelReady={onModelReady}
         >
           {children}
         </IpadMesh>
@@ -157,7 +161,12 @@ function StaticFallback({
   reduceMotion,
   children,
   onPointerInsideChange,
+  onModelReady,
 }: Props) {
+  useEffect(() => {
+    onModelReady?.();
+  }, [onModelReady]);
+
   return (
     <div
       className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
@@ -245,6 +254,7 @@ export function TabletScene(props: Props) {
       raised={props.raised}
       reduceMotion={props.reduceMotion}
       onPointerInsideChange={props.onPointerInsideChange}
+      onModelReady={props.onModelReady}
     >
       {props.children}
     </StaticFallback>
@@ -286,6 +296,7 @@ export function TabletScene(props: Props) {
               <IpadScene
                 raised={props.raised}
                 onPointerInsideChange={props.onPointerInsideChange}
+                onModelReady={props.onModelReady}
               >
                 {props.children}
               </IpadScene>
