@@ -10,6 +10,7 @@ import { WcHeroBracket } from "@/components/wc/WcHeroBracket";
 import { BRACKET_LEFT, BRACKET_RIGHT } from "@/components/wc/wcBracket";
 import { useWcBracketState } from "@/hooks/useWcBracketState";
 import { buildHeroMatchDisplays, orderTeamsByRank } from "@/lib/wcHeroDisplay";
+import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -88,6 +89,7 @@ export function WorldCupHeroPortal() {
   const wc = m.pages.worldCup;
   const reduce = useReducedMotion();
   const { state: bracketState } = useWcBracketState();
+  const wcSurface = isWorldCupSurfaceVisible();
   const matchDisplays = useMemo(() => buildHeroMatchDisplays(bracketState), [bracketState]);
   const groupRanks = bracketState?.groupRanks;
   const groupsFinal = bracketState?.meta.groupsFinal;
@@ -112,11 +114,11 @@ export function WorldCupHeroPortal() {
     />
   );
 
-  const Cta = (
-    <Link
-      href="/world-cup"
-      className="group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]"
-    >
+  const ctaClassName =
+    "group inline-flex items-center gap-3 rounded-full bg-[#00f948] py-1.5 pl-6 pr-1.5 text-black shadow-[0_12px_34px_-12px_rgba(0,249,72,0.55)] ring-1 ring-inset ring-white/25 transition-[transform,filter] duration-150 hover:brightness-[1.04] active:scale-[0.98]";
+
+  const Cta = wcSurface ? (
+    <Link href="/world-cup" className={ctaClassName}>
       <span className="font-wc-hero text-[15px] font-extrabold uppercase tracking-[0.04em]">
         {hm.wcPromoCta}
       </span>
@@ -133,6 +135,17 @@ export function WorldCupHeroPortal() {
         </svg>
       </span>
     </Link>
+  ) : (
+    <span className={`${ctaClassName} cursor-default opacity-80`} aria-disabled="true">
+      <span className="font-wc-hero text-[15px] font-extrabold uppercase tracking-[0.04em]">
+        {hm.wcPromoCta}
+      </span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[#00f948]">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </span>
+    </span>
   );
 
   return (

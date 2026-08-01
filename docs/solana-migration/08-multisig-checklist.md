@@ -5,9 +5,25 @@
 
 ## 1. Squads multisig
 
-1. Створити Squads v4 multisig на Solana mainnet (рекомендовано 2-of-3 або 3-of-5).
-2. Записати адресу multisig — вона стане **upgrade authority** програми після деплою.
-3. Додати 1–2 гарячі операційні ключі як co-signers для рутинних адмін-дій.
+1. Відкрити [squads.so](https://app.squads.so) → Create multisig (рекомендовано **2-of-3**).
+2. Додати co-signers (твій основний гаманець + резервний).
+3. Записати **multisig vault** — це адреса для `set-upgrade-authority`.
+4. Після `initialize` додати vault як admin: `/admin` → Add admin, або `add_admin` з CLI.
+
+Ключі згенеровані локально (`solana/movematch/.keys/`, gitignored):
+
+```bash
+node scripts/print-mainnet-key-manifest.mjs
+```
+
+| Роль | Файл | Pubkey (2026-08-01) |
+|------|------|---------------------|
+| INITIALIZER | `initializer.json` | `CJKNFKKfvvYotke7EjYbKNAP1YWy8f4DBcxRFna1no57` |
+| house_wallet | `house.json` | `4vDibv147NHUyCNvuv5gBEtQPV2Y38kPPFhR9gbJJsbe` |
+| oracle | `oracle.json` | `6vvo1tFS6Syq9mxg2qADJ3JXCGb99VC5Axpb6zZzonYS` |
+| Upgrade authority | Squads vault | *(заповнити після створення)* |
+
+**Бекап:** seed-фрази ключів зберегти офлайн. У git вони не потрапляють.
 
 ## 2. Розвести ролі (не один ключ на все)
 
@@ -23,7 +39,7 @@
 
 ```rust
 // solana/movematch/programs/movematch/src/lib.rs
-const INITIALIZER: Pubkey = pubkey!("<MAINNET_INITIALIZER_PUBKEY>");
+const INITIALIZER: Pubkey = pubkey!("CJKNFKKfvvYotke7EjYbKNAP1YWy8f4DBcxRFna1no57");
 ```
 
 Після зміни:
@@ -42,6 +58,11 @@ solana program deploy --url mainnet-beta \
 ## 4. Transfer upgrade authority → multisig
 
 ```bash
+MOVEMATCH_PROGRAM_ID=<PROGRAM_ID> SQUADS_UPGRADE_AUTHORITY=<SQUADS_VAULT> \
+  bash scripts/solana-transfer-upgrade-authority.sh
+```
+
+Або вручну:
 solana program set-upgrade-authority <PROGRAM_ID> \
   --url mainnet-beta \
   --new-upgrade-authority <SQUADS_MULTISIG> \
@@ -57,6 +78,8 @@ npm run preflight:solana -- --mainnet
 
 ## 5. `initialize` — без повторів
 
+- Скрипт: `node solana/movematch/migrations/initialize-mainnet.mjs`
+- Підписує **initializer.json**; oracle і house — окремі ключі з `.keys/`.
 - `house_wallet` задається **назавжди** в `initialize`.
 - `admins[]`, `oracle`, `entry_fee`, `prize_pool_bps` — теж з першого виклику.
 - Dry-run на devnet: `migrations/initialize-devnet.mjs` (не mainnet keys).

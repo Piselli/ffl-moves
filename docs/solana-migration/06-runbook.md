@@ -37,7 +37,7 @@ PDA-адреси (сіди без ідентифікатора кластера,
 ### 2.1 `INITIALIZER` вшитий у бінарник
 
 ```34:34:solana/movematch/programs/movematch/src/lib.rs
-const INITIALIZER: Pubkey = pubkey!("Be2H3uNWxZRCXAoAw31nkgo7S1W5GprmS3a9QT8ZcxHh");
+const INITIALIZER: Pubkey = pubkey!("CJKNFKKfvvYotke7EjYbKNAP1YWy8f4DBcxRFna1no57");
 ```
 
 `initialize` приймає підпис **лише** від цього ключа

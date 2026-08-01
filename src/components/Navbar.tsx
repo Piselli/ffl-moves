@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { isWorldCupCampaignActive } from "@/lib/worldcup";
+import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
@@ -31,12 +32,17 @@ export function Navbar() {
   const { locale } = useSiteLocale();
   const pathname = usePathname();
   const wcCampaign = isWorldCupCampaignActive();
-  const navLinks = wcCampaign
+  const wcSurface = isWorldCupSurfaceVisible();
+  const navLinks = (wcCampaign
     ? [
-        { href: "/world-cup", label: m.nav.worldCup, featured: true },
-        { href: "/world-cup/squad", label: m.nav.squad },
-        { href: "/world-cup/fixtures", label: m.nav.fixtures },
-        { href: "/world-cup/leaderboard", label: m.nav.leaderboard },
+        ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup, featured: true }] : []),
+        ...(wcSurface
+          ? [
+              { href: "/world-cup/squad", label: m.nav.squad },
+              { href: "/world-cup/fixtures", label: m.nav.fixtures },
+              { href: "/world-cup/leaderboard", label: m.nav.leaderboard },
+            ]
+          : []),
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
         { href: "/faq", label: m.nav.faq },
       ]
@@ -45,9 +51,9 @@ export function Navbar() {
         { href: "/leaderboard", label: m.nav.leaderboard },
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
         { href: "/fixtures", label: m.nav.fixtures },
-        { href: "/world-cup", label: m.nav.worldCup },
+        ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
         { href: "/faq", label: m.nav.faq },
-      ];
+      ]) as Array<{ href: string; label: string; featured?: boolean }>;
   const { connected, account, disconnect } = useWallet();
   const { walletRows, connectWallet, lastError, hint, scanDone } = useWalletConnect();
   const [showWalletList, setShowWalletList] = useState(false);

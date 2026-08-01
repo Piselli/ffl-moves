@@ -87,11 +87,12 @@ On-chain state з Movement **не мігрує** — новий деплой, н
 - [x] `npm run preflight:solana` — перевірка оточення й стану ланцюга
 - [x] Snapshot лояльної бази — `npm run loyalty:snapshot`, 264 гаманці
 - [x] Sunset-план і чернетки повідомлень — `07-sunset.md`
-- [ ] Multisig (Squads) на upgrade authority і treasury — **рішення власника**
-- [ ] `INITIALIZER` у `lib.rs` перевести на операційний ключ і перезібрати
+- [ ] Multisig (Squads) на upgrade authority — **ключі готові**, Squads vault створити власнику ([08-multisig-checklist.md](08-multisig-checklist.md))
+- [x] `INITIALIZER` у `lib.rs` переведено на операційний ключ (`initializer.json`) — **перезібрати перед mainnet deploy**
 - [x] Доля bracket 10999 — off-chain: сторінка результатів + прямий переказ переможцям (2026-08-01)
-- [ ] Повний тур на mainnet: реєстрація → сеттл → claim
-- [ ] Політика рефералів і зарахування Movement-історії в season points
+- [ ] Повний тур на mainnet: реєстрація → сеттл → claim (після deploy + initialize)
+- [x] Season points — **з нуля на Solana**; Movement-історія не зараховується (snapshot лише для комунікації, 2026-08-01)
+- [x] World Cup — localhost-only до `NEXT_PUBLIC_WC_PUBLIC_ENABLED=true` (middleware + nav, 2026-08-01)
 
 Прив'язка Movement-адрес до Solana-адрес неможлива без окремого flow з підписом
 старим ключем. Деталі й наслідки — `07-sunset.md` §6.

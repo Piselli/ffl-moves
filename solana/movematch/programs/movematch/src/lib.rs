@@ -31,7 +31,7 @@ const NODE_DOMAIN: u8 = 0x01;
 /// The only key allowed to bootstrap `Config`. Without this the PDA is a land grab:
 /// whoever calls `initialize` first becomes admin, oracle and house.
 /// Set this to the operating multisig and rebuild before any mainnet deploy.
-const INITIALIZER: Pubkey = pubkey!("Be2H3uNWxZRCXAoAw31nkgo7S1W5GprmS3a9QT8ZcxHh");
+const INITIALIZER: Pubkey = pubkey!("CJKNFKKfvvYotke7EjYbKNAP1YWy8f4DBcxRFna1no57");
 
 #[program]
 pub mod movematch {
