@@ -13,7 +13,7 @@ import { WC_GROUPS } from "@/components/wc/wcGroups";
 import { BRACKET_LEFT, BRACKET_RIGHT, type BracketNode } from "@/components/wc/wcBracket";
 import { WC_TOUR_ID_BASE } from "@/lib/worldcup";
 
-/** Dedicated gameweek id for the bracket-challenge prize pool (admin-sponsored USDCx). */
+/** Dedicated gameweek id for the bracket-challenge prize pool (admin-sponsored USDC). */
 export const WC_BRACKET_EVENT_ID = 10999;
 
 /** md1 tour — must have registered a squad here to enter the bracket challenge. */
@@ -23,19 +23,19 @@ export const WC_TEAM_COUNT = 48;
 export const WC_THIRD_PLACE_COUNT = 12;
 export const WC_KNOCKOUT_MATCH_COUNT = 32;
 
-/** Fixed top-5 prizes in USDCx micro-units (6 decimals). Total $200. */
-export const WC_BRACKET_PRIZES_USDCX = [
+/** Fixed top-5 prizes in USDC micro-units (6 decimals). Total $200. */
+export const WC_BRACKET_PRIZES_USDC = [
   100_000_000, 50_000_000, 25_000_000, 15_000_000, 10_000_000,
 ] as const;
 
 /** Bonus if an entry nails every place (48 + 12 + 32 = 92). Unclaimed if nobody hits perfect. */
-export const WC_BRACKET_PERFECT_BONUS_USDCX = 300_000_000;
+export const WC_BRACKET_PERFECT_BONUS_USDC = 300_000_000;
 
-export const WC_BRACKET_TOP5_TOTAL_USDCX = WC_BRACKET_PRIZES_USDCX.reduce((a, b) => a + b, 0);
+export const WC_BRACKET_TOP5_TOTAL_USDC = WC_BRACKET_PRIZES_USDC.reduce((a, b) => a + b, 0);
 
 /** Advertised pool = top-5 + perfect-bonus reserve ($500). */
-export const WC_BRACKET_ADVERTISED_POOL_USDCX =
-  WC_BRACKET_TOP5_TOTAL_USDCX + WC_BRACKET_PERFECT_BONUS_USDCX;
+export const WC_BRACKET_ADVERTISED_POOL_USDC =
+  WC_BRACKET_TOP5_TOTAL_USDC + WC_BRACKET_PERFECT_BONUS_USDC;
 
 /** Max strict score — all group, third-among-thirds, and knockout places correct. */
 export const WC_BRACKET_PERFECT_SCORE =

@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { TitleCard } from "@/components/TitleCard";
 import { TITLE_TYPES, MULTIPLIER_DISPLAY } from "@/lib/constants";
-import { getConfig, getUserTitle, getUserGuild, hasTitle, hasGuild, type ChainConfig } from "@/lib/movement";
-import { formatMOVE, getMultiplierDisplay, cn } from "@/lib/utils";
+import { getUserTitle, getUserGuild, hasTitle, hasGuild } from "@/lib/chainClient";
+import { getMultiplierDisplay, cn } from "@/lib/utils";
 import type { UserGuild, UserTitle } from "@/lib/types";
 
 /** Titles and guilds are Movement-era features that v1 of the Solana program does not carry. */
@@ -15,7 +15,6 @@ const UNAVAILABLE_ON_SOLANA =
 export default function TitlesPage() {
   const { connected, account } = useWallet();
 
-  const [config, setConfig] = useState<ChainConfig | null>(null);
   const [userTitle, setUserTitle] = useState<UserTitle | null>(null);
   const [userGuild, setUserGuild] = useState<UserGuild | null>(null);
   const [hasTitleFlag, setHasTitleFlag] = useState(false);
@@ -26,8 +25,6 @@ export default function TitlesPage() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const configData = await getConfig();
-      setConfig(configData);
 
       if (account?.address) {
         const addr = account.address.toString();
@@ -130,7 +127,7 @@ export default function TitlesPage() {
                 disabled={isSubmitting}
                 className="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-medium hover:from-rose-400 hover:to-pink-500 transition-all shadow-lg shadow-rose-500/25 disabled:opacity-50"
               >
-                {isSubmitting ? "Processing..." : `Reroll Title (${formatMOVE(config?.titleFee || 0)} MOVE)`}
+                {isSubmitting ? "Processing..." : "Reroll Title"}
               </button>
               <p className="text-xs text-muted-foreground text-center">
                 Reroll guarantees a different title type
@@ -149,7 +146,7 @@ export default function TitlesPage() {
                 disabled={isSubmitting}
                 className="btn-primary px-6 py-3 rounded-xl font-medium disabled:opacity-50"
               >
-                {isSubmitting ? "Processing..." : `Buy Title (${formatMOVE(config?.titleFee || 0)} MOVE)`}
+                {isSubmitting ? "Processing..." : "Buy Title"}
               </button>
               <p className="text-xs text-muted-foreground mt-3">
                 Random title + random multiplier (5%, 10%, or 15%)
@@ -200,7 +197,7 @@ export default function TitlesPage() {
                 disabled={isSubmitting}
                 className="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-medium hover:from-rose-400 hover:to-pink-500 transition-all shadow-lg shadow-rose-500/25 disabled:opacity-50"
               >
-                {isSubmitting ? "Processing..." : `Reroll Guild (${formatMOVE(config?.guildFee || 0)} MOVE)`}
+                {isSubmitting ? "Processing..." : "Reroll Guild"}
               </button>
               <p className="text-xs text-muted-foreground text-center">
                 Reroll for a chance at a higher multiplier
@@ -219,7 +216,7 @@ export default function TitlesPage() {
                 disabled={isSubmitting}
                 className="btn-primary px-6 py-3 rounded-xl font-medium disabled:opacity-50"
               >
-                {isSubmitting ? "Processing..." : `Buy Guild (${formatMOVE(config?.guildFee || 0)} MOVE)`}
+                {isSubmitting ? "Processing..." : "Buy Guild"}
               </button>
               <p className="text-xs text-muted-foreground mt-3">
                 Random multiplier (5%, 10%, or 15%)

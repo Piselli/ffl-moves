@@ -64,7 +64,7 @@ export interface TeamResult {
   guildMultiplier: number;
   finalPoints: number;
   rank: number;
-  prizeAmount: number;
+  prizeAmount: bigint;
   claimed: boolean;
 }
 

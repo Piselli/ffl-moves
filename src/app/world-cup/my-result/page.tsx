@@ -12,7 +12,7 @@ import {
   getUserTeam,
   hasRegisteredTeam,
   type GameweekSummary,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import {
   WC_ROUNDS,
   findOpenWorldCupTourFromChain,

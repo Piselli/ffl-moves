@@ -13,7 +13,7 @@
  * inside `PlayerStatsRegistry` / `GameweekRegistry`.
  */
 
-import { getGameweek, type GameweekSummary } from "./movement";
+import { getGameweek, type GameweekSummary } from "./chainClient";
 
 /** API-Sports identifiers for the FIFA World Cup 2026. */
 export const WC_LEAGUE_ID = 1;

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import { getGameweekTeams } from "@/lib/movement";
+import { getGameweekEntrants } from "@/lib/chainClient";
 import { fetchOwnersWithClaimedPrize, normTourOwnerAddr } from "@/lib/tourClaimHistory";
 
 export const dynamic = "force-dynamic";
 
 async function loadClaimOwners(tourId: number): Promise<string[]> {
-  const addresses = await getGameweekTeams(tourId);
+  const addresses = await getGameweekEntrants(tourId);
   if (addresses.length === 0) return [];
   const claimed = await fetchOwnersWithClaimedPrize(tourId, addresses);
   return Array.from(claimed).map(normTourOwnerAddr);

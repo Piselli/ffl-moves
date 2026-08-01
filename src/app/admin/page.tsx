@@ -5,17 +5,15 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   getConfig,
   getGameweek,
-  findOpenGameweekFromChain,
+  findOpenGameweek,
   hasAdminSponsorPrizePoolOnChain,
   hasAdminWithdrawPrizeVaultOnChain,
-  hasAdminWithdrawLegacyMoveFromVaultOnChain,
-  hasAdminMarkPrizeClaimedOnChain,
   getBracketChallengeStatus,
   getBracketChallengeEntries,
   hasRegisterBracketPredictionOnChain,
   type ChainConfig,
   type GameweekSummary,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import {
   buildCloseGameweek,
   buildCommitStats,
@@ -35,12 +33,12 @@ import {
   STATS_PUBLISH_BASE_URL,
 } from "@/lib/constants";
 import {
-  WC_BRACKET_ADVERTISED_POOL_USDCX,
+  WC_BRACKET_ADVERTISED_POOL_USDC,
   WC_BRACKET_EVENT_ID,
 } from "@/lib/wcBracketPrediction";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
-import { cn, formatTxError, toU64Stat, getErrorMessage, formatMOVE, moveToOctas } from "@/lib/utils";
+import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, fetchWorldCupRoundStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import {
   WC_ROUNDS,
@@ -55,7 +53,7 @@ function normAddr(a: string | undefined | null): string {
 }
 
 /** Accepts a base58 Solana address; returns null when it is not a valid pubkey. */
-function normalizeMoveAccountAddress(raw: string): string | null {
+function normalizeSolanaAddress(raw: string): string | null {
   const trimmed = raw.trim();
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed)) return null;
   return trimmed;
@@ -112,8 +110,6 @@ export default function AdminPage() {
   /** Deployed module includes `admin_sponsor_prize_pool` (older mainnet packages often do not). */
   const [sponsorTxAvailable, setSponsorTxAvailable] = useState<boolean | null>(null);
   const [withdrawTxAvailable, setWithdrawTxAvailable] = useState<boolean | null>(null);
-  const [withdrawLegacyTxAvailable, setWithdrawLegacyTxAvailable] = useState<boolean | null>(null);
-  const [markClaimedTxAvailable, setMarkClaimedTxAvailable] = useState<boolean | null>(null);
   const [bracketAbiLive, setBracketAbiLive] = useState<boolean | null>(null);
   const [bracketStatus, setBracketStatus] = useState<number | null>(null);
   const [bracketEntries, setBracketEntries] = useState<number | null>(null);
@@ -125,17 +121,12 @@ export default function AdminPage() {
   const [reopenTargetId, setReopenTargetId] = useState("");
   const [statsJson, setStatsJson] = useState("");
   const [resultsGameweekId, setResultsGameweekId] = useState("");
-  const [markClaimedGwId, setMarkClaimedGwId] = useState("");
-  const [markClaimedOwner, setMarkClaimedOwner] = useState("");
   const [newPrizePoolPct, setNewPrizePoolPct] = useState("");
   const [sponsorGwId, setSponsorGwId] = useState("");
   const [sponsorAmountMove, setSponsorAmountMove] = useState("");
   const [withdrawRecipient, setWithdrawRecipient] = useState("");
   const [withdrawAmountMove, setWithdrawAmountMove] = useState("");
-  const [withdrawLegacyAmountMove, setWithdrawLegacyAmountMove] = useState("");
   const [feeEntryMove, setFeeEntryMove] = useState("");
-  const [feeTitleMove, setFeeTitleMove] = useState("");
-  const [feeGuildMove, setFeeGuildMove] = useState("");
 
   // API states
   const [dataSource, setDataSource] = useState<"fpl" | "api-sports" | "wc">("fpl");
@@ -153,19 +144,15 @@ export default function AdminPage() {
     setIsLoading(true);
     setSponsorTxAvailable(null);
     setWithdrawTxAvailable(null);
-    setWithdrawLegacyTxAvailable(null);
-    setMarkClaimedTxAvailable(null);
     setBracketAbiLive(null);
     setBracketStatus(null);
     setBracketEntries(null);
     setBracketPrizeGw(null);
     try {
-      const [configData, sponsorOk, withdrawOk, withdrawLegacyOk, markClaimedOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
+      const [configData, sponsorOk, withdrawOk, bracketOk, bracketSt, bracketEnt, bracketGw] = await Promise.all([
         getConfig(),
         hasAdminSponsorPrizePoolOnChain(),
         hasAdminWithdrawPrizeVaultOnChain(),
-        hasAdminWithdrawLegacyMoveFromVaultOnChain(),
-        hasAdminMarkPrizeClaimedOnChain(),
         hasRegisterBracketPredictionOnChain(),
         getBracketChallengeStatus(),
         getBracketChallengeEntries(),
@@ -173,8 +160,6 @@ export default function AdminPage() {
       ]);
       setSponsorTxAvailable(sponsorOk);
       setWithdrawTxAvailable(withdrawOk);
-      setWithdrawLegacyTxAvailable(withdrawLegacyOk);
-      setMarkClaimedTxAvailable(markClaimedOk);
       setBracketAbiLive(bracketOk);
       setBracketStatus(bracketSt);
       setBracketEntries(bracketEnt);
@@ -189,7 +174,7 @@ export default function AdminPage() {
           configData.currentGameweek
             ? getGameweek(configData.currentGameweek).catch(() => null)
             : Promise.resolve(null),
-          findOpenGameweekFromChain(configData),
+          findOpenGameweek(),
           getWorldCupTourSummaries(),
         ]);
         setCurrentGameweek(pointerGw);
@@ -237,9 +222,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!config) return;
     setFeeEntryMove(prize.formatUnits(config.entryFee));
-    setFeeTitleMove(formatMOVE(config.titleFee));
-    setFeeGuildMove(formatMOVE(config.guildFee));
-  }, [config, prize.asset]);
+  }, [config, prize]);
 
   const handleCheckApiStatus = async () => {
     if (!apiKey) return;
@@ -460,9 +443,9 @@ export default function AdminPage() {
       await signAndSubmit(await buildSponsorPrizePool(
         account!.address,
         WC_BRACKET_EVENT_ID,
-        BigInt(WC_BRACKET_ADVERTISED_POOL_USDCX),
+        BigInt(WC_BRACKET_ADVERTISED_POOL_USDC),
       ));
-      alert(ad.sponsorSuccess(WC_BRACKET_EVENT_ID, prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDCX)));
+      alert(ad.sponsorSuccess(WC_BRACKET_EVENT_ID, prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDC)));
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to sponsor bracket pool:", error);
@@ -497,7 +480,7 @@ export default function AdminPage() {
       alert(ad.sponsorInvalidAmount(prize.symbol));
       return;
     }
-    const octas = displayAmountToRaw(amt, prize.asset);
+    const octas = displayAmountToRaw(amt);
     if (octas < 1) {
       alert(ad.sponsorAmountTooSmall);
       return;
@@ -530,7 +513,7 @@ export default function AdminPage() {
   const handleWithdrawPrizeVault = async () => {
     if (!connected) return;
 
-    const recipient = normalizeMoveAccountAddress(withdrawRecipient || "");
+    const recipient = normalizeSolanaAddress(withdrawRecipient || "");
     if (!recipient) {
       alert(ad.withdrawInvalidRecipient);
       return;
@@ -542,7 +525,7 @@ export default function AdminPage() {
       alert(ad.withdrawInvalidAmount(prize.symbol));
       return;
     }
-    const octas = displayAmountToRaw(amt, prize.asset);
+    const octas = displayAmountToRaw(amt);
     if (octas < 1) {
       alert(ad.withdrawAmountTooSmall);
       return;
@@ -562,48 +545,18 @@ export default function AdminPage() {
     }
   };
 
-  const handleWithdrawLegacyMoveFromVault = async () => {
-    if (!connected) return;
-
-    const recipient = normalizeMoveAccountAddress(withdrawRecipient || "");
-    if (!recipient) {
-      alert(ad.withdrawInvalidRecipient);
-      return;
-    }
-
-    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
-    const amt = parseMove(withdrawLegacyAmountMove || "");
-    if (!Number.isFinite(amt) || amt <= 0) {
-      alert(ad.withdrawInvalidAmount("MOVE"));
-      return;
-    }
-    const octas = displayAmountToRaw(amt, "move");
-    if (octas < 1) {
-      alert(ad.withdrawAmountTooSmall);
-      return;
-    }
-
-    // The Solana treasury only ever holds USDC, so there is no legacy native leg to drain.
-    void octas;
-    alert(ad.withdrawLegacyNotOnChain);
-  };
-
   const handleUpdateFees = async () => {
     if (!connected) return;
-    const parseMove = (s: string) => Number.parseFloat(s.trim().replace(",", "."));
-    const entry = parseMove(feeEntryMove);
-    const title = parseMove(feeTitleMove);
-    const guild = parseMove(feeGuildMove);
-    if (![entry, title, guild].every((n) => Number.isFinite(n) && n >= 0)) {
+    const entry = Number.parseFloat((feeEntryMove || "").trim().replace(",", "."));
+    if (!Number.isFinite(entry) || entry < 0) {
       alert(ad.feesInvalid);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Titles and guilds were dropped on Solana; only the entry fee is on-chain now.
       await signAndSubmit(
-        await buildSetFees(account!.address, BigInt(displayAmountToRaw(entry, prize.asset))),
+        await buildSetFees(account!.address, BigInt(displayAmountToRaw(entry))),
       );
       alert(ad.feesUpdated);
       await loadChainConfig();
@@ -613,12 +566,6 @@ export default function AdminPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // A ClaimReceipt PDA only exists once the winner actually pulls the money, so there
-  // is no equivalent of the Movement "mark as paid without transferring" escape hatch.
-  const handleMarkPrizeClaimed = async () => {
-    alert(ad.markClaimedNotOnChain);
   };
 
   const handleSubmitStats = async () => {
@@ -695,10 +642,10 @@ export default function AdminPage() {
 
       // Fetch all registered teams and compute points off-chain, then sort descending.
       // The contract no longer sorts on-chain (removed O(n²) bubble sort to fit execution limits).
-      const { getGameweekTeams, getUserTeam, getGameweekStats } = await import("@/lib/movement");
+      const { getGameweekEntrants, getUserTeam, getGameweekStats } = await import("@/lib/chainClient");
       const { previewTourPointsFromRegisteredTeam } = await import("@/lib/chainAlignedScoring");
 
-      const addresses = await getGameweekTeams(gw);
+      const addresses = await getGameweekEntrants(gw);
       const teams = await Promise.all(
         addresses.map(async (addr) => {
           const team = await getUserTeam(addr, gw);
@@ -1247,7 +1194,7 @@ export default function AdminPage() {
                   }
                   className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 disabled:opacity-40"
                 >
-                  {ad.bracketSponsorButton(prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDCX))}
+                  {ad.bracketSponsorButton(prize.formatLabel(WC_BRACKET_ADVERTISED_POOL_USDC))}
                 </button>
 
                 <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-white/30">{ad.bracketStepInit}</p>
@@ -1342,7 +1289,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Sponsor prize pool (Admin) — USDCx to vault + on-chain pool before GW is RESOLVED */}
+        {/* Sponsor prize pool (Admin) — USDC to vault + on-chain pool before GW is RESOLVED */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6 border border-cyan-500/15">
             <div className="flex items-center gap-3 mb-4">
@@ -1463,72 +1410,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Legacy MOVE in prize vault — recovery after USDCx migration */}
-        {isAdmin && config?.usdcxEntryLive && (
-          <div className="glass-card rounded-2xl p-6 border border-violet-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">{ad.withdrawLegacySectionTitle}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{ad.withdrawLegacySectionHint}</p>
-              </div>
-            </div>
-            {withdrawLegacyTxAvailable === false && (
-              <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
-                {ad.withdrawLegacyNotOnChain}
-              </p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              <label className="flex flex-col gap-1 sm:col-span-2">
-                <span className="text-xs text-muted-foreground">{ad.withdrawRecipientLabel}</span>
-                <input
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={withdrawRecipient}
-                  onChange={(e) => setWithdrawRecipient(e.target.value)}
-                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 border border-border font-mono text-sm"
-                  placeholder="0x…"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.withdrawLegacyAmountLabel}</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={withdrawLegacyAmountMove}
-                  onChange={(e) => setWithdrawLegacyAmountMove(e.target.value)}
-                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 border border-border"
-                  placeholder="83.37"
-                />
-              </label>
-            </div>
-            <button
-              type="button"
-              onClick={handleWithdrawLegacyMoveFromVault}
-              disabled={
-                isSubmitting ||
-                !withdrawRecipient.trim() ||
-                !withdrawLegacyAmountMove ||
-                withdrawLegacyTxAvailable !== true
-              }
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-xl font-medium hover:from-violet-500 hover:to-purple-600 transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50"
-            >
-              {isSubmitting ? "..." : ad.withdrawLegacySubmit}
-            </button>
-          </div>
-        )}
-
-        {/* Squad / title / guild fees (Admin) */}
+        {/* Squad entry fee (Admin) */}
         {isAdmin && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -1558,31 +1440,11 @@ export default function AdminPage() {
                   className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.feesTitleLabel}</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={feeTitleMove}
-                  onChange={(e) => setFeeTitleMove(e.target.value)}
-                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.feesGuildLabel}</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={feeGuildMove}
-                  onChange={(e) => setFeeGuildMove(e.target.value)}
-                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 border border-border"
-                />
-              </label>
             </div>
             <button
               type="button"
               onClick={handleUpdateFees}
-              disabled={isSubmitting || !feeEntryMove || !feeTitleMove || !feeGuildMove}
+              disabled={isSubmitting || !feeEntryMove}
               className="mt-4 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:from-amber-400 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/25 disabled:opacity-50"
             >
               {isSubmitting ? "..." : ad.feesSubmit}
@@ -1892,61 +1754,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Mark prize claimed (Admin) — after recalc when wallet already received payout */}
-        {isAdmin && (
-          <div className="glass-card rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold text-white">{ad.markClaimedSectionTitle}</h2>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">{ad.markClaimedSectionHint}</p>
-            {markClaimedTxAvailable === false && (
-              <p className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
-                {ad.markClaimedNotOnChain}
-              </p>
-            )}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{ad.markClaimedGwLabel}</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={markClaimedGwId}
-                  onChange={(e) => setMarkClaimedGwId(e.target.value)}
-                  placeholder="10001"
-                  className="w-32 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 border border-border"
-                />
-              </label>
-              <label className="flex flex-col gap-1 flex-1">
-                <span className="text-xs text-muted-foreground">{ad.markClaimedOwnerLabel}</span>
-                <input
-                  type="text"
-                  value={markClaimedOwner}
-                  onChange={(e) => setMarkClaimedOwner(e.target.value)}
-                  placeholder="0x…"
-                  className="px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 border border-border font-mono text-sm"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={handleMarkPrizeClaimed}
-                disabled={
-                  isSubmitting ||
-                  !markClaimedGwId ||
-                  !markClaimedOwner ||
-                  markClaimedTxAvailable !== true
-                }
-                className="self-end px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl font-medium hover:from-teal-400 hover:to-emerald-500 transition-all shadow-lg shadow-teal-500/25 disabled:opacity-50"
-              >
-                {isSubmitting ? "..." : ad.markClaimedSubmit}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

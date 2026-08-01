@@ -1,7 +1,7 @@
 "use client";
 
-import type { WalletConnectRow } from "@/lib/walletNightly";
-import { isMobileBrowser, solanaWalletDef } from "@/lib/walletNightly";
+import type { WalletConnectRow } from "@/lib/solanaWallets";
+import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Props = {
@@ -25,7 +25,7 @@ function ExternalIcon() {
   );
 }
 
-export function MovementWalletRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
+export function WalletConnectRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
   const m = useSiteMessages();
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekTeams, getGameweekStats, findActiveGameweekFromChain } from "@/lib/movement";
+import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekEntrants, getGameweekStats, findActiveGameweek } from "@/lib/chainClient";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
@@ -186,7 +186,7 @@ export default function MyResultPage() {
         // If still no result, check if there's a closed (in-progress) gameweek for preview
         let previewMode = false;
         if (!teamResult) {
-          const activeGw = await findActiveGameweekFromChain(config);
+          const activeGw = await findActiveGameweek();
           if (activeGw && activeGw.status === "closed") {
             currentGwId = activeGw.id;
             previewMode = true;
@@ -199,7 +199,7 @@ export default function MyResultPage() {
         setGwId(currentGwId);
 
         const [teams, userTeam, playersRes] = await Promise.all([
-          getGameweekTeams(currentGwId),
+          getGameweekEntrants(currentGwId),
           getUserTeam(addr, currentGwId),
           fetch("/api/players"),
         ]);

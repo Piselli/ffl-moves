@@ -43,12 +43,7 @@ export type ChainConfig = {
   paused: boolean;
   version: number;
   totalPrizeObligation: bigint;
-  /** Legacy UI compatibility. Titles and guilds are not part of Solana v1. */
-  titleFee: bigint;
-  guildFee: bigint;
   prizePoolPercent: number;
-  entryFeeAsset: number;
-  usdcxEntryLive: boolean;
 };
 
 export type GameweekSummary = {
@@ -65,7 +60,7 @@ export type UserTeam = {
   playerIds: number[];
   /** UI convention: 0=GK, 1=DEF, 2=MID, 3=FWD. */
   positions: number[];
-  playerPositions?: number[];
+  playerPositions: number[];
   clubs: number[];
 };
 
@@ -230,11 +225,7 @@ function decodeConfig(data: Uint8Array): ChainConfig {
     paused,
     version,
     totalPrizeObligation,
-    titleFee: BigInt(0),
-    guildFee: BigInt(0),
     prizePoolPercent: prizePoolBps,
-    entryFeeAsset: 1,
-    usdcxEntryLive: true,
   };
 }
 
@@ -364,21 +355,14 @@ export async function findOpenGameweek(): Promise<GameweekSummary | null> {
   return current?.status === "open" ? current : null;
 }
 
-/** Transitional alias while call-sites migrate away from the Movement name. */
-export const findOpenGameweekFromChain = async (_config?: ChainConfig | null) => findOpenGameweek();
-
 export async function findActiveGameweek(): Promise<GameweekSummary | null> {
   const config = await getConfig();
   return config ? getGameweek(config.currentGameweek) : null;
 }
 
-/** Transitional alias while call-sites migrate away from the Movement name. */
-export const findActiveGameweekFromChain = async (_config?: ChainConfig | null) => findActiveGameweek();
-
 export async function findHighestGameweekId(): Promise<number> {
   return (await getConfig())?.currentGameweek ?? 0;
 }
-export const findHighestGameweekIdOnChain = findHighestGameweekId;
 
 export async function findLatestResolvedGameweekId(highestId: number): Promise<number> {
   for (let id = highestId; id > 0; id -= 1) {
@@ -403,7 +387,6 @@ export async function getGameweekEntrants(gameweekId: number): Promise<string[]>
     return readU32(reader) === gameweekId ? [owner] : [];
   });
 }
-export const getGameweekTeams = getGameweekEntrants;
 
 type PublishedResults = { results: TeamResult[] };
 
@@ -514,13 +497,23 @@ export async function getGameweekStats(
 /** Bracket is intentionally absent from the first Solana devnet deployment. */
 export const getBracketChallengeStatus = async (): Promise<number | null> => null;
 export const getBracketChallengeEntries = async (): Promise<number | null> => null;
-export const hasBracketPrediction = async (): Promise<boolean> => false;
-export const getBracketPrediction = async (): Promise<null> => null;
+export const hasBracketPrediction = async (_owner?: string): Promise<boolean> => false;
+export type BracketPredictionOnChain = {
+  groupRanks: number[];
+  thirdPlaceOrder: number[];
+  knockoutWinners: number[];
+  submittedAt: number;
+};
+export const getBracketPrediction = async (_owner?: string): Promise<BracketPredictionOnChain | null> => null;
 export const hasRegisterBracketPredictionOnChain = async (): Promise<boolean> => false;
 export const hasAdminSponsorPrizePoolOnChain = async (): Promise<boolean> => true;
-export const hasAdminMarkPrizeClaimedOnChain = async (): Promise<boolean> => false;
 export const hasAdminWithdrawPrizeVaultOnChain = async (): Promise<boolean> => true;
-export const hasAdminWithdrawLegacyMoveFromVaultOnChain = async (): Promise<boolean> => false;
+
+/** Titles and guilds were Movement-era; not in Solana v1. */
+export const getUserTitle = async (_owner: string) => null;
+export const getUserGuild = async (_owner: string) => null;
+export const hasTitle = async (_owner: string) => false;
+export const hasGuild = async (_owner: string) => false;
 
 export async function buildRegisterTeam(
   owner: string,

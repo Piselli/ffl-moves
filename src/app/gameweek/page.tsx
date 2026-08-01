@@ -16,15 +16,15 @@ import { Player, TeamResult } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 import {
   getConfig,
-  findActiveGameweekFromChain,
+  findActiveGameweek,
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
   getUserTeam,
   type ChainConfig,
   type GameweekSummary,
-} from "@/lib/movement";
-import { buildRegisterTeam } from "@/lib/chainClient";
+} from "@/lib/chainClient";
+import { buildRegisterTeam, getUsdcBalance } from "@/lib/chainClient";
 import Link from "next/link";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -35,11 +35,7 @@ import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
-import { RegistrationCostPanel } from "@/components/RegistrationCostPanel";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
-import { useStableyardDeposit } from "@/hooks/useStableyardDeposit";
-import { hasEnoughUsdcxForEntry } from "@/lib/usdcxBalance";
-import { isStableyardEnabled } from "@/lib/stableyard";
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -207,22 +203,6 @@ export default function GameweekPage() {
     return prize.formatLabel(config.entryFee);
   }, [config, prize]);
 
-  // Funding is handled by the connected Solana wallet. Stableyard is retained
-  // only as archived code until Phase 5 and must not appear in the user flow.
-  const showStableyardDeposit = false;
-
-  const stableyard = useStableyardDeposit(
-    account?.address.toString(),
-    config?.entryFee,
-  );
-
-  useEffect(() => {
-    if (stableyard.depositReady && insufficientFundsOpen) {
-      setInsufficientFundsOpen(false);
-      stableyard.reset();
-    }
-  }, [stableyard.depositReady, insufficientFundsOpen, stableyard.reset]);
-
   useEffect(() => {
     fetch("/api/players")
       .then(async (r) => {
@@ -260,7 +240,7 @@ export default function GameweekPage() {
       const configData = await getConfig();
       setConfig(configData);
 
-      const gwActive = await findActiveGameweekFromChain(configData);
+      const gwActive = await findActiveGameweek();
       const gwData = gwActive;
 
       setCurrentGameweek(gwData);
@@ -623,13 +603,11 @@ export default function GameweekPage() {
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
 
-    if (showStableyardDeposit) {
-      const requiredRaw = config?.entryFee && config.entryFee > 0 ? config.entryFee : 5_000_000;
-      const hasFunds = await hasEnoughUsdcxForEntry(account.address.toString(), requiredRaw);
-      if (!hasFunds) {
-        setInsufficientFundsOpen(true);
-        return;
-      }
+    const requiredRaw = config?.entryFee && config.entryFee > 0n ? config.entryFee : 5_000_000n;
+    const balance = await getUsdcBalance(account.address.toString());
+    if (balance < requiredRaw) {
+      setInsufficientFundsOpen(true);
+      return;
     }
 
     setIsSubmitting(true);
@@ -648,7 +626,7 @@ export default function GameweekPage() {
       const signature = await signAndSubmit(await buildRegisterTeam(
         account.address,
         currentGameweek.id,
-        { playerIds, positions: playerPositions, clubs: playerClubs },
+        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs },
       ));
       console.log("Solana transaction submitted:", signature);
 
@@ -932,11 +910,6 @@ export default function GameweekPage() {
     <div className="bg-[#0D0F12] min-h-screen">
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 pt-28">
-        {!prize.usdcxEntryLive && config && (
-          <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
-            {g.entryFeeLegacyBanner(entryFeeLabel)}
-          </div>
-        )}
         {/* Desktop header */}
         <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 mb-8 items-start">
           <div>
@@ -945,22 +918,14 @@ export default function GameweekPage() {
             </h1>
             <p className="text-white/40 text-sm">{g.pickPlayersHint}</p>
           </div>
-          {showStableyardDeposit ? (
-            <RegistrationCostPanel
-              entryFeeLabel={entryFeeLabel}
-              onTopUp={() => void stableyard.openDeposit()}
-              topUpOpening={stableyard.opening}
-            />
-          ) : (
-            <div className="flex justify-end">
-              <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
-                <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
-                  {entryFeeLabel}
-                </p>
-              </div>
+          <div className="flex justify-end">
+            <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
+              <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
+                {entryFeeLabel}
+              </p>
             </div>
-          )}
+          </div>
         </div>
         {/* Mobile header */}
         <div className="lg:hidden mb-4 space-y-3">
@@ -970,13 +935,6 @@ export default function GameweekPage() {
             </h1>
             <p className="text-white/30 text-xs mt-0.5">{g.maxThreeHint}</p>
           </div>
-          {showStableyardDeposit && (
-            <RegistrationCostPanel
-              entryFeeLabel={entryFeeLabel}
-              onTopUp={() => void stableyard.openDeposit()}
-              topUpOpening={stableyard.opening}
-            />
-          )}
         </div>
       </div>
 
@@ -1320,14 +1278,7 @@ export default function GameweekPage() {
       <InsufficientFundsModal
         open={insufficientFundsOpen}
         entryFeeLabel={entryFeeLabel}
-        onClose={() => {
-          setInsufficientFundsOpen(false);
-          stableyard.reset();
-        }}
-        onTopUp={() => void stableyard.openDeposit()}
-        topUpOpening={stableyard.opening}
-        depositPhase={stableyard.phase}
-        depositError={stableyard.loadError}
+        onClose={() => setInsufficientFundsOpen(false)}
       />
 
     </div>

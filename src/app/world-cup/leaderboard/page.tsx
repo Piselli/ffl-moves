@@ -7,11 +7,11 @@ import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
   getGameweek,
   getTeamResult,
-  getGameweekTeams,
+  getGameweekEntrants,
   getUserTeam,
   getGameweekStats,
   type GameweekSummary,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import { buildClaimPrize } from "@/lib/chainClient";
 import {
   getWorldCupTourSummaries,
@@ -82,7 +82,7 @@ export default function WorldCupLeaderboardPage() {
       setCurrentTour(gwData);
 
       if (gwData && gwData.status === "resolved") {
-        const addresses = await getGameweekTeams(tourId);
+        const addresses = await getGameweekEntrants(tourId);
         const [results, priorClaimed] = await Promise.all([
           Promise.all(addresses.map((addr) => getTeamResult(addr, tourId))),
           fetchTourClaimHistoryFromApi(tourId),
@@ -96,7 +96,7 @@ export default function WorldCupLeaderboardPage() {
         });
         setLeaderboardData(merged);
       } else if (gwData && gwData.status === "closed") {
-        const addresses = await getGameweekTeams(tourId);
+        const addresses = await getGameweekEntrants(tourId);
         if (addresses.length > 0) {
           const teams = await Promise.all(addresses.map((addr) => getUserTeam(addr, tourId)));
           const allIds = new Set<number>();
@@ -129,7 +129,7 @@ export default function WorldCupLeaderboardPage() {
                   guildMultiplier: 1,
                   finalPoints: scored[k].finalPoints,
                   rank: compRank,
-                  prizeAmount: 0,
+                  prizeAmount: 0n,
                   claimed: false,
                 });
               }
@@ -148,7 +148,7 @@ export default function WorldCupLeaderboardPage() {
               guildMultiplier: 1,
               finalPoints: 0,
               rank: 0,
-              prizeAmount: 0,
+              prizeAmount: 0n,
               claimed: false,
             }));
             locked.sort((a, b) => a.owner.localeCompare(b.owner));
@@ -382,7 +382,7 @@ export default function WorldCupLeaderboardPage() {
                     </button>
                   )}
                   {userResult.claimed && <p className="text-emerald-400 font-bold text-sm">{lb.claimed}</p>}
-                  {userResult.prizeAmount === 0 && <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>}
+                  {userResult.prizeAmount === 0n && <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>}
                 </>
               )}
             </div>

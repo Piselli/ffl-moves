@@ -7,16 +7,16 @@ import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
   getConfig,
   getGameweek,
-  findOpenGameweekFromChain,
-  findHighestGameweekIdOnChain,
+  findOpenGameweek,
+  findHighestGameweekId,
   findLatestResolvedGameweekId,
   getTeamResult,
-  getGameweekTeams,
+  getGameweekEntrants,
   getUserTeam,
   getGameweekStats,
   type ChainConfig,
   type GameweekSummary,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import { buildClaimPrize } from "@/lib/chainClient";
 import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
@@ -58,8 +58,8 @@ export default function LeaderboardPage() {
         }
 
         const [openGw, highestId] = await Promise.all([
-          findOpenGameweekFromChain(configData),
-          findHighestGameweekIdOnChain(configData),
+          findOpenGameweek(),
+          findHighestGameweekId(),
         ]);
 
         const chainCurrent = Number(configData.currentGameweek) || 0;
@@ -101,7 +101,7 @@ export default function LeaderboardPage() {
       setCurrentGameweek(gwData);
 
       if (gwData && gwData.status === "resolved") {
-        const addresses = await getGameweekTeams(gwId);
+        const addresses = await getGameweekEntrants(gwId);
         const [results, priorClaimed] = await Promise.all([
           Promise.all(addresses.map((addr) => getTeamResult(addr, gwId))),
           fetchTourClaimHistoryFromApi(gwId),
@@ -118,7 +118,7 @@ export default function LeaderboardPage() {
         setLeaderboardData(validResults);
       } else if (gwData && gwData.status === "closed") {
         // Preview mode: compute scores client-side from on-chain stats
-        const addresses = await getGameweekTeams(gwId);
+        const addresses = await getGameweekEntrants(gwId);
         if (addresses.length > 0) {
           const teams = await Promise.all(addresses.map((addr) => getUserTeam(addr, gwId)));
           const allIds = new Set<number>();
@@ -161,7 +161,7 @@ export default function LeaderboardPage() {
                   guildMultiplier: 1,
                   finalPoints: scored[k].finalPoints,
                   rank: compRank,
-                  prizeAmount: 0,
+                  prizeAmount: 0n,
                   claimed: false,
                 });
               }
@@ -434,7 +434,7 @@ export default function LeaderboardPage() {
                       <p className="text-emerald-400 font-bold text-sm">{lb.claimed}</p>
                     </div>
                   )}
-                  {userResult.prizeAmount === 0 && (
+                  {userResult.prizeAmount === 0n && (
                     <p className="text-white/20 text-xs text-center">{lb.noPrize}</p>
                   )}
                 </>

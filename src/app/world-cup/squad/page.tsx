@@ -20,9 +20,10 @@ import {
   getGameweekStats,
   getTeamResult,
   getUserTeam,
+  buildRegisterTeam,
+  getUsdcBalance,
   type GameweekSummary,
-} from "@/lib/movement";
-import { buildRegisterTeam } from "@/lib/chainClient";
+} from "@/lib/chainClient";
 import { findActiveWorldCupTourFromChain, getWorldCupRound } from "@/lib/worldcup";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -33,11 +34,7 @@ import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadRes
 import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
-import { RegistrationCostPanel } from "@/components/RegistrationCostPanel";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
-import { useStableyardDeposit } from "@/hooks/useStableyardDeposit";
-import { hasEnoughUsdcxForEntry } from "@/lib/usdcxBalance";
-import { isStableyardEnabled } from "@/lib/stableyard";
 import { buildRandomSquad } from "@/lib/randomSquad";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
@@ -153,7 +150,7 @@ export default function WorldCupSquadPage() {
   const lineupTouchedNonEmptySessionRef = useRef(false);
 
   // Registration fee is read from the shared on-chain config (same as EPL).
-  const [entryFee, setEntryFee] = useState<number | null>(null);
+  const [entryFee, setEntryFee] = useState<bigint | null>(null);
 
   const officialResolved = useMemo(() => {
     if (teamResult == null || !registeredTeam) return null;
@@ -188,21 +185,9 @@ export default function WorldCupSquadPage() {
 
   const prize = usePrizeAsset();
   const entryFeeLabel = useMemo(() => {
-    if (!prize.ready || entryFee == null) return "—";
+    if (entryFee == null) return "—";
     return prize.formatLabel(entryFee);
   }, [entryFee, prize]);
-
-  // Users fund their own Solana wallet with devnet USDC. No bridge/deposit CTA.
-  const showStableyardDeposit = false;
-
-  const stableyard = useStableyardDeposit(account?.address.toString(), entryFee);
-
-  useEffect(() => {
-    if (stableyard.depositReady && insufficientFundsOpen) {
-      setInsufficientFundsOpen(false);
-      stableyard.reset();
-    }
-  }, [stableyard.depositReady, insufficientFundsOpen, stableyard.reset]);
 
   // WC player catalog (API-Sports based), fallback to bundled JSON.
   useEffect(() => {
@@ -261,7 +246,7 @@ export default function WorldCupSquadPage() {
     async function fetchData() {
       try {
         const [{ getConfig }, gwData] = await Promise.all([
-          import("@/lib/movement"),
+          import("@/lib/chainClient"),
           findActiveWorldCupTourFromChain(),
         ]);
         if (cancelled) return;
@@ -586,13 +571,11 @@ export default function WorldCupSquadPage() {
   const handleSubmitTeam = async () => {
     if (!connected || !account || !isTeamComplete || !currentTour) return;
 
-    if (showStableyardDeposit && entryFee != null) {
-      const requiredRaw = entryFee > 0 ? entryFee : 5_000_000;
-      const hasFunds = await hasEnoughUsdcxForEntry(account.address.toString(), requiredRaw);
-      if (!hasFunds) {
-        setInsufficientFundsOpen(true);
-        return;
-      }
+    const requiredRaw = entryFee != null && entryFee > 0n ? entryFee : 5_000_000n;
+    const balance = await getUsdcBalance(account.address.toString());
+    if (balance < requiredRaw) {
+      setInsufficientFundsOpen(true);
+      return;
     }
 
     setIsSubmitting(true);
@@ -605,7 +588,7 @@ export default function WorldCupSquadPage() {
       await signAndSubmit(await buildRegisterTeam(
         account.address,
         currentTour.id,
-        { playerIds, positions: playerPositions, clubs: playerClubs },
+        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs },
       ));
 
       const teamSnapshot = {
@@ -876,28 +859,20 @@ export default function WorldCupSquadPage() {
               {wc.mySquadsCta}
             </Link>
           </div>
-          {showStableyardDeposit ? (
-            <RegistrationCostPanel
-              entryFeeLabel={entryFeeLabel}
-              onTopUp={() => void stableyard.openDeposit()}
-              topUpOpening={stableyard.opening}
-            />
-          ) : (
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <Link
-                href="/world-cup/my-result"
-                className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-2 rounded-xl transition-colors"
-              >
-                {wc.mySquadsCta}
-              </Link>
-              <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
-                <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
-                  {entryFeeLabel}
-                </p>
-              </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Link
+              href="/world-cup/my-result"
+              className="text-[10px] font-bold uppercase tracking-wider text-[#00f948]/70 hover:text-[#00f948] border border-[#00f948]/20 hover:border-[#00f948]/40 px-3 py-2 rounded-xl transition-colors"
+            >
+              {wc.mySquadsCta}
+            </Link>
+            <div className="bg-white/[0.03] border border-white/[0.08] px-6 py-4 rounded-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">{g.entryFeeLabel}</p>
+              <p className="text-2xl font-display font-black bg-gradient-to-r from-emerald-400 to-[#00f948] bg-clip-text text-transparent">
+                {entryFeeLabel}
+              </p>
             </div>
-          )}
+          </div>
         </div>
         <div className="lg:hidden mb-4 space-y-3">
           <div>
@@ -907,13 +882,6 @@ export default function WorldCupSquadPage() {
               {wc.mySquadsCta}
             </Link>
           </div>
-          {showStableyardDeposit && (
-            <RegistrationCostPanel
-              entryFeeLabel={entryFeeLabel}
-              onTopUp={() => void stableyard.openDeposit()}
-              topUpOpening={stableyard.opening}
-            />
-          )}
         </div>
       </div>
 
@@ -1197,14 +1165,7 @@ export default function WorldCupSquadPage() {
       <InsufficientFundsModal
         open={insufficientFundsOpen}
         entryFeeLabel={entryFeeLabel}
-        onClose={() => {
-          setInsufficientFundsOpen(false);
-          stableyard.reset();
-        }}
-        onTopUp={() => void stableyard.openDeposit()}
-        topUpOpening={stableyard.opening}
-        depositPhase={stableyard.phase}
-        depositError={stableyard.loadError}
+        onClose={() => setInsufficientFundsOpen(false)}
       />
     </div>
   );

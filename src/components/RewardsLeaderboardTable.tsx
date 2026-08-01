@@ -10,10 +10,8 @@ import { DEFAULT_PRIZE_TIERS } from "@/lib/prize-distribution";
 /* ── Prize Distribution (percentages) ──────────────────────────────────────── */
 const PRIZE_TIERS = DEFAULT_PRIZE_TIERS;
 
-/** Marketing example pool for the homepage rewards section (USDCx, 6 decimals). */
-const DEMO_POOL_USDCX_RAW = 1_000_000_000; // $1,000
-/** Legacy MOVE demo (8 decimals) if chain still reports MOVE. */
-const DEMO_POOL_MOVE_RAW = 1_000_00000000; // 1,000 MOVE
+/** Marketing example pool for the homepage rewards section (USDC, 6 decimals). */
+const DEMO_POOL_RAW = 1_000_000_000; // $1,000
 
 /* ── Row styles ────────────────────────────────────────────────────────────── */
 const VIP_STYLES = {
@@ -53,8 +51,7 @@ export function RewardsLeaderboardTable() {
   const { locale } = useSiteLocale();
   const placeLabel = locale === "uk" ? formatRewardPlaceUk : formatRewardPlaceEn;
   // Marketing example only — live GW pools can be tiny (e.g. one entry ≈ entry fee).
-  const poolRaw =
-    prize.asset === "usdcx" ? DEMO_POOL_USDCX_RAW : DEMO_POOL_MOVE_RAW;
+  const poolRaw = DEMO_POOL_RAW;
 
   const allTiers = PRIZE_TIERS.map(tier => {
     let type = "standard";

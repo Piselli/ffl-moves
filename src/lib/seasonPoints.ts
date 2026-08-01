@@ -1,12 +1,12 @@
 import {
   getConfig,
   getGameweek,
-  getGameweekTeams,
+  getGameweekEntrants,
   getTeamResult,
   hasRegisteredTeam,
-  findHighestGameweekIdOnChain,
+  findHighestGameweekId,
   findLatestResolvedGameweekId,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import {
   CURRENT_SEASON,
   SEASON_POINTS_RULES_VERSION,
@@ -142,7 +142,7 @@ export async function getSeasonEventIds(): Promise<{
   if (eplStartGw > 0) {
     const config = await getConfig();
     if (config) {
-      const highest = await findHighestGameweekIdOnChain(config);
+      const highest = await findHighestGameweekId();
       const cap = seasonEplCap(highest);
       const latestResolved = await findLatestResolvedGameweekId(cap);
       resolvedEplThroughGw =
@@ -232,7 +232,7 @@ export async function buildSeasonLeaderboard(): Promise<SeasonLeaderboardPayload
 
   const ownerCanonical = new Map<string, string>();
   const teamsByEvent = await mapInBatches(eventIds, 4, async (eventId) => {
-    const teams = await getGameweekTeams(eventId);
+    const teams = await getGameweekEntrants(eventId);
     for (const addr of teams) {
       const key = addr.toLowerCase();
       if (!ownerCanonical.has(key)) ownerCanonical.set(key, addr);

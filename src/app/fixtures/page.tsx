@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
+import { getConfig, findActiveGameweek } from "@/lib/chainClient";
 
 type Fixture = {
   id: number;
@@ -61,7 +61,7 @@ export default function FixturesPage() {
     (async () => {
       try {
         const cfg = await getConfig();
-        const gw = cfg ? await findActiveGameweekFromChain(cfg) : null;
+        const gw = cfg ? await findActiveGameweek() : null;
         if (!cancelled && gw?.id != null && Number.isFinite(gw.id)) setRegistrationGwId(gw.id);
       } catch {
         /* keep null — API falls back to FPL-only pick */

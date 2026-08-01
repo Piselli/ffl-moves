@@ -22,29 +22,29 @@ export type SiteMessages = {
     walletShort: string;
     connectWallet: string;
     chooseWallet: string;
-    compatibleMovement: string;
+    compatibleChain: string;
     installed: string;
-    openInNightly: string;
-    openInMotion: string;
+    openInSolflare: string;
+    openInPhantom: string;
     noWalletsFound: string;
     noWalletsHint: string;
-    connectHintNightly: string;
+    connectHintNotInstalled: string;
     connectHintFailed: string;
-    openingNightly: string;
-    openingMotion: string;
-    installNightlyExtension: string;
-    installMotionExtension: string;
-    walletMotionInstallSub: string;
-    walletNightlyInstallSub: string;
+    openingSolflare: string;
+    openingPhantom: string;
+    installSolflareExtension: string;
+    installPhantomExtension: string;
+    walletPhantomInstallSub: string;
+    walletSolflareInstallSub: string;
     walletBeginnerEyebrow: string;
     walletBeginnerTitle: string;
     desktopExtensionHint: string;
     desktopExtensionRefresh: string;
-    scanningNightly: string;
+    scanningSolflare: string;
     scanningWallets: string;
     connectHintInstalled: string;
     safariExtensionHint: string;
-    nightlyInstalledTips: string;
+    solflareInstalledTips: string;
     socialXAria: string;
   };
   footer: {
@@ -237,37 +237,37 @@ const uk: SiteMessages = {
     walletShort: "Гаманець",
     connectWallet: "Підключити гаманець",
     chooseWallet: "Обери гаманець",
-    compatibleMovement: "Сумісний з Movement Network",
+    compatibleChain: "Сумісний з Solana",
     installed: "Встановлено",
-    openInNightly: "Відкрити в Nightly",
-    openInMotion: "Відкрити в Motion",
+    openInSolflare: "Відкрити в Solflare",
+    openInPhantom: "Відкрити в Phantom",
     noWalletsFound: "Гаманців не знайдено",
     noWalletsHint:
-      "Потрібен гаманець Motion або Nightly. Рекомендуємо Motion — офіційний гаманець Movement. Після встановлення натисни «Підключити гаманець» знову.",
-    connectHintNightly:
-      "Схоже, гаманець не відкрився або не встановлено. Завантаж Motion або Nightly за посиланням нижче й спробуй знову.",
+      "Потрібен Phantom або Solflare. Рекомендуємо Phantom. Після встановлення натисни «Підключити гаманець» знову.",
+    connectHintNotInstalled:
+      "Схоже, гаманець не відкрився або не встановлено. Завантаж Phantom або Solflare за посиланням нижче й спробуй знову.",
     connectHintFailed:
-      "Не вдалося підключити гаманець. Перевір, чи встановлено Motion або Nightly, або скористайся посиланнями нижче.",
-    openingNightly: "Відкриваємо Nightly… Підтверди підключення у вікні розширення.",
-    openingMotion: "Відкриваємо Motion… Підтверди підключення у вікні розширення.",
-    installNightlyExtension: "Встановити розширення Nightly",
-    installMotionExtension: "Встановити Motion",
-    walletMotionInstallSub: "Офіційний гаманець Movement",
-    walletNightlyInstallSub: "Альтернативний гаманець",
+      "Не вдалося підключити гаманець. Перевір, чи встановлено Phantom або Solflare, або скористайся посиланнями нижче.",
+    openingSolflare: "Відкриваємо Solflare… Підтверди підключення у вікні розширення.",
+    openingPhantom: "Відкриваємо Phantom… Підтверди підключення у вікні розширення.",
+    installSolflareExtension: "Встановити Solflare",
+    installPhantomExtension: "Встановити Phantom",
+    walletPhantomInstallSub: "Рекомендований Solana-гаманець",
+    walletSolflareInstallSub: "Альтернативний Solana-гаманець",
     walletBeginnerEyebrow: "Вперше тут?",
     walletBeginnerTitle: "Що таке гаманець",
     desktopExtensionHint:
-      "На Mac у браузері потрібне розширення Motion або Nightly (Chrome, Brave або Edge). Рекомендуємо Motion — мобільний застосунок Nightly тут не підключиться.",
+      "На Mac у браузері потрібне розширення Phantom або Solflare (Chrome, Brave або Edge).",
     desktopExtensionRefresh:
-      "Після встановлення онови сторінку (Cmd+Shift+R) і обери Motion або Nightly. Дозволь розширенню доступ до localhost.",
-    scanningNightly: "Шукаємо розширення Nightly у браузері…",
+      "Після встановлення онови сторінку (Cmd+Shift+R) і обери Phantom або Solflare. Дозволь розширенню доступ до localhost.",
+    scanningSolflare: "Шукаємо розширення Solflare у браузері…",
     scanningWallets: "Шукаємо розширення гаманців у браузері…",
     connectHintInstalled:
-      "Nightly знайдено, але підключення не завершилось. Натисни іконку Nightly у панелі браузера → підключи сайт → обери мережу Movement → спробуй знову. Дозволь popup для localhost.",
+      "Гаманець знайдено, але підключення не завершилось. Натисни іконку розширення → підключи сайт → обери Solana → спробуй знову. Дозволь popup для localhost.",
     safariExtensionHint:
-      "У Safari потрібне окреме розширення Nightly (не Chrome Web Store). Встанови з nightly.app → Safari → Увімкни в Налаштування → Розширення.",
-    nightlyInstalledTips:
-      "1) Іконка Nightly у панелі браузера → підключи цей сайт. 2) У гаманці обери Movement. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
+      "У Safari потрібне окреме розширення Phantom (phantom.com/download).",
+    solflareInstalledTips:
+      "1) Іконка гаманця у панелі браузера → підключи цей сайт. 2) Обери Solana. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
     socialXAria: "MoveMatch на X (Twitter) — новини та підтримка",
   },
   footer: {
@@ -282,7 +282,7 @@ const uk: SiteMessages = {
   },
   devBanner: {
     envHint:
-      "Перевір .env.local і Nightly: не nightly RPC і не дефолтна адреса testnet3 на mainnet.",
+      "Перевір .env.local: на mainnet не має бути devnet RPC або дефолтного program ID.",
   },
   home: {
     heroAlt: "Тактична дошка MOVEMATCH",
@@ -479,37 +479,37 @@ const en: SiteMessages = {
     walletShort: "Wallet",
     connectWallet: "Connect wallet",
     chooseWallet: "Choose a wallet",
-    compatibleMovement: "Compatible with Movement Network",
+    compatibleChain: "Compatible with Solana",
     installed: "Installed",
-    openInNightly: "Open in Nightly",
-    openInMotion: "Open in Motion",
+    openInSolflare: "Open in Solflare",
+    openInPhantom: "Open in Phantom",
     noWalletsFound: "No wallets found",
     noWalletsHint:
-      "You need the Motion or Nightly wallet. We recommend Motion — the official Movement wallet. After installing, tap “Connect wallet” again.",
-    connectHintNightly:
-      "The wallet may not have opened or isn’t installed. Download Motion or Nightly via the links below and try again.",
+      "You need Phantom or Solflare. We recommend Phantom. After installing, tap “Connect wallet” again.",
+    connectHintNotInstalled:
+      "The wallet may not have opened or isn’t installed. Download Phantom or Solflare via the links below and try again.",
     connectHintFailed:
-      "Could not connect the wallet. Check that Motion or Nightly is installed or use the links below.",
-    openingNightly: "Opening Nightly… Approve the connection in the extension popup.",
-    openingMotion: "Opening Motion… Approve the connection in the extension popup.",
-    installNightlyExtension: "Install Nightly extension",
-    installMotionExtension: "Install Motion",
-    walletMotionInstallSub: "Official Movement wallet",
-    walletNightlyInstallSub: "Alternative wallet",
+      "Could not connect the wallet. Check that Phantom or Solflare is installed or use the links below.",
+    openingSolflare: "Opening Solflare… Approve the connection in the extension popup.",
+    openingPhantom: "Opening Phantom… Approve the connection in the extension popup.",
+    installSolflareExtension: "Install Solflare",
+    installPhantomExtension: "Install Phantom",
+    walletPhantomInstallSub: "Recommended Solana wallet",
+    walletSolflareInstallSub: "Alternative Solana wallet",
     walletBeginnerEyebrow: "First time here?",
     walletBeginnerTitle: "What is a wallet",
     desktopExtensionHint:
-      "On Mac, the browser needs the Motion or Nightly extension (Chrome, Brave, or Edge). We recommend Motion — the Nightly mobile app cannot connect here.",
+      "On Mac, the browser needs the Phantom or Solflare extension (Chrome, Brave, or Edge).",
     desktopExtensionRefresh:
-      "After installing, refresh this page (Cmd+Shift+R) and choose Motion or Nightly. Allow the extension access to localhost.",
-    scanningNightly: "Looking for the Nightly extension in your browser…",
+      "After installing, refresh this page (Cmd+Shift+R) and choose Phantom or Solflare. Allow the extension access to localhost.",
+    scanningSolflare: "Looking for the Solflare extension in your browser…",
     scanningWallets: "Looking for wallet extensions in your browser…",
     connectHintInstalled:
-      "Nightly was found but the connection did not finish. Click the Nightly icon in the toolbar → connect this site → select Movement network → try again. Allow popups for localhost.",
+      "Wallet found but the connection did not finish. Click the extension icon → connect this site → select Solana → try again. Allow popups for localhost.",
     safariExtensionHint:
-      "Safari needs the separate Nightly Safari extension (not Chrome Web Store). Install from nightly.app → Safari → enable in Settings → Extensions.",
-    nightlyInstalledTips:
-      "1) Nightly toolbar icon → connect this site. 2) Select Movement in the wallet. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
+      "Safari needs the separate Phantom Safari extension (phantom.com/download).",
+    solflareInstalledTips:
+      "1) Wallet toolbar icon → connect this site. 2) Select Solana. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
     socialXAria: "MoveMatch on X (Twitter) — news and support",
   },
   footer: {
@@ -524,7 +524,7 @@ const en: SiteMessages = {
   },
   devBanner: {
     envHint:
-      "Check .env.local and Nightly: avoid nightly RPC and the default testnet3 module address on mainnet.",
+      "Check .env.local: avoid a devnet RPC or the default program ID on mainnet.",
   },
   home: {
     heroAlt: "MOVEMATCH tactical board",

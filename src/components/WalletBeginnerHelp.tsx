@@ -31,7 +31,7 @@ export function WalletBeginnerHelp({
           blurb:
             "Гаманець — це розширення для браузера. Воно зберігає крипто і підтверджує дії на сайті — логін і підпис замість пароля.",
           whatIs: "Що таке гаманець?",
-          which: "Motion чи Nightly — що обрати?",
+          which: "Phantom чи Solflare — що обрати?",
           steps: "Покрокова інструкція",
           all: "Усі питання про Web3",
         }
@@ -40,7 +40,7 @@ export function WalletBeginnerHelp({
           blurb:
             "A wallet is a browser extension. It holds your crypto and approves actions on sites — your login and signature instead of a password.",
           whatIs: "What is a wallet?",
-          which: "Motion or Nightly — which to pick?",
+          which: "Phantom or Solflare — which to pick?",
           steps: "Step-by-step guide",
           all: "All Web3 questions",
         };

@@ -1,15 +1,5 @@
 import { clusterApiUrl } from "@solana/web3.js";
 
-/** @deprecated Movement networking is retained only for Phase 5 cleanup. */
-export const NETWORK = "custom";
-
-/** Dev fallback — production must set NEXT_PUBLIC_* (see .env.example). */
-const DEFAULT_MOVEMENT_RPC = "https://testnet.movementnetwork.xyz/v1";
-/** Dev fallback package address — override on mainnet via env. */
-/** Documented package account; override with NEXT_PUBLIC_MODULE_ADDRESS in env. */
-const DEFAULT_MODULE_ADDRESS =
-  "0xf598f059a0353b0d9ea80c9fd9d1c3e15b71ff4535388dd79acf813b567c5b47";
-
 /** Trims; returns undefined if missing/blank (so ?? fallback works). */
 function publicEnv(s: string | undefined): string | undefined {
   if (s == null) return undefined;
@@ -17,44 +7,8 @@ function publicEnv(s: string | undefined): string | undefined {
   return t.length > 0 ? t : undefined;
 }
 
-/**
- * Movement fullnode REST base (must end with /v1 for these defaults).
- * Docs: https://docs.movementnetwork.xyz/devs/networkEndpoints
- * Testnet chain ID 250; Mainnet chain ID 126 (SDK uses Network.CUSTOM + this URL).
- *
- * IMPORTANT: use only direct `process.env.NEXT_PUBLIC_*` reads (no `process.env[key]`).
- * Otherwise the client bundle cannot inline values from `.env.local` / next.config and
- * SSR briefly shows correct env while hydration falls back to defaults (flicker).
- */
-export const MOVEMENT_RPC_URL =
-  publicEnv(process.env.NEXT_PUBLIC_MOVEMENT_RPC_URL) ??
-  publicEnv(process.env.NEXT_PUBLIC_APTOS_API) ??
-  DEFAULT_MOVEMENT_RPC;
-
-/** @deprecated use MOVEMENT_RPC_URL — kept for older imports */
-export const MOVEMENT_TESTNET_URL = MOVEMENT_RPC_URL;
-
-/** Published package account (module lives at MODULE_NAME under this address). */
-export const MODULE_ADDRESS =
-  publicEnv(process.env.NEXT_PUBLIC_MODULE_ADDRESS) ?? DEFAULT_MODULE_ADDRESS;
-
-export const MODULE_NAME = publicEnv(process.env.NEXT_PUBLIC_MODULE_NAME) ?? "fantasy_epl";
-
-/** @deprecated Legacy MOVE entry — prizes & registration use USDCx since 2026. */
-export const ENTRY_FEE_MOVE = 300;
-
 /** Squad registration entry fee in USDC (on-chain: 5_000_000 micro-units). */
-export const ENTRY_FEE_USDCX = 5;
-
-/** Circle USDCx metadata (Fungible Asset) — see move/USDCX_ENTRY_FEE_PREP.md */
-export const USDCX_METADATA_MAINNET =
-  "0xba11833544a2f99eec743f41a228ca6ffa7f13c3b6b04681d5a79a8b75ff225e";
-export const USDCX_METADATA_TESTNET =
-  "0x63f169ba69623ba6ccf34620857644feb46d0f87e1d7bbcf8c071d30c3d94bd6";
-
-export function usdcxMetadataForRpc(rpcUrl: string): string {
-  return rpcUrl.includes("mainnet") ? USDCX_METADATA_MAINNET : USDCX_METADATA_TESTNET;
-}
+export const ENTRY_FEE_USDC = 5;
 
 /** First gameweek shown in leaderboard UI (earlier weeks were test / internal). */
 export const MIN_PUBLIC_LEADERBOARD_GW = 35;

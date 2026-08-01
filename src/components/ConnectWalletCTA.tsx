@@ -2,10 +2,10 @@
 
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
-import { MovementWalletRows } from "@/components/MovementWalletRows";
+import { WalletConnectRows } from "@/components/WalletConnectRows";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
-import { isSafariBrowser } from "@/lib/walletNightly";
+import { isSafariBrowser } from "@/lib/solanaWallets";
 
 export function ConnectWalletCTA({ className = "" }: { className?: string }) {
   const { locale } = useSiteLocale();
@@ -72,7 +72,7 @@ export function ConnectWalletCTA({ className = "" }: { className?: string }) {
       ) : walletRows.length > 0 ? (
         <div className="flex flex-col gap-2">
           <WalletBeginnerHelp locale={locale} />
-          <MovementWalletRows rows={walletRows} pending={pending} onConnect={connectWallet} />
+          <WalletConnectRows rows={walletRows} pending={pending} onConnect={connectWallet} />
         </div>
       ) : scanDone ? (
         <div className="text-center py-2">

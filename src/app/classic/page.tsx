@@ -3,7 +3,7 @@
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
-import { getConfig, findActiveGameweekFromChain } from "@/lib/movement";
+import { getConfig, findActiveGameweek } from "@/lib/chainClient";
 import {
   findActiveWorldCupTourFromChain,
   isWorldCupCampaignActive,
@@ -18,8 +18,6 @@ import { fplPhotoCodeFromFilenameOrUrl } from "@/lib/fpl-photo-atlas";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { DEFAULT_ENTRY_FEE_RAW } from "@/lib/entryFee";
-import { ENTRY_FEE_MOVE } from "@/lib/constants";
-import { moveToOctas } from "@/lib/utils";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import type { SiteMessages } from "@/i18n/messages";
 import {
@@ -718,8 +716,8 @@ export default function Home() {
   const prize = usePrizeAsset();
 
   // Live on-chain data (open gameweek only — pool + entries are for this tour, not all-time)
-  /** Raw on-chain prize pool units (USDCx micro-units). */
-  const [prizePoolRaw, setPrizePoolRaw] = useState<number | null>(null);
+  /** Raw on-chain prize pool units (USDC micro-units). */
+  const [prizePoolRaw, setPrizePoolRaw] = useState<bigint | null>(null);
   const [tourEntryCount, setTourEntryCount] = useState<number | null>(null);
   const [openGameweekId, setOpenGameweekId] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -743,7 +741,7 @@ export default function Home() {
           }
         } else {
           const cfg = await getConfig();
-          const gw = await findActiveGameweekFromChain(cfg);
+          const gw = await findActiveGameweek();
           if (gw) {
             setPrizePoolRaw(gw.prizePool);
             setTourEntryCount(gw.totalEntries);
@@ -803,8 +801,8 @@ export default function Home() {
         title: locale === "uk" ? "Зареєструй склад" : "Register on-chain",
         desc:
           locale === "uk"
-            ? `Сплати ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} і зафіксуй склад смарт-контрактом на Movement.`
-            : `Pay ${prize.formatLabel(prize.asset === "usdcx" ? DEFAULT_ENTRY_FEE_RAW : moveToOctas(ENTRY_FEE_MOVE))} and lock your squad on Movement.`,
+            ? `Сплати ${prize.formatLabel(DEFAULT_ENTRY_FEE_RAW)} і зафіксуй склад смартконтрактом на Solana.`
+            : `Pay ${prize.formatLabel(DEFAULT_ENTRY_FEE_RAW)} and lock your squad on Solana.`,
         accent: "from-[#8B5CF6] to-[#EC4899]",
         icon: (
           <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

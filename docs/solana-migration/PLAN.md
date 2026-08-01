@@ -68,16 +68,17 @@ On-chain state з Movement **не мігрує** — новий деплой, н
   `api/tour-claim-history`, `api/season-points/*`
 - Депозити: замість Stableyard → Movement обрати шлях поповнення USDC на Solana
 
-### Фаза 5 — Composer (рутина)
+### Фаза 5 — Composer (рутина) — ЗАВЕРШЕНО 2026-08-01
 
-Передумова: виконаний чеклист із `05-movement-archive.md`. Прибирання йде **одним
-комітом**, щоб `git revert` повертав інтеграцію цілком. Каталог `move/` не
-видаляється.
+Прибирання пішло **одним комітом**, щоб `git revert` повертав інтеграцію цілком.
+Каталог `move/` не видалявся. Деталі — у `HANDOFF.md`.
 
-- Видалити `src/lib/movement.ts`, `walletNightly.ts`, `usdcxBalance.ts`,
-  `stableyard*.ts` і Move-скрипти, якщо вони більше не потрібні
-- Оновити тексти, i18n, назви мережі й активу
-- Лінт, типи, build
+- [x] Видалено `src/lib/movement.ts`, `walletNightly.ts`, `moveAddress.ts`,
+      `usdcxBalance.ts`, `stableyard*.ts` та їхніх споживачів
+- [x] Видалено дві admin-секції, недоступні на Solana (legacy MOVE, mark claimed)
+- [x] Прибрано дуальність MOVE/USDCx в `entryFee.ts` і `ChainConfig`
+- [x] Оновлено тексти, i18n, назви мережі й активу (FAQ обома мовами, admin)
+- [x] Лінт, типи, build
 
 ### Фаза 6 — Opus 5 (перед mainnet)
 

@@ -614,3 +614,78 @@ program id, і попереджає про розбіжність кластер
   `LockerHero`); у git головна лишається старою Aptos-версією.
 
 STOP — фаза 4 закрита. Далі фаза 5 (Composer) або фаза 6 (Opus 5).
+
+---
+
+## 2026-08-01 — Opus 5 — фаза 5 завершена (прибирання Movement)
+
+**Операційні рішення, які тримали чеклист**
+
+- Невитребувані призи (11 шт., усі USDCx-ери): дедлайну немає, лишаються
+  claimable на Movement безстроково.
+- Bracket-челендж (тур 10999, 18 прогнозів, CLOSED, без результатів) — перенесено
+  у фазу 6, до оголошення sunset.
+- Повідомлення гравцям — фаза 6, перед mainnet або на старті claims-only вікна.
+- Мапа «тур → актив» зафіксована в `archive/movement-snapshot/2026-07-31/TOUR-ASSETS.md`.
+
+**Видалено**
+
+- Файли: `movement.ts`-фасад, `walletNightly.ts`, `moveAddress.ts`,
+  `usdcxBalance.ts`, `stableyard.ts` / `stableyardClient.ts`,
+  `useStableyardDeposit.ts`, `MovementWalletRows.tsx`, `RegistrationCostPanel.tsx`.
+- Дві admin-секції, недоступні на Solana назавжди: вивід legacy MOVE із vault і
+  `admin_mark_prize_claimed` (обидві `has*OnChain` поверталися `false` безумовно).
+  Разом із ними — стан, хендлери й ~25 i18n-ключів.
+- Поля титулів і гільдій із форми внесків: `set_fees` на Solana приймає лише
+  `entry_fee`, решта полів була декоративною.
+- Мертві i18n-ключі: `stableyard*` (14), `entryFeeLegacyBanner`,
+  `registrationTopUp*`, `entryFeeUsdcxHint`, `insufficientFundsTopUp`.
+
+**Спрощено**
+
+- `entryFee.ts` — прибрано дуальність MOVE/USDCx. `getConfig()` на Solana завжди
+  повертав `entryFeeAsset: 1`, тож MOVE-гілка була недосяжна. Тепер один актив,
+  6 знаків, без параметра `asset` у форматерах.
+- `PrizeAssetProvider` більше не робить RPC-запит заради константи;
+  `ChainConfig` втратив `titleFee`, `guildFee`, `entryFeeAsset`, `usdcxEntryLive`.
+- `adaptFaqCopy` — regex-адаптер, що на льоту переписував MOVE → USDCx у FAQ
+  (30 правил на дві мови). Копірайт тепер написаний прямо в USDC.
+- `formatTxError` парсив Move abort-коди: будь-яке число 1–200 у тексті помилки
+  давало українську підказку про Move-контракт. Замінено на читання Anchor-логів.
+- Перехідні аліаси `*FromChain` / `*OnChain` / `getGameweekTeams` розібрані по
+  15 файлах — лишились справжні імена з `chainClient`.
+- `constants.ts` — без Movement RPC, `MODULE_ADDRESS`, `MODULE_NAME`,
+  `ENTRY_FEE_MOVE` і метаданих USDCx.
+- `utils.ts` — без `formatMOVE` / `octasToMOVE` / `moveToOctas`.
+
+**Копірайт**
+
+- FAQ обома мовами: Motion/Nightly → Phantom/Solflare, Movement/USDCx → Solana/USDC,
+  свопи на Yuzu → своп у гаманці або вивід із біржі в мережі Solana. Додано
+  попередження про вибір мережі при виводі.
+- Admin: `get_config` → акаунт Config, октаси → мікро-одиниці USDC,
+  `0x…`-адреси → base58, ABI/publish пакета → інструкції та деплой програми.
+- i18n-ключі гаманців перейменовані під фактичні значення
+  (`openInNightly` → `openInSolflare` тощо).
+
+**Свідомо лишено**
+
+- Дві згадки Movement в admin-копірайті — історична довідка про те, що
+  bracket-інструкції не переносили.
+- `design-lab/` і `design-preview/` — внутрішні макети з написами
+  «Movement Network» і `USDCx`; не продакшн-поверхні.
+- Коментарі в `scoring.ts`, `scoring-rules.ts`, `chainAlignedScoring.ts`, що
+  посилаються на `fantasy_epl.move` як джерело числової парності. Потребують
+  перенацілювання на Solana-програму — окрема задача.
+
+**Перевірено:** `tsc --noEmit` чисто, `next lint` без нових попереджень,
+`npm run build` проходить.
+
+### Відкрито
+
+- Дизайнерська робота досі не в git, зокрема нова головна (`page.tsx` →
+  `LockerHero`); у git головна лишається старою Aptos-версією.
+- `.env.local` + `~/.movement/config.yaml` — бекап на власнику, перед фінальним
+  відключенням Movement.
+
+STOP — фаза 5 закрита. Далі фаза 6 (Opus 5).

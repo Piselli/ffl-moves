@@ -8,7 +8,7 @@ import { shortenAddress } from "@/lib/utils";
 export type TickerWinner = {
   address: string;
   rank: number;
-  prizeAmount: number;
+  prizeAmount: bigint;
 };
 
 type Props = {
@@ -22,7 +22,7 @@ const RANK_COLORS: Record<number, string> = {
   3: "#86efac",
 };
 
-export function PrizeTickerStrip({ data, prizeDisplay = createPrizeDisplay(0) }: Props) {
+export function PrizeTickerStrip({ data, prizeDisplay = createPrizeDisplay() }: Props) {
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
 
   useEffect(() => {

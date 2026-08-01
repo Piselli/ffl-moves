@@ -9,7 +9,7 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import { shortenAddress } from "@/lib/utils";
 import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
 import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
-import { MovementWalletRows } from "@/components/MovementWalletRows";
+import { WalletConnectRows } from "@/components/WalletConnectRows";
 import { useNickname } from "@/hooks/useNickname";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { NicknameModal } from "./NicknameModal";
@@ -297,7 +297,7 @@ export function Navbar() {
                     <p className="text-sm font-display font-black uppercase tracking-wider text-white">
                       {m.nav.chooseWallet}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">{m.nav.compatibleMovement}</p>
+                    <p className="text-xs text-white/40 mt-1">{m.nav.compatibleChain}</p>
                     <WalletBeginnerHelp locale={locale} compact className="mt-1.5" />
                   </div>
                   <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
@@ -313,7 +313,7 @@ export function Navbar() {
                     ) : null}
                     {walletRows.length > 0 ? (
                       <>
-                        <MovementWalletRows
+                        <WalletConnectRows
                           rows={walletRows}
                           onConnect={connectWallet}
                           variant="navbar"

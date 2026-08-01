@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import {
   getConfig,
-  findHighestGameweekIdOnChain,
+  findHighestGameweekId,
   findLatestResolvedGameweekId,
-  getGameweekTeams,
+  getGameweekEntrants,
   getTeamResult,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import {
   findLatestResolvedWorldCupTourId,
   getWorldCupRound,
@@ -17,7 +17,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { shortenAddress } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
-type Winner = { address: string; rank: number; prizeAmount: number };
+type Winner = { address: string; rank: number; prizeAmount: bigint };
 type TickerData = { gwId: number; winners: Winner[] };
 
 const sessionKey = () => (isWorldCupCampaignActive() ? "prize_ticker_wc_v2" : "prize_ticker_v2");
@@ -42,7 +42,7 @@ function writeCache(data: TickerData) {
 }
 
 async function fetchWinnersForTour(resolvedGwId: number): Promise<TickerData | null> {
-  const addresses = await getGameweekTeams(resolvedGwId);
+  const addresses = await getGameweekEntrants(resolvedGwId);
   if (!addresses.length) return null;
 
   const settled = await Promise.allSettled(
@@ -66,9 +66,6 @@ async function fetchWinnersForTour(resolvedGwId: number): Promise<TickerData | n
     .slice(0, 10);
 
   if (!winners.length) return null;
-  // Legacy MOVE prizes (8 decimals) misread as USDCx (6) look absurdly large — skip those tours.
-  const maxPrize = Math.max(...winners.map((w) => w.prizeAmount));
-  if (maxPrize > 50_000_000_000) return null; // > $50k to one wallet in one GW → not USDCx-era data
   return { gwId: resolvedGwId, winners };
 }
 
@@ -82,7 +79,7 @@ async function fetchWinners(): Promise<TickerData | null> {
   } else {
     const cfg = await getConfig();
     if (!cfg) return null;
-    const highestId = await findHighestGameweekIdOnChain(cfg);
+    const highestId = await findHighestGameweekId();
     if (!highestId) return null;
     resolvedGwId = await findLatestResolvedGameweekId(highestId);
   }

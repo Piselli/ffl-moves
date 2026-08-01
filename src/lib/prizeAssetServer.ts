@@ -1,8 +1,6 @@
 import { createPrizeDisplay, type PrizeDisplay } from "./entryFee";
-import { getConfig } from "./movement";
 
-/** Server components (PrizeTicker, etc.) — reads chain config once. */
+/** Server components (PrizeTicker, etc.) — prizes are always SPL USDC on Solana. */
 export async function getPrizeDisplayFromChain(): Promise<PrizeDisplay> {
-  const cfg = await getConfig();
-  return createPrizeDisplay(cfg?.entryFeeAsset);
+  return createPrizeDisplay();
 }

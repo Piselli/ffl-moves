@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
-import { getUserTeam, getTeamResult, getGameweekStats } from "@/lib/movement";
+import { getUserTeam, getTeamResult, getGameweekStats } from "@/lib/chainClient";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";

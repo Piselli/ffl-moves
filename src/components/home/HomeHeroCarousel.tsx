@@ -22,7 +22,7 @@ export function HomeHeroCarousel({
   locale,
   aplPaused = false,
 }: {
-  prizePoolRaw: number | null;
+  prizePoolRaw: bigint | null;
   tourEntryCount: number | null;
   dataLoading: boolean;
   statsGwLabel: number | null;

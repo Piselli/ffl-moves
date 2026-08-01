@@ -217,35 +217,15 @@ export type PagesMessages = {
     randomSquadFailed: string;
     maxThreeHint: string;
     entryFeeLabel: string;
-    entryFeeUsdcxHint: string;
-    registrationPaymentHint: string;
-    registrationTopUpBtn: string;
-    registrationTopUpBtnShort: string;
     insufficientFundsTitle: string;
     insufficientFundsBody: (entryFeeLabel: string) => string;
     insufficientFundsDepositTitle: string;
-    insufficientFundsDepositDescLine1: (extraChainCount: number) => string;
+    insufficientFundsDepositDescLine1: string;
     insufficientFundsDepositDescLine2: string;
     insufficientFundsGasTitle: string;
     insufficientFundsGasBadge: string;
     insufficientFundsGasDesc: string;
-    insufficientFundsTopUp: string;
     insufficientFundsCancel: string;
-    stableyardDepositBtn: string;
-    stableyardDepositOpening: string;
-    stableyardDepositHint: string;
-    stableyardDepositSuccess: string;
-    stableyardDepositProcessing: string;
-    stableyardDepositDelayed: string;
-    stableyardDepositError: string;
-    stableyardBalanceReady: (amount: string) => string;
-    stableyardBalanceLow: (have: string, need: string) => string;
-    stableyardBalanceChecking: string;
-    stableyardConnectFirst: string;
-    stableyardOr: string;
-    stableyardSwapLink: string;
-    stableyardFaqLink: string;
-    entryFeeLegacyBanner: (chargedLabel: string) => string;
     entryShort: string;
     benchTitle: (n: number, max: number) => string;
     benchSlotEmpty: (idx: number) => string;
@@ -509,8 +489,6 @@ export type PagesMessages = {
     feesSectionTitle: string;
     feesSectionHint: string;
     feesEntryLabel: (symbol: string) => string;
-    feesTitleLabel: string;
-    feesGuildLabel: string;
     feesSubmit: string;
     feesUpdated: string;
     feesInvalid: string;
@@ -536,12 +514,6 @@ export type PagesMessages = {
     withdrawInvalidAmount: (symbol: string) => string;
     withdrawAmountTooSmall: string;
     withdrawNotOnChain: string;
-    withdrawLegacySectionTitle: string;
-    withdrawLegacySectionHint: string;
-    withdrawLegacyAmountLabel: string;
-    withdrawLegacySubmit: string;
-    withdrawLegacySuccess: (recipient: string, amountLabel: string) => string;
-    withdrawLegacyNotOnChain: string;
     bracketSectionTitle: string;
     bracketSectionHint: string;
     bracketAbiLive: string;
@@ -561,15 +533,6 @@ export type PagesMessages = {
     bracketCloseSuccess: string;
     bracketInitModuleWalletHint: string;
     bracketNotOnChain: string;
-    markClaimedSectionTitle: string;
-    markClaimedSectionHint: string;
-    markClaimedGwLabel: string;
-    markClaimedOwnerLabel: string;
-    markClaimedSubmit: string;
-    markClaimedSuccess: string;
-    markClaimedInvalidGw: string;
-    markClaimedInvalidOwner: string;
-    markClaimedNotOnChain: string;
     heroStateTitle: string;
     heroStateHint: string;
     heroStateAutoSyncOn: string;
@@ -740,7 +703,7 @@ export const pagesEn: PagesMessages = {
       prizeTopFiveLabel: "Top 5",
       prizePerfectBonusTitle: "Perfect bracket bonus",
       prizePerfectBonusDesc: (maxScore, bonusUsd) =>
-        `${bonusUsd} USDCx if you nail all ${maxScore} places — every group rank, third-place order, and knockout winner. Nobody’s done it yet. Bonus stacks on top of your top-5 prize.`,
+        `${bonusUsd} USDC if you nail all ${maxScore} places — every group rank, third-place order, and knockout winner. Nobody’s done it yet. Bonus stacks on top of your top-5 prize.`,
       notEligibleTitle: "Squad required",
       notEligibleHint: "Register a squad for World Cup matchday 1 first — then come back to submit your bracket.",
       registrationClosedTitle: "Registration closed",
@@ -771,14 +734,14 @@ export const pagesEn: PagesMessages = {
       koThirdPlace: "3rd place",
       koTapHint: "Tap a nation to pick the winner of each tie. Pairs in the Round of 32 come from your group and third-place picks.",
       hubCta: "Bracket results",
-      hubTeaser: "See your score vs the official bracket — $500 USDCx prizes claim later when funded",
+      hubTeaser: "See your score vs the official bracket — $500 USDC prizes claim later when funded",
       resultsEyebrow: "Your result",
       resultsTitle: "Bracket score",
       resultsScoringLive: "Scoring against published official results. Remaining knockout ties still update your total.",
       resultsScoringComplete: "Final score against the completed official bracket.",
       resultsPrizesPendingTitle: "Prizes pending",
       resultsPrizesPendingBody:
-        "Top-5 and perfect-bracket payouts are not open yet. Claim will unlock when the USDCx pool is funded — no action needed for now.",
+        "Top-5 and perfect-bracket payouts are not open yet. Claim will unlock when the USDC pool is funded — no action needed for now.",
       resultsYourScore: "Your points",
       resultsNoEntry:
         "No locked prediction on this wallet. Connect the wallet you used before kickoff, or you did not enter.",
@@ -831,38 +794,15 @@ export const pagesEn: PagesMessages = {
     randomSquadFailed: "Could not build a valid squad — try again.",
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
-    entryFeeUsdcxHint: "Need USDCx? Swap in Motion, Nightly, or Yuzu →",
-    registrationPaymentHint:
-      "Paid directly from your connected Movement wallet.",
-    registrationTopUpBtn: "Top up from another chain",
-    registrationTopUpBtnShort: "Top up",
     insufficientFundsTitle: "Insufficient balance",
-    insufficientFundsBody: (entryFeeLabel) => `Need ${entryFeeLabel} on Movement to register.`,
-    insufficientFundsDepositTitle: "Deposit from any supported chain",
-    insufficientFundsDepositDescLine1: (extra) => `Ethereum, Solana, Base +${extra} chains`,
-    insufficientFundsDepositDescLine2: "USDCx on your Movement wallet in ~30 sec",
-    insufficientFundsGasTitle: "Gas sponsored",
-    insufficientFundsGasBadge: "+2 MOVE",
-    insufficientFundsGasDesc: "Will be added automatically",
-    insufficientFundsTopUp: "Deposit from another network",
+    insufficientFundsBody: (entryFeeLabel) => `Need ${entryFeeLabel} on Solana to register.`,
+    insufficientFundsDepositTitle: "Get USDC in your wallet",
+    insufficientFundsDepositDescLine1: "Swap or transfer USDC on Solana (SPL)",
+    insufficientFundsDepositDescLine2: "Keep a little SOL for transaction fees",
+    insufficientFundsGasTitle: "Network fee",
+    insufficientFundsGasBadge: "SOL",
+    insufficientFundsGasDesc: "A small SOL balance covers transaction fees",
     insufficientFundsCancel: "Cancel",
-    stableyardDepositBtn: "Deposit from another chain",
-    stableyardDepositOpening: "Opening…",
-    stableyardDepositHint: "Typical fee ~$0.01 on major chains. Funds arrive on Movement in under 30 seconds.",
-    stableyardDepositSuccess: "Ready to register.",
-    stableyardDepositProcessing: "Settling on Movement…",
-    stableyardDepositDelayed:
-      "Balance still below the registration fee — deposit at least the amount shown above, or wait for settlement and try Register again.",
-    stableyardDepositError: "Could not open the deposit widget. Try again or use Yuzu swap.",
-    stableyardBalanceReady: (amount) => `${amount} USDCx in wallet`,
-    stableyardBalanceLow: (have, need) => `You have ${have} USDCx — need ${need} to register`,
-    stableyardBalanceChecking: "checking",
-    stableyardConnectFirst: "Connect your Movement wallet to use cross-chain deposit.",
-    stableyardOr: "or",
-    stableyardSwapLink: "Swap on Yuzu (Movement)",
-    stableyardFaqLink: "How to get USDCx",
-    entryFeeLegacyBanner: (chargedLabel) =>
-      `On-chain entry is still ${chargedLabel} (MOVE) — USDCx activates after a contract upgrade. The wallet will charge MOVE, not USDCx.`,
     entryShort: "Entry",
     benchTitle: (n, max) => `Bench (${n}/${max})`,
     benchSlotEmpty: (idx) => `Sub ${idx + 1}`,
@@ -938,7 +878,7 @@ export const pagesEn: PagesMessages = {
       `GW ${gw} is Closed on-chain: squads are locked and stats can be submitted. The leaderboard appears after the final admin step — Calculate & Publish (compute + publish tx). Until then the gameweek is not Resolved on-chain.`,
     emptyNotPublished: (gw) => `GW ${gw} results are not published yet.`,
     registerSquadCta: "Register your squad",
-    footerLine: (gw) => `Real on-chain results · GW ${gw} · Movement`,
+    footerLine: (gw) => `Real on-chain results · GW ${gw} · Solana`,
   },
   seasonLeaderboard: {
     loading: "Loading season standings…",
@@ -1112,7 +1052,7 @@ export const pagesEn: PagesMessages = {
     statusWordResolved: "finished",
     loadFailedTitle: "Could not load contract",
     loadFailedBody:
-      "The get_config request to Movement did not respond (network, RPC, or contract unavailable). Without this data the admin panel cannot verify access.",
+      "The Config account could not be read from Solana (network, RPC, or program unavailable). Without this data the admin panel cannot verify access.",
     retry: "Try again",
     statConfigGw: "In config (current_gameweek)",
     statSameGwStatus: "Status (same GW)",
@@ -1143,15 +1083,13 @@ export const pagesEn: PagesMessages = {
     sectionTitleWhenOpen: "Close registration",
     sectionTitleWhenClosed: "Re-open gameweek",
     closeGwButtonLabel: (gw) => `Close GW ${gw}`,
-    feesSectionTitle: "Fees: squad (USDCx) & titles (MOVE)",
+    feesSectionTitle: "Squad entry fee (USDC)",
     feesSectionHint:
-      "Updates on-chain entry_fee (USDCx micro-units), title_fee, and guild_fee (MOVE octas). Squad page reads these values from get_config — republishing the package alone does not change an existing deployment.",
+      "Updates entry_fee on the Config account (USDC micro-units, 6 decimals). The squad page reads this from the same account — redeploying the program alone does not change a live value.",
     feesEntryLabel: (symbol) => `Squad registration (${symbol})`,
-    feesTitleLabel: "Title purchase",
-    feesGuildLabel: "Guild",
-    feesSubmit: "Apply fees on-chain",
-    feesUpdated: "Fees updated on-chain. Refresh the squad page.",
-    feesInvalid: "Enter valid non-negative numbers for all three fees (entry in USDCx, title/guild in MOVE).",
+    feesSubmit: "Apply fee on-chain",
+    feesUpdated: "Entry fee updated on-chain. Refresh the squad page.",
+    feesInvalid: "Enter a valid non-negative USDC amount.",
     sponsorSectionTitle: "Add to prize pool (sponsor)",
     sponsorSectionHint: (symbol) =>
       `Send ${symbol} from your admin wallet to the prize vault and increase this gameweek’s on-chain prize pool by the same amount. Prize shares after «Calculate results» are computed from that pool, so do this before resolving the gameweek. Claims pay from the vault — as long as you add funds here, claim will not run out.`,
@@ -1162,39 +1100,30 @@ export const pagesEn: PagesMessages = {
       `Added ${amountLabel} to GW ${gw} prize pool on-chain. If results are not calculated yet, the extra amount will be included in payouts.`,
     sponsorInvalidGw: "Enter a valid gameweek number (integer ≥ 1).",
     sponsorInvalidAmount: (symbol) => `Enter a positive ${symbol} amount.`,
-    sponsorAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
+    sponsorAmountTooSmall: "Amount rounds to zero in USDC micro-units — enter a larger value.",
     sponsorAlertResolved:
       "This gameweek is already RESOLVED — individual prize amounts are fixed on-chain. Sponsor only works before «Calculate results».",
-    sponsorGwNotFound: (id) => `GW ${id} not found in the contract.`,
+    sponsorGwNotFound: (id) => `GW ${id} not found on-chain.`,
     sponsorNotOnChain:
-      "This deployment’s on-chain module does not include the entry function admin_sponsor_prize_pool (the wallet cannot load its ABI). The source in this repo has it — you need to publish a Movement package upgrade to the same account so that function exists on-chain. Until then the prize pool only grows from entry fees at the configured %.",
+      "The deployed program does not expose sponsor_prize_pool. Deploy the current program from this repo to the same program ID. Until then the prize pool only grows from entry fees at the configured %.",
     withdrawSectionTitle: "Withdraw from prize vault",
     withdrawSectionHint: (symbol) =>
       `Moves ${symbol} from the shared prize vault to any address (admin only). Does not change on-chain prize_pool fields or claim flags — leave enough balance for pending claim_prize calls or winners’ claims will fail.`,
-    withdrawRecipientLabel: "Recipient address (0x…)",
+    withdrawRecipientLabel: "Recipient address (base58)",
     withdrawAmountLabel: (symbol) => `Amount (${symbol})`,
     withdrawSubmit: "Withdraw from vault",
     withdrawSuccess: (recipient, amountLabel) =>
-      `Sent ${amountLabel} from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
-    withdrawInvalidRecipient: "Enter a valid Movement address (0x + hex).",
+      `Sent ${amountLabel} from prize vault → ${recipient.slice(0, 6)}…${recipient.slice(-6)}`,
+    withdrawInvalidRecipient: "Enter a valid Solana address (base58 pubkey).",
     withdrawInvalidAmount: (symbol) => `Enter a positive ${symbol} amount.`,
-    withdrawAmountTooSmall: "Amount rounds to zero in octas — enter a larger value.",
+    withdrawAmountTooSmall: "Amount rounds to zero in USDC micro-units — enter a larger value.",
     withdrawNotOnChain:
-      "This deployment’s module has no admin_withdraw_prize_vault entry on-chain. Upgrade the published package from this repo so the function appears in the ABI.",
-    withdrawLegacySectionTitle: "Withdraw legacy MOVE from prize vault",
-    withdrawLegacySectionHint:
-      "Recovers AptosCoin left in the prize vault from before USDCx entry fees. Does not touch USDCx balances or on-chain prize_pool / claim flags. Swap MOVE → USDCx on Yuzu after withdrawal.",
-    withdrawLegacyAmountLabel: "Amount (MOVE)",
-    withdrawLegacySubmit: "Withdraw legacy MOVE",
-    withdrawLegacySuccess: (recipient, amountLabel) =>
-      `Sent ${amountLabel} legacy MOVE from prize vault → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
-    withdrawLegacyNotOnChain:
-      "This deployment’s module has no admin_withdraw_legacy_move_from_vault entry on-chain. Publish a package upgrade from this repo first.",
+      "The deployed program does not expose withdraw_treasury. Deploy the current program from this repo first.",
     bracketSectionTitle: "World Cup · Bracket Challenge go-live",
     bracketSectionHint:
-      "After publishing the package upgrade (register_bracket_prediction on-chain), run these steps in order. First admin_init_bracket_challenge must be signed by the module publisher wallet (0xf598…).",
-    bracketAbiLive: "Bracket entrypoints detected on-chain",
-    bracketAbiMissing: "Bracket entrypoints missing — publish package upgrade first (npm run wc:bracket:deploy)",
+      "The bracket challenge was never ported from Movement — these steps stay disabled until the instructions ship in the Solana program.",
+    bracketAbiLive: "Bracket instructions detected on-chain",
+    bracketAbiMissing: "Bracket instructions are not part of the Solana program",
     bracketStatusLabel: (status) =>
       status === 255
         ? "Not initialized"
@@ -1207,9 +1136,9 @@ export const pagesEn: PagesMessages = {
               : `Status ${status}`,
     bracketEntriesLabel: (n) => `${n.toLocaleString()} bracket predictions`,
     bracketGwPoolLabel: (gw, poolLabel) => `GW ${gw} prize pool: ${poolLabel}`,
-    bracketStepPublish: "1. Publish upgrade (CLI — requires module key)",
+    bracketStepPublish: "1. Ship bracket instructions in the Solana program",
     bracketStepCreateGw: "2. Create prize gameweek",
-    bracketStepSponsor: "3. Sponsor USDCx pool ($500)",
+    bracketStepSponsor: "3. Sponsor USDC pool ($500)",
     bracketStepInit: "4. Open bracket challenge",
     bracketCreateGwButton: (gw) => `Create GW ${gw}`,
     bracketSponsorButton: (amountLabel) => `Sponsor ${amountLabel}`,
@@ -1218,20 +1147,9 @@ export const pagesEn: PagesMessages = {
     bracketInitSuccess: "Bracket challenge is OPEN. Users can submit at /world-cup/bracket.",
     bracketCloseSuccess: "Bracket registration closed.",
     bracketInitModuleWalletHint:
-      "First init must be signed with the module publisher wallet (same address as MODULE_ADDRESS). Connect that wallet in the browser, or use the CLI.",
+      "First init must be signed with the program upgrade authority. Connect that wallet in the browser, or use the CLI.",
     bracketNotOnChain:
-      "register_bracket_prediction is not in the on-chain ABI yet. Run: npm run wc:bracket:deploy",
-    markClaimedSectionTitle: "Mark prize already claimed",
-    markClaimedSectionHint:
-      "After recalc, set claimed=true for wallets that already received a payout (no second transfer). Use for MD1 reopen workflow before winners try to claim again.",
-    markClaimedGwLabel: "Tour / gameweek ID",
-    markClaimedOwnerLabel: "Wallet address (0x…)",
-    markClaimedSubmit: "Mark claimed",
-    markClaimedSuccess: "Prize marked as claimed on-chain.",
-    markClaimedInvalidGw: "Enter a valid tour / gameweek ID.",
-    markClaimedInvalidOwner: "Enter a valid Movement wallet address (0x + 64 hex).",
-    markClaimedNotOnChain:
-      "admin_mark_prize_claimed is not on mainnet yet. From repo root run: npm run md1:deploy-mark-claimed (Movement CLI + module publisher wallet). Then mark the 3 MD1 wallets or run npm run md1:mark-prior-claims.",
+      "The Solana program has no bracket instructions — the World Cup bracket challenge stays read-only.",
     heroStateTitle: "Homepage hero · Official bracket",
     heroStateHint:
       "Results sync automatically from football-data.org (FOOTBALL_DATA_TOKEN). The homepage hero refreshes every ~30s — no manual publish needed. Use manual override only if the API is wrong.",
@@ -1287,7 +1205,7 @@ export const pagesEn: PagesMessages = {
                   "Before each gameweek you build a squad from real EPL players.",
                   "Those players play real Premier League matches.",
                   "Their on-pitch actions (goals, assists, saves, etc.) earn you points.",
-                  "The top 10 managers of the gameweek share a prize pool, paid in USDCx.",
+                  "The top 10 managers of the gameweek share a prize pool, paid in USDC.",
                 ],
               },
               { type: "p", text: "No betting on match outcomes — it is a skill contest about reading football, not a lottery." },
@@ -1297,7 +1215,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-free",
             q: "Is it free to play?",
             a: [
-              { type: "p", text: "No. Registering a squad costs a small entry fee in USDCx (the exact amount is shown on the Squad page)." },
+              { type: "p", text: "No. Registering a squad costs a small entry fee in USDC (the exact amount is shown on the Squad page)." },
               { type: "p", text: "All entry fees from all players go into that gameweek’s prize pool, and winners are paid from it." },
               { type: "p", text: "A small technical share is withheld to support and keep the project running." },
             ],
@@ -1306,7 +1224,7 @@ export const pagesEn: PagesMessages = {
             id: "can-i-actually-win",
             q: "Can I really win something?",
             a: [
-              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you automatically receive a share of the prize pool in USDCx on your wallet." },
+              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you automatically receive a share of the prize pool in USDC on your wallet." },
               { type: "p", text: "How much depends on your final rank and how many people entered the round." },
             ],
           },
@@ -1424,9 +1342,9 @@ export const pagesEn: PagesMessages = {
             id: "which-wallet",
             q: "Which wallet do I need? Where do I get it?",
             a: [
-              { type: "p", text: "MOVEMATCH supports Motion and Nightly — pick either when you press “Connect wallet”." },
-              { type: "p", text: "Motion (recommended) is the official Movement-native Chrome extension: motion.movementnetwork.xyz. Self-custodial, built for Movement — send, swap, connect to dApps. Install from the Chrome Web Store. Full FAQ: movementnetwork.xyz/faqs/motion-wallet." },
-              { type: "p", text: "Nightly (alternative) also works on Movement — Chrome extension plus a phone app (iOS / Android) from nightly.app. Handy if you already use Nightly on mobile." },
+              { type: "p", text: "MOVEMATCH supports Phantom and Solflare — pick either when you press “Connect wallet”." },
+              { type: "p", text: "Phantom (recommended) is the most widely used Solana wallet: phantom.com. Self-custodial, available as a Chrome extension and as a phone app (iOS / Android) — send, swap, connect to dApps." },
+              { type: "p", text: "Solflare (alternative) also works everywhere on Solana — extension plus mobile app from solflare.com. Handy if you already use Solflare." },
               {
                 type: "ul",
                 items: [
@@ -1440,29 +1358,29 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "what-is-movement",
-            q: "What is Movement and what is USDCx?",
+            q: "What is Solana and what is USDC?",
             a: [
-              { type: "p", text: "Movement is a blockchain network (think of it like the internet, but for crypto)." },
-              { type: "p", text: "USDCx is the dollar stablecoin on Movement, backed 1:1 by USDC from Circle. On MOVEMATCH you pay squad entry fees and receive prizes in USDCx. Get it via swap in Motion or Nightly, or on Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "Solana is a blockchain network (think of it like the internet, but for crypto) — fast, and transaction fees are fractions of a cent." },
+              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On MOVEMATCH you pay squad entry fees and receive prizes in USDC. Get it via swap inside Phantom or Solflare, or transfer it from an exchange." },
             ],
           },
           {
             id: "how-to-get-move",
-            q: "How do I get USDCx to start playing?",
+            q: "How do I get USDC to start playing?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "Install Motion from motion.movementnetwork.xyz (or Nightly from nightly.app) and create a wallet on Movement.",
-                  "In Motion or Nightly, open Swap and exchange MOVE (or another token you already hold) for USDCx — takes a few taps.",
-                  "Or use Yuzu, Movement’s official DEX: app.yuzu.finance — connect your wallet, pick USDCx, swap, and sign.",
-                  "You need at least 5 USDCx to register one squad. Keep a little MOVE on the wallet for network fees.",
-                  "Open MOVEMATCH → Connect wallet → pick Motion or Nightly → Squad page → Confirm squad and sign.",
+                  "Install Phantom from phantom.com (or Solflare from solflare.com) and create a Solana wallet.",
+                  "In Phantom or Solflare, open Swap and exchange SOL (or another token you already hold) for USDC — takes a few taps.",
+                  "Or withdraw USDC on the Solana network straight from an exchange such as Binance, Coinbase, or Kraken.",
+                  "You need at least 5 USDC to register one squad. Keep a little SOL on the wallet for network fees.",
+                  "Open MOVEMATCH → Connect wallet → pick Phantom or Solflare → Squad page → Confirm squad and sign.",
                 ],
               },
               {
                 type: "p",
-                text: "Shortcut: the «Swap on Yuzu → USDCx» button in the wallet menu on this site opens the pair ready to go.",
+                text: "Careful with the network: withdraw USDC on Solana, not on Ethereum or another chain, or the funds will not show up in your wallet here.",
               },
             ],
           },
@@ -1471,7 +1389,7 @@ export const pagesEn: PagesMessages = {
             q: "Is it safe to connect my wallet to the site?",
             a: [
               { type: "p", text: "Yes. “Connect wallet” is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
-              { type: "p", text: "You always sign inside your wallet window (Motion or Nightly). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
+              { type: "p", text: "You always sign inside your wallet window (Phantom or Solflare). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
               { type: "p", text: "Simple rule of thumb: always check the URL — only use the official MOVEMATCH address." },
             ],
           },
@@ -1481,15 +1399,15 @@ export const pagesEn: PagesMessages = {
             a: [
               { type: "p", text: "A smart contract is a program that runs automatically on a blockchain with no middlemen. Its code is open and cannot be silently changed." },
               { type: "p", text: "On MOVEMATCH the contract handles taking your entry fee into the pool, locking your squad so even the developers cannot tamper with it, and paying out the top 10." },
-              { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your USDCx." },
+              { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your USDC." },
             ],
           },
           {
             id: "why-claim",
             q: "Why do I need to press “Claim” to receive a prize?",
             a: [
-              { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves USDCx from the contract to your address." },
-              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in your wallet → USDCx lands on your wallet. You can do this whenever you want." },
+              { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves USDC from the contract to your address." },
+              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in your wallet → USDC lands on your wallet. You can do this whenever you want." },
             ],
           },
         ],
@@ -1506,10 +1424,10 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Install Motion from motion.movementnetwork.xyz (recommended) or Nightly from nightly.app.",
+                  "1. Install Phantom from phantom.com (recommended) or Solflare from solflare.com.",
                   "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Get USDCx — swap in Motion, Nightly, or on Yuzu (app.yuzu.finance). You need ~5 USDCx + a bit of MOVE for fees.",
-                  "4. On MOVEMATCH press “Connect wallet” and pick Motion or Nightly.",
+                  "3. Get USDC — swap inside the wallet or withdraw it from an exchange on the Solana network. You need ~5 USDC + a bit of SOL for fees.",
+                  "4. On MOVEMATCH press “Connect wallet” and pick Phantom or Solflare.",
                   "5. Open the Squad page and pick 11 starters + 3 bench players.",
                   "6. Press “Confirm squad” and sign the transaction in your wallet.",
                   "7. Wait for kickoff — points are tallied automatically from there.",
@@ -1521,7 +1439,7 @@ export const pagesEn: PagesMessages = {
             id: "entry-cost",
             q: "How much does one gameweek entry cost?",
             a: [
-              { type: "p", text: "The exact entry fee is shown on the Squad page (line “Registration fee”). It is 5 USDCx per gameweek — a small stablecoin amount to try the game." },
+              { type: "p", text: "The exact entry fee is shown on the Squad page (line “Registration fee”). It is 5 USDC per gameweek — a small stablecoin amount to try the game." },
             ],
           },
           {
@@ -1567,7 +1485,7 @@ export const pagesEn: PagesMessages = {
             q: "When and how do I get my prize?",
             a: [
               { type: "p", text: "After the last match of the round the admin closes the gameweek, stats go to the contract, and final ranks and prizes are computed." },
-              { type: "p", text: "Once the round is published as Resolved (usually within a day), a Claim button appears next to your result on the Leaderboard. Press it — and USDCx lands on your wallet." },
+              { type: "p", text: "Once the round is published as Resolved (usually within a day), a Claim button appears next to your result on the Leaderboard. Press it — and USDC lands on your wallet." },
             ],
           },
         ],
@@ -1623,9 +1541,9 @@ export const pagesEn: PagesMessages = {
           },
           {
             id: "convert-to-fiat",
-            q: "How do I cash out USDCx back to normal money?",
+            q: "How do I cash out USDC back to normal money?",
             a: [
-              { type: "p", text: "USDCx is already pegged to the dollar. Swap it back to MOVE or another token on Yuzu, in Motion, or in Nightly, then cash out via your usual exchange — same as any crypto." },
+              { type: "p", text: "USDC is already pegged to the dollar. Send it from Phantom or Solflare to an exchange (on the Solana network) and cash out there — same as any crypto." },
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
@@ -1673,7 +1591,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-scam",
             q: "How do I know this is not a scam?",
             a: [
-              { type: "p", text: "Every key action — your squad, the prize pool, the points, the payouts — is recorded on the Movement blockchain and can be verified in a public explorer. No one, not even the MOVEMATCH developers, can silently change anything." },
+              { type: "p", text: "Every key action — your squad, the prize pool, the points, the payouts — is recorded on the Solana blockchain and can be verified in a public explorer. No one, not even the MOVEMATCH developers, can silently change anything." },
               { type: "p", text: "The admin cannot: replace your squad after the deadline, take from the prize pool, or rewrite points. The smart contract simply does not allow it." },
             ],
           },
@@ -1689,7 +1607,7 @@ export const pagesEn: PagesMessages = {
             id: "lost-seed",
             q: "What if I lose my wallet seed phrase?",
             a: [
-              { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Motion, Nightly, nor MOVEMATCH have access to it." },
+              { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Phantom, Solflare, nor MOVEMATCH have access to it." },
               { type: "p", text: "If the seed is lost, the wallet (and any funds in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
             ],
           },
@@ -1833,7 +1751,7 @@ export const pagesUk: PagesMessages = {
       prizeTopFiveLabel: "Топ-5",
       prizePerfectBonusTitle: "Бонус за ідеальний прогноз",
       prizePerfectBonusDesc: (maxScore, bonusUsd) =>
-        `+${bonusUsd} USDCx, якщо вгадаєш усі ${maxScore} місця — кожну позицію в групах, порядок третіх і переможців плей-оф. Ніхто ще не робив. Бонус додається до призу топ-5.`,
+        `+${bonusUsd} USDC, якщо вгадаєш усі ${maxScore} місця — кожну позицію в групах, порядок третіх і переможців плей-оф. Ніхто ще не робив. Бонус додається до призу топ-5.`,
       notEligibleTitle: "Потрібен склад md1",
       notEligibleHint: "Спочатку зареєструй склад на перший тур ЧС — тоді зможеш подати прогноз.",
       registrationClosedTitle: "Реєстрацію закрито",
@@ -1871,7 +1789,7 @@ export const pagesUk: PagesMessages = {
       koThirdPlace: "3-тє місце",
       koTapHint: "Натисни на збірну, щоб обрати переможця матчу. Пари 1/16 будуються з твоїх групових прогнозів і рейтингу третіх місць.",
       hubCta: "Результати прогнозу",
-      hubTeaser: "Подивись свій скор проти офіційної сітки — $500 USDCx claim пізніше, коли буде пул",
+      hubTeaser: "Подивись свій скор проти офіційної сітки — $500 USDC claim пізніше, коли буде пул",
       resultsEyebrow: "Твій результат",
       resultsTitle: "Скор прогнозу",
       resultsScoringLive:
@@ -1879,7 +1797,7 @@ export const pagesUk: PagesMessages = {
       resultsScoringComplete: "Фінальний скор проти завершеної офіційної сітки.",
       resultsPrizesPendingTitle: "Призи поки на паузі",
       resultsPrizesPendingBody:
-        "Виплати топ-5 і бонусу за ідеальний прогноз ще не відкриті. Claim з’явиться, коли пул USDCx буде профінансовано — зараз нічого робити не треба.",
+        "Виплати топ-5 і бонусу за ідеальний прогноз ще не відкриті. Claim з’явиться, коли пул USDC буде профінансовано — зараз нічого робити не треба.",
       resultsYourScore: "Твої очки",
       resultsNoEntry:
         "На цьому гаманці немає зафіксованого прогнозу. Підключи той, з якого подавав до старту, або ти не брав участі.",
@@ -1932,39 +1850,16 @@ export const pagesUk: PagesMessages = {
     randomSquadFailed: "Не вдалося зібрати склад — спробуй ще раз.",
     maxThreeHint: "Максимум 3 з однієї команди",
     entryFeeLabel: "Вартість реєстрації",
-    entryFeeUsdcxHint: "Потрібен USDCx? Motion, Nightly Swap або Yuzu →",
-    registrationPaymentHint:
-      "Оплата знімається з підключеного Movement-гаманця.",
-    registrationTopUpBtn: "Поповнити з іншої мережі",
-    registrationTopUpBtnShort: "Поповнити",
     insufficientFundsTitle: "Недостатньо коштів",
     insufficientFundsBody: (entryFeeLabel) =>
-      `Потрібно ${entryFeeLabel} на Movement для реєстрації.`,
-    insufficientFundsDepositTitle: "Депозит з будь-якої підтримуваної мережі",
-    insufficientFundsDepositDescLine1: (extra) => `Ethereum, Solana, Base +${extra} мереж`,
-    insufficientFundsDepositDescLine2: "USDCx на твій Movement-гаманець за ~30 сек",
-    insufficientFundsGasTitle: "Gas sponsored",
-    insufficientFundsGasBadge: "+2 MOVE",
-    insufficientFundsGasDesc: "Додасться автоматично",
-    insufficientFundsTopUp: "Депозит з іншої мережі",
+      `Потрібно ${entryFeeLabel} на Solana для реєстрації.`,
+    insufficientFundsDepositTitle: "Отримай USDC у гаманці",
+    insufficientFundsDepositDescLine1: "Своп або переказ USDC у Solana (SPL)",
+    insufficientFundsDepositDescLine2: "Трохи SOL потрібно для комісій мережі",
+    insufficientFundsGasTitle: "Комісія мережі",
+    insufficientFundsGasBadge: "SOL",
+    insufficientFundsGasDesc: "Невеликий баланс SOL покриває комісії",
     insufficientFundsCancel: "Скасувати",
-    stableyardDepositBtn: "Поповнити з іншої мережі",
-    stableyardDepositOpening: "Відкриваємо…",
-    stableyardDepositHint: "Комісія ~$0.01 на основних мережах. Кошти на Movement зазвичай за 30 секунд.",
-    stableyardDepositSuccess: "Можна реєструвати.",
-    stableyardDepositProcessing: "Підтвердження на Movement…",
-    stableyardDepositDelayed:
-      "Баланс ще менший за вартість реєстрації — поповни щонайменше суму вище або дочекайся підтвердження і натисни «Зареєструвати» знову.",
-    stableyardDepositError: "Не вдалося відкрити віджет. Спробуй ще раз або своп на Yuzu.",
-    stableyardBalanceReady: (amount) => `${amount} USDCx у гаманці`,
-    stableyardBalanceLow: (have, need) => `У тебе ${have} USDCx — потрібно ${need} для реєстрації`,
-    stableyardBalanceChecking: "перевіряємо",
-    stableyardConnectFirst: "Підключи Movement-гаманець, щоб поповнити з іншої мережі.",
-    stableyardOr: "або",
-    stableyardSwapLink: "Своп на Yuzu (Movement)",
-    stableyardFaqLink: "Як отримати USDCx",
-    entryFeeLegacyBanner: (chargedLabel) =>
-      `On-chain внесок досі ${chargedLabel} (MOVE) — USDCx увімкнеться після оновлення контракту. З гаманця зніметься MOVE, не USDCx.`,
     entryShort: "Внесок",
     benchTitle: (n, max) => `Запасні (${n}/${max})`,
     benchSlotEmpty: (idx) => `Запасний ${idx + 1}`,
@@ -2040,7 +1935,7 @@ export const pagesUk: PagesMessages = {
       `Тур ${gw} на ланцюгу в статусі «Закрито»: склади зафіксовано, статистику можна вже відправити в контракт. Таблиця лідерборду з’явиться після останнього кроку в адмінці — кнопка Calculate & Publish (транзакція обчислення та публікації). До цього on-chain статус туру не «Завершено».`,
     emptyNotPublished: (gw) => `Результати Туру ${gw} ще не опубліковані.`,
     registerSquadCta: "Зареєструй свій склад",
-    footerLine: (gw) => `Реальні on-chain результати · Тур ${gw} · Movement`,
+    footerLine: (gw) => `Реальні on-chain результати · Тур ${gw} · Solana`,
   },
   seasonLeaderboard: {
     loading: "Завантаження сезонного рейтингу…",
@@ -2214,7 +2109,7 @@ export const pagesUk: PagesMessages = {
     statusWordResolved: "завершений",
     loadFailedTitle: "Не вдалося завантажити контракт",
     loadFailedBody:
-      "Запит get_config до Movement не відповів (мережа, RPC або контракт недоступні). Без цих даних адмінка не може перевірити права доступу.",
+      "Не вдалося прочитати акаунт Config із Solana (мережа, RPC або програма недоступні). Без цих даних адмінка не може перевірити права доступу.",
     retry: "Спробувати знову",
     statConfigGw: "У конфігу (current_gameweek)",
     statSameGwStatus: "Статус (той самий тур)",
@@ -2245,15 +2140,13 @@ export const pagesUk: PagesMessages = {
     sectionTitleWhenOpen: "Закрити реєстрацію",
     sectionTitleWhenClosed: "Повторно відкрити тур",
     closeGwButtonLabel: (gw) => `Закрити GW ${gw}`,
-    feesSectionTitle: "Внески: склад (USDCx) та титули (MOVE)",
+    feesSectionTitle: "Внесок за склад (USDC)",
     feesSectionHint:
-      "Оновлює on-chain entry_fee (мікро-одиниці USDCx), title_fee та guild_fee (октаси MOVE). Сторінка вибору складу бере суми з get_config — лише зміна коду пакета не змінює вже задеплоєний контракт.",
+      "Оновлює entry_fee в акаунті Config (мікро-одиниці USDC, 6 знаків). Сторінка вибору складу читає це значення з того самого акаунта — сам по собі редеплой програми його не змінює.",
     feesEntryLabel: (symbol) => `Реєстрація складу (${symbol})`,
-    feesTitleLabel: "Купівля титулу",
-    feesGuildLabel: "Гільдія",
-    feesSubmit: "Застосувати внески в мережі",
-    feesUpdated: "Внески оновлено on-chain. Онови сторінку вибору складу.",
-    feesInvalid: "Введи коректні невід’ємні числа для всіх трьох полів (внесок у USDCx, титули/гільдія в MOVE).",
+    feesSubmit: "Застосувати внесок у мережі",
+    feesUpdated: "Внесок оновлено on-chain. Онови сторінку вибору складу.",
+    feesInvalid: "Введи коректну невід’ємну суму в USDC.",
     sponsorSectionTitle: "Додати в призовий пул (спонсор)",
     sponsorSectionHint: (symbol) =>
       `Перерахуй ${symbol} з гаманця адміна в prize vault — on-chain поле призового фонду цього туру збільшиться на ту саму суму. Частки призів після «Calculate results» рахуються з цього фонду, тож роби це до резолву туру. Клейм платить з vault — якщо сума тут узгоджена з пулом, при клеймі не «не вистачить» коштів.`,
@@ -2267,36 +2160,27 @@ export const pagesUk: PagesMessages = {
     sponsorAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
     sponsorAlertResolved:
       "Цей тур уже RESOLVED — індивідуальні призи зафіксовані в контракті. Спонсор лише до кроку «Calculate results».",
-    sponsorGwNotFound: (id) => `Тур ${id} не знайдено в контракті.`,
+    sponsorGwNotFound: (id) => `Тур ${id} не знайдено on-chain.`,
     sponsorNotOnChain:
-      "У задеплоєному on-chain модулі немає entry-функції admin_sponsor_prize_pool (гаманець не бачить ABI). У коді репозиторію вона вже є — потрібно зробити оновлення пакета Movement на той самий акаунт, щоб функція з’явилася в мережі. Доки цього немає, призовий пул росте лише з внесків гравців за налаштованим відсотком.",
+      "У задеплоєній програмі немає інструкції sponsor_prize_pool. Задеплой поточну програму з цього репозиторію на той самий program ID. Доки цього немає, призовий пул росте лише з внесків гравців за налаштованим відсотком.",
     withdrawSectionTitle: "Вивести з призового vault",
     withdrawSectionHint: (symbol) =>
       `Переказує ${symbol} зі спільного prize vault на будь-яку адресу (лише адмін). Не змінює on-chain поля prize_pool і не знімає незаклеймлені призи в обліку — лишай у vault достатньо ліквідності під очікувані claim_prize, інакше клейми впадуть через нестачу балансу.`,
-    withdrawRecipientLabel: "Адреса отримувача (0x…)",
+    withdrawRecipientLabel: "Адреса отримувача (base58)",
     withdrawAmountLabel: (symbol) => `Сума (${symbol})`,
     withdrawSubmit: "Вивести з vault",
     withdrawSuccess: (recipient, amountLabel) =>
-      `З vault відправлено ${amountLabel} → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
-    withdrawInvalidRecipient: "Введи коректну адресу Movement (0x + hex).",
+      `З vault відправлено ${amountLabel} → ${recipient.slice(0, 6)}…${recipient.slice(-6)}`,
+    withdrawInvalidRecipient: "Введи коректну адресу Solana (base58 pubkey).",
     withdrawInvalidAmount: (symbol) => `Введи додатну суму в ${symbol}.`,
-    withdrawAmountTooSmall: "Сума в найменших одиницях дає нуль — збільш значення.",
+    withdrawAmountTooSmall: "Сума в мікро-одиницях USDC дає нуль — збільш значення.",
     withdrawNotOnChain:
-      "У задеплоєному модулі on-chain немає entry admin_withdraw_prize_vault. Онови пакет із цього репозиторію, щоб функція з’явилася в ABI.",
-    withdrawLegacySectionTitle: "Вивести legacy MOVE з prize vault",
-    withdrawLegacySectionHint:
-      "Забирає AptosCoin, що залишився у prize vault після переходу на USDCx-внески. USDCx-баланс і on-chain prize_pool / claim flags не змінюються. Після виводу свопни MOVE → USDCx на Yuzu.",
-    withdrawLegacyAmountLabel: "Сума (MOVE)",
-    withdrawLegacySubmit: "Вивести legacy MOVE",
-    withdrawLegacySuccess: (recipient, amountLabel) =>
-      `З vault відправлено ${amountLabel} legacy MOVE → ${recipient.slice(0, 10)}…${recipient.slice(-8)}`,
-    withdrawLegacyNotOnChain:
-      "У задеплоєному модулі on-chain немає entry admin_withdraw_legacy_move_from_vault. Спочатку publish оновлення пакета з цього репозиторію.",
+      "У задеплоєній програмі немає інструкції withdraw_treasury. Спочатку задеплой поточну програму з цього репозиторію.",
     bracketSectionTitle: "ЧС · Запуск Bracket Challenge",
     bracketSectionHint:
-      "Після publish оновлення пакета (register_bracket_prediction on-chain) виконай кроки по порядку. Перший admin_init_bracket_challenge має підписати гаманець модуля (0xf598…).",
-    bracketAbiLive: "Bracket entrypoints є on-chain",
-    bracketAbiMissing: "Bracket entrypoints відсутні — спочатку publish (npm run wc:bracket:deploy)",
+      "Bracket challenge не переносили з Movement — кроки лишаються вимкненими, доки інструкції не зʼявляться в Solana-програмі.",
+    bracketAbiLive: "Bracket-інструкції є on-chain",
+    bracketAbiMissing: "Bracket-інструкцій немає в Solana-програмі",
     bracketStatusLabel: (status) =>
       status === 255
         ? "Не ініціалізовано"
@@ -2309,9 +2193,9 @@ export const pagesUk: PagesMessages = {
               : `Статус ${status}`,
     bracketEntriesLabel: (n) => `${n.toLocaleString()} прогнозів`,
     bracketGwPoolLabel: (gw, poolLabel) => `GW ${gw} призовий фонд: ${poolLabel}`,
-    bracketStepPublish: "1. Publish upgrade (CLI — потрібен ключ модуля)",
+    bracketStepPublish: "1. Додати bracket-інструкції у Solana-програму",
     bracketStepCreateGw: "2. Створити prize gameweek",
-    bracketStepSponsor: "3. Завести $500 USDCx у пул",
+    bracketStepSponsor: "3. Завести $500 USDC у пул",
     bracketStepInit: "4. Відкрити bracket challenge",
     bracketCreateGwButton: (gw) => `Створити GW ${gw}`,
     bracketSponsorButton: (amountLabel) => `Завести ${amountLabel}`,
@@ -2320,20 +2204,9 @@ export const pagesUk: PagesMessages = {
     bracketInitSuccess: "Bracket challenge ВІДКРИТО. Користувачі можуть подавати на /world-cup/bracket.",
     bracketCloseSuccess: "Реєстрацію bracket закрито.",
     bracketInitModuleWalletHint:
-      "Перший init має підписати гаманець publisher модуля (MODULE_ADDRESS). Підключи його в браузері або використай CLI.",
+      "Перший init має підписати upgrade authority програми. Підключи цей гаманець у браузері або використай CLI.",
     bracketNotOnChain:
-      "register_bracket_prediction ще немає в on-chain ABI. Запусти: npm run wc:bracket:deploy",
-    markClaimedSectionTitle: "Позначити приз як уже отриманий",
-    markClaimedSectionHint:
-      "Після recalc: claimed=true для гаманців, які вже забрали виплату (без другого transfer). Для MD1 — одразу після calculate, щоб не було повторного claim.",
-    markClaimedGwLabel: "ID туру / gameweek",
-    markClaimedOwnerLabel: "Адреса гаманця (0x…)",
-    markClaimedSubmit: "Позначити claimed",
-    markClaimedSuccess: "На chain позначено claimed=true.",
-    markClaimedInvalidGw: "Введи коректний ID туру / gameweek.",
-    markClaimedInvalidOwner: "Введи коректну адресу Movement (0x + 64 hex).",
-    markClaimedNotOnChain:
-      "admin_mark_prize_claimed ще немає on-chain. У корені репо: npm run md1:deploy-mark-claimed (Movement CLI + гаманець publisher модуля). Потім познач 3 гаманці MD1 або npm run md1:mark-prior-claims.",
+      "У Solana-програмі немає bracket-інструкцій — сітка ЧС лишається лише для перегляду.",
     heroStateTitle: "Hero на головній · Офіційна сітка",
     heroStateHint:
       "Результати підтягуються автоматично з football-data.org (FOOTBALL_DATA_TOKEN). Hero на головній оновлюється кожні ~30 с — публікувати вручну не потрібно. Ручне редагування — лише якщо API помиляється.",
@@ -2396,7 +2269,7 @@ export const pagesUk: PagesMessages = {
                   "Перед кожним туром ти збираєш свій склад із реальних футболістів АПЛ.",
                   "Ці футболісти грають у реальних матчах туру.",
                   "За їхні дії на полі (голи, асисти, сейви тощо) тобі нараховуються очки.",
-                  "Топ-10 менеджерів за очками ділять призовий фонд у USDCx.",
+                  "Топ-10 менеджерів за очками ділять призовий фонд у USDC.",
                 ],
               },
               { type: "p", text: "Жодних ставок на матчі — це змагання за вміння аналізувати футбол, а не лотерея." },
@@ -2406,7 +2279,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-free",
             q: "Це безкоштовно?",
             a: [
-              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDCx (точна сума завжди видно на сторінці «Склад»)." },
+              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDC (точна сума завжди видно на сторінці «Склад»)." },
               { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — виплати переможцям виходять із нього." },
               { type: "p", text: "З фонду утримується невелика технічна частка на підтримку й існування проєкту." },
             ],
@@ -2415,7 +2288,7 @@ export const pagesUk: PagesMessages = {
             id: "can-i-actually-win",
             q: "Чи я справді можу щось виграти?",
             a: [
-              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі автоматично нараховується частка призового фонду в USDCx — їх потім можна забрати на свій гаманець." },
+              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі автоматично нараховується частка призового фонду в USDC — її потім можна забрати на свій гаманець." },
               { type: "p", text: "Розмір виграшу залежить від місця і від кількості учасників туру." },
             ],
           },
@@ -2533,9 +2406,9 @@ export const pagesUk: PagesMessages = {
             id: "which-wallet",
             q: "Який гаманець потрібен? Де його взяти?",
             a: [
-              { type: "p", text: "MOVEMATCH підтримує Motion і Nightly — обери будь-який, коли натискаєш «Підключити гаманець»." },
-              { type: "p", text: "Motion (рекомендуємо) — офіційне розширення Chrome для Movement: motion.movementnetwork.xyz. Self-custodial, зроблений під Movement: відправка, своп, підключення до dApps. Встанови з Chrome Web Store. Повний FAQ: movementnetwork.xyz/faqs/motion-wallet." },
-              { type: "p", text: "Nightly (альтернатива) теж працює з Movement — розширення для Chrome і застосунок для телефону (iOS / Android) з nightly.app. Зручно, якщо вже користуєшся Nightly на мобільному." },
+              { type: "p", text: "MOVEMATCH підтримує Phantom і Solflare — обери будь-який, коли натискаєш «Підключити гаманець»." },
+              { type: "p", text: "Phantom (рекомендуємо) — найпоширеніший гаманець для Solana: phantom.com. Self-custodial, є розширення для Chrome і застосунок для телефону (iOS / Android): відправка, своп, підключення до dApps." },
+              { type: "p", text: "Solflare (альтернатива) теж працює всюди в Solana — розширення й мобільний застосунок із solflare.com. Зручно, якщо вже користуєшся Solflare." },
               {
                 type: "ul",
                 items: [
@@ -2549,29 +2422,29 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "what-is-movement",
-            q: "Що таке Movement і USDCx?",
+            q: "Що таке Solana і USDC?",
             a: [
-              { type: "p", text: "Movement — це блокчейн-мережа (як інтернет, тільки для криптовалют)." },
-              { type: "p", text: "USDCx — доларовий стейблкоїн на мережі Movement, забезпечений USDC від Circle. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDCx. Отримати можна через своп у Motion або Nightly, або на Yuzu (app.yuzu.finance)." },
+              { type: "p", text: "Solana — це блокчейн-мережа (як інтернет, тільки для криптовалют): швидка, а комісії за транзакції — частки цента." },
+              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDC. Отримати можна свопом у Phantom чи Solflare або переказом із біржі." },
             ],
           },
           {
             id: "how-to-get-move",
-            q: "Як отримати USDCx, щоб зіграти?",
+            q: "Як отримати USDC, щоб зіграти?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "Встанови Motion з motion.movementnetwork.xyz (або Nightly з nightly.app) і створи гаманець у Movement.",
-                  "У Motion або Nightly відкрий Swap і обміняй MOVE (або інший токен на балансі) на USDCx — кілька тапів.",
-                  "Або Yuzu — офіційний DEX Movement: app.yuzu.finance — підключи гаманець, обери USDCx, свопни і підпиши.",
-                  "Потрібно щонайменше 5 USDCx на один склад. Залиш трохи MOVE на комісії мережі.",
-                  "Заходь на MOVEMATCH → Підключи гаманець → обери Motion або Nightly → Склад → Підтверди і підпиши.",
+                  "Встанови Phantom з phantom.com (або Solflare з solflare.com) і створи гаманець Solana.",
+                  "У Phantom або Solflare відкрий Swap і обміняй SOL (чи інший токен на балансі) на USDC — кілька тапів.",
+                  "Або виведи USDC у мережі Solana напряму з біржі — Binance, Coinbase, Kraken тощо.",
+                  "Потрібно щонайменше 5 USDC на один склад. Залиш трохи SOL на комісії мережі.",
+                  "Заходь на MOVEMATCH → Підключи гаманець → обери Phantom або Solflare → Склад → Підтверди і підпиши.",
                 ],
               },
               {
                 type: "p",
-                text: "Швидкий шлях: кнопка «Своп на Yuzu → USDCx» у меню гаманця на сайті відкриває пару вже налаштованою.",
+                text: "Уважно з мережею: виводь USDC саме в Solana, а не в Ethereum чи іншій мережі — інакше кошти не зʼявляться в потрібному гаманці.",
               },
             ],
           },
@@ -2580,7 +2453,7 @@ export const pagesUk: PagesMessages = {
             q: "Чи безпечно підключати гаманець до сайту?",
             a: [
               { type: "p", text: "Так. «Підключити гаманець» — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
-              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Motion або Nightly). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
+              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Phantom або Solflare). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
               { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу MOVEMATCH." },
             ],
           },
@@ -2590,15 +2463,15 @@ export const pagesUk: PagesMessages = {
             a: [
               { type: "p", text: "Смарт-контракт — це програма, яка автоматично виконується в блокчейні без посередників. Її код відкритий і його не можна непомітно змінити." },
               { type: "p", text: "У MOVEMATCH контракт відповідає за: прийом твого внеску у фонд, фіксацію складу так, що ніхто (навіть розробники) не зможе його підмінити, і виплату призів топ-10." },
-              { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїм USDCx." },
+              { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїм USDC." },
             ],
           },
           {
             id: "why-claim",
             q: "Чому я маю натискати «Claim», щоб забрати виграш?",
             a: [
-              { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок USDCx з контракту на твою адресу." },
-              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у гаманці → USDCx падає на гаманець. Зробити це можна в будь-який зручний момент." },
+              { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок USDC з контракту на твою адресу." },
+              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у гаманці → USDC падає на гаманець. Зробити це можна в будь-який зручний момент." },
             ],
           },
         ],
@@ -2615,10 +2488,10 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Встанови Motion з motion.movementnetwork.xyz (рекомендуємо) або Nightly з nightly.app.",
+                  "1. Встанови Phantom з phantom.com (рекомендуємо) або Solflare з solflare.com.",
                   "2. Створи акаунт і збережи seed-фразу на папері.",
-                  "3. Отримай USDCx — своп у Motion, Nightly або на Yuzu (app.yuzu.finance). Потрібно ~5 USDCx + трохи MOVE на комісії.",
-                  "4. На MOVEMATCH натисни «Підключити гаманець», обери Motion або Nightly.",
+                  "3. Отримай USDC — своп усередині гаманця або вивід із біржі в мережі Solana. Потрібно ~5 USDC + трохи SOL на комісії.",
+                  "4. На MOVEMATCH натисни «Підключити гаманець», обери Phantom або Solflare.",
                   "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
                   "6. Натисни «Підтвердити склад» і підпиши транзакцію в гаманці.",
                   "7. Чекай початку туру — далі все рахується автоматично.",
@@ -2630,7 +2503,7 @@ export const pagesUk: PagesMessages = {
             id: "entry-cost",
             q: "Скільки коштує вхід в один тур?",
             a: [
-              { type: "p", text: "Конкретний внесок видно на сторінці «Склад» (рядок «Вартість реєстрації»). Це 5 USDCx за тур — невелика стабільна сума для пробного входу." },
+              { type: "p", text: "Конкретний внесок видно на сторінці «Склад» (рядок «Вартість реєстрації»). Це 5 USDC за тур — невелика стабільна сума для пробного входу." },
             ],
           },
           {
@@ -2676,7 +2549,7 @@ export const pagesUk: PagesMessages = {
             q: "Коли і як я отримую виграш?",
             a: [
               { type: "p", text: "Після останнього матчу туру адміністрація закриває тур, статистика подається в смарт-контракт, обчислюються остаточні місця і призи." },
-              { type: "p", text: "Як тільки тур опубліковано як Resolved (зазвичай протягом доби), на сторінці «Лідерборд» поряд з твоїм результатом з'являється кнопка «Claim». Натискаєш — і USDCx приходить на гаманець." },
+              { type: "p", text: "Як тільки тур опубліковано як Resolved (зазвичай протягом доби), на сторінці «Лідерборд» поряд з твоїм результатом з'являється кнопка «Claim». Натискаєш — і USDC приходить на гаманець." },
             ],
           },
         ],
@@ -2732,9 +2605,9 @@ export const pagesUk: PagesMessages = {
           },
           {
             id: "convert-to-fiat",
-            q: "Як вивести USDCx у звичайні гроші?",
+            q: "Як вивести USDC у звичайні гроші?",
             a: [
-              { type: "p", text: "USDCx уже прив’язаний до долара. Обміняй назад на MOVE або інший токен на Yuzu, у Motion або в Nightly, потім виведи через звичну біржу — як із будь-якою криптою." },
+              { type: "p", text: "USDC уже прив’язаний до долара. Надішли його з Phantom або Solflare на біржу (у мережі Solana) і виведи там — як із будь-якою криптою." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
             ],
           },
@@ -2782,7 +2655,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-scam",
             q: "Як я знаю, що це не шахрайство?",
             a: [
-              { type: "p", text: "Усі ключові дії (твій склад, призовий фонд, очки, виплати) фіксуються в блокчейні Movement, і їх можна перевірити в публічному експлорері — ніхто, навіть розробники MOVEMATCH, не може непомітно нічого змінити." },
+              { type: "p", text: "Усі ключові дії (твій склад, призовий фонд, очки, виплати) фіксуються в блокчейні Solana, і їх можна перевірити в публічному експлорері — ніхто, навіть розробники MOVEMATCH, не може непомітно нічого змінити." },
               { type: "p", text: "Адміністрація НЕ може: підмінити чужий склад після дедлайну, забрати щось з призового фонду, переписати очки. Смарт-контракт цього просто не дозволяє." },
             ],
           },
@@ -2798,7 +2671,7 @@ export const pagesUk: PagesMessages = {
             id: "lost-seed",
             q: "А якщо я втратив seed-фразу від гаманця?",
             a: [
-              { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Motion, ні Nightly, ні MOVEMATCH не мають доступу до неї." },
+              { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Phantom, ні Solflare, ні MOVEMATCH не мають доступу до неї." },
               { type: "p", text: "Якщо seed утрачено — гаманець (і кошти на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
             ],
           },

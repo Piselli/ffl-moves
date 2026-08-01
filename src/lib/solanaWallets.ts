@@ -103,6 +103,3 @@ export function solanaWalletConnectRows(
 
   return rows;
 }
-
-/** @deprecated Use solanaWalletConnectRows. */
-export const movementWalletConnectRows = solanaWalletConnectRows;

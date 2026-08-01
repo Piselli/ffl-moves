@@ -10,7 +10,7 @@ import {
   isWorldCupCampaignActive,
   pickWorldCupPrizePoolTour,
 } from "@/lib/worldcup";
-import type { GameweekSummary } from "@/lib/movement";
+import type { GameweekSummary } from "@/lib/chainClient";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn } from "@/lib/utils";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
@@ -78,7 +78,7 @@ function PrizeBreakdown({
   roundLabel,
 }: {
   tourId: number;
-  prizePool: number | null;
+  prizePool: bigint | null;
   loading: boolean;
   roundLabel: string | null;
 }) {
@@ -86,11 +86,11 @@ function PrizeBreakdown({
   const wc = m.pages.worldCup;
   const prize = usePrizeAsset();
   const reduceMotion = useReducedMotion();
-  const hasPool = !loading && prizePool != null && prizePool > 0;
+  const hasPool = !loading && prizePool != null && prizePool > 0n;
   const prizeCount = getPrizeRankCount(tourId);
 
   const amount = (share: number): string | null =>
-    hasPool ? prize.formatUnits((prizePool! * share) / 100) : null;
+    hasPool ? prize.formatUnits((prizePool! * BigInt(share)) / 100n) : null;
 
   const ranks = getPrizeTiers(tourId).map(({ rank, pct }) => ({ rank, share: pct }));
   const maxShare = ranks[0]?.share ?? 0;

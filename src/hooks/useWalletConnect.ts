@@ -6,7 +6,7 @@ import {
   isMobileBrowser,
   solanaWalletConnectRows,
   solanaWalletDefByAdapterName,
-} from "@/lib/walletNightly";
+} from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { useWalletAdapterError } from "@/components/WalletProvider";
 
@@ -57,7 +57,7 @@ export function useWalletConnect() {
 
     const watchdog = window.setTimeout(() => {
       if (!connectedRef.current) {
-        setHint(hasInstalled ? m.nav.connectHintInstalled : m.nav.connectHintNightly);
+        setHint(hasInstalled ? m.nav.connectHintInstalled : m.nav.connectHintNotInstalled);
         setStatusLine(null);
       }
     }, 3500);
@@ -90,8 +90,6 @@ export function useWalletConnect() {
 
   return {
     walletRows,
-    /** @deprecated Use walletRows */
-    nightlyRows: walletRows,
     adapterReady,
     scanDone,
     hasInstalled,
@@ -100,11 +98,6 @@ export function useWalletConnect() {
     statusLine,
     lastError,
     connectWallet,
-    /** @deprecated Use connectWallet */
-    connectNightly: connectWallet,
     connected,
   };
 }
-
-/** @deprecated Use useWalletConnect */
-export const useNightlyConnect = useWalletConnect;

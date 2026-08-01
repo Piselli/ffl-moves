@@ -2,11 +2,11 @@ import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import {
   getConfig,
-  findHighestGameweekIdOnChain,
+  findHighestGameweekId,
   findLatestResolvedGameweekId,
-  getGameweekTeams,
+  getGameweekEntrants,
   getTeamResult,
-} from "@/lib/movement";
+} from "@/lib/chainClient";
 import { findLatestResolvedWorldCupTourId, isWorldCupCampaignActive } from "@/lib/worldcup";
 import { getPrizeDisplayFromChain } from "@/lib/prizeAssetServer";
 import { PrizeTickerStrip, type TickerWinner } from "./PrizeTickerStrip";
@@ -21,14 +21,14 @@ const fetchTickerData = unstable_cache(
         const cfg = await getConfig();
         if (!cfg) return null;
 
-        const highestId = await findHighestGameweekIdOnChain(cfg);
+        const highestId = await findHighestGameweekId();
         if (highestId < 1) return null;
 
         resolvedGwId = await findLatestResolvedGameweekId(highestId);
       }
       if (!resolvedGwId) return null;
 
-      const addresses = await getGameweekTeams(resolvedGwId);
+      const addresses = await getGameweekEntrants(resolvedGwId);
       if (!addresses.length) return null;
 
       const settled = await Promise.allSettled(
@@ -51,14 +51,13 @@ const fetchTickerData = unstable_cache(
         .sort(
           (a, b) =>
             a.rank - b.rank ||
-            b.prizeAmount - a.prizeAmount ||
+            Number(b.prizeAmount - a.prizeAmount) ||
             a.address.localeCompare(b.address),
         )
         .slice(0, 10);
 
       if (!winners.length) return null;
-      // Legacy MOVE prize amounts misread as USDCx look absurd — skip those tours.
-      const maxPrize = Math.max(...winners.map((w) => w.prizeAmount));
+      const maxPrize = Math.max(...winners.map((w) => Number(w.prizeAmount)));
       if (maxPrize > 50_000_000_000) return null;
       return { gwId: resolvedGwId, winners };
     } catch (e) {
