@@ -3,7 +3,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
-import { XiStallExpand } from "@/components/leaderboard/XiStallExpand";
 import { getUserTeam, getTeamResult, getGameweekStats } from "@/lib/chainClient";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -23,7 +22,7 @@ interface LeaderboardTableProps {
   currentUser?: string;
   gameweekId?: number;
   isPreview?: boolean;
-  /** When true, top-10 rows can expand to show full squad */
+  /** When true, top-10 rows can expand / be selected for squad */
   showSquadView?: boolean;
   /** Player catalog endpoint for squad expansion (default `/api/players` = FPL/EPL). */
   catalogUrl?: string;
@@ -41,8 +40,13 @@ interface LeaderboardTableProps {
   youRowId?: string;
   /** One-shot pulse after successful claim. */
   claimPulse?: boolean;
-  /** Homepage nameplate hang expand instead of pitch showcase. */
-  stallExpand?: boolean;
+  /**
+   * Product desk: row select drives an external detail panel.
+   * No inline expand — keeps the board dense.
+   */
+  deskMode?: boolean;
+  selectedOwner?: string | null;
+  onSelectOwner?: (owner: string) => void;
 }
 
 type LoadedSquad = {
@@ -76,12 +80,12 @@ function StatusBadge({
   if (claimed) {
     return (
       <div className="flex items-center justify-end gap-2">
-        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.55)]">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/90">
           <svg className="h-2.5 w-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </span>
-        <span className="text-xs font-bold uppercase tracking-wide text-emerald-400">{claimedLabel}</span>
+        <span className="text-xs font-bold uppercase tracking-wide text-white/55">{claimedLabel}</span>
       </div>
     );
   }
@@ -99,7 +103,10 @@ function StatusBadge({
 function SquadChevron({ open }: { open: boolean }) {
   return (
     <svg
-      className={cn("w-4 h-4 text-[#00f948]/70 transition-transform duration-200", open && "rotate-180")}
+      className={cn(
+        "h-4 w-4 text-white/40 transition-transform duration-200",
+        open && "rotate-180 text-white/70",
+      )}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -124,7 +131,9 @@ export function LeaderboardTable({
   isClaiming = false,
   youRowId,
   claimPulse = false,
-  stallExpand = false,
+  deskMode = false,
+  selectedOwner = null,
+  onSelectOwner,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
@@ -149,11 +158,13 @@ export function LeaderboardTable({
     squadCacheRef.current.clear();
   }, [gameweekId, isPreview]);
 
-  const colCount = showSquadView ? 6 : 5;
-  const prizeRankCap = gameweekId > 0 ? getPrizeRankCount(gameweekId) : DEFAULT_PRIZE_TIERS.length;
+  const inlineExpand = showSquadView && !deskMode;
+  const colCount = inlineExpand ? 6 : 5;
+  const prizeRankCap =
+    gameweekId > 0 ? getPrizeRankCount(gameweekId) : DEFAULT_PRIZE_TIERS.length;
   const prizeTiers = gameweekId > 0 ? getPrizeTiers(gameweekId) : DEFAULT_PRIZE_TIERS;
 
-  const canExpandRow = (rank: number, owner: string) =>
+  const canInspectRow = (rank: number, owner: string) =>
     showSquadView &&
     gameweekId > 0 &&
     ((rank > 0 && rank <= prizeRankCap) ||
@@ -167,7 +178,9 @@ export function LeaderboardTable({
       setLoadErrorOwner(null);
       try {
         const [playersRes, chainTeam, chainResult] = await Promise.all([
-          fetch(catalogUrl).then((r) => (r.ok ? r.json() : Promise.reject(new Error("players")))),
+          fetch(catalogUrl).then((r) =>
+            r.ok ? r.json() : Promise.reject(new Error("players")),
+          ),
           getUserTeam(owner, gameweekId),
           isPreview ? Promise.resolve(null) : getTeamResult(owner, gameweekId),
         ]);
@@ -220,9 +233,15 @@ export function LeaderboardTable({
     [gameweekId, isPreview, catalogUrl, fplEnrichment],
   );
 
-  const toggleRow = useCallback(
+  const onRowActivate = useCallback(
     (owner: string, rank: number) => {
-      if (!canExpandRow(rank, owner)) return;
+      if (!canInspectRow(rank, owner)) return;
+
+      if (deskMode) {
+        onSelectOwner?.(owner);
+        return;
+      }
+
       if (expandedOwner === owner) {
         setExpandedOwner(null);
         return;
@@ -230,7 +249,16 @@ export function LeaderboardTable({
       setExpandedOwner(owner);
       void loadSquad(owner);
     },
-    [expandedOwner, loadSquad, showSquadView, gameweekId, allowOwnSquadExpand, currentUser],
+    [
+      deskMode,
+      onSelectOwner,
+      expandedOwner,
+      loadSquad,
+      showSquadView,
+      gameweekId,
+      allowOwnSquadExpand,
+      currentUser,
+    ],
   );
 
   const chainAlignedCopy = {
@@ -254,7 +282,11 @@ export function LeaderboardTable({
                 key={h.label}
                 className={cn(
                   "py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30",
-                  h.align === "left" && h.narrow ? "text-left w-12" : h.align === "left" ? "text-left" : "text-right",
+                  h.align === "left" && h.narrow
+                    ? "text-left w-12"
+                    : h.align === "left"
+                      ? "text-left"
+                      : "text-right",
                 )}
               >
                 {h.label}
@@ -262,24 +294,26 @@ export function LeaderboardTable({
             ))}
             <th className="py-3 px-4 text-right">
               <div className="inline-flex items-center gap-1.5 justify-end group/prize relative">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{lt.colPrize}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                  {lt.colPrize}
+                </span>
                 <div className="w-3.5 h-3.5 rounded-full border border-white/20 flex items-center justify-center cursor-default">
                   <span className="text-[8px] text-white/30 leading-none font-bold">?</span>
                 </div>
                 <div className="absolute right-0 top-full mt-2 hidden group-hover/prize:block z-50 w-44">
-                  <div className="bg-[#1a1d26] border border-white/10 rounded-xl p-3 shadow-2xl">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">{lt.fundSplit}</p>
+                  <div className="bg-[#161412] border border-white/10 rounded-xl p-3 shadow-2xl">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">
+                      {lt.fundSplit}
+                    </p>
                     <div className="space-y-1">
-                      {prizeTiers.map(({ rank, pct }) => {
-                        return (
-                          <div key={rank} className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] text-white/30">#{rank}</span>
-                            <span className="text-[11px] font-bold tabular-nums text-white/55">
-                              {pct}%
-                            </span>
-                          </div>
-                        );
-                      })}
+                      {prizeTiers.map(({ rank, pct }) => (
+                        <div key={rank} className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-white/30">#{rank}</span>
+                          <span className="text-[11px] font-bold tabular-nums text-white/55">
+                            {pct}%
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -288,7 +322,7 @@ export function LeaderboardTable({
             <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30 text-right whitespace-nowrap">
               {lt.colStatus}
             </th>
-            {showSquadView ? (
+            {inlineExpand ? (
               <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-white/30 text-right whitespace-nowrap w-28">
                 {lt.colSquad}
               </th>
@@ -297,13 +331,17 @@ export function LeaderboardTable({
         </thead>
         <tbody>
           {results.map((result) => {
-            const isUser = !!currentUser && tourOwnersMatch(currentUser, result.owner);
+            const isUser =
+              !!currentUser && tourOwnersMatch(currentUser, result.owner);
             const rColor = rankColor[result.rank];
             const isTop3 = result.rank <= 3;
             const hasPrize = result.prizeAmount > 0;
-            const claimedGlow = Boolean(result.claimed && hasPrize);
-            const expandable = canExpandRow(result.rank, result.owner);
-            const isOpen = expandedOwner === result.owner;
+            const inspectable = canInspectRow(result.rank, result.owner);
+            const isOpen = !deskMode && expandedOwner === result.owner;
+            const isSelected =
+              deskMode &&
+              selectedOwner != null &&
+              tourOwnersMatch(selectedOwner, result.owner);
             const cached = squadCacheRef.current.get(result.owner);
             const isLoading = loadingOwner === result.owner;
             const pulseYou = claimPulse && isUser;
@@ -312,13 +350,17 @@ export function LeaderboardTable({
               <Fragment key={result.owner}>
                 <motion.tr
                   id={isUser && youRowId ? youRowId : undefined}
-                  onClick={expandable ? () => toggleRow(result.owner, result.rank) : undefined}
+                  onClick={
+                    inspectable
+                      ? () => onRowActivate(result.owner, result.rank)
+                      : undefined
+                  }
                   animate={
                     pulseYou
                       ? {
                           filter: [
                             "brightness(1)",
-                            "brightness(1.35)",
+                            "brightness(1.28)",
                             "brightness(1)",
                           ],
                         }
@@ -326,31 +368,32 @@ export function LeaderboardTable({
                   }
                   transition={pulseYou ? { duration: 0.75, ease: "easeOut" } : undefined}
                   className={cn(
-                    "group border-b border-white/[0.06] transition-[background-color,box-shadow] duration-200",
-                    expandable && "cursor-pointer",
-                    isOpen && expandable && "bg-white/[0.04]",
+                    "group border-b border-white/[0.06] transition-[background-color,box-shadow] duration-150",
+                    inspectable && "cursor-pointer",
+                    isSelected &&
+                      "bg-white/[0.06] shadow-[inset_3px_0_0_0_rgba(242,235,227,0.85)]",
+                    isOpen && "bg-white/[0.04]",
                     isUser &&
+                      !isSelected &&
                       !isOpen &&
                       "bg-[#00f948]/[0.05] shadow-[inset_3px_0_0_0_#00f948]",
-                    claimedGlow &&
+                    !isSelected &&
                       !isOpen &&
                       !isUser &&
-                      "bg-emerald-500/[0.06] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.28)]",
-                    !isOpen && !isUser && expandable && "hover:bg-white/[0.035]",
-                    !isOpen && !isUser && !expandable && "hover:bg-white/[0.025]",
-                    // Raycast-like pressed key on hover
-                    expandable &&
+                      inspectable &&
+                      "hover:bg-white/[0.035] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(0,0,0,0.3)]",
+                    !isSelected &&
                       !isOpen &&
-                      "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.35)]",
+                      !isUser &&
+                      !inspectable &&
+                      "hover:bg-white/[0.025]",
                   )}
                 >
                   <td className="py-3.5 px-4 align-middle first:rounded-l-xl">
                     <span
                       className={cn(
                         "font-display text-base font-black tabular-nums",
-                        isUser
-                          ? "text-[#00f948]"
-                          : rColor || "text-white/45",
+                        isUser ? "text-[#00f948]" : rColor || "text-white/45",
                         isTop3 && !isUser && "text-lg",
                       )}
                     >
@@ -372,8 +415,10 @@ export function LeaderboardTable({
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#00f948]/60">
                           {lt.you}
                         </span>
-                      ) : expandable ? (
-                        <span className="text-[10px] text-white/30">{lt.viewSquadHint}</span>
+                      ) : inspectable ? (
+                        <span className="text-[10px] text-white/30">
+                          {deskMode ? lt.viewSquadHint : lt.viewSquadHint}
+                        </span>
                       ) : null}
                     </div>
                   </td>
@@ -394,9 +439,7 @@ export function LeaderboardTable({
                       <span
                         className={cn(
                           "font-display font-black text-sm tabular-nums",
-                          result.claimed
-                            ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.35)]"
-                            : "text-white/72",
+                          result.claimed ? "text-white/55" : "text-white/72",
                         )}
                       >
                         {prize.formatLabel(result.prizeAmount)}
@@ -406,8 +449,17 @@ export function LeaderboardTable({
                     )}
                   </td>
 
-                  <td className={cn("py-4 px-4 align-middle text-right whitespace-nowrap", !showSquadView && "last:rounded-r-xl")}>
-                    {isUser && hasPrize && !result.claimed && !isPreview && onClaimPrize ? (
+                  <td
+                    className={cn(
+                      "py-4 px-4 align-middle text-right whitespace-nowrap",
+                      !inlineExpand && "last:rounded-r-xl",
+                    )}
+                  >
+                    {isUser &&
+                    hasPrize &&
+                    !result.claimed &&
+                    !isPreview &&
+                    onClaimPrize ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -415,7 +467,7 @@ export function LeaderboardTable({
                           onClaimPrize();
                         }}
                         disabled={isClaiming}
-                        className="inline-flex min-w-[5.5rem] items-center justify-center rounded-full bg-[#00f948] px-3 py-2 font-display text-[10px] font-black uppercase tracking-wide text-black transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-w-[5.5rem] items-center justify-center rounded-md bg-[#00f948] px-3 py-2 font-display text-[10px] font-black uppercase tracking-wide text-black transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isClaiming ? lb.claiming : lb.claim}
                       </button>
@@ -429,18 +481,18 @@ export function LeaderboardTable({
                     )}
                   </td>
 
-                  {showSquadView ? (
+                  {inlineExpand ? (
                     <td className="py-4 px-4 align-middle text-right whitespace-nowrap last:rounded-r-xl">
-                      {expandable ? (
+                      {inspectable ? (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleRow(result.owner, result.rank);
+                            onRowActivate(result.owner, result.rank);
                           }}
                           className={cn(
                             "inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                            isOpen ? "text-[#00f948]" : "text-white/40 group-hover:text-[#00f948]/70",
+                            isOpen ? "text-white/80" : "text-white/40 group-hover:text-white/65",
                           )}
                           aria-expanded={isOpen}
                         >
@@ -454,43 +506,13 @@ export function LeaderboardTable({
                   ) : null}
                 </motion.tr>
 
-                {isOpen && expandable ? (
+                {isOpen && inspectable ? (
                   <tr className="border-b border-white/[0.06]">
                     <td colSpan={colCount} className="bg-black/30 p-0">
                       <div className="border-t border-white/10">
-                        {stallExpand ? (
-                          <XiStallExpand
-                            nickname={getNickname(result.owner)}
-                            rank={result.rank}
-                            totalPts={result.finalPoints}
-                            starters={cached?.starters ?? []}
-                            bench={cached?.bench ?? []}
-                            getPoints={(player) => {
-                              if (!cached) return 0;
-                              const stats =
-                                cached.stats[player.id] ??
-                                cached.stats[String(player.id)];
-                              return calculateFantasyPointsWithRating(
-                                player,
-                                stats as Record<string, unknown>,
-                              );
-                            }}
-                            showScores={Boolean(
-                              cached && Object.keys(cached.stats).length > 0,
-                            )}
-                            loading={isLoading}
-                            loadingLabel={lt.squadLoading}
-                            error={
-                              !isLoading &&
-                              (loadErrorOwner === result.owner || !cached)
-                            }
-                            errorLabel={lt.squadLoadError}
-                            benchLabel={g.benchSection}
-                            xiTotalLabel={g.registeredXiTotalLabel}
-                          />
-                        ) : isLoading ? (
+                        {isLoading ? (
                           <div className="flex items-center justify-center gap-3 py-10">
-                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#00f948]/50 border-t-transparent" />
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-transparent" />
                             <p className="text-sm text-white/35">{lt.squadLoading}</p>
                           </div>
                         ) : loadErrorOwner === result.owner || !cached ? (
