@@ -1,7 +1,9 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
+import { XiStallExpand } from "@/components/leaderboard/XiStallExpand";
 import { getUserTeam, getTeamResult, getGameweekStats } from "@/lib/chainClient";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -35,6 +37,12 @@ interface LeaderboardTableProps {
   /** When set, the connected user's unclaimed row shows a Claim button (resolved tours). */
   onClaimPrize?: () => void;
   isClaiming?: boolean;
+  /** DOM id for the connected user's row — Find me. */
+  youRowId?: string;
+  /** One-shot pulse after successful claim. */
+  claimPulse?: boolean;
+  /** Homepage nameplate hang expand instead of pitch showcase. */
+  stallExpand?: boolean;
 }
 
 type LoadedSquad = {
@@ -44,11 +52,10 @@ type LoadedSquad = {
   stats: Record<string, Record<string, unknown>>;
 };
 
-const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const rankColor: Record<number, string> = {
-  1: "text-[#FFD700] drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]",
-  2: "text-[#E2E8F0] drop-shadow-[0_0_4px_rgba(226,232,240,0.4)]",
-  3: "text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.4)]",
+  1: "text-white",
+  2: "text-white/90",
+  3: "text-white/80",
 };
 
 function StatusBadge({
@@ -115,6 +122,9 @@ export function LeaderboardTable({
   allowOwnSquadExpand = false,
   onClaimPrize,
   isClaiming = false,
+  youRowId,
+  claimPulse = false,
+  stallExpand = false,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
@@ -261,21 +271,12 @@ export function LeaderboardTable({
                     <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">{lt.fundSplit}</p>
                     <div className="space-y-1">
                       {prizeTiers.map(({ rank, pct }) => {
-                        const medal = rankMedal[rank];
-                        const color =
-                          rank === 1
-                            ? "text-[#FFD700]"
-                            : rank === 2
-                              ? "text-[#E2E8F0]"
-                              : rank === 3
-                                ? "text-[#F59E0B]"
-                                : rank <= 5
-                                  ? "text-white/50"
-                                  : "text-white/35";
                         return (
                           <div key={rank} className="flex items-center justify-between gap-2">
-                            <span className="text-white/30 text-[10px]">{medal ?? `#${rank}`}</span>
-                            <span className={cn("text-[11px] font-bold tabular-nums", color)}>{pct}%</span>
+                            <span className="text-[10px] text-white/30">#{rank}</span>
+                            <span className="text-[11px] font-bold tabular-nums text-white/55">
+                              {pct}%
+                            </span>
                           </div>
                         );
                       })}
@@ -295,9 +296,8 @@ export function LeaderboardTable({
           </tr>
         </thead>
         <tbody>
-          {results.map((result, idx) => {
+          {results.map((result) => {
             const isUser = !!currentUser && tourOwnersMatch(currentUser, result.owner);
-            const medal = rankMedal[result.rank];
             const rColor = rankColor[result.rank];
             const isTop3 = result.rank <= 3;
             const hasPrize = result.prizeAmount > 0;
@@ -306,75 +306,83 @@ export function LeaderboardTable({
             const isOpen = expandedOwner === result.owner;
             const cached = squadCacheRef.current.get(result.owner);
             const isLoading = loadingOwner === result.owner;
+            const pulseYou = claimPulse && isUser;
 
             return (
               <Fragment key={result.owner}>
-                <tr
+                <motion.tr
+                  id={isUser && youRowId ? youRowId : undefined}
                   onClick={expandable ? () => toggleRow(result.owner, result.rank) : undefined}
+                  animate={
+                    pulseYou
+                      ? {
+                          filter: [
+                            "brightness(1)",
+                            "brightness(1.35)",
+                            "brightness(1)",
+                          ],
+                        }
+                      : { filter: "brightness(1)" }
+                  }
+                  transition={pulseYou ? { duration: 0.75, ease: "easeOut" } : undefined}
                   className={cn(
-                    "group transition-colors duration-200 border-b border-white/[0.05]",
+                    "group border-b border-white/[0.06] transition-[background-color,box-shadow] duration-200",
                     expandable && "cursor-pointer",
-                    isOpen && expandable && "bg-[#00f948]/[0.04] border-[#00f948]/15",
+                    isOpen && expandable && "bg-white/[0.04]",
+                    isUser &&
+                      !isOpen &&
+                      "bg-[#00f948]/[0.05] shadow-[inset_3px_0_0_0_#00f948]",
                     claimedGlow &&
                       !isOpen &&
-                      cn(
-                        "relative bg-emerald-500/[0.09]",
-                        "shadow-[inset_0_0_0_1px_rgba(74,222,128,0.42),inset_0_0_40px_-18px_rgba(0,249,72,0.07),0_0_26px_-6px_rgba(0,249,72,0.38)]",
-                      ),
-                    !claimedGlow && !isOpen && isUser && "bg-[#00f948]/[0.04] hover:bg-[#00f948]/[0.072]",
-                    !claimedGlow && !isOpen && !isUser && expandable && "hover:bg-white/[0.04]",
-                    !claimedGlow && !isOpen && !isUser && !expandable && "hover:bg-white/[0.035]",
+                      !isUser &&
+                      "bg-emerald-500/[0.06] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.28)]",
+                    !isOpen && !isUser && expandable && "hover:bg-white/[0.035]",
+                    !isOpen && !isUser && !expandable && "hover:bg-white/[0.025]",
+                    // Raycast-like pressed key on hover
+                    expandable &&
+                      !isOpen &&
+                      "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.35)]",
                   )}
                 >
-                  <td className="py-4 px-4 align-middle first:rounded-l-xl">
-                    {medal ? (
-                      <span className="text-xl">{medal}</span>
-                    ) : (
-                      <span className={cn("font-display font-black text-base", rColor || "text-white/50")}>
-                        {result.rank > 0 ? `#${result.rank}` : "—"}
-                      </span>
-                    )}
+                  <td className="py-3.5 px-4 align-middle first:rounded-l-xl">
+                    <span
+                      className={cn(
+                        "font-display text-base font-black tabular-nums",
+                        isUser
+                          ? "text-[#00f948]"
+                          : rColor || "text-white/45",
+                        isTop3 && !isUser && "text-lg",
+                      )}
+                    >
+                      {result.rank > 0 ? result.rank : "—"}
+                    </span>
                   </td>
 
-                  <td className="py-4 px-4 align-middle">
-                    <div className="flex items-center gap-2.5">
-                      <div
+                  <td className="py-3.5 px-4 align-middle">
+                    <div className="min-w-0">
+                      <p
                         className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0",
-                          isTop3
-                            ? "bg-gradient-to-br from-white/20 to-white/5 border border-white/15"
-                            : "bg-white/[0.05] border border-white/[0.08]",
+                          "truncate font-display text-sm font-bold uppercase tracking-wide",
+                          isUser ? "text-[#00f948]" : "text-white/85",
                         )}
                       >
-                        {String(idx + 1)}
-                      </div>
-                      <div className="min-w-0">
-                        <p
-                          className={cn(
-                            "font-mono text-sm font-medium truncate",
-                            isUser ? "text-[#00f948]" : "text-white/85",
-                          )}
-                        >
-                          {getNickname(result.owner)}
-                        </p>
-                        {isUser ? (
-                          <span className="text-[10px] font-bold text-[#00f948]/60 uppercase tracking-widest">
-                            {lt.you}
-                          </span>
-                        ) : expandable ? (
-                          <span className="text-[10px] text-white/30">{lt.viewSquadHint}</span>
-                        ) : null}
-                      </div>
+                        {getNickname(result.owner)}
+                      </p>
+                      {isUser ? (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#00f948]/60">
+                          {lt.you}
+                        </span>
+                      ) : expandable ? (
+                        <span className="text-[10px] text-white/30">{lt.viewSquadHint}</span>
+                      ) : null}
                     </div>
                   </td>
 
-                  <td className="py-4 px-4 text-right align-middle tabular-nums">
+                  <td className="py-3.5 px-4 text-right align-middle tabular-nums">
                     <span
                       className={cn(
-                        "font-display font-black text-xl",
-                        isTop3
-                          ? rColor || (isUser ? "text-[#00f948]" : "text-white")
-                          : "text-[#fcd34d] drop-shadow-[0_0_12px_rgba(251,191,36,0.2)]",
+                        "font-display text-xl font-black",
+                        isUser ? "text-[#00f948]" : "text-white",
                       )}
                     >
                       {result.finalPoints}
@@ -407,7 +415,7 @@ export function LeaderboardTable({
                           onClaimPrize();
                         }}
                         disabled={isClaiming}
-                        className="inline-flex min-w-[5.5rem] items-center justify-center rounded-lg bg-gradient-to-r from-emerald-500 to-[#00f948] px-3 py-2 font-display text-[10px] font-black uppercase tracking-wide text-black transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-w-[5.5rem] items-center justify-center rounded-full bg-[#00f948] px-3 py-2 font-display text-[10px] font-black uppercase tracking-wide text-black transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isClaiming ? lb.claiming : lb.claim}
                       </button>
@@ -444,19 +452,51 @@ export function LeaderboardTable({
                       )}
                     </td>
                   ) : null}
-                </tr>
+                </motion.tr>
 
                 {isOpen && expandable ? (
                   <tr className="border-b border-white/[0.06]">
-                    <td colSpan={colCount} className="p-0 bg-[#00f948]/[0.02]">
-                      <div className="border-t border-[#00f948]/15 px-2 py-4 sm:px-4">
-                        {isLoading ? (
+                    <td colSpan={colCount} className="bg-black/30 p-0">
+                      <div className="border-t border-white/10">
+                        {stallExpand ? (
+                          <XiStallExpand
+                            nickname={getNickname(result.owner)}
+                            rank={result.rank}
+                            totalPts={result.finalPoints}
+                            starters={cached?.starters ?? []}
+                            bench={cached?.bench ?? []}
+                            getPoints={(player) => {
+                              if (!cached) return 0;
+                              const stats =
+                                cached.stats[player.id] ??
+                                cached.stats[String(player.id)];
+                              return calculateFantasyPointsWithRating(
+                                player,
+                                stats as Record<string, unknown>,
+                              );
+                            }}
+                            showScores={Boolean(
+                              cached && Object.keys(cached.stats).length > 0,
+                            )}
+                            loading={isLoading}
+                            loadingLabel={lt.squadLoading}
+                            error={
+                              !isLoading &&
+                              (loadErrorOwner === result.owner || !cached)
+                            }
+                            errorLabel={lt.squadLoadError}
+                            benchLabel={g.benchSection}
+                            xiTotalLabel={g.registeredXiTotalLabel}
+                          />
+                        ) : isLoading ? (
                           <div className="flex items-center justify-center gap-3 py-10">
-                            <div className="w-6 h-6 border-2 border-[#00f948]/50 border-t-transparent rounded-full animate-spin" />
-                            <p className="text-white/35 text-sm">{lt.squadLoading}</p>
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#00f948]/50 border-t-transparent" />
+                            <p className="text-sm text-white/35">{lt.squadLoading}</p>
                           </div>
                         ) : loadErrorOwner === result.owner || !cached ? (
-                          <p className="text-center text-white/30 text-sm py-8">{lt.squadLoadError}</p>
+                          <p className="py-8 text-center text-sm text-white/30">
+                            {lt.squadLoadError}
+                          </p>
                         ) : (
                           (() => {
                             const officialResolved =
@@ -471,7 +511,8 @@ export function LeaderboardTable({
                                   }
                                 : null;
                             const interimBreakdown =
-                              cached.chainResult == null && Object.keys(cached.stats).length > 0
+                              cached.chainResult == null &&
+                              Object.keys(cached.stats).length > 0
                                 ? computeChainAlignedXiBreakdown(
                                     cached.starters,
                                     cached.bench,
@@ -481,7 +522,8 @@ export function LeaderboardTable({
                             const hasStats = Object.keys(cached.stats).length > 0;
                             const getPoints = (player: Player) => {
                               const stats =
-                                cached.stats[player.id] ?? cached.stats[String(player.id)];
+                                cached.stats[player.id] ??
+                                cached.stats[String(player.id)];
                               return calculateFantasyPointsWithRating(
                                 player,
                                 stats as Record<string, unknown>,
@@ -489,27 +531,31 @@ export function LeaderboardTable({
                             };
 
                             return (
-                              <RegisteredSquadShowcase
-                                starters={cached.starters}
-                                bench={cached.bench}
-                                gameweekStats={cached.stats}
-                                showScores={hasStats}
-                                statsPendingHint={!hasStats ? mr.statsPending : null}
-                                getPoints={getPoints}
-                                posAbbrev={posAbbrev}
-                                benchAbbrev={benchAbbrev}
-                                startersHeading={g.startersSection}
-                                benchSectionLabel={g.benchSection}
-                                scoresSidebarTitle={g.registeredScoresTitle}
-                                playerColLabel={g.registeredPlayerCol}
-                                pointsColLabel={lt.colPoints}
-                                xiTotalLabel={g.registeredXiTotalLabel}
-                                officialTotalHint={g.registeredOfficialTotalHint}
-                                publishedTourTotal={result.finalPoints}
-                                officialResolved={officialResolved}
-                                interimBreakdown={interimBreakdown}
-                                chainAlignedCopy={chainAlignedCopy}
-                              />
+                              <div className="px-2 py-4 sm:px-4">
+                                <RegisteredSquadShowcase
+                                  starters={cached.starters}
+                                  bench={cached.bench}
+                                  gameweekStats={cached.stats}
+                                  showScores={hasStats}
+                                  statsPendingHint={
+                                    !hasStats ? mr.statsPending : null
+                                  }
+                                  getPoints={getPoints}
+                                  posAbbrev={posAbbrev}
+                                  benchAbbrev={benchAbbrev}
+                                  startersHeading={g.startersSection}
+                                  benchSectionLabel={g.benchSection}
+                                  scoresSidebarTitle={g.registeredScoresTitle}
+                                  playerColLabel={g.registeredPlayerCol}
+                                  pointsColLabel={lt.colPoints}
+                                  xiTotalLabel={g.registeredXiTotalLabel}
+                                  officialTotalHint={g.registeredOfficialTotalHint}
+                                  publishedTourTotal={result.finalPoints}
+                                  officialResolved={officialResolved}
+                                  interimBreakdown={interimBreakdown}
+                                  chainAlignedCopy={chainAlignedCopy}
+                                />
+                              </div>
                             );
                           })()
                         )}
