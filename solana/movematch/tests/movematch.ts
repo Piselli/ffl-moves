@@ -1,5 +1,7 @@
 import * as anchor from "@anchor-lang/core";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
@@ -27,6 +29,7 @@ import { WC_R16_TOUR_ID } from "@/lib/prize-distribution";
 import { buildResultsTree, u32le, type ProofNode, type ResultLeaf } from "@/lib/resultsTree";
 
 const TEAM_SIZE = 14;
+const INITIALIZER_KEY_PATH = resolve(__dirname, "../.keys/initializer.json");
 const ENTRY_FEE = new anchor.BN(1_000_000);
 const PRIZE_BPS = 8_000;
 const PRIZE_LEG = 800_000;
@@ -75,6 +78,9 @@ describe("movematch", () => {
   anchor.setProvider(provider);
   const program: any = (anchor.workspace as any).movematch ?? (anchor.workspace as any).Movematch;
   const admin = (provider.wallet as anchor.Wallet).payer;
+  const initializer = Keypair.fromSecretKey(
+    Uint8Array.from(JSON.parse(readFileSync(INITIALIZER_KEY_PATH, "utf8"))),
+  );
   const oracle = Keypair.generate();
   const house = Keypair.generate();
   const outsider = Keypair.generate();
@@ -106,6 +112,12 @@ describe("movematch", () => {
     playerIds: Array.from({ length: TEAM_SIZE }, (_, index) => index + 1),
     positions: [GK, DEF, DEF, DEF, DEF, MID, MID, MID, FWD, FWD, FWD, GK, DEF, MID],
     clubs: [10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 17, 18],
+  });
+
+  const validTeam343 = () => ({
+    playerIds: Array.from({ length: TEAM_SIZE }, (_, index) => index + 101),
+    positions: [GK, DEF, DEF, DEF, MID, MID, MID, MID, FWD, FWD, FWD, GK, DEF, MID],
+    clubs: [10, 11, 11, 12, 13, 13, 14, 14, 15, 15, 16, 17, 18, 19],
   });
 
   async function fundedPlayer(): Promise<Player> {
@@ -286,7 +298,7 @@ describe("movematch", () => {
   }
 
   before(async () => {
-    for (const key of [oracle.publicKey, house.publicKey, outsider.publicKey]) {
+    for (const key of [initializer.publicKey, oracle.publicKey, house.publicKey, outsider.publicKey]) {
       const signature = await provider.connection.requestAirdrop(
         key,
         2 * anchor.web3.LAMPORTS_PER_SOL
@@ -318,7 +330,7 @@ describe("movematch", () => {
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers(authority === admin ? [] : [authority])
+        .signers([authority])
         .rpc();
 
     // Run before the real bootstrap, while the Config PDA genuinely does not exist.
@@ -329,7 +341,12 @@ describe("movematch", () => {
       squatterError = String((error as { message?: string })?.message ?? error);
     }
 
-    await bootstrap(admin);
+    await bootstrap(initializer);
+    await program.methods
+      .addAdmin(admin.publicKey)
+      .accountsPartial({ config, admin: initializer.publicKey })
+      .signers([initializer])
+      .rpc();
   });
 
   it("lets nobody but the configured initializer bootstrap the config", async () => {
@@ -337,7 +354,8 @@ describe("movematch", () => {
       "UnauthorizedInitializer"
     );
     const state = await program.account.config.fetch(config);
-    expect(state.admins[0].toBase58()).to.equal(admin.publicKey.toBase58());
+    expect(state.admins[0].toBase58()).to.equal(initializer.publicKey.toBase58());
+    expect(state.admins[1].toBase58()).to.equal(admin.publicKey.toBase58());
     expect(state.oracle.toBase58()).to.equal(oracle.publicKey.toBase58());
   });
 
@@ -368,6 +386,9 @@ describe("movematch", () => {
     const formation = validTeam();
     formation.positions[0] = FWD;
     await expectFailure(registerWithTeam(2, badFormation, formation), "invalid formation");
+
+    const ok343 = await fundedPlayer();
+    await registerWithTeam(2, ok343, validTeam343());
 
     const badBench = await fundedPlayer();
     const bench = validTeam();
@@ -773,6 +794,10 @@ describe("movematch", () => {
       "basis points above 10000",
       "InvalidBasisPoints"
     );
+    await program.methods
+      .removeAdmin(initializer.publicKey)
+      .accountsPartial({ config, admin: admin.publicKey })
+      .rpc();
     await expectFailure(
       program.methods
         .removeAdmin(admin.publicKey)

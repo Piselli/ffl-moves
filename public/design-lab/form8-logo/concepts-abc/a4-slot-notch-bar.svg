@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+    <!-- horizontal bar with circular place-notch cut (formation line + slot) -->
+    <g transform="rotate(-12.5)">
+      <path fill-rule="evenodd" d="
+        M-120 -32 H120 A32 32 0 0 1 120 32 H-120 A32 32 0 0 1 -120 -32 Z
+        M55 0 m-28 0 a28 28 0 1 0 56 0 a28 28 0 1 0 -56 0
+      "/>
+    </g>
+  </svg>

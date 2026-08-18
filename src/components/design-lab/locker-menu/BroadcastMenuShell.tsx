@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MENU_DESTINATIONS } from "./menuLinks";
@@ -24,10 +24,8 @@ export function BroadcastMenuShell() {
       <header className="relative z-20 border-b border-white/10">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="MoveMatch" width={120} height={76} className="h-7 w-auto" />
-            <span className="font-display text-sm font-black uppercase tracking-tighter">
-              MOVE<span className="text-[#00f948]">MATCH</span>
-            </span>
+            <Form8Mark className="h-7" />
+            <Form8Wordmark className="text-sm" />
           </Link>
           <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">
             Live graphic

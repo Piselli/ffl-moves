@@ -1,0 +1,19 @@
+{
+  "family": "pitch-silhouettes",
+  "count": 12,
+  "plus_vector": 5,
+  "variants": [
+    "01-classic",
+    "02-persp",
+    "03-half",
+    "04-outline",
+    "05-split",
+    "06-diamond",
+    "07-kickoff",
+    "08-boxes",
+    "09-minimal",
+    "10-iso",
+    "11-frame",
+    "12-soft"
+  ]
+}

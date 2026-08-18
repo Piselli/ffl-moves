@@ -1,0 +1,10 @@
+{
+  "family": "wordmark-3",
+  "reset": "Logo is the full name form8. Never 8-only. Never app-icon-first.",
+  "sense": "form = kit / formation / building XI; 8 = letter in the name, same rank as f o r m",
+  "files": {
+    "1_m8_ligature": "form8-logo-m8-ligature.png",
+    "2_o_aperture": "form8-logo-o-aperture.png",
+    "3_kit_nameset": "form8-logo-kit-nameset.png"
+  }
+}

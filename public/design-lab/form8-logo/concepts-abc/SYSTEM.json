@@ -1,0 +1,36 @@
+{
+  "family": "concepts-abc",
+  "method": "Uncommon-style: one product-native symbol, modular craft, SVG-first",
+  "concepts": {
+    "A": {
+      "name": "Slot",
+      "sense": "place a player / open position",
+      "files": [
+        "a1-slot-gap-top",
+        "a2-slot-gap-right",
+        "a3-slot-capsule",
+        "a4-slot-notch-bar"
+      ]
+    },
+    "B": {
+      "name": "Tiers",
+      "sense": "formation lines (not letter F)",
+      "files": [
+        "b1-tiers-equal-gap",
+        "b2-tiers-attack-long",
+        "b3-tiers-defense-long",
+        "b4-tiers-connected"
+      ]
+    },
+    "C": {
+      "name": "F8 module",
+      "sense": "brand monogram form+8",
+      "files": [
+        "c1-f8-side",
+        "c2-f8-tight",
+        "c3-f8-grid",
+        "c4-eight-only-module"
+      ]
+    }
+  }
+}

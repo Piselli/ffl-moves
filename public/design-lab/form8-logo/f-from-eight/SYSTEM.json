@@ -1,0 +1,18 @@
+{
+  "family": "f-from-eight",
+  "idea": "User flipped/linked 8 as bottom (or stem) of F; logical tops from refs",
+  "base_ref": "Screenshot linked squircles 8 (Aug 12)",
+  "picks": {
+    "A": "form8-f8-infinity-foot.png \u2014 8 as horizontal foot, stem+2 arms up from left loop (clearest F)",
+    "B": "form8-f8-eight-stem.png \u2014 vertical 8 IS the stem, arms from top/mid (strongest F+8 monogram)",
+    "C": "r5-real8-composite-black.png \u2014 keeps exact user 8 diagonal, arms on upper loop",
+    "D": "form8-f8-forza-top.png \u2014 Forza blade top on linked 8"
+  },
+  "also": [
+    "r1-infinity-foot",
+    "r2-eight-stem",
+    "r3-diag-stem",
+    "r4-slant-arms",
+    "v1-v6 earlier"
+  ]
+}

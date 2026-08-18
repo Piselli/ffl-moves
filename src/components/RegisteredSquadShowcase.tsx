@@ -9,30 +9,22 @@ import { chainSlotDisplayPoints, chainSlotStarterDisplayPoints, type ChainAligne
 import { PlayerPointsBreakdownTooltip } from "@/components/PlayerPointsBreakdownTooltip";
 import type { ScoringPlayer } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_FORMATION,
+  inferFormationFromPositions,
+  PITCH_SLOT_LAYOUTS,
+  type FormationId,
+} from "@/lib/formation";
 
 /**
  * Vertical pitch view: own goal at bottom (SVG y→105). `topPct` is from the top of the pitch box:
  * low % = opponent half / attack, high % = own half / defence.
- * Slot indices: on-chain / FormationGrid — 0 GK, 1–4 DEF, 5–7 MID, 8–10 FWD.
+ * Slot indices: GK 0 · then DEF · MID · FWD in formation order.
  * Anchor = visual centre of chip (−translate ½).
  *
  * Pitch proportions match markings + SVG viewBox: **playing length : goal-line width = 105 : 68**
  * (FIFA-ish metres). The on-screen box is portrait ⇒ CSS **width : height = 68 : 105** via `aspect-[68/105]`.
  */
-const PITCH_SLOT_LAYOUT: readonly { formationIndex: number; leftPct: number; topPct: number }[] = [
-  { formationIndex: 8, leftPct: 22, topPct: 18 },
-  { formationIndex: 9, leftPct: 50, topPct: 18 },
-  { formationIndex: 10, leftPct: 78, topPct: 18 },
-  { formationIndex: 5, leftPct: 26, topPct: 43 },
-  { formationIndex: 6, leftPct: 50, topPct: 43 },
-  { formationIndex: 7, leftPct: 74, topPct: 43 },
-  { formationIndex: 1, leftPct: 12, topPct: 67 },
-  { formationIndex: 2, leftPct: 37, topPct: 67 },
-  { formationIndex: 3, leftPct: 63, topPct: 67 },
-  { formationIndex: 4, leftPct: 88, topPct: 67 },
-  { formationIndex: 0, leftPct: 50, topPct: 90 },
-] as const;
-
 /** Tiered styling for the points pill — aligned with GwRecapSection / recap demo cards */
 function pillStyle(pts: number) {
   if (pts >= 12)
@@ -360,6 +352,7 @@ export function RegisteredSquadShowcase({
   officialResolved,
   interimBreakdown,
   chainAlignedCopy,
+  formationId: formationIdProp,
 }: {
   starters: Player[];
   bench: Player[];
@@ -386,7 +379,13 @@ export function RegisteredSquadShowcase({
     multiplierFooter: (factorLabel: string) => string;
     viaSub: (name: string, subPts?: number) => string;
   } | null;
+  formationId?: FormationId;
 }) {
+  const formationId =
+    formationIdProp ??
+    inferFormationFromPositions(starters.map((p) => p.positionId));
+  const pitchSlots =
+    PITCH_SLOT_LAYOUTS[formationId] ?? PITCH_SLOT_LAYOUTS[DEFAULT_FORMATION];
   const xiSum = starters.reduce((acc, p) => acc + getPoints(p), 0);
   const activeBreakdown = officialResolved?.breakdown ?? interimBreakdown ?? null;
 
@@ -452,7 +451,7 @@ export function RegisteredSquadShowcase({
             )}
           >
             <PitchFieldTexture />
-            {PITCH_SLOT_LAYOUT.map(({ formationIndex, leftPct, topPct }, i) => {
+            {pitchSlots.map(({ formationIndex, leftPct, topPct }, i) => {
               const player = starters[formationIndex];
               if (!player) return null;
               const chainSlot = chainSlotsByIndex?.get(formationIndex);
@@ -604,7 +603,7 @@ export function RegisteredSquadShowcase({
 
           <BenchSidebarPanel
             bench={bench}
-            delayBase={pitchDelay + PITCH_SLOT_LAYOUT.length * 0.035}
+            delayBase={pitchDelay + pitchSlots.length * 0.035}
             benchAbbrev={benchAbbrev}
             benchTitle={benchSectionLabel}
             gameweekStats={gameweekStats}

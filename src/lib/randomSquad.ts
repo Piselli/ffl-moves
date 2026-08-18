@@ -1,24 +1,13 @@
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
+import {
+  DEFAULT_FORMATION,
+  starterSlots,
+  type FormationId,
+  type PositionKey,
+} from "@/lib/formation";
 import type { Player } from "@/lib/types";
 
-type PositionKey = "GK" | "DEF" | "MID" | "FWD";
 export type RandomSquadMode = "popular" | "uniform";
-
-const STARTER_SLOTS: { position: PositionKey; index: number }[] = [
-  { position: "GK", index: 0 },
-  ...Array.from({ length: FORMATION.DEF }, (_, i) => ({
-    position: "DEF" as const,
-    index: 1 + i,
-  })),
-  ...Array.from({ length: FORMATION.MID }, (_, i) => ({
-    position: "MID" as const,
-    index: 1 + FORMATION.DEF + i,
-  })),
-  ...Array.from({ length: FORMATION.FWD }, (_, i) => ({
-    position: "FWD" as const,
-    index: 1 + FORMATION.DEF + FORMATION.MID + i,
-  })),
-];
 
 const TOP_K_BY_POSITION: Record<PositionKey, number> = {
   GK: 8,
@@ -75,6 +64,7 @@ function pickPlayer(
 function tryBuildRandomSquad(
   players: Player[],
   mode: RandomSquadMode,
+  formationId: FormationId,
 ): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
   const byPosition: Record<PositionKey, Player[]> = {
     GK: [],
@@ -93,7 +83,7 @@ function tryBuildRandomSquad(
   const starters: (Player | null)[] = Array(11).fill(null);
   const bench: (Player | null)[] = Array(FORMATION.BENCH).fill(null);
 
-  for (const { position, index } of STARTER_SLOTS) {
+  for (const { position, index } of starterSlots(formationId)) {
     const pick = pickPlayer(
       byPosition[position],
       used,
@@ -118,18 +108,23 @@ function tryBuildRandomSquad(
   return { starters, bench };
 }
 
-/** 4-3-3 + bench; respects max 3 per club/nation. */
+/** XI + bench for the chosen formation; respects max 3 per club/nation. */
 export function buildRandomSquad(
   players: Player[],
-  options?: { mode?: RandomSquadMode; maxAttempts?: number },
+  options?: {
+    mode?: RandomSquadMode;
+    maxAttempts?: number;
+    formationId?: FormationId;
+  },
 ): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
   if (players.length === 0) return null;
 
   const mode = options?.mode ?? "uniform";
+  const formationId = options?.formationId ?? DEFAULT_FORMATION;
   const maxAttempts = options?.maxAttempts ?? (mode === "uniform" ? 48 : 12);
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const squad = tryBuildRandomSquad(players, mode);
+    const squad = tryBuildRandomSquad(players, mode, formationId);
     if (squad) return squad;
   }
 
@@ -140,6 +135,7 @@ export function buildRandomSquad(
 export function buildRandomPopularSquad(
   players: Player[],
   maxAttempts = 12,
+  formationId: FormationId = DEFAULT_FORMATION,
 ): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
-  return buildRandomSquad(players, { mode: "popular", maxAttempts });
+  return buildRandomSquad(players, { mode: "popular", maxAttempts, formationId });
 }

@@ -27,10 +27,10 @@ export function TabloidDirection() {
         {/* Masthead */}
         <div className="border-b-4 border-black pb-2">
           <p className="text-center font-serif text-[10px] uppercase tracking-[0.35em] text-black/50">
-            The MoveMatch · Onchain Edition
+            The FORM8 · Onchain Edition
           </p>
           <h2 className="mt-1 text-center font-serif text-4xl font-black uppercase leading-none tracking-tight sm:text-5xl">
-            MoveMatch
+            FORM8
           </h2>
           <p className="mt-1 text-center text-xs text-black/45">GW 24 · Friday 18 March 2026 · 50p</p>
         </div>

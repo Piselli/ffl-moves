@@ -1,14 +1,22 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
 } from "react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+} from "framer-motion";
 import type { Player } from "@/lib/types";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { Form8Mark } from "@/components/Form8Mark";
 import type { PrizeAssetContextValue } from "@/components/PrizeAssetProvider";
 import type { SiteMessages } from "@/i18n/messages";
 import type { SiteLocale } from "@/i18n/types";
@@ -18,10 +26,7 @@ import type {
   LockerFixture,
   LockerFixturesPayload,
 } from "./useLockerHeroData";
-import {
-  getLockerPalette,
-  paletteToCssVars,
-} from "./lockerPalettes";
+import { paletteToCssVars } from "./lockerPalettes";
 import { GlassPanel } from "./GlassPanel";
 import {
   getPitchStyle,
@@ -30,13 +35,29 @@ import {
 } from "./pitchStyles";
 import { fitPitchName } from "./pitchChipName";
 import { getPitchChipFont } from "./pitchChipFonts";
-import { getCtaStyle } from "./ctaStyles";
 import { getTypeface, typefaceToCssVars } from "./lockerTypefaces";
+import {
+  resolveTabletTheme,
+  type TabletVariantId,
+} from "./tabletVariants";
 import { pl2627HomeKit } from "./pl2627HomeKits";
 import { clubKitFor } from "./clubKitColors";
 import { pitchCutoutPhotoCandidates } from "@/lib/playerPhoto";
+import {
+  DEFAULT_FORMATION,
+  formationRows,
+  slotPosition,
+  type FormationId,
+} from "@/lib/formation";
+import { FormationPicker } from "@/components/FormationPicker";
+import { FORMATION } from "@/lib/constants";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
+
+/** Emil / TripleD — snappy UI enter (never ease-in). */
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
+const SPRING_SNAPPY = { type: "spring" as const, stiffness: 480, damping: 34 };
+const SPRING_PILL = { type: "spring" as const, stiffness: 420, damping: 34 };
 
 const DISPLAY: CSSProperties = {
   fontFamily: "var(--lt-font-display)",
@@ -64,14 +85,11 @@ type Props = {
   onRandom: () => void;
   pitchStyleId?: PitchStyleId;
   onPitchStyleChange?: (id: PitchStyleId) => void;
+  /** Lab-only tablet chrome direction. Shipping omits → current lock. */
+  tabletVariantId?: TabletVariantId;
+  formationId?: FormationId;
+  onFormationChange?: (id: FormationId) => void;
 };
-
-function slotPos(i: number): Player["position"] {
-  if (i === 0) return "GK";
-  if (i <= 4) return "DEF";
-  if (i <= 7) return "MID";
-  return "FWD";
-}
 
 function useDeadlineParts(target: string | null) {
   const [parts, setParts] = useState<{
@@ -323,6 +341,155 @@ function ChipCutout({
   );
 }
 
+/** Custom club filter — native <select> is nearly unusable inside drei Html. */
+function ClubFilterSelect({
+  value,
+  teams,
+  onChange,
+  reduceMotion,
+}: {
+  value: string;
+  teams: string[];
+  onChange: (team: string) => void;
+  reduceMotion: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const label = value || "All clubs";
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      const el = rootRef.current;
+      if (!el || !(e.target instanceof Node) || el.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const pick = (team: string) => {
+    onChange(team);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative mt-2">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-xl border border-[color:var(--lt-ink)]/20 bg-[var(--lt-input-bg)] px-3 py-2.5 text-left text-[13px] font-semibold text-[color:var(--lt-ink)] outline-none transition-[border-color,transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "hover:border-[color:var(--lt-ink)]/35 focus-visible:border-[color:var(--lt-ink)]/40 active:scale-[0.99]",
+          open && "border-[color:var(--lt-ink)]/40",
+        )}
+      >
+        <span className="min-w-0 truncate">{label}</span>
+        <motion.span
+          aria-hidden
+          className="grid h-4 w-4 shrink-0 place-items-center text-[color:var(--lt-muted)]"
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { duration: 0.18, ease: EASE_OUT }
+          }
+        >
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
+            <path
+              d="M4 6l4 4 4-4"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </motion.span>
+      </button>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            role="listbox"
+            aria-label="Filter by club"
+            initial={
+              reduceMotion
+                ? false
+                : { opacity: 0, scale: 0.97, y: -4, filter: "blur(4px)" }
+            }
+            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+            exit={
+              reduceMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.97, y: -2, filter: "blur(3px)" }
+            }
+            transition={
+              reduceMotion
+                ? { duration: 0.12 }
+                : { type: "spring", duration: 0.32, bounce: 0.12 }
+            }
+            style={{ transformOrigin: "top center" }}
+            className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 max-h-44 overflow-y-auto overscroll-contain rounded-xl border border-[color:var(--lt-ink)]/18 bg-[var(--lt-input-bg)] py-1 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+            data-lt-scroll
+          >
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              onClick={() => pick("")}
+              className={cn(
+                "flex w-full items-center justify-between px-3 py-2 text-left text-[12px] font-semibold transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.99]",
+                !value
+                  ? "bg-[color:var(--lt-ink)]/[0.10] text-[color:var(--lt-ink)]"
+                  : "text-[color:var(--lt-soft)] hover:bg-[color:var(--lt-ink)]/[0.06] hover:text-[color:var(--lt-ink)]",
+              )}
+            >
+              All clubs
+              {!value ? (
+                <span className="text-[11px] text-[color:var(--lt-accent)]">✓</span>
+              ) : null}
+            </button>
+            {teams.map((team) => {
+              const on = value === team;
+              return (
+                <button
+                  key={team}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  onClick={() => pick(team)}
+                  className={cn(
+                    "flex w-full items-center justify-between px-3 py-2 text-left text-[12px] font-semibold transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.99]",
+                    on
+                      ? "bg-[color:var(--lt-ink)]/[0.10] text-[color:var(--lt-ink)]"
+                      : "text-[color:var(--lt-soft)] hover:bg-[color:var(--lt-ink)]/[0.06] hover:text-[color:var(--lt-ink)]",
+                  )}
+                >
+                  <span className="min-w-0 truncate">{team}</span>
+                  {on ? (
+                    <span className="ml-2 shrink-0 text-[11px] text-[color:var(--lt-accent)]">
+                      ✓
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function PitchPlayerChip({
   player,
   compact = false,
@@ -390,13 +557,11 @@ function PitchEmptyChip({
   active,
   compact = false,
 }: {
-  pos: Player["position"];
+  pos: Player["position"] | "SUB";
   active: boolean;
   compact?: boolean;
 }) {
-  const ring = active
-    ? "ring-2 ring-white/70 ring-offset-1 ring-offset-transparent"
-    : "";
+  const reduceMotion = useReducedMotion() ?? false;
   const typeface = getTypeface();
   const plateW = compact ? 46 : PLATE_CHIP_W;
   const head = compact ? 32 : 48;
@@ -407,23 +572,64 @@ function PitchEmptyChip({
       style={{ width: plateW }}
     >
       <span
-        className={cn("flex items-center justify-center", ring)}
+        className={cn(
+          "relative flex items-center justify-center rounded-full",
+          active &&
+            "ring-2 ring-white/75 ring-offset-1 ring-offset-transparent",
+        )}
         style={{ width: head, height: Math.round(head * 1.05) }}
       >
-        <span className="text-[22px] font-light text-white/55">+</span>
+        {active && !reduceMotion ? (
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute inset-[-3px] rounded-full border border-white/50"
+            animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.96, 1.06, 0.96] }}
+            transition={{
+              duration: 1.35,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ) : null}
+        <motion.span
+          className={cn(
+            "text-[22px] font-light",
+            active ? "text-white/90" : "text-white/55",
+          )}
+          animate={
+            active && !reduceMotion ? { scale: [1, 1.08, 1] } : { scale: 1 }
+          }
+          transition={
+            active && !reduceMotion
+              ? { duration: 1.35, repeat: Infinity, ease: "easeInOut" }
+              : { duration: 0.15 }
+          }
+        >
+          +
+        </motion.span>
       </span>
       <span
         className="overflow-hidden rounded-[2px]"
         style={{ width: plateW }}
       >
         <span
-          className="flex h-[15px] items-center justify-center bg-white px-0.5 text-center text-[9px] font-semibold text-black/65"
+          className={cn(
+            "flex h-[15px] items-center justify-center px-0.5 text-center text-[9px] font-semibold",
+            active ? "bg-white text-black" : "bg-white text-black/65",
+          )}
           style={{ fontFamily: typeface.ui, letterSpacing: "-0.01em" }}
         >
           {pos}
         </span>
-        <span className="flex h-[11px] items-center justify-center bg-black/45 px-0.5 text-center text-[7px] font-semibold uppercase tracking-[0.06em] text-white/70">
-          Pick
+        <span
+          className={cn(
+            "flex h-[11px] items-center justify-center px-0.5 text-center text-[7px] font-semibold uppercase tracking-[0.06em]",
+            active
+              ? "bg-white/25 text-white"
+              : "bg-black/45 text-white/70",
+          )}
+        >
+          {active ? "Now" : "Pick"}
         </span>
       </span>
     </span>
@@ -456,45 +662,102 @@ function useLocalWheelScroll() {
 function MatchRow({
   match,
   locale,
+  interactive = false,
+  onClubSelect,
 }: {
   match: LockerFixture;
   locale: SiteLocale;
+  interactive?: boolean;
+  /** Filter players list to this club's full name. */
+  onClubSelect?: (clubName: string) => void;
 }) {
   const badge =
-    "aspect-square h-[78%] max-h-[30px] min-h-[16px] shrink-0 object-contain";
+    "h-7 w-7 shrink-0 object-contain";
+
+  const ClubSide = ({
+    side,
+    align,
+  }: {
+    side: LockerFixture["teamH"];
+    align: "start" | "end";
+  }) => {
+    const body = (
+      <>
+        {align === "start" ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={side.badge}
+              alt=""
+              className={badge}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.opacity = "0";
+              }}
+            />
+            <span className="truncate text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
+              {side.shortName}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="truncate text-right text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
+              {side.shortName}
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={side.badge}
+              alt=""
+              className={badge}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.opacity = "0";
+              }}
+            />
+          </>
+        )}
+      </>
+    );
+
+    if (!onClubSelect) {
+      return (
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-2",
+            align === "end" && "justify-end",
+          )}
+        >
+          {body}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => onClubSelect(side.name)}
+        title={`Show ${side.name} players`}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          align === "start" ? "justify-start pr-1" : "justify-end pl-1",
+          "hover:bg-white/[0.08] active:scale-[0.98]",
+        )}
+      >
+        {body}
+      </button>
+    );
+  };
+
   return (
-    <div className="flex min-h-0 items-center gap-2 overflow-hidden px-1">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={match.teamH.badge}
-          alt=""
-          className={badge}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.opacity = "0";
-          }}
-        />
-        <span className="truncate text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
-          {match.teamH.shortName}
-        </span>
-      </div>
+    <div
+      className={cn(
+        "flex min-h-[32px] items-center gap-1.5 px-1 py-0.5",
+        interactive && !onClubSelect && "rounded-lg hover:bg-white/[0.04]",
+      )}
+    >
+      <ClubSide side={match.teamH} align="start" />
       <span className="shrink-0 text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
         {formatKickoffTime(match.kickoffTime, locale)}
       </span>
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-        <span className="truncate text-right text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
-          {match.teamA.shortName}
-        </span>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={match.teamA.badge}
-          alt=""
-          className={badge}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.opacity = "0";
-          }}
-        />
-      </div>
+      <ClubSide side={match.teamA} align="end" />
     </div>
   );
 }
@@ -520,24 +783,80 @@ export function LockerTablet({
   onRandom,
   pitchStyleId = "night-turf",
   onPitchStyleChange,
+  tabletVariantId = "crystal",
+  formationId = DEFAULT_FORMATION,
+  onFormationChange,
 }: Props) {
-  const palette = getLockerPalette();
+  const reduceMotion = useReducedMotion() ?? false;
+  const { variant: tabletVariant, palette, cta } =
+    resolveTabletTheme(tabletVariantId);
   const pitch = getPitchStyle(pitchStyleId);
   const typeface = getTypeface();
-  const cta = getCtaStyle();
   const useMaterialShell =
     palette.mode === "dark" || palette.material === "glass";
   /** Locked panel material — frosted glass. */
   const isGlass = useMaterialShell;
+  const chrome = tabletVariant.chrome;
+  const isGhost = chrome === "ghost";
+  const isLinear = chrome === "linear";
+  const isSignal = chrome === "signal";
+  const isAuthkit = chrome === "authkit";
+  const isCrystal = chrome === "crystal";
+  /**
+   * Product micro-motion ships on every look (incl. Crystal homepage).
+   * Chrome id only shapes corners / glass, not whether press/spring exists.
+   */
+  const isMotionChrome = true;
+  const isPlatesChrome = isAuthkit || isCrystal;
+  const isTripledChrome = isGhost || isLinear || isCrystal;
+  const interactivePanels = isGhost || isAuthkit || isSignal || isCrystal;
   const PANEL = cn(
     "rounded-2xl bg-[var(--lt-panel)] ring-1 ring-[var(--lt-panel-ring)] shadow-[var(--lt-panel-shadow)]",
+    interactivePanels &&
+      "transition-[transform,box-shadow,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:brightness-[1.03]",
   );
   const Panel = useMaterialShell ? GlassPanel : "div";
+  const glassProps = useMaterialShell
+    ? {
+        interactive: interactivePanels,
+        crystal: isCrystal,
+      }
+    : {};
+  const crystalVars: CSSProperties = isCrystal
+    ? {
+        ["--lt-glass-bg" as string]: "rgba(8,10,14,0.42)",
+        ["--lt-glass-blur" as string]: "48px",
+        ["--lt-glass-ring" as string]: "rgba(255,255,255,0.38)",
+        ["--lt-glass-shadow" as string]:
+          "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -20px 40px rgba(0,0,0,0.5), 0 18px 56px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)",
+        ["--lt-glass-sheen" as string]:
+          "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.08) 18%, transparent 42%), linear-gradient(320deg, rgba(120,180,255,0.08) 0%, transparent 35%)",
+        ["--lt-panel" as string]: "rgba(8,10,14,0.38)",
+        ["--lt-hairline" as string]: "rgba(255,255,255,0.32)",
+      }
+    : {};
   const [query, setQuery] = useState("");
   const [posFilter, setPosFilter] = useState<PositionFilter>("ALL");
   const [teamFilter, setTeamFilter] = useState("");
   const [clock, setClock] = useState("");
+  const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const tabletRootRef = useLocalWheelScroll();
+
+  /** Selecting an empty pitch slot scopes the list to that position. */
+  useEffect(() => {
+    if (activeSlot == null) return;
+    if (activeSlot >= 11) {
+      setPosFilter("ALL");
+      return;
+    }
+    setPosFilter(slotPosition(activeSlot, formationId));
+  }, [activeSlot, formationId]);
+
+  useEffect(() => {
+    if (flashPickId == null) return;
+    const id = window.setTimeout(() => setFlashPickId(null), 280);
+    return () => window.clearTimeout(id);
+  }, [flashPickId]);
 
   useEffect(() => {
     const updateClock = () => {
@@ -576,6 +895,24 @@ export function LockerTablet({
     return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [players]);
 
+  /** Map fixture club name → players.team label used by the filter. */
+  const resolveClubFilter = useCallback(
+    (fixtureClubName: string) => {
+      const exact = uniqueTeams.find((t) => t === fixtureClubName);
+      if (exact) return exact;
+      const lower = fixtureClubName.toLowerCase();
+      const ci = uniqueTeams.find((t) => t.toLowerCase() === lower);
+      if (ci) return ci;
+      const partial = uniqueTeams.find(
+        (t) =>
+          t.toLowerCase().includes(lower) ||
+          lower.includes(t.toLowerCase()),
+      );
+      return partial ?? fixtureClubName;
+    },
+    [uniqueTeams],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const POSITION_ORDER: Record<Player["position"], number> = {
@@ -599,16 +936,13 @@ export function LockerTablet({
       });
   }, [players, posFilter, teamFilter, query]);
 
-  const rows: number[][] = [
-    [8, 9, 10],
-    [5, 6, 7],
-    [1, 2, 3, 4],
-    [0],
-  ];
+  const rows = formationRows(formationId);
+  const slotPos = (i: number) => slotPosition(i, formationId);
 
   return (
     <div
       ref={tabletRootRef}
+      data-lt-chrome={tabletVariant.chrome}
       className="relative flex h-full w-full flex-col overflow-hidden pb-2.5"
       style={
         {
@@ -619,6 +953,7 @@ export function LockerTablet({
           textRendering: "geometricPrecision",
           ...paletteToCssVars(palette),
           ...typefaceToCssVars(typeface),
+          ...crystalVars,
         } as CSSProperties
       }
     >
@@ -630,29 +965,21 @@ export function LockerTablet({
       <header
         className={cn(
           "relative flex h-[52px] shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] px-5",
-          isGlass && "border-white/60 bg-black",
+          isGlass && chrome === "current" && "border-white/60 bg-black",
+          isGlass &&
+            (isTripledChrome || isMotionChrome || isPlatesChrome) &&
+            "bg-black/40 backdrop-blur-md",
+          isCrystal && "border-white/35 bg-black/30 backdrop-blur-xl",
         )}
       >
         <div className="flex items-center gap-3">
-          <div
+          <Form8Mark
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-[11px] text-[18px] font-black",
-              isGlass
-                ? "bg-white text-black"
-                : undefined,
+              "h-9",
+              isMotionChrome &&
+                "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
             )}
-            style={
-              isGlass
-                ? { ...DISPLAY }
-                : {
-                    ...DISPLAY,
-                    background: "var(--lt-accent)",
-                    color: "var(--lt-accent-on)",
-                  }
-            }
-          >
-            M
-          </div>
+          />
           <div>
             <p
               className="text-[17px] font-black leading-none text-[color:var(--lt-ink)]"
@@ -661,7 +988,7 @@ export function LockerTablet({
               Pick your team
             </p>
             <p className="mt-1 text-[10px] font-semibold text-[color:var(--lt-muted)]">
-              MoveMatch Fantasy EPL
+              FORM8 Fantasy EPL
             </p>
           </div>
         </div>
@@ -670,17 +997,20 @@ export function LockerTablet({
             Selected
           </p>
           <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[color:var(--lt-ink)]">
-            {filledCount} of 11
+            {filledCount} of {FORMATION.TOTAL}
           </p>
         </div>
       </header>
 
       <main className="relative grid min-h-0 flex-1 grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] grid-rows-[minmax(0,1fr)_auto] gap-2.5 p-3 pt-2.5">
         <Panel
-          {...(useMaterialShell ? { as: "section" as const } : {})}
+          {...(useMaterialShell
+            ? { as: "section" as const, ...glassProps }
+            : {})}
           className={cn(
             !useMaterialShell && PANEL,
             "flex min-h-0 flex-col p-3",
+            isPlatesChrome && "rounded-[22px]",
           )}
         >
           <div className="mb-2 flex shrink-0 items-baseline justify-between gap-2 px-1">
@@ -698,36 +1028,34 @@ export function LockerTablet({
             </p>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-0.5">
+          <div
+            data-lt-scroll
+            className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-0.5 py-0.5"
+            style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+          >
             {dayGroups.length === 0 ? (
               <p className="px-1 py-3 text-[12px] text-[color:var(--lt-muted)]">
                 Loading fixtures…
               </p>
             ) : (
               dayGroups.map((group) => (
-                <div
-                  key={group.key}
-                  className="flex min-h-0 flex-1 flex-col"
-                  style={{ flexGrow: group.matches.length }}
-                >
-                  <div className="flex shrink-0 items-center gap-2 px-1 pb-1">
+                <div key={group.key} className="flex shrink-0 flex-col gap-1">
+                  <div className="flex shrink-0 items-center gap-2 px-1 pb-0.5">
                     <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[color:var(--lt-ink)]">
                       {group.label}
                     </p>
                     <div className="h-px flex-1 bg-[color:var(--lt-ink)]/25" />
                   </div>
-                  <div
-                    className="min-h-0 flex-1 gap-y-2.5 overflow-hidden"
-                    style={{
-                      display: "grid",
-                      gridTemplateRows: `repeat(${group.matches.length}, minmax(0, 1fr))`,
-                    }}
-                  >
+                  <div className="flex flex-col gap-1">
                     {group.matches.map((match) => (
                       <MatchRow
                         key={match.id}
                         match={match}
                         locale={locale}
+                        interactive={isMotionChrome}
+                        onClubSelect={(name) =>
+                          setTeamFilter(resolveClubFilter(name))
+                        }
                       />
                     ))}
                   </div>
@@ -737,11 +1065,14 @@ export function LockerTablet({
           </div>
         </Panel>
 
-        {/* Pitch — flat top-down, style switchable */}
+        {/* Pitch — flat top-down; scheme / turf chrome in bottom fringe */}
         <section
           className={cn(
             "relative min-h-0 overflow-hidden rounded-2xl ring-1",
             pitch.ring,
+            isPlatesChrome && "rounded-[22px]",
+            interactivePanels &&
+              "transition-[transform,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-[1.03]",
           )}
           style={{
             background: pitch.base,
@@ -779,37 +1110,51 @@ export function LockerTablet({
             />
           ))}
 
-          {/* Bottom-right pitch corner — outside chalk, on the plate edge */}
-          <div
-            className="absolute bottom-1.5 right-1.5 z-20 flex items-center gap-1 rounded-full bg-black/40 p-1 ring-1 ring-white/15 backdrop-blur-sm"
-            role="group"
-            aria-label="Pitch look"
-          >
-            {PITCH_STYLES.map((p) => {
-              const active = p.id === pitchStyleId;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onPitchStyleChange?.(p.id)}
-                  aria-pressed={active}
-                  aria-label={p.name}
-                  title={p.name}
-                  className={cn(
-                    "h-3 w-3 rounded-full transition",
-                    active
-                      ? "ring-2 ring-white ring-offset-1 ring-offset-black/50"
-                      : "opacity-55 hover:opacity-90",
-                  )}
-                  style={{
-                    background: p.image
-                      ? `center / cover url(${p.image}), ${p.swatch}`
-                      : p.swatch,
-                  }}
-                />
-              );
-            })}
-          </div>
+          {/*
+            Bottom fringe chrome — sits in green pockets beside GK,
+            below chalk goal line (chalk uses a deeper bottom inset).
+          */}
+          {onFormationChange ? (
+            <div className="absolute bottom-0.5 left-2 z-20">
+              <FormationPicker
+                value={formationId}
+                onChange={onFormationChange}
+                size="xs"
+              />
+            </div>
+          ) : null}
+          {onPitchStyleChange ? (
+            <div
+              className="absolute bottom-0.5 right-2 z-20 flex items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/15 backdrop-blur-sm"
+              role="group"
+              aria-label="Pitch look"
+            >
+              {PITCH_STYLES.map((p) => {
+                const active = p.id === pitchStyleId;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onPitchStyleChange?.(p.id)}
+                    aria-pressed={active}
+                    aria-label={p.name}
+                    title={p.name}
+                    className={cn(
+                      "h-3 w-3 rounded-full transition",
+                      active
+                        ? "ring-2 ring-white ring-offset-1 ring-offset-black/50"
+                        : "opacity-55 hover:opacity-90",
+                    )}
+                    style={{
+                      background: p.image
+                        ? `center / cover url(${p.image}), ${p.swatch}`
+                        : p.swatch,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
 
           {/* chalk markings — orthographic; center circle ~FIFA ratio vs pitch width */}
           <div
@@ -889,9 +1234,11 @@ export function LockerTablet({
                       type="button"
                       onClick={() => (p ? onClearSlot(idx) : onSlotClick(idx))}
                       className={cn(
-                        "flex h-[108px] w-[82px] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 hover:brightness-110 active:scale-[0.96]",
+                        "flex h-[108px] w-[82px] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
                         active && !p && "opacity-100",
                         active && p && "brightness-110",
+                        isMotionChrome &&
+                          "hover:-translate-y-0.5 hover:brightness-125 active:scale-[0.94]",
                       )}
                       style={
                         active && p
@@ -903,11 +1250,55 @@ export function LockerTablet({
                       }
                       aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
                     >
-                      {p ? (
-                        <PitchPlayerChip player={p} />
-                      ) : (
-                        <PitchEmptyChip pos={pos} active={active} />
-                      )}
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {p ? (
+                          <motion.span
+                            key={p.id}
+                            className="flex"
+                            initial={
+                              reduceMotion
+                                ? false
+                                : { opacity: 0, scale: 0.94, y: 8 }
+                            }
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={
+                              reduceMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, scale: 0.96, y: -4 }
+                            }
+                            transition={
+                              reduceMotion
+                                ? { duration: 0.12 }
+                                : SPRING_SNAPPY
+                            }
+                          >
+                            <PitchPlayerChip player={p} />
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key={`empty-${idx}-${pos}`}
+                            className="flex"
+                            initial={
+                              reduceMotion
+                                ? false
+                                : { opacity: 0, scale: 0.96 }
+                            }
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={
+                              reduceMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, scale: 0.94 }
+                            }
+                            transition={
+                              reduceMotion
+                                ? { duration: 0.1 }
+                                : { duration: 0.16, ease: EASE_OUT }
+                            }
+                          >
+                            <PitchEmptyChip pos={pos} active={active} />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </button>
                   );
                 })}
@@ -917,10 +1308,13 @@ export function LockerTablet({
         </section>
 
         <Panel
-          {...(useMaterialShell ? { as: "section" as const } : {})}
+          {...(useMaterialShell
+            ? { as: "section" as const, ...glassProps }
+            : {})}
           className={cn(
             !useMaterialShell && PANEL,
             "flex min-h-0 flex-col overflow-hidden p-3",
+            isPlatesChrome && "rounded-[22px]",
           )}
         >
           <div className="shrink-0">
@@ -941,38 +1335,56 @@ export function LockerTablet({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search players"
-              className="w-full rounded-xl border border-[color:var(--lt-ink)]/20 bg-[var(--lt-input-bg)] px-3 py-2.5 text-[13px] text-[color:var(--lt-ink)] outline-none transition-colors placeholder:text-[color:var(--lt-muted)] focus:border-[color:var(--lt-ink)]/40"
+              className="w-full rounded-xl border border-[color:var(--lt-ink)]/20 bg-[var(--lt-input-bg)] px-3 py-2.5 text-[13px] text-[color:var(--lt-ink)] outline-none transition-[border-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] placeholder:text-[color:var(--lt-muted)] focus:border-[color:var(--lt-ink)]/40"
             />
-            <select
+            <ClubFilterSelect
               value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value)}
-              className="mt-2 w-full appearance-none rounded-xl border border-[color:var(--lt-ink)]/20 bg-[var(--lt-input-bg)] px-3 py-2.5 text-[13px] font-semibold text-[color:var(--lt-ink)] outline-none transition-colors focus:border-[color:var(--lt-ink)]/40"
-            >
-              <option value="">All clubs</option>
-              {uniqueTeams.map((team) => (
-                <option key={team} value={team}>
-                  {team}
-                </option>
-              ))}
-            </select>
-            <div className="mt-2 flex gap-1 rounded-xl bg-[var(--lt-chip-track)] p-1">
-              {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map(
-                (pos) => (
-                  <button
-                    key={pos}
-                    type="button"
-                    onClick={() => setPosFilter(pos)}
-                    className={cn(
-                      "flex-1 rounded-lg px-1 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors",
-                      posFilter === pos
-                        ? "bg-[var(--lt-chip-active)] text-[color:var(--lt-chip-active-text)] shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
-                        : "text-[color:var(--lt-faint)] hover:text-[color:var(--lt-ink)]",
-                    )}
-                  >
-                    {pos}
-                  </button>
-                ),
+              teams={uniqueTeams}
+              onChange={setTeamFilter}
+              reduceMotion={reduceMotion}
+            />
+            <div
+              className={cn(
+                "mt-2 flex gap-1 bg-[var(--lt-chip-track)] p-1",
+                isTripledChrome || isMotionChrome
+                  ? "rounded-full"
+                  : "rounded-xl",
               )}
+            >
+              <LayoutGroup id="lt-pos-chips">
+                {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map(
+                  (pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => setPosFilter(pos)}
+                      className={cn(
+                        "relative flex-1 px-1 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                        isTripledChrome || isMotionChrome
+                          ? "rounded-full"
+                          : "rounded-lg",
+                        posFilter === pos
+                          ? "text-[color:var(--lt-chip-active-text)]"
+                          : "text-[color:var(--lt-faint)] hover:text-[color:var(--lt-ink)]",
+                        "active:scale-[0.96]",
+                      )}
+                    >
+                      {posFilter === pos ? (
+                        <motion.span
+                          layoutId="lt-pos-pill"
+                          className="absolute inset-0 rounded-full bg-[var(--lt-chip-active)] shadow-[0_1px_3px_rgba(0,0,0,0.18)]"
+                          transition={
+                            reduceMotion
+                              ? { duration: 0 }
+                              : SPRING_PILL
+                          }
+                        />
+                      ) : null}
+                      <span className="relative z-10">{pos}</span>
+                    </button>
+                  ),
+                )}
+              </LayoutGroup>
             </div>
           </div>
 
@@ -988,17 +1400,22 @@ export function LockerTablet({
             ) : (
               filtered.map((p) => {
                 const taken = selectedIds.has(p.id);
+                const flash = flashPickId === p.id;
                 return (
-                  <button
+                  <motion.button
                     key={p.id}
                     type="button"
                     disabled={taken}
-                    onClick={() => onPick(p)}
+                    onClick={() => {
+                      onPick(p);
+                      setFlashPickId(p.id);
+                    }}
                     className={cn(
-                      "flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity] duration-150",
+                      "group flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
                       taken
                         ? "cursor-default opacity-40"
-                        : "hover:bg-[color:var(--lt-ink)]/[0.06] active:scale-[0.99]",
+                        : "rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
+                      flash && !taken && "bg-[color:var(--lt-ink)]/[0.10]",
                     )}
                   >
                     <FplPhotoAvatar
@@ -1018,8 +1435,18 @@ export function LockerTablet({
                         {p.position} · {p.team}
                       </p>
                     </div>
-                    <span
+                    <motion.span
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[16px] font-bold"
+                      animate={
+                        flash && !reduceMotion
+                          ? { scale: [1, 0.88, 1.08, 1] }
+                          : { scale: 1 }
+                      }
+                      transition={
+                        flash
+                          ? { duration: 0.28, ease: EASE_OUT }
+                          : { duration: 0.12 }
+                      }
                       style={
                         isGlass
                           ? {
@@ -1032,9 +1459,9 @@ export function LockerTablet({
                             }
                       }
                     >
-                      +
-                    </span>
-                  </button>
+                      {taken ? "·" : "+"}
+                    </motion.span>
+                  </motion.button>
                 );
               })
             )}
@@ -1042,7 +1469,12 @@ export function LockerTablet({
         </Panel>
 
         <Panel
-          className={cn(!useMaterialShell && PANEL, "px-3.5 py-2.5")}
+          {...(useMaterialShell ? glassProps : {})}
+          className={cn(
+            !useMaterialShell && PANEL,
+            "px-3.5 py-2.5",
+            isPlatesChrome && "rounded-[22px]",
+          )}
         >
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
             Prize pool
@@ -1064,7 +1496,12 @@ export function LockerTablet({
 
         <div className="grid grid-cols-2 gap-2.5">
           <Panel
-            className={cn(!useMaterialShell && PANEL, "px-3.5 py-2.5")}
+            {...(useMaterialShell ? glassProps : {})}
+            className={cn(
+              !useMaterialShell && PANEL,
+              "px-3.5 py-2.5",
+              isPlatesChrome && "rounded-[22px]",
+            )}
           >
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               Deadline
@@ -1092,21 +1529,74 @@ export function LockerTablet({
           </Panel>
 
           <Panel
-            className={cn(!useMaterialShell && PANEL, "px-3.5 py-2.5")}
+            {...(useMaterialShell ? glassProps : {})}
+            className={cn(
+              !useMaterialShell && PANEL,
+              "px-3.5 py-2.5",
+              isPlatesChrome && "rounded-[22px]",
+            )}
           >
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               3 substitutes
             </p>
             <div className="mt-1.5 flex min-w-0 items-end justify-evenly gap-1.5">
-              {bench.slice(0, 3).map((p, i) => (
-                <div key={i} className="flex min-w-0 flex-1 justify-center">
-                  {p ? (
-                    <PitchPlayerChip player={p} compact />
-                  ) : (
-                    <PitchEmptyChip pos="MID" active={false} compact />
-                  )}
-                </div>
-              ))}
+              {bench.slice(0, 3).map((p, i) => {
+                const slotIndex = 11 + i;
+                const active = activeSlot === slotIndex;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() =>
+                      p ? onClearSlot(slotIndex) : onSlotClick(slotIndex)
+                    }
+                    className="flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]"
+                    aria-label={
+                      p
+                        ? p.webName ?? p.name
+                        : `Empty bench ${i + 1}`
+                    }
+                  >
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {p ? (
+                        <motion.span
+                          key={p.id}
+                          className="flex"
+                          initial={
+                            reduceMotion
+                              ? false
+                              : { opacity: 0, scale: 0.94, y: 6 }
+                          }
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={
+                            reduceMotion
+                              ? { opacity: 0 }
+                              : { opacity: 0, scale: 0.96 }
+                          }
+                          transition={
+                            reduceMotion ? { duration: 0.1 } : SPRING_SNAPPY
+                          }
+                        >
+                          <PitchPlayerChip player={p} compact />
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key={`bench-empty-${i}`}
+                          className="flex"
+                          initial={false}
+                          animate={{ opacity: 1 }}
+                        >
+                          <PitchEmptyChip
+                            pos="SUB"
+                            active={active}
+                            compact
+                          />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              })}
             </div>
           </Panel>
         </div>
@@ -1119,10 +1609,19 @@ export function LockerTablet({
               aria-label="Reset"
               title="Reset"
               className={cn(
-                "grid h-11 w-11 place-items-center rounded-xl transition active:scale-[0.96]",
+                "grid h-11 w-11 place-items-center transition active:scale-[0.96]",
+                isTripledChrome || isMotionChrome
+                  ? "rounded-full"
+                  : "rounded-xl",
                 isGlass
-                  ? "bg-black/55 text-white ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-md hover:bg-black/70 hover:ring-white/40"
+                  ? "bg-black/55 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-md hover:bg-black/70"
                   : "border-2 border-[var(--lt-reset-border)] bg-[var(--lt-reset-bg)] text-[color:var(--lt-reset-text)] hover:brightness-95",
+                isGlass &&
+                  (isTripledChrome || isMotionChrome || isPlatesChrome
+                    ? "ring-1 ring-[color:var(--lt-glass-ring)]"
+                    : "ring-1 ring-white/25 hover:ring-white/40"),
+                isMotionChrome &&
+                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 active:scale-[0.92]",
               )}
             >
               <svg
@@ -1145,10 +1644,19 @@ export function LockerTablet({
               aria-label="Random squad"
               title="Random squad"
               className={cn(
-                "grid h-11 w-11 place-items-center rounded-xl transition active:scale-[0.96]",
+                "grid h-11 w-11 place-items-center transition active:scale-[0.96]",
+                isTripledChrome || isMotionChrome
+                  ? "rounded-full"
+                  : "rounded-xl",
                 isGlass
-                  ? "bg-black/55 text-white ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-md hover:bg-black/70 hover:ring-white/40"
+                  ? "bg-black/55 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-md hover:bg-black/70"
                   : "border-2 border-[var(--lt-reset-border)] bg-[var(--lt-reset-bg)] text-[color:var(--lt-reset-text)] hover:brightness-95",
+                isGlass &&
+                  (isTripledChrome || isMotionChrome || isPlatesChrome
+                    ? "ring-1 ring-[color:var(--lt-glass-ring)]"
+                    : "ring-1 ring-white/25 hover:ring-white/40"),
+                isMotionChrome &&
+                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 active:scale-[0.92]",
               )}
             >
               <svg
@@ -1170,7 +1678,11 @@ export function LockerTablet({
           </div>
           <a
             href="/gameweek"
-            className="flex flex-1 items-center justify-center rounded-xl px-5 text-[13px] font-black uppercase tracking-[0.06em] transition hover:brightness-[1.06] active:scale-[0.985]"
+            className={cn(
+              "flex flex-1 items-center justify-center rounded-lg px-5 text-[13px] font-black uppercase tracking-[0.06em] transition hover:brightness-[1.06] active:scale-[0.985]",
+              isMotionChrome &&
+                "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+            )}
             style={cta.style}
           >
             {cta.label}

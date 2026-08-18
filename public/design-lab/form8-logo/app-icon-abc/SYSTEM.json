@@ -1,0 +1,28 @@
+{
+  "family": "app-icon-abc",
+  "role": "App-icon-first form8 directions from Faders + Roll Over",
+  "primary": "A Kit-roll 8",
+  "files": {
+    "A1": "form8-a1-kitroll-lime.png",
+    "A2": "form8-a2-kitroll-black.png",
+    "A3": "form8-a3-kitroll-mono.png",
+    "B": "form8-b-aperture-slot.png",
+    "C": "form8-c-loop-of-play.png"
+  },
+  "tokens": {
+    "plateDark": "#0D0F12",
+    "plateLime": "#00f948",
+    "lining": "#0B3D18",
+    "innerGray": "#C8C8C8"
+  },
+  "kill": [
+    "letter F",
+    "soccer ball as object",
+    "pitch / 11 dots",
+    "crest",
+    "chain / hex / purple web3",
+    "AI neural fog",
+    "chrome torus",
+    "text / watermark"
+  ]
+}

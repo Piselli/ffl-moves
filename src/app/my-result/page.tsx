@@ -12,6 +12,7 @@ import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { Player, TeamResult } from "@/lib/types";
 import { FORMATION } from "@/lib/constants";
+import { Form8Wordmark } from "@/components/Form8Mark";
 import { useNickname } from "@/hooks/useNickname";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
@@ -470,9 +471,10 @@ export default function MyResultPage() {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
-            <span className="text-xs font-display font-black text-white/20 uppercase tracking-widest">
-              MOVE<span className="text-[#00f948]/40">MATCH</span>
-            </span>
+            <Form8Wordmark
+              className="text-xs tracking-widest text-white/20"
+              accentClassName="text-[#00f948]/40"
+            />
             <span className="text-[10px] text-white/15">{siteHost}</span>
           </div>
         </motion.div>

@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { shortenAddress } from "@/lib/utils";
@@ -19,12 +18,16 @@ import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityClu
 import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
 import { SOCIAL_X_URL } from "@/lib/constants";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 
 const HIDE_NAV_PATHS = new Set([
   "/",
+  "/leaderboard",
+  "/season-leaderboard",
   "/design-preview/homepage",
   "/design-lab/locker-hero",
   "/design-lab/locker-leaderboard",
+  "/design-lab/leaderboard-concepts",
 ]);
 
 export function Navbar() {
@@ -117,17 +120,11 @@ export function Navbar() {
 
   const logoEl = (
     <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">
-      <Image
-        src="/logo.png"
-        alt="MoveMatch"
-        width={235}
-        height={150}
-        className="shrink-0 group-hover:scale-105 transition-transform duration-300 h-8 w-auto sm:h-10"
+      <Form8Mark
+        className="shrink-0 group-hover:scale-105 transition-transform duration-300 h-8 sm:h-10"
         priority
       />
-      <span className="font-display font-black text-base sm:text-xl uppercase tracking-tighter text-white truncate">
-        MOVE<span className="text-[#00f948]">MATCH</span>
-      </span>
+      <Form8Wordmark className="text-base sm:text-xl text-white truncate" />
     </Link>
   );
 

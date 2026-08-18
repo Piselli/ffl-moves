@@ -1,0 +1,20 @@
+{
+  "family": "pitch-coded",
+  "goal": "Pitch DNA without literal field diagram — middle abstraction",
+  "reject": ["full pitch with markings", "random geometry with no pitch cue"],
+  "count": 12,
+  "variants": [
+    "01-slab",
+    "02-trap",
+    "03-stripes",
+    "04-goals",
+    "05-halves",
+    "06-notch",
+    "07-arc",
+    "08-lean",
+    "09-corners",
+    "10-slashfield",
+    "11-thirds",
+    "12-bowl"
+  ]
+}

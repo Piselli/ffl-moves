@@ -48,7 +48,7 @@ export function DuotoneIssuePreview() {
           <ScreenLabel n="01" title="Cover / Home" />
           <div className="relative aspect-[3/4] overflow-hidden border border-white/10" style={{ backgroundColor: ISSUE.stone }}>
             <div className="absolute left-4 top-4 z-10 font-mono text-[9px] uppercase tracking-[0.25em]" style={{ color: ISSUE.muted }}>
-              MoveMatch · Issue
+              FORM8 · Issue
             </div>
             <motion.p
               className="absolute left-4 top-12 z-10 font-black uppercase leading-[0.82] tracking-[-0.04em]"

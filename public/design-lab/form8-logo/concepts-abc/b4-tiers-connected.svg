@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+    <!-- left spine joins tiers into one silhouette (still not an F — symmetric stub right optional none) -->
+    <g transform="rotate(-12.5)">
+      <path d="
+        M-100 -95 H100 A20 20 0 0 1 100 -55 H-60 V-20
+        H80 A20 20 0 0 1 80 20 H-60 V55
+        H60 A20 20 0 0 1 60 95 H-100
+        A20 20 0 0 1 -120 75 V-75 A20 20 0 0 1 -100 -95 Z
+      "/>
+    </g>
+  </svg>

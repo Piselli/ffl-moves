@@ -28,11 +28,14 @@ export function IpadFrame({ children, className, onPointerInsideChange }: Props)
   useEffect(() => {
     const el = screenRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width;
+    const apply = (w: number) => {
       if (w > 0) setScale(w / SCREEN_CANVAS.w);
+    };
+    const ro = new ResizeObserver(([entry]) => {
+      apply(entry.contentRect.width);
     });
     ro.observe(el);
+    apply(el.getBoundingClientRect().width);
     return () => ro.disconnect();
   }, []);
 
@@ -56,14 +59,12 @@ export function IpadFrame({ children, className, onPointerInsideChange }: Props)
         }}
       >
         <div
-          className="origin-top-left"
+          className="relative origin-top-left"
           style={{
             width: SCREEN_CANVAS.w,
             height: SCREEN_CANVAS.h,
-            // `zoom` re-lays out the UI at the target size, so type stays sharp;
-            // `transform: scale()` would rasterize at 960px and upscale.
             zoom: scale || 0.001,
-            opacity: scale ? 1 : 0,
+            opacity: scale ? 1 : 0.001,
           }}
         >
           {children}

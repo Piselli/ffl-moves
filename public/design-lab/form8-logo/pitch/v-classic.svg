@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" rx="140" fill="#0a0a0a"/>
+  <g fill="#fff" transform="translate(400 400)">
+    
+    <g transform="translate(-180 -110)">
+      <path fill-rule="evenodd" d="
+        M0 0 H360 A24 24 0 0 1 384 24 V196 A24 24 0 0 1 360 220 H0 A24 24 0 0 1 -24 196 V24 A24 24 0 0 1 0 0 Z
+        M192 110 m-36 0 a36 36 0 1 0 72 0 a36 36 0 1 0 -72 0
+        M192 110 m-22 0 a22 22 0 1 1 44 0 a22 22 0 1 1 -44 0
+        M185 24 H199 V196 H185 Z
+      "/>
+    </g>
+  </g>
+</svg>

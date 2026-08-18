@@ -1123,8 +1123,12 @@ fn validate_team(
             _ => return err!(ErrorCode::InvalidPosition),
         }
     }
+    // Allowed XI: 4-3-3 or 3-4-3. Bench slots are position-checked above, not counted here.
     require!(
-        goalkeepers == 1 && defenders == 4 && midfielders == 3 && forwards == 3,
+        goalkeepers == 1
+            && forwards == 3
+            && ((defenders == 4 && midfielders == 3)
+                || (defenders == 3 && midfielders == 4)),
         ErrorCode::InvalidFormation
     );
     Ok(())

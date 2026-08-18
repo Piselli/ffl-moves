@@ -1,0 +1,36 @@
+{
+  "family": "minimal-sense",
+  "rule": "One minimal mark, one explicit meaning",
+  "items": [
+    {
+      "id": "M1",
+      "sense": "Form / formation",
+      "file": "form8-m2-01-f.png"
+    },
+    {
+      "id": "M2",
+      "sense": "form8 name",
+      "file": "form8-m2-02-eight.png"
+    },
+    {
+      "id": "M3",
+      "sense": "Brand monogram",
+      "file": "form8-m2-03-f8.png"
+    },
+    {
+      "id": "M4",
+      "sense": "Formation lines",
+      "file": "form8-m2-04-lines.png"
+    },
+    {
+      "id": "M5",
+      "sense": "Open slot / place a player",
+      "file": "form8-m2-05-slot.png"
+    },
+    {
+      "id": "M6",
+      "sense": "Push forward",
+      "file": "form8-m2-06-push.png"
+    }
+  ]
+}

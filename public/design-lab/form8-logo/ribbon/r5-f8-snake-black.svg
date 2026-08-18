@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect width="640" height="640" fill="#0a0a0a"/>
+  <path d="M 330 175 H 185 A 42 42 0 0 0 185 259 H 300 C 360 259, 390 255, 410 255 A 50 50 0 0 1 510 255 A 50 50 0 0 1 410 255 C 405 305, 405 299, 410 349 A 50 50 0 1 0 510 349 A 50 50 0 1 0 410 349" fill="none" stroke="#f2f2f2" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f8 · ribbon · R5 snake · on black</text>
+</svg>

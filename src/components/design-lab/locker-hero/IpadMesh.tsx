@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Html, useGLTF } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import {
   DoubleSide,
   Group,
@@ -13,49 +14,28 @@ import {
 } from "three";
 
 /**
- * Sketchfab "iPad Pro 13in black M4" (CC-BY), pre-stripped offline:
- * the source is authored as a laptop pose (Magic Keyboard + Apple Pencil),
- * but the slim GLB keeps only the iPad branch, with textures in WebP
- * (17.1 MB → 3.7 MB; see THIRD_PARTY.md).
- *
- * The fit below was computed OFFLINE from the GLB's actual vertices
- * (scripts parsed the binary; see chat 2026-07-25). The iPad geometry is
- * byte-identical to the source, so the constants still hold:
- *   glass  = 0.2648 × 0.1984 m centered at origin, front plane at z = 0
- *   body   = 0.2826 × 0.2163 m, z ∈ [-0.0074, 0]  (fully behind the glass)
- * Do not "improve" these constants without re-measuring.
+ * Sketchfab "iPad Pro 13in black M4" (CC-BY), pre-stripped offline.
+ * Fit constants measured offline — do not change without re-measuring.
  */
 export const IPAD_BODY_W = 0.2826;
 export const IPAD_BODY_H = 0.2163;
 export const IPAD_BEZEL = 0.0084;
 
-/** Rotation mapping display normal → +Z, screen-up → +Y, width → +X. */
 const FIT_QUAT = new Quaternion(0.183547, -0.682869, -0.183547, 0.682869);
 const FIT_SCALE = 1.002652;
 const FIT_OFFSET = new Vector3(-0.000001, -0.160799, 0.06025);
 
-/** Active display measured after fit. */
 const SCREEN_W = 0.2648;
-const SCREEN_H = 0.1984;
 const SCREEN_RADIUS = 0.0072;
 const HTML_Z = 0.0006;
 
-/**
- * The Html layer is 3D-transformed, so the browser rasterizes it once at its own
- * CSS size — rendering the UI at 1:1 and letting the matrix upscale it is what
- * made text look soft. Lay it out at 1.5× and let the matrix scale down instead.
- */
 const SCREEN_LAYOUT_W = 960;
 const SCREEN_LAYOUT_H = 720;
 const SCREEN_ZOOM = 1.5;
-const SCREEN_CSS_W = SCREEN_LAYOUT_W * SCREEN_ZOOM;
-const SCREEN_CSS_H = SCREEN_LAYOUT_H * SCREEN_ZOOM;
 const HTML_DISTANCE_FACTOR = 10;
-const SCREEN_SCALE =
-  SCREEN_W / (SCREEN_CSS_W * (HTML_DISTANCE_FACTOR / 400));
-const SCREEN_RADIUS_CSS = Math.round((SCREEN_RADIUS / SCREEN_W) * SCREEN_CSS_W);
 
 const IPAD_GLB_URL = "/design-lab/locker-hero/models/ipad-pro13-m4-slim.glb";
+const HTML_WRAPPER_CLASS = "ipad-html-layer";
 
 type Props = {
   children: ReactNode;
@@ -70,7 +50,6 @@ function isDisplayMaterial(mat: MeshStandardMaterial) {
   return !!mat.emissiveMap || emissiveSum > 0.05 || mat.emissiveIntensity > 1.01;
 }
 
-/** Kill the baked wallpaper so the live Html UI is the display. */
 function muteBakedScreen(root: Object3D) {
   root.traverse((obj) => {
     if (!(obj instanceof Mesh)) return;
@@ -105,8 +84,6 @@ function buildIpad(scene: Object3D): Group {
   fitted.position.copy(FIT_OFFSET);
   fitted.add(root);
 
-  // position/quaternion/scale compose as T·R·S — matches offline math
-  // (offset + s·R·p) because scale is uniform.
   const wrapper = new Group();
   wrapper.add(fitted);
   wrapper.updateMatrixWorld(true);
@@ -121,10 +98,33 @@ export function IpadMesh({
 }: Props) {
   const { scene } = useGLTF(IPAD_GLB_URL);
   const object = useMemo(() => buildIpad(scene), [scene]);
+  const { invalidate } = useThree();
+
+  const cssW = SCREEN_LAYOUT_W * SCREEN_ZOOM;
+  const cssH = SCREEN_LAYOUT_H * SCREEN_ZOOM;
+  const screenScale = SCREEN_W / (cssW * (HTML_DISTANCE_FACTOR / 400));
+  const radiusCss = Math.round((SCREEN_RADIUS / SCREEN_W) * cssW);
 
   useEffect(() => {
+    invalidate();
     onModelReady?.();
-  }, [object, onModelReady]);
+  }, [object, onModelReady, invalidate]);
+
+  useEffect(() => {
+    const id = "ipad-html-layer-css";
+    if (document.getElementById(id)) return;
+    const tag = document.createElement("style");
+    tag.id = id;
+    tag.textContent = `
+      .${HTML_WRAPPER_CLASS}{
+        display:block!important;
+        visibility:visible!important;
+        opacity:1!important;
+        z-index:20!important;
+      }
+    `;
+    document.head.appendChild(tag);
+  }, []);
 
   return (
     <group>
@@ -135,14 +135,16 @@ export function IpadMesh({
         occlude={false}
         distanceFactor={HTML_DISTANCE_FACTOR}
         position={[0, 0, HTML_Z]}
-        scale={SCREEN_SCALE}
-        zIndexRange={[30, 10]}
+        scale={screenScale}
+        zIndexRange={[40, 20]}
+        wrapperClass={HTML_WRAPPER_CLASS}
+        onOcclude={() => {}}
         style={{
-          width: SCREEN_CSS_W,
-          height: SCREEN_CSS_H,
-          borderRadius: SCREEN_RADIUS_CSS,
+          width: cssW,
+          height: cssH,
+          borderRadius: radiusCss,
           overflow: "hidden",
-          background: "#0b0d10",
+          background: "#000000",
           pointerEvents: interactive ? "auto" : "none",
           userSelect: "none",
         }}
@@ -153,8 +155,8 @@ export function IpadMesh({
             width: SCREEN_LAYOUT_W,
             height: SCREEN_LAYOUT_H,
             zoom: SCREEN_ZOOM,
-            borderRadius: SCREEN_RADIUS_CSS / SCREEN_ZOOM,
-            background: "#0b0d10",
+            borderRadius: radiusCss / SCREEN_ZOOM,
+            background: "#000000",
           }}
           onMouseEnter={() => onPointerInsideChange?.(true)}
           onMouseLeave={() => onPointerInsideChange?.(false)}

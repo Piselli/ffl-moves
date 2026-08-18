@@ -87,8 +87,10 @@ On-chain state з Movement **не мігрує** — новий деплой, н
 - [x] `npm run preflight:solana` — перевірка оточення й стану ланцюга
 - [x] Snapshot лояльної бази — `npm run loyalty:snapshot`, 264 гаманці
 - [x] Sunset-план і чернетки повідомлень — `07-sunset.md`
-- [ ] Multisig (Squads) на upgrade authority — **ключі готові**, Squads vault створити власнику ([08-multisig-checklist.md](08-multisig-checklist.md))
+- [ ] Multisig (Squads) на upgrade authority — **ключі готові**, Squads vault створити власнику ([08-multisig-checklist.md](08-multisig-checklist.md)) — коштує трохи SOL
 - [x] `INITIALIZER` у `lib.rs` переведено на операційний ключ (`initializer.json`) — **перезібрати перед mainnet deploy**
+- [x] `[programs.mainnet]` у `Anchor.toml`; `npm run preflight:solana:offline` (2026-08-15)
+- [x] Ончейн XI: 4-3-3 і 3-4-3 (2026-08-15)
 - [x] Доля bracket 10999 — off-chain: сторінка результатів + прямий переказ переможцям (2026-08-01)
 - [ ] Повний тур на mainnet: реєстрація → сеттл → claim (після deploy + initialize)
 - [x] Season points — **з нуля на Solana**; Movement-історія не зараховується (snapshot лише для комунікації, 2026-08-01)

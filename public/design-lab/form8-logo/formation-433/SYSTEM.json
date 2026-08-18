@@ -1,0 +1,18 @@
+{
+  "family": "formation-433 / d2-tier-family",
+  "killed": [
+    "D1 fused",
+    "D3 cutout"
+  ],
+  "keep": "d2-keep",
+  "variants": [
+    "d2-keep",
+    "d2-tri",
+    "d2-spine",
+    "d2-soft",
+    "d2-seams",
+    "d2-notch",
+    "d2-join",
+    "d2-flag"
+  ]
+}

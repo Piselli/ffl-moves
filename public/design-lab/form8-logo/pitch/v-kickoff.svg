@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" rx="140" fill="#0a0a0a"/>
+  <g fill="#fff" transform="translate(400 400)">
+    
+    <rect x="-210" y="-8" width="90" height="16" rx="4"/>
+    <rect x="120" y="-8" width="90" height="16" rx="4"/>
+    <path fill-rule="evenodd" d="
+      M0 0 m-90 0 a90 90 0 1 0 180 0 a90 90 0 1 0 -180 0
+      M0 0 m-58 0 a58 58 0 1 1 116 0 a58 58 0 1 1 -116 0
+    "/>
+  
+  </g>
+</svg>

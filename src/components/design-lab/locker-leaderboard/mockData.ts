@@ -1,10 +1,15 @@
 export type LabSquadPlayer = {
   name: string;
   pts: number;
+  /** FPL teamId — club footer colours (same as homepage pitch chips) */
+  teamId?: number;
   /** Optional cast portrait under /design-lab/locker-hero/cast/ */
   cast?: string;
   /** Live FPL / catalog photo URL */
   photo?: string;
+  /** For pitch cutout candidates (same path as homepage) */
+  fplPhotoCode?: number;
+  apiId?: number;
 };
 
 export type SeasonHighlightRow = {
@@ -30,8 +35,10 @@ export type LabLeaderboardRow = {
   isYou?: boolean;
   /** Mock squad surnames for expand / reveal interactions */
   squad?: readonly string[];
-  /** Formation order: GK, DEF×3–4, MID, FWD — used by team-sheet pitch */
+  /** Formation order: GK → DEF → MID → FWD — used by team-sheet pitch */
   xi?: readonly LabSquadPlayer[];
+  /** Inferred from on-chain starter positions when available */
+  formationId?: "4-3-3" | "3-4-3";
 };
 
 export type LabLeaderboardSnapshot = {
@@ -46,12 +53,67 @@ export type LabLeaderboardSnapshot = {
 
 const CAST = "/design-lab/locker-hero/cast";
 
+/** Rough FPL teamId for mock XI club footers (26/27 catalog). */
+const MOCK_TEAM_ID: Record<string, number> = {
+  Raya: 1,
+  Saliba: 1,
+  Saka: 1,
+  Rice: 1,
+  Ødegaard: 1,
+  Timber: 1,
+  White: 1,
+  Virgil: 14,
+  "Van Dijk": 14,
+  Salah: 14,
+  Robertson: 14,
+  Konate: 14,
+  Gravenberch: 14,
+  "Mac Allister": 14,
+  Diaz: 14,
+  Szoboszlai: 14,
+  Alisson: 14,
+  Quansah: 14,
+  Haaland: 15,
+  Foden: 15,
+  Rodri: 15,
+  Dias: 15,
+  Walker: 15,
+  Ederson: 15,
+  Ake: 15,
+  Gvardiol: 15,
+  Palmer: 6,
+  Colwill: 6,
+  Caicedo: 6,
+  James: 6,
+  Jackson: 6,
+  Sánchez: 6,
+  Pickford: 9,
+  Bruno: 16,
+  Mainoo: 16,
+  Shaw: 16,
+  Watkins: 2,
+  Mbeumo: 4,
+  Son: 19,
+  Isak: 17,
+  "João Pedro": 5,
+  Eze: 8,
+  Guehi: 8,
+  Sarr: 8,
+  Trippier: 17,
+  Romero: 19,
+  Porro: 19,
+  Maddison: 19,
+  Bellingham: 16,
+  Wissa: 4,
+};
+
 function xi(
   players: Array<[string, number, string?]>,
 ): LabSquadPlayer[] {
   return players.map(([name, pts, cast]) => ({
     name,
     pts,
+    teamId: MOCK_TEAM_ID[name],
     cast: cast ? `${CAST}/${cast}.png` : undefined,
   }));
 }
@@ -275,6 +337,91 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
     },
   ],
 };
+
+/** Extra scroll depth for the results tablet — keeps hero rows, fills the gaps. */
+const SCROLL_NICKS = [
+  "ACE", "RIO", "NOVA", "KAI", "REX", "ORB", "ZED", "NYX", "JAX", "VIN",
+  "LEO", "ARK", "FOX", "SKIP", "BOW", "REM", "OTTO", "PIN", "CAL", "DEX",
+  "HUE", "IVY", "JET", "KOA", "LAN", "MO", "NED", "OAK", "PIP", "QUILL",
+] as const;
+
+const FILLER_XI = xi([
+  ["Raya", 4],
+  ["Saliba", 5],
+  ["Virgil", 5],
+  ["Colwill", 3],
+  ["Salah", 8],
+  ["Saka", 6],
+  ["Palmer", 5, "palmer"],
+  ["Mbeumo", 4],
+  ["Haaland", 9, "haaland"],
+  ["Watkins", 6, "watkins"],
+  ["Bruno", 5, "bruno"],
+]);
+
+function fillerRow(rank: number, finalPoints: number, prizeAmount = 0): LabLeaderboardRow {
+  const tag = SCROLL_NICKS[(rank - 1) % SCROLL_NICKS.length];
+  return {
+    rank,
+    owner: `0xfill${rank.toString(16).padStart(3, "0")}`,
+    nickname: `${tag}${rank}`,
+    finalPoints,
+    prizeAmount,
+    claimed: false,
+    gwDelta: ((rank * 3) % 11) - 5,
+    squad: [
+      "Raya",
+      "Saliba",
+      "Virgil",
+      "Colwill",
+      "Salah",
+      "Saka",
+      "Palmer",
+      "Mbeumo",
+      "Haaland",
+      "Watkins",
+      "Bruno",
+    ],
+    xi: FILLER_XI,
+  };
+}
+
+function withScrollDepth(core: readonly LabLeaderboardRow[]): LabLeaderboardRow[] {
+  const byRank = new Map(core.map((r) => [r.rank, r]));
+  const out: LabLeaderboardRow[] = [];
+
+  // Dense top + mid ladder so the board actually scrolls
+  for (let rank = 1; rank <= 48; rank++) {
+    const existing = byRank.get(rank);
+    if (existing) {
+      out.push(existing);
+      continue;
+    }
+    const pts = Math.max(40, 86 - rank + ((rank * 5) % 4));
+    const prize =
+      rank <= 10 ? Math.max(80, Math.round(2000 / rank)) : 0;
+    out.push(fillerRow(rank, pts, prize));
+  }
+
+  // Pack around "you" (87) so FIND ME / scroll-to-you still has neighbours
+  for (let rank = 70; rank <= 110; rank++) {
+    if (byRank.has(rank)) {
+      out.push(byRank.get(rank)!);
+      continue;
+    }
+    if (out.some((r) => r.rank === rank)) continue;
+    const pts = Math.max(28, 78 - (rank - 70) + ((rank * 3) % 5));
+    out.push(fillerRow(rank, pts));
+  }
+
+  // Keep the last-place punchline
+  const last = byRank.get(1000);
+  if (last) out.push(last);
+
+  return out.sort((a, b) => a.rank - b.rank);
+}
+
+LAB_LEADERBOARD.rows = withScrollDepth(LAB_LEADERBOARD.rows);
 
 export const PRIZE_SPLIT = [
   { rank: 1, pct: "30%" },

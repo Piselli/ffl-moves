@@ -1,0 +1,34 @@
+{
+  "a-waist": {
+    "bars": {
+      "top": 60,
+      "mid": 66,
+      "bottom": 60
+    },
+    "all_bars_equal": false,
+    "holes": {
+      "top": 192,
+      "bottom": 192
+    },
+    "stem": 78,
+    "rotation_180_hausdorff_px": 0.0,
+    "rotation_180_ok": true,
+    "area_match": true
+  },
+  "b-even": {
+    "bars": {
+      "top": 60,
+      "mid": 60,
+      "bottom": 60
+    },
+    "all_bars_equal": true,
+    "holes": {
+      "top": 195,
+      "bottom": 195
+    },
+    "stem": 78,
+    "rotation_180_hausdorff_px": 0.0,
+    "rotation_180_ok": true,
+    "area_match": true
+  }
+}

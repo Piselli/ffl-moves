@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="110.0 145 400.0 320">
+  <defs><mask id="c"><rect x="90.0" y="125" width="600" height="600" fill="white"/><g fill="black"><circle cx="410.000" cy="245.000" r="40.000"/><circle cx="410.000" cy="365.000" r="40.000"/></g></mask></defs>
+  <g fill="currentColor" mask="url(#c)"><rect x="150" y="165" width="40" height="280"/><rect x="150" y="165" width="110.0" height="40"/><circle cx="260.000" cy="185.000" r="20.000"/><rect x="130.0" y="285.0" width="250.0" height="40"/><circle cx="410.000" cy="245.000" r="80.000"/><circle cx="410.000" cy="365.000" r="80.000"/></g>
+</svg>

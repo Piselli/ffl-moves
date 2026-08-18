@@ -12,7 +12,6 @@ import {
   getUserTeam,
   getGameweekStats,
   findHighestGameweekId,
-  findLatestResolvedGameweekId,
   buildClaimPrize,
   type GameweekSummary,
 } from "@/lib/chainClient";
@@ -26,7 +25,7 @@ import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
-import { isWorldCupTour } from "@/lib/worldcup";
+import { isWorldCupTour, WC_TOUR_ID_BASE } from "@/lib/worldcup";
 import type { Player, TeamResult } from "@/lib/types";
 import type { SeasonLeaderboardPayload } from "@/lib/seasonPoints";
 import {
@@ -38,6 +37,20 @@ import {
   type LabSquadPlayer,
   type SeasonHighlightRow,
 } from "./mockData";
+import {
+  DEFAULT_FORMATION,
+  inferFormationFromPositions,
+  type FormationId,
+} from "@/lib/formation";
+
+type XiPayload = { xi: LabSquadPlayer[]; formationId: FormationId };
+
+/** Never scan WC tour ids (or the gap beneath them) when looking for EPL boards. */
+function eplScanCeiling(highestId: number): number {
+  if (!Number.isFinite(highestId) || highestId <= 0) return 0;
+  if (isWorldCupTour(highestId)) return WC_TOUR_ID_BASE - 1;
+  return highestId;
+}
 
 export type ResultsRoomData = {
   source: "live" | "mock";
@@ -49,20 +62,24 @@ export type ResultsRoomData = {
   claimError: string | null;
   claimPrize: () => Promise<void>;
   refresh: () => void;
-  loadXiForOwner: (owner: string) => Promise<LabSquadPlayer[] | null>;
+  loadXiForOwner: (owner: string) => Promise<XiPayload | null>;
+  selectedGw: number;
   setGameweek: (gwId: number) => void;
+  /** Resolved EPL GWs ascending — stepper walks this list only. */
+  pickerGws: readonly number[];
   pickerMaxGw: number;
   pickerMinGw: number;
 };
 
 async function findResolvedIds(highestId: number, count: number): Promise<number[]> {
   const ids: number[] = [];
-  const start = Math.max(highestId, 1);
-  for (let id = start; id >= 1 && ids.length < count; id--) {
-    if (isWorldCupTour(id)) continue;
-    if (id < MIN_PUBLIC_LEADERBOARD_GW) continue;
-    const g = await getGameweek(id);
-    if (g?.status === "resolved") ids.push(id);
+  let id = eplScanCeiling(highestId);
+  while (id >= MIN_PUBLIC_LEADERBOARD_GW && ids.length < count) {
+    if (!isWorldCupTour(id)) {
+      const g = await getGameweek(id);
+      if (g?.status === "resolved") ids.push(id);
+    }
+    id -= 1;
   }
   return ids;
 }
@@ -137,10 +154,10 @@ export function useResultsRoomData(): ResultsRoomData {
     useState<readonly SeasonHighlightRow[]>(LAB_SEASON_HIGHLIGHTS);
   const [selectedGw, setSelectedGw] = useState(0);
   const [resolvedPair, setResolvedPair] = useState<number[]>([]);
-  const [pickerMaxGw, setPickerMaxGw] = useState(0);
+  const [pickerGws, setPickerGws] = useState<number[]>([]);
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
-  const xiCache = useRef(new Map<string, LabSquadPlayer[]>());
+  const xiCache = useRef(new Map<string, XiPayload>());
   const bootstrapped = useRef(false);
 
   const formatHumanPrize = useCallback(
@@ -191,20 +208,19 @@ export function useResultsRoomData(): ResultsRoomData {
         }
 
         const highestId = await findHighestGameweekId();
-        const latestResolved = await findLatestResolvedGameweekId(highestId);
-        const maxPick = Math.max(
-          Number(config.currentGameweek) || 0,
-          highestId,
-          MIN_PUBLIC_LEADERBOARD_GW,
+        const eplCeiling = eplScanCeiling(
+          Math.max(Number(config.currentGameweek) || 0, highestId),
         );
+        // Newest → older resolved EPL boards (hard cap so WC pointer never
+        // forces a 9k RPC walk).
+        const resolvedDesc = await findResolvedIds(eplCeiling, 40);
         if (cancelled) return;
-        setPickerMaxGw(maxPick);
 
-        const resolved = await findResolvedIds(Math.max(highestId, latestResolved), 2);
-        if (cancelled) return;
-        setResolvedPair(resolved);
+        const resolvedAsc = [...resolvedDesc].reverse();
+        setPickerGws(resolvedAsc);
+        setResolvedPair(resolvedDesc.slice(0, 2));
 
-        const primary = resolved[0] ?? 0;
+        const primary = resolvedDesc[0] ?? 0;
         if (primary > 0) setSelectedGw(primary);
 
         const seasonRes = await fetch("/api/season-points").then((r) =>
@@ -247,11 +263,21 @@ export function useResultsRoomData(): ResultsRoomData {
         setTablet(tabletSnap);
         setSource("live");
       } else {
+        // Empty sheet for the requested GW — never leave stale mock names
+        // after the user stepped away from a live board.
+        const gwMeta = await getGameweek(selectedGw);
         setTablet({
-          ...LAB_LEADERBOARD,
-          gameweek: selectedGw || LAB_LEADERBOARD.gameweek,
+          gameweek: selectedGw,
+          status: gwMeta?.status ?? "closed",
+          prizePoolLabel: gwMeta
+            ? prize.formatUnits(gwMeta.prizePool)
+            : "0",
+          prizeSymbol: prize.symbol,
+          entries: gwMeta?.totalEntries ?? 0,
+          isPreview: gwMeta?.status === "closed",
+          rows: [],
         });
-        setSource("mock");
+        setSource(gwMeta ? "live" : "mock");
       }
 
       if (prevSnap) {
@@ -269,7 +295,7 @@ export function useResultsRoomData(): ResultsRoomData {
     } finally {
       setLoading(false);
     }
-  }, [fetchGwBoard, resolvedPair, selectedGw]);
+  }, [fetchGwBoard, prize, resolvedPair, selectedGw]);
 
   useEffect(() => {
     void loadBoards();
@@ -340,7 +366,7 @@ export function useResultsRoomData(): ResultsRoomData {
   }, [connected, loadBoards, signAndSubmit, source, tablet.gameweek, wallet]);
 
   const loadXiForOwner = useCallback(
-    async (owner: string): Promise<LabSquadPlayer[] | null> => {
+    async (owner: string): Promise<XiPayload | null> => {
       const gwId = tablet.gameweek;
       const cacheKey = `${gwId}:${owner.toLowerCase()}`;
       const cached = xiCache.current.get(cacheKey);
@@ -348,7 +374,13 @@ export function useResultsRoomData(): ResultsRoomData {
 
       if (source !== "live" || !gwId) {
         const row = tablet.rows.find((r) => r.owner === owner);
-        return row?.xi ? [...row.xi] : null;
+        if (!row?.xi?.length) return null;
+        const payload: XiPayload = {
+          xi: [...row.xi],
+          formationId: row.formationId ?? DEFAULT_FORMATION,
+        };
+        xiCache.current.set(cacheKey, payload);
+        return payload;
       }
 
       try {
@@ -382,11 +414,18 @@ export function useResultsRoomData(): ResultsRoomData {
           return {
             name: p.webName || p.name.split(" ").pop() || p.name,
             pts,
+            teamId: p.teamId,
             photo: p.photo || p.imageUrl,
+            fplPhotoCode: p.fplPhotoCode,
+            apiId: p.apiId,
           };
         });
-        xiCache.current.set(cacheKey, xi);
-        return xi;
+        const payload: XiPayload = {
+          xi,
+          formationId: inferFormationFromPositions(chainTeam.playerPositions),
+        };
+        xiCache.current.set(cacheKey, payload);
+        return payload;
       } catch (e) {
         console.error("XI load failed", e);
         return null;
@@ -406,8 +445,10 @@ export function useResultsRoomData(): ResultsRoomData {
     claimPrize,
     refresh: loadBoards,
     loadXiForOwner,
+    selectedGw,
     setGameweek: setSelectedGw,
-    pickerMaxGw,
-    pickerMinGw: MIN_PUBLIC_LEADERBOARD_GW,
+    pickerGws,
+    pickerMaxGw: pickerGws.length ? pickerGws[pickerGws.length - 1]! : 0,
+    pickerMinGw: pickerGws.length ? pickerGws[0]! : MIN_PUBLIC_LEADERBOARD_GW,
   };
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -300 600 600" fill="currentColor">
+    <path d="M-160 -160 H-80 V-120 H-120 V-80 H-160 Z"/>
+    <path d="M160 -160 H80 V-120 H120 V-80 H160 Z"/>
+    <path d="M-160 160 H-80 V120 H-120 V80 H-160 Z"/>
+    <path d="M160 160 H80 V120 H120 V80 H160 Z"/>
+    <path fill-rule="evenodd" d="M0 0 m-70 0 a70 70 0 1 0 140 0 a70 70 0 1 0 -140 0 M0 0 m-42 0 a42 42 0 1 1 84 0 a42 42 0 1 1 -84 0"/>
+  </svg>

@@ -1,0 +1,37 @@
+{
+  "version": 4,
+  "concept": "upright geometric 8, hidden F on the left, one diagonal slash",
+  "not": [
+    "new logo",
+    "infinity",
+    "sideways 8",
+    "extra symbols"
+  ],
+  "module": 40,
+  "box": {
+    "modules": "11×17",
+    "ratio": "11:17",
+    "w": 440,
+    "h": 680
+  },
+  "angle_deg": 57.0948,
+  "angle_rule": "arctan(17/11) of the 11×17 module box",
+  "stroke": 86,
+  "slash": 40,
+  "stroke_slash_ratio": "43:20",
+  "radii": {
+    "outer": 112,
+    "inner_rule": "0.47 × counter height, capped; upper counter 96% width, left-aligned",
+    "note": "not concentric; concentric would be Ri+S=Ro"
+  },
+  "optical": {
+    "upper_counter_height_ratio": 0.475,
+    "upper_counter_width_ratio": 0.96,
+    "counters_left_aligned": true,
+    "cap": 84,
+    "waist": 82,
+    "slash_inset": 56,
+    "slash_shift": 12
+  },
+  "pieces": 2
+}

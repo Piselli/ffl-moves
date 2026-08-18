@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { LOCKER_NAV_LINKS } from "@/components/design-lab/locker-hero/navStyles";
 import type { BoardThemeId } from "./themes";
 
@@ -25,20 +25,11 @@ export function LabChromeNav({ theme = "neon" }: Props) {
       />
       <div className="pointer-events-auto relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex min-w-0 items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt="MoveMatch"
-            width={235}
-            height={150}
-            className="h-7 w-auto shrink-0 sm:h-8"
-            priority
+          <Form8Mark className="h-7 sm:h-8" priority />
+          <Form8Wordmark
+            className="truncate text-sm text-white sm:text-[15px]"
+            accentClassName={quiet ? "text-white/55" : "text-[#00f948]"}
           />
-          <span className="truncate font-display text-sm font-black uppercase tracking-tighter text-white sm:text-[15px]">
-            MOVE
-            <span className={quiet ? "text-white/55" : "text-[#00f948]"}>
-              MATCH
-            </span>
-          </span>
         </Link>
 
         <nav className="hidden items-center md:flex">

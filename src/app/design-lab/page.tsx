@@ -24,7 +24,7 @@ export default function DesignLabPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#00f948]/80">
-              MoveMatch · Design Lab · Round 2
+              FORM8 · Design Lab · Round 2
             </p>
             <h1 className="mt-0.5 text-lg font-medium text-white">Unique Directions</h1>
           </div>
@@ -42,16 +42,34 @@ export default function DesignLabPage() {
               NP styles →
             </Link>
             <Link
+              href="/design-lab/locker-tablet"
+              className="rounded-sm border border-violet-400/35 bg-violet-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-violet-300 transition-colors hover:bg-violet-400/20"
+            >
+              iPad styles →
+            </Link>
+            <Link
               href="/design-lab/locker-leaderboard"
               className="rounded-sm border border-sky-400/35 bg-sky-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-sky-300 transition-colors hover:bg-sky-400/20"
             >
-              Locker LB →
+              Lounge TV →
+            </Link>
+            <Link
+              href="/design-lab/desk-results"
+              className="rounded-sm border border-lime-400/35 bg-lime-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-lime-300 transition-colors hover:bg-lime-400/20"
+            >
+              Desk results →
             </Link>
             <Link
               href="/design-lab/locker-menu"
               className="rounded-sm border border-orange-400/35 bg-orange-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-orange-300 transition-colors hover:bg-orange-400/20"
             >
               Menu A/B →
+            </Link>
+            <Link
+              href="/design-lab/form8-logo"
+              className="rounded-sm border border-fuchsia-400/35 bg-fuchsia-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-fuchsia-300 transition-colors hover:bg-fuchsia-400/20"
+            >
+              form8 logo →
             </Link>
             <Link
               href="/design-lab/locker-hero"

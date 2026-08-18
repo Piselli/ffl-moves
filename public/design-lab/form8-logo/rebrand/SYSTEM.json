@@ -1,0 +1,17 @@
+{
+  "brand": "form8",
+  "replaces": "MoveMatch",
+  "type": "full rebrand",
+  "system": {
+    "mark": "Modular F8 monogram (stem + open ear + crossbar + stacked rings)",
+    "wordmark": "lowercase form + typographic 8",
+    "accent": "#00f948",
+    "accentRole": "only the digit 8 (parallel to MATCH green)",
+    "files": [
+      "mark.svg",
+      "wordmark.svg",
+      "lockup-*.png",
+      "navbar-preview.png"
+    ]
+  }
+}

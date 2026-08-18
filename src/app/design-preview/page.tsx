@@ -12,7 +12,7 @@ export default function DesignPreviewPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#00f948]/80">
-              MoveMatch · Visual Concepts
+              FORM8 · Visual Concepts
             </p>
             <h1 className="mt-0.5 text-lg font-medium text-white">3 whole-site identities</h1>
           </div>

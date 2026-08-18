@@ -9,6 +9,9 @@ skip-lint = false
 [programs.devnet]
 movematch = "A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5"
 
+[programs.mainnet]
+movematch = "A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5"
+
 [programs.localnet]
 movematch = "A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5"
 

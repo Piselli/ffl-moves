@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+    <!-- defense longest (bottom) — 4-back weight without counting dots -->
+    <g transform="rotate(-12.5)">
+      <rect x="-70" y="-95" width="140" height="38" rx="19"/>
+      <rect x="-90" y="-18" width="180" height="38" rx="19"/>
+      <rect x="-120" y="58" width="240" height="38" rx="19"/>
+    </g>
+  </svg>

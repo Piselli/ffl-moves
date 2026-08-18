@@ -35,6 +35,8 @@ interface LeaderboardTableProps {
   /** When set, the connected user's unclaimed row shows a Claim button (resolved tours). */
   onClaimPrize?: () => void;
   isClaiming?: boolean;
+  /** DOM id for the connected user's row — used by Find me. */
+  youRowId?: string;
 }
 
 type LoadedSquad = {
@@ -115,6 +117,7 @@ export function LeaderboardTable({
   allowOwnSquadExpand = false,
   onClaimPrize,
   isClaiming = false,
+  youRowId,
 }: LeaderboardTableProps) {
   const siteMessages = useSiteMessages();
   const lt = siteMessages.pages.leaderboardTable;
@@ -310,6 +313,7 @@ export function LeaderboardTable({
             return (
               <Fragment key={result.owner}>
                 <tr
+                  id={isUser && youRowId ? youRowId : undefined}
                   onClick={expandable ? () => toggleRow(result.owner, result.rank) : undefined}
                   className={cn(
                     "group transition-colors duration-200 border-b border-white/[0.05]",

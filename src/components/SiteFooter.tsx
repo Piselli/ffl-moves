@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SocialLinkX } from "@/components/SocialLinkX";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 const HIDE_FOOTER_PATHS = new Set([
   "/",
+  "/leaderboard",
+  "/season-leaderboard",
   "/design-lab/locker-hero",
   "/design-lab/locker-leaderboard",
+  "/design-lab/leaderboard-concepts",
   "/design-preview/homepage",
 ]);
 
@@ -35,9 +39,10 @@ export function SiteFooter() {
     <footer className="relative z-10 border-t border-white/[0.06] bg-[#0A0C0F]/80">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 sm:py-10 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-display font-black uppercase tracking-wider text-white/70">
-            MOVEMATCH
-          </p>
+          <Link href="/" className="inline-flex items-center gap-2.5 text-white/80 transition-colors hover:text-white">
+            <Form8Mark className="h-7" />
+            <Form8Wordmark className="text-sm tracking-wider text-white/80" />
+          </Link>
           <p className="max-w-md text-sm leading-relaxed text-white/40">{m.footer.socialHint}</p>
         </div>
 

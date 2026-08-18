@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="currentColor">
+
+  <defs>
+    <mask id="m">
+      <rect width="320" height="320" fill="white"/>
+      <text x="160" y="205" text-anchor="middle"
+        font-family="Arial Black, Helvetica Neue, Arial, sans-serif"
+        font-size="118" font-weight="900" fill="black">8</text>
+    </mask>
+  </defs>
+  <!-- kit body -->
+  <path mask="url(#m)" d="
+    M110 70
+    L78 98
+    L78 130
+    L108 122
+    L108 268
+    Q108 282 122 282
+    L198 282
+    Q212 282 212 268
+    L212 122
+    L242 130
+    L242 98
+    L210 70
+    Q190 52 160 52
+    Q130 52 110 70
+    Z
+  "/>
+</svg>

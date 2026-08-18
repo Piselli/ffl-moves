@@ -10,10 +10,20 @@ import {
 } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
+import { FormationPicker } from "@/components/FormationPicker";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
 import { POSITIONS, MAX_PER_CLUB, FORMATION } from "@/lib/constants";
+import {
+  DEFAULT_FORMATION,
+  inferFormationFromPositions,
+  loadFormationId,
+  remapStartersToFormation,
+  saveFormationId,
+  slotPosition,
+  type FormationId,
+} from "@/lib/formation";
 import {
   getConfig,
   findActiveGameweek,
@@ -144,6 +154,8 @@ export default function GameweekPage() {
 
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
+  const [formationId, setFormationIdState] =
+    useState<FormationId>(DEFAULT_FORMATION);
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,6 +180,16 @@ export default function GameweekPage() {
    * session, clearing to empty intentionally removes the stale draft key.
    */
   const lineupTouchedNonEmptySessionRef = useRef(false);
+
+  useEffect(() => {
+    setFormationIdState(loadFormationId());
+  }, []);
+
+  const setFormationId = (id: FormationId) => {
+    setFormationIdState(id);
+    saveFormationId(id);
+    setStarters((prev) => remapStartersToFormation(prev, id));
+  };
 
   const officialResolved = useMemo(() => {
     if (teamResult == null || !registeredTeam) return null;
@@ -280,6 +302,9 @@ export default function GameweekPage() {
             if (teamPlayers.length === FORMATION.TOTAL) {
               const snapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
               setRegisteredTeam(snapshot);
+              setFormationIdState(
+                inferFormationFromPositions(chainTeam.playerPositions),
+              );
               localStorage.setItem(key, JSON.stringify(snapshot));
             }
 
@@ -405,6 +430,9 @@ export default function GameweekPage() {
       if (teamPlayers.length === FORMATION.TOTAL) {
         const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
         setRegisteredTeam(teamSnapshot);
+        setFormationIdState(
+          inferFormationFromPositions(chainTeam.playerPositions),
+        );
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
     }
@@ -460,6 +488,9 @@ export default function GameweekPage() {
       if (teamPlayers.length === FORMATION.TOTAL) {
         const teamSnapshot = { starters: teamPlayers.slice(0, 11), bench: teamPlayers.slice(11) };
         setRegisteredTeam(teamSnapshot);
+        setFormationIdState(
+          inferFormationFromPositions(chainTeam.playerPositions),
+        );
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
       }
     }
@@ -507,21 +538,9 @@ export default function GameweekPage() {
   };
 
   const getNextAvailableSlot = (position: string): { index: number; isBench: boolean } | null => {
-    // Check starters first
-    if (position === "GK" && !starters[0]) return { index: 0, isBench: false };
-    if (position === "DEF") {
-      for (let i = 1; i <= 4; i++) {
-        if (!starters[i]) return { index: i, isBench: false };
-      }
-    }
-    if (position === "MID") {
-      for (let i = 5; i <= 7; i++) {
-        if (!starters[i]) return { index: i, isBench: false };
-      }
-    }
-    if (position === "FWD") {
-      for (let i = 8; i <= 10; i++) {
-        if (!starters[i]) return { index: i, isBench: false };
+    for (let i = 0; i < 11; i++) {
+      if (!starters[i] && slotPosition(i, formationId) === position) {
+        return { index: i, isBench: false };
       }
     }
 
@@ -590,7 +609,7 @@ export default function GameweekPage() {
   }, [starters, bench]);
 
   const handleRandomSquad = () => {
-    const squad = buildRandomPopularSquad(players);
+    const squad = buildRandomPopularSquad(players, 12, formationId);
     if (!squad) {
       window.alert(g.randomSquadFailed);
       return;
@@ -778,6 +797,7 @@ export default function GameweekPage() {
             benchAbbrev={siteMessages.recap.benchAbbrev}
             startersHeading={g.startersSection}
             benchSectionLabel={g.benchSection}
+            formationId={formationId}
             statsPendingHint={
               !showScores && currentGameweek && currentGameweek.status !== "open"
                 ? mr.statsPending
@@ -943,7 +963,21 @@ export default function GameweekPage() {
         <div className="grid lg:grid-cols-2 gap-8 lg:items-stretch">
           {/* Formation */}
           <div className="flex flex-col">
-            <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                Formation
+              </p>
+              <FormationPicker
+                value={formationId}
+                onChange={setFormationId}
+                size="md"
+              />
+            </div>
+            <FormationGrid
+              starters={starters}
+              onPlayerClick={handleSlotClick}
+              formationId={formationId}
+            />
 
             {/* Bench */}
             <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
@@ -1096,7 +1130,24 @@ export default function GameweekPage() {
         {/* Pitch tab */}
         {mobileTab === "pitch" && (
           <div className="flex flex-col gap-3">
-            <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                Formation
+              </p>
+              <FormationPicker
+                value={formationId}
+                onChange={setFormationId}
+                size="md"
+              />
+            </div>
+            <FormationGrid
+              starters={starters}
+              onPlayerClick={(idx) => {
+                handleSlotClick(idx, false);
+                setMobileTab("players");
+              }}
+              formationId={formationId}
+            />
             {/* Bench */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
               <div className="flex items-center justify-between gap-3 mb-2">

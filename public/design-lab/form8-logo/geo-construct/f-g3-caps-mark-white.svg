@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect width="640" height="640" fill="#fff"/>
+  <g transform="translate(23.0,20.0)"><g fill="#0a0a0a"><rect x="220" y="150" width="44" height="284"/><rect x="220" y="150" width="140.8" height="44"/><circle cx="360.8" cy="172.0" r="22.0"/><rect x="220" y="282.0" width="105.6" height="44"/><circle cx="325.6" cy="304.0" r="22.0"/></g></g><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f · geo · caps F · mark · on white</text>
+</svg>

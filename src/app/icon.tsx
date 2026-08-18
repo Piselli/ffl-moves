@@ -6,7 +6,7 @@ export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
 export default function Icon() {
-  const logoBuffer = readFileSync(join(process.cwd(), "public", "logo.png"));
+  const logoBuffer = readFileSync(join(process.cwd(), "public", "brand", "form8-mark.png"));
   const logoBase64 = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
   return new ImageResponse(
@@ -22,9 +22,9 @@ export default function Icon() {
           justifyContent: "center",
         }}
       >
-        {/* Logo is 235×150 (landscape) — fit within circle with padding */}
+        {/* Tall 8 mark — fit in the circle with padding */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoBase64} width={54} height={34} alt="" style={{ objectFit: "contain" }} />
+        <img src={logoBase64} width={31} height={42} alt="" style={{ objectFit: "contain" }} />
       </div>
     ),
     { ...size },

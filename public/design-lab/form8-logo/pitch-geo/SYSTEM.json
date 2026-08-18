@@ -1,0 +1,24 @@
+{
+  "family": "pitch-geo",
+  "idea": "Deconstruct pitch into geometric primitives, recompose interestingly",
+  "alphabet": [
+    "outer rect",
+    "center ring",
+    "halfway bar",
+    "penalty box",
+    "goal box",
+    "penalty arc",
+    "corner arc"
+  ],
+  "variants_ai": 12,
+  "variants_vector": [
+    "v-trio",
+    "v-boxes",
+    "v-totem",
+    "v-corners",
+    "v-nest",
+    "v-cross",
+    "v-arcs",
+    "v-offset"
+  ]
+}

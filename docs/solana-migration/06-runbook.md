@@ -228,18 +228,40 @@ devnet-версію проти mainnet.
 
 ## 9. Перевірка перед mainnet
 
-`npm run preflight:mainnet` наразі перевіряє **Movement**, не Solana. До
-переписування — звіряти вручну:
+Локально, без грошей і без RPC:
 
-- [ ] `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta`
+```bash
+npm run preflight:solana:offline
+```
+
+Після деплою й `initialize` — уже проти ланцюга:
+
+```bash
+npm run preflight:solana
+```
+
+- [x] `INITIALIZER` = операційний ключ `CJKNFK…no57` (перезібрати перед деплоєм)
+- [x] `[programs.mainnet]` у `Anchor.toml`
+- [x] `initialize-mainnet.mjs` на Circle USDC, створює house ATA
+- [x] Програма приймає 4-3-3 і 3-4-3
+- [ ] `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta` на Vercel Production
 - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL` — платний RPC, не публічний
-- [ ] `NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID` = mainnet program id
+- [ ] `NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID` = mainnet program id (той самий, що devnet)
 - [ ] `NEXT_PUBLIC_USDC_MINT` = `EPjFWdd5…Dt1v`
 - [ ] `NEXT_PUBLIC_STATS_BASE_URL` заданий і віддає файли публічно
 - [ ] `Config` on-chain збігається з наміром (розділ 5)
 - [ ] House ATA існує
-- [ ] Upgrade authority = multisig
+- [ ] Upgrade authority = multisig (після першого деплою; Squads теж коштує трохи SOL)
 - [ ] Повний тур пройдено: реєстрація → сеттл → claim
 
 Останній пункт — умова з `05-movement-archive.md`: Movement не відключаємо, поки
 Solana не відпрацювала повний тур на mainnet.
+
+### Що ще коштує грошей (не код)
+
+| Що | Навіщо |
+|----|--------|
+| ~3–4 SOL на `deployer.json` | рента програми + `program extend 20000` |
+| Платний RPC (Helius / QuickNode) | продакшен не виживе на публічному ендпоінті |
+| Комісії initialize / create_gameweek | дрібниці, але з того ж балансу |
+| Squads vault | рента мультисигу; можна після першого деплою |

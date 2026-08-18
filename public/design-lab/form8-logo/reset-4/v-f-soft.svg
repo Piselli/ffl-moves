@@ -1,0 +1,6 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+  <g transform="rotate(-12.5 0 0)">
+    <path d="M-90 -110 H70 Q95 -110 95 -88 L85 -55 H-20 A18 18 0 0 0 -38 -73 V-110 H-90 Z"/>
+    <path d="M-90 -20 H55 Q80 -20 80 2 L70 35 H-20 A18 18 0 0 0 -38 17 V-20 H-90 Z"/>
+    <path d="M-90 70 H10 Q28 70 28 88 L20 120 H-90 Z"/>
+  </g></svg>

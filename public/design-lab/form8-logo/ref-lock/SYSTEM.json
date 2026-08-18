@@ -1,0 +1,14 @@
+{
+  "family": "ref-lock",
+  "source": "User-provided logo references",
+  "craft": [
+    "modular segment bars + gaps + slant",
+    "solid halves + negative diamond",
+    "dual rotational hooks + dots",
+    "mass + motion slash cut",
+    "circle + 4 thick arcs",
+    "ring + tapered diagonal slash",
+    "single soft unified blob"
+  ],
+  "reject": ["wear/prop characters", "pitch diagrams", "4-3-3 silhouettes", "weak generic F"]
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="currentColor">
+
+  <g transform="translate(12 8) scale(0.92)">
+    <!-- head -->
+    <ellipse cx="168" cy="58" rx="28" ry="30"/>
+    <!-- torso + raised arm + standing leg as ONE silhouette via union of shapes -->
+    <path d="
+      M142 88
+      C142 88 118 100 108 128
+      C98 156 92 190 96 220
+      L88 268
+      L118 268
+      L128 230
+      L148 268
+      L178 268
+      L158 210
+      C170 190 188 170 210 158
+      C232 146 258 150 268 138
+      C278 126 270 112 252 112
+      C230 112 210 122 196 132
+      C184 118 172 98 168 88
+      C162 78 152 82 142 88
+      Z
+    "/>
+  </g>
+</svg>

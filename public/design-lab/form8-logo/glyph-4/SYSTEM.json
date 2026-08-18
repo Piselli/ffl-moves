@@ -1,0 +1,11 @@
+{
+  "family": "glyph-4",
+  "thesis": "F8 as one body. Silhouette first, then F, then 8. Lime = lining of the roll only.",
+  "files": {
+    "G1": "form8-g1-stem-roll.png",
+    "G2": "form8-g2-foot-roll.png",
+    "G3": "form8-g3-stamp.png",
+    "G4": "form8-g4-slant.png"
+  },
+  "pick": ["G3 stamp", "G4 slant"]
+}

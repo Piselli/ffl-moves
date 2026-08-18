@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -70,17 +71,11 @@ export function HomepageNavRedesign() {
             <Link href="/" className="flex shrink-0 items-center gap-2">
               {scrolled ? (
                 <>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#00f948] font-display text-sm font-black text-black">
-                    M
-                  </span>
-                  <span className="hidden font-display text-sm font-black uppercase tracking-tighter sm:inline">
-                    MOVE<span className="text-[#00f948]">MATCH</span>
-                  </span>
+                  <Form8Mark className="h-7" />
+                  <Form8Wordmark className="hidden text-sm sm:inline" />
                 </>
               ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-black/30 font-display text-sm font-black text-white/90 backdrop-blur-md">
-                  M
-                </span>
+                <Form8Mark className="h-8" />
               )}
             </Link>
 
@@ -190,15 +185,13 @@ export function HomepageNavRedesign() {
                 {/* Tablet chrome */}
                 <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#00f948] font-display text-[11px] font-black text-black">
-                      M
-                    </span>
+                    <Form8Mark className="h-6" />
                     <div>
                       <p className="font-display text-[13px] font-bold uppercase tracking-tight text-white">
                         Pick your team
                       </p>
                       <p className="text-[10px] text-white/40">
-                        MoveMatch Fantasy EPL
+                        FORM8 Fantasy EPL
                       </p>
                     </div>
                   </div>
@@ -355,7 +348,7 @@ export function HomepageNavRedesign() {
             World Cup 2026
           </h2>
           <p className="mt-3 max-w-md text-sm text-white/45">
-            Same MoveMatch loop on the tournament. One block — not a second full
+            Same FORM8 loop on the tournament. One block — not a second full
             hero carousel.
           </p>
           <a
@@ -390,9 +383,10 @@ export function HomepageNavRedesign() {
       <footer className="border-t border-white/[0.06] bg-[#08090b]">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <p className="font-display text-sm font-black uppercase tracking-wider text-white/70">
-              MOVEMATCH
-            </p>
+            <div className="flex items-center gap-2.5">
+              <Form8Mark className="h-7" />
+              <Form8Wordmark className="text-sm tracking-wider text-white/70" />
+            </div>
             <p className="mt-1 max-w-sm text-sm text-white/35">
               Premier League fantasy on Movement.
             </p>

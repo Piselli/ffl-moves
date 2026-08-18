@@ -3,20 +3,12 @@
 import { hueFromString, initialsFromDisplayName } from "@/lib/avatar-fallback";
 import type { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const PITCH_SLOT_LAYOUT: readonly { formationIndex: number; leftPct: number; topPct: number }[] = [
-  { formationIndex: 8, leftPct: 22, topPct: 18 },
-  { formationIndex: 9, leftPct: 50, topPct: 18 },
-  { formationIndex: 10, leftPct: 78, topPct: 18 },
-  { formationIndex: 5, leftPct: 26, topPct: 43 },
-  { formationIndex: 6, leftPct: 50, topPct: 43 },
-  { formationIndex: 7, leftPct: 74, topPct: 43 },
-  { formationIndex: 1, leftPct: 12, topPct: 67 },
-  { formationIndex: 2, leftPct: 37, topPct: 67 },
-  { formationIndex: 3, leftPct: 63, topPct: 67 },
-  { formationIndex: 4, leftPct: 88, topPct: 67 },
-  { formationIndex: 0, leftPct: 50, topPct: 90 },
-] as const;
+import {
+  DEFAULT_FORMATION,
+  inferFormationFromPositions,
+  PITCH_SLOT_LAYOUTS,
+  type FormationId,
+} from "@/lib/formation";
 
 function PosterAvatar({ player, size }: { player: Player; size: number }) {
   const initials = initialsFromDisplayName(player.webName || player.name);
@@ -70,6 +62,7 @@ export function SquadSharePoster({
   startersLabel,
   benchLabel,
   ctaLine,
+  formationId: formationIdProp,
 }: {
   starters: Player[];
   bench: Player[];
@@ -78,7 +71,13 @@ export function SquadSharePoster({
   startersLabel: string;
   benchLabel: string;
   ctaLine: string;
+  formationId?: FormationId;
 }) {
+  const formationId =
+    formationIdProp ??
+    inferFormationFromPositions(starters.map((p) => p.positionId));
+  const pitchSlots =
+    PITCH_SLOT_LAYOUTS[formationId] ?? PITCH_SLOT_LAYOUTS[DEFAULT_FORMATION];
   return (
     <div
       className="relative overflow-hidden bg-[#0D0F12] text-white"
@@ -101,7 +100,7 @@ export function SquadSharePoster({
         <div className="relative mx-auto w-full max-w-[620px] flex-1">
           <div className="relative aspect-[68/105] w-full overflow-hidden rounded-2xl border border-white/15 shadow-inner">
             <PitchTexture />
-            {PITCH_SLOT_LAYOUT.map(({ formationIndex, leftPct, topPct }) => {
+            {pitchSlots.map(({ formationIndex, leftPct, topPct }) => {
               const player = starters[formationIndex];
               if (!player) return null;
               return (

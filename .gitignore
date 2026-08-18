@@ -37,6 +37,7 @@ move/**/build/
 
 # numba JIT cache from the design asset scripts
 /.numba_cache/
+/.tmp-pydeps/
 
 # Design-lab intermediates: generation batches, reference scrapes and contact
 # sheets that nothing imports. Kept on the designer's disk, not in history.
@@ -50,6 +51,10 @@ public/design-lab/locker-hero/kit/_review/
 public/design-lab/locker-hero/variants/*
 !public/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png
 
+# scratch screenshots / local dumps — not product
+/tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+solana/movematch/.bin/

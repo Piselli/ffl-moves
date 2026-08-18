@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+    <g transform="rotate(-10)">
+      <rect x="-120" y="-120" width="42" height="240" rx="8"/>
+      <rect x="-120" y="-120" width="115" height="42" rx="8"/>
+      <rect x="-120" y="-21" width="85" height="42" rx="8"/>
+      <!-- continuous 8: outer + inner holes -->
+      <path fill-rule="evenodd" d="
+        M50 -120
+        C95 -120 125 -90 125 -55
+        C125 -28 108 -8 85 0
+        C108 8 125 28 125 55
+        C125 90 95 120 50 120
+        C5 120 -25 90 -25 55
+        C-25 28 -8 8 15 0
+        C-8 -8 -25 -28 -25 -55
+        C-25 -90 5 -120 50 -120
+        Z
+        M50 -88
+        C28 -88 10 -72 10 -55
+        C10 -38 28 -22 50 -22
+        C72 -22 90 -38 90 -55
+        C90 -72 72 -88 50 -88
+        Z
+        M50 22
+        C28 22 10 38 10 55
+        C10 72 28 88 50 88
+        C72 88 90 72 90 55
+        C90 38 72 22 50 22
+        Z
+      "/>
+    </g>
+  </svg>

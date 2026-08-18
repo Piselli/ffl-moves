@@ -1,0 +1,74 @@
+You are a senior identity designer reconstructing an existing logo concept. This is NOT a new logo and NOT a style exploration.
+
+GOAL
+Draw a single geometric brand mark for “form8”.
+Primary reading: an upright numeral 8.
+Secondary reading, only on a second look: the left side of that 8 is a capital F (for “form”).
+The only character gesture is one diagonal slash of negative space cutting the 8 from top-right to bottom-left.
+
+Do not invent a second concept. Do not add a ball, pitch, infinity, nodes, serifs, gradient, or extra cuts.
+
+HIERARCHY (do not equalize these)
+1. The 8 must be unmistakable at first glance.
+2. The slash is the character of the mark — a designed stripe, not a scratch.
+3. The F is an Easter egg. Do not open the right side, do not terminate the F arms, do not turn this into a letter F with an 8 attached.
+
+CANVAS AND COLOR
+- Perfect square canvas.
+- Solid black background.
+- Mark in pure white, centered, occupying about 68–72% of the canvas height.
+- Flat vector. No glow, no shadow, no texture, no 3D, no bevel, no grain.
+
+CONSTRUCTION SYSTEM (follow exactly)
+- Module M. Bounding box of the 8 is 11 modules wide × 17 modules tall.
+- Aspect ratio of the 8: 11:17 (about 0.647 width-to-height). This is a kit-number 8, not a circle and not a sideways infinity.
+- Outer silhouette: ONE rounded rectangle. Not two stacked capsules. Not a peanut. Not a metaball. Vertical sides are straight. Top and bottom have visible short flats before the corners.
+- Outer corner radius Ro ≈ 0.255 × width of the box.
+- Interior: exactly TWO counters (holes), stacked, forming the loops of the 8.
+- Both counters share the same left edge, so the left wall is one F stem of constant thickness.
+- Counter width ≈ box width minus two vertical walls.
+- Upper counter height = 47.5% of the two-counter stack. Lower = 52.5%. The top loop is slightly smaller. Never make the two loops identical.
+- Upper counter is 4% narrower than the lower, with the missing width taken from the RIGHT only. Left edges stay aligned.
+- Inner corner radius of each counter = 0.47 × that counter’s height. Both holes are the same species: rounded rectangles that read as 8-loops, not a circle sitting on a square, and not two perfect circles.
+- Vertical wall thickness Sv.
+- Top and bottom bars = 0.98 × Sv (optical: horizontals look heavier, so draw them a hair thinner).
+- Waist (the bar between the two counters) = 0.95 × Sv. This waist is ONE horizontal bar, not an X of four curves, not two overlapping rings.
+
+SLASH (the designed cut)
+- One straight slot of constant width G, where Sv : G = 86 : 40 (about 2.15 : 1).
+- The slash is a real stripe. If it looks like a hairline or a scratch, it is wrong.
+- Angle = arctan(17/11) ≈ 57.1° from horizontal. Not 45°. Not 56°. Not arbitrary.
+- Direction: backslash, entering through the top-right outer corner and exiting through the bottom-left outer corner.
+- The slot is the diagonal of a box inset ~13% from the 8’s bounding box, so it cuts through the MEAT of the corners, not a grazing nick that leaves thorns.
+- Then shift the whole slot slightly toward bottom-right (about 3% of the box width). This keeps more of the left F stem and a longer left F crossbar.
+- The slash must cut the waist as ONE clean gap: two parallel flat terminals, no lightning-Z, no four pointed darts.
+- Where the slash meets the outer contour, terminals are flat faces parallel to each other, perpendicular to the slash. Round body, sharp cut. That contrast is the language. Do not round the cut ends. Do not add arrowheads.
+- After the cut, the mark is two interlocking pieces that still read as one 8.
+
+WHAT THE F IS
+- Left vertical wall = stem.
+- Top bar of the 8 = top arm.
+- Waist bar = middle arm.
+- None of the F arms terminate; they continue into the 8’s loops. That is correct.
+- Do not amputate the bottom of the left stem more than the slash requires. The slash may clip the bottom-left bowl; it must not eat the whole left pillar.
+
+OPTICAL RULES
+- Top loop slightly smaller than bottom. If they look equal, you failed the 8.
+- Diagonals look thinner than verticals — the slash is already a stripe; do not make it thinner still.
+- Waist looks heavier than it is; keep it a hair thinner than the verticals.
+- Geometric center is not optical center. Sit the mark so it feels centered in the square, not mathematically glued to the midpoint.
+
+DO NOT
+- Two separate stroked stadiums stacked and then slashed (this recreates a Z at the waist).
+- Concentric “outer radius = 2 × inner radius” as a wall-offset trick.
+- Sideways infinity / lemniscate.
+- Equal loops.
+- Hairline slash.
+- Extra notches, third cut, gradient, chrome, inner outlines, drop shadows.
+- Making the F obvious by opening the right side or adding F serifs.
+- App-icon blobs, AI-logo ribbons, neon, glass.
+
+OUTPUT
+A single flat vector-looking white mark on black. Sharp edges. Even fills. No caption, no wordmark, no construction grid in the hero frame.
+
+Optional second frame only if asked: the same mark as a construction sheet on black, with a module grid, the 57.1° axis drawn through the slash, outer/inner radius ticks, and the waist bar highlighted. No fake “optical balance” labels for corrections that were not actually made.

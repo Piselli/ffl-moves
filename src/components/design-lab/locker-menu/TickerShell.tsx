@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MENU_DESTINATIONS } from "./menuLinks";
@@ -21,10 +21,8 @@ export function TickerShell() {
 
       <header className="relative z-20 mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="MoveMatch" width={120} height={76} className="h-7 w-auto" />
-          <span className="font-display text-sm font-black uppercase tracking-tighter">
-            MOVE<span className="text-[#00f948]">MATCH</span>
-          </span>
+          <Form8Mark className="h-7" />
+          <Form8Wordmark className="text-sm" />
         </Link>
         <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-[#00f948]/70">
           LED · Live
@@ -44,7 +42,7 @@ export function TickerShell() {
         <div className="overflow-hidden rounded-sm border border-[#00f948]/25 bg-black shadow-[0_0_40px_rgba(0,249,72,0.08)]">
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0a0c0e] px-4 py-2">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
-              MoveMatch · Destinations
+              FORM8 · Destinations
             </span>
             <span className="h-2 w-2 animate-pulse rounded-full bg-[#00f948]" />
           </div>

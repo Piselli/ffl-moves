@@ -1,0 +1,17 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" fill="currentColor">
+  <g transform="rotate(-8 0 0)">
+    <!-- F stem + arms fused to 8 -->
+    <rect x="-110" y="-130" width="40" height="260" rx="6"/>
+    <rect x="-110" y="-130" width="120" height="40" rx="6"/>
+    <rect x="-110" y="-20" width="90" height="40" rx="6"/>
+    <path fill-rule="evenodd" d="
+      M40 -90
+      m-55 0 a55 55 0 1 0 110 0 a55 55 0 1 0 -110 0
+      M40 -90 m-28 0 a28 28 0 1 1 56 0 a28 28 0 1 1 -56 0
+      M40 50
+      m-55 0 a55 55 0 1 0 110 0 a55 55 0 1 0 -110 0
+      M40 50 m-28 0 a28 28 0 1 1 56 0 a28 28 0 1 1 -56 0
+    "/>
+    <!-- join bar -->
+    <rect x="-70" y="-20" width="60" height="40"/>
+  </g></svg>

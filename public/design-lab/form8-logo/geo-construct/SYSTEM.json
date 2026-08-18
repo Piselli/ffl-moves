@@ -1,0 +1,16 @@
+{
+  "technique": "geometric construction",
+  "module_s": 40,
+  "outer_R": 80,
+  "inner_r": 40,
+  "rules": [
+    "All strokes = module s",
+    "All curves = circular arcs from concentric pairs (R, r=R-s)",
+    "8 = two stacked rings, centers 2R-s apart",
+    "f ear = quarter-arc sharing CY with upper 8",
+    "Optical gap between ear and 8; sole ligature = crossbar",
+    "Crossbar left overhang marks lowercase f"
+  ],
+  "primary": "open-ear",
+  "secondary": "flat-arm"
+}

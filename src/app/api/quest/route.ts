@@ -67,7 +67,7 @@ async function resolveParams(
   const config = await getConfig();
   if (!config) {
     return NextResponse.json(
-      { result: false, eligible: false, reason: "MoveMatch has not been initialized." },
+      { result: false, eligible: false, reason: "FORM8 has not been initialized." },
       { status: 503, headers: CORS_HEADERS },
     );
   }

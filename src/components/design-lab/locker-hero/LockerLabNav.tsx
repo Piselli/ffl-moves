@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { LOCKER_NAV_LINKS } from "./navStyles";
 
 type Props = {
@@ -19,18 +19,9 @@ function Brand({
 }) {
   return (
     <Link href="/" className={cn("flex min-w-0 items-center gap-2", className)}>
-      <Image
-        src="/logo.png"
-        alt="MoveMatch"
-        width={235}
-        height={150}
-        className="h-7 w-auto shrink-0 sm:h-8"
-        priority
-      />
+      <Form8Mark className="h-7 sm:h-8" priority />
       {!markOnly && (
-        <span className="truncate font-display text-sm font-black uppercase tracking-tighter text-white sm:text-[15px]">
-          MOVE<span className="text-[#00f948]">MATCH</span>
-        </span>
+        <Form8Wordmark className="truncate text-sm text-white sm:text-[15px]" />
       )}
     </Link>
   );

@@ -16,6 +16,7 @@
     "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",
     "loyalty:snapshot": "node scripts/build-loyalty-snapshot.mjs",
     "preflight:solana": "node scripts/preflight-solana.mjs",
+    "preflight:solana:offline": "node scripts/preflight-solana-offline.mjs",
     "preflight:movement": "node scripts/preflight-mainnet.mjs",
     "mainnet:keys": "node scripts/print-mainnet-key-manifest.mjs",
     "mainnet:deploy": "bash scripts/deploy-mainnet.sh",

@@ -23,20 +23,20 @@ const wcDisplay = Anton({
   variable: "--font-wc-display",
 });
 
-const siteTitle = "MOVEMATCH — Premier League fantasy on Solana";
+const siteTitle = "FORM8 — Premier League fantasy on Solana";
 const siteDescription =
   "Build your EPL squad from live gameweek stats, compete for the top 10, and earn USDC prizes on Solana.";
 
 export const metadata: Metadata = {
   title: {
     default: siteTitle,
-    template: "%s · MOVEMATCH",
+    template: "%s · FORM8",
   },
   description: siteDescription,
   openGraph: {
     title: siteTitle,
     description: siteDescription,
-    siteName: "MOVEMATCH",
+    siteName: "FORM8",
     type: "website",
     locale: "en_US",
     alternateLocale: ["uk_UA"],

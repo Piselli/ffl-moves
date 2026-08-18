@@ -133,7 +133,7 @@ export function MotionCraftDirection() {
       <div className="px-4 pb-6 sm:px-6">
         <AnimationSpec
           reference="Rauno + Emil + Sonner"
-          title="Craft rules for MoveMatch"
+          title="Craft rules for FORM8"
           items={[
             {
               label: "never scale(0)",

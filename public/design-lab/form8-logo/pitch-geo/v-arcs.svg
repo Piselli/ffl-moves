@@ -1,0 +1,5 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -300 600 600" fill="currentColor">
+    <path d="M-40 -120 A120 120 0 0 0 -40 120 L10 120 A70 70 0 0 1 10 -120 Z"/>
+    <path d="M40 -120 A120 120 0 0 1 40 120 L-10 120 A70 70 0 0 0 -10 -120 Z"/>
+    <rect x="-12" y="-140" width="24" height="280" rx="8"/>
+  </svg>

@@ -922,7 +922,7 @@ export const pagesEn: PagesMessages = {
     seasonTag: (label) => `Season ${label}`,
     pageTitle: "Season Points",
     subtitleLead:
-      "Season Points (SP) are our way of measuring your contribution throughout the season. They reflect your activity, participation, and consistency across MoveMatch.",
+      "Season Points (SP) are our way of measuring your contribution throughout the season. They reflect your activity, participation, and consistency across FORM8.",
     subtitleBenefits:
       "While SP don't provide any direct benefits today, they'll help us identify and reward the community's most dedicated members whenever new opportunities become available. Read more in the ",
     faqInlineLink: "FAQ",
@@ -1061,7 +1061,7 @@ export const pagesEn: PagesMessages = {
     clipboardHint:
       "X opened in a new tab. The squad image is in your clipboard — paste it into the compose box (⌘V).",
     registeredShareButton: "Share on X",
-    posterCta: "Build your squad on MoveMatch",
+    posterCta: "Build your squad on FORM8",
     tweetXiLabel: "XI",
     tweetBenchLabel: "Bench",
     tweetHeaderGw: (gw) => `My ${gw} squad on @MoveMatchxyz ⚽`,
@@ -1233,9 +1233,9 @@ export const pagesEn: PagesMessages = {
         items: [
           {
             id: "what-is-movematch",
-            q: "What is MOVEMATCH in plain English?",
+            q: "What is FORM8 in plain English?",
             a: [
-              { type: "p", text: "MOVEMATCH is fantasy football on the English Premier League (EPL). The loop is simple:" },
+              { type: "p", text: "FORM8 is fantasy football on the English Premier League (EPL). The loop is simple:" },
               {
                 type: "ul",
                 items: [
@@ -1285,7 +1285,7 @@ export const pagesEn: PagesMessages = {
             q: "What is the English Premier League (EPL)?",
             a: [
               { type: "p", text: "The most popular football championship in the world. Twenty English clubs (Manchester City, Liverpool, Arsenal, etc.) play each other from August to May." },
-              { type: "p", text: "MOVEMATCH uses real match stats from the EPL — your “virtual” players are real footballers playing real matches." },
+              { type: "p", text: "FORM8 uses real match stats from the EPL — your “virtual” players are real footballers playing real matches." },
             ],
           },
           {
@@ -1293,7 +1293,7 @@ export const pagesEn: PagesMessages = {
             q: "What is a “gameweek”?",
             a: [
               { type: "p", text: "One round of fixtures. Usually 10 matches across 2–3 days (Friday to Sunday, sometimes Monday)." },
-              { type: "p", text: "Each gameweek on MOVEMATCH is a self-contained contest: pick a squad → matches play → points are tallied → prizes are paid. Then the next round opens." },
+              { type: "p", text: "Each gameweek on FORM8 is a self-contained contest: pick a squad → matches play → points are tallied → prizes are paid. Then the next round opens." },
             ],
           },
           {
@@ -1318,7 +1318,7 @@ export const pagesEn: PagesMessages = {
                   "FWD (forward / striker) — main job is to score goals.",
                 ],
               },
-              { type: "p", text: "On MOVEMATCH you pick 11 players in a standard fantasy formation (1 GK + 3–5 DEF + 3–5 MID + 1–3 FWD)." },
+              { type: "p", text: "On FORM8 you pick 11 players in a standard fantasy formation (1 GK + 3–5 DEF + 3–5 MID + 1–3 FWD)." },
             ],
           },
           {
@@ -1372,14 +1372,14 @@ export const pagesEn: PagesMessages = {
             q: "What is a crypto wallet and why do I need one?",
             a: [
               { type: "p", text: "A wallet is a small app (browser extension or phone app) that holds your crypto and signs your actions on a blockchain." },
-              { type: "p", text: "On MOVEMATCH the wallet is your account — your login, your bank, and your way to confirm “yes, I want to register this squad”." },
+              { type: "p", text: "On FORM8 the wallet is your account — your login, your bank, and your way to confirm “yes, I want to register this squad”." },
             ],
           },
           {
             id: "which-wallet",
             q: "Which wallet do I need? Where do I get it?",
             a: [
-              { type: "p", text: "MOVEMATCH supports Phantom and Solflare — pick either when you press “Connect wallet”." },
+              { type: "p", text: "FORM8 supports Phantom and Solflare — pick either when you press “Connect wallet”." },
               { type: "p", text: "Phantom (recommended) is the most widely used Solana wallet: phantom.com. Self-custodial, available as a Chrome extension and as a phone app (iOS / Android) — send, swap, connect to dApps." },
               { type: "p", text: "Solflare (alternative) also works everywhere on Solana — extension plus mobile app from solflare.com. Handy if you already use Solflare." },
               {
@@ -1398,7 +1398,7 @@ export const pagesEn: PagesMessages = {
             q: "What is Solana and what is USDC?",
             a: [
               { type: "p", text: "Solana is a blockchain network (think of it like the internet, but for crypto) — fast, and transaction fees are fractions of a cent." },
-              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On MOVEMATCH you pay squad entry fees and receive prizes in USDC. Get it via swap inside Phantom or Solflare, or transfer it from an exchange." },
+              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On FORM8 you pay squad entry fees and receive prizes in USDC. Get it via swap inside Phantom or Solflare, or transfer it from an exchange." },
             ],
           },
           {
@@ -1412,7 +1412,7 @@ export const pagesEn: PagesMessages = {
                   "In Phantom or Solflare, open Swap and exchange SOL (or another token you already hold) for USDC — takes a few taps.",
                   "Or withdraw USDC on the Solana network straight from an exchange such as Binance, Coinbase, or Kraken.",
                   "You need at least 5 USDC to register one squad. Keep a little SOL on the wallet for network fees.",
-                  "Open MOVEMATCH → Connect wallet → pick Phantom or Solflare → Squad page → Confirm squad and sign.",
+                  "Open FORM8 → Connect wallet → pick Phantom or Solflare → Squad page → Confirm squad and sign.",
                 ],
               },
               {
@@ -1427,7 +1427,7 @@ export const pagesEn: PagesMessages = {
             a: [
               { type: "p", text: "Yes. “Connect wallet” is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
               { type: "p", text: "You always sign inside your wallet window (Phantom or Solflare). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
-              { type: "p", text: "Simple rule of thumb: always check the URL — only use the official MOVEMATCH address." },
+              { type: "p", text: "Simple rule of thumb: always check the URL — only use the official FORM8 address." },
             ],
           },
           {
@@ -1435,7 +1435,7 @@ export const pagesEn: PagesMessages = {
             q: "What is a smart contract and why does it matter?",
             a: [
               { type: "p", text: "A smart contract is a program that runs automatically on a blockchain with no middlemen. Its code is open and cannot be silently changed." },
-              { type: "p", text: "On MOVEMATCH the contract handles taking your entry fee into the pool, locking your squad so even the developers cannot tamper with it, and paying out the top 10." },
+              { type: "p", text: "On FORM8 the contract handles taking your entry fee into the pool, locking your squad so even the developers cannot tamper with it, and paying out the top 10." },
               { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your USDC." },
             ],
           },
@@ -1464,7 +1464,7 @@ export const pagesEn: PagesMessages = {
                   "1. Install Phantom from phantom.com (recommended) or Solflare from solflare.com.",
                   "2. Create a wallet and back up the seed phrase on paper.",
                   "3. Get USDC — swap inside the wallet or withdraw it from an exchange on the Solana network. You need ~5 USDC + a bit of SOL for fees.",
-                  "4. On MOVEMATCH press “Connect wallet” and pick Phantom or Solflare.",
+                  "4. On FORM8 press “Connect wallet” and pick Phantom or Solflare.",
                   "5. Open the Squad page and pick 11 starters + 3 bench players.",
                   "6. Press “Confirm squad” and sign the transaction in your wallet.",
                   "7. Wait for kickoff — points are tallied automatically from there.",
@@ -1590,7 +1590,7 @@ export const pagesEn: PagesMessages = {
             a: [
               {
                 type: "p",
-                text: "Season Points (SP) are a season-long loyalty score that tracks your activity across MoveMatch. The SP season begins with World Cup tournaments and continues into the EPL, with the same streak carrying over between both competitions.",
+                text: "Season Points (SP) are a season-long loyalty score that tracks your activity across FORM8. The SP season begins with World Cup tournaments and continues into the EPL, with the same streak carrying over between both competitions.",
               },
               { type: "p", text: "You can earn SP by:" },
               {
@@ -1605,7 +1605,7 @@ export const pagesEn: PagesMessages = {
               },
               {
                 type: "p",
-                text: "Season Points don't affect gameplay or give any competitive advantage. They simply help us recognize the most active and consistent members of the MoveMatch community over time.",
+                text: "Season Points don't affect gameplay or give any competitive advantage. They simply help us recognize the most active and consistent members of the FORM8 community over time.",
               },
               {
                 type: "p",
@@ -1628,7 +1628,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-scam",
             q: "How do I know this is not a scam?",
             a: [
-              { type: "p", text: "Every key action — your squad, the prize pool, the points, the payouts — is recorded on the Solana blockchain and can be verified in a public explorer. No one, not even the MOVEMATCH developers, can silently change anything." },
+              { type: "p", text: "Every key action — your squad, the prize pool, the points, the payouts — is recorded on the Solana blockchain and can be verified in a public explorer. No one, not even the FORM8 developers, can silently change anything." },
               { type: "p", text: "The admin cannot: replace your squad after the deadline, take from the prize pool, or rewrite points. The smart contract simply does not allow it." },
             ],
           },
@@ -1644,7 +1644,7 @@ export const pagesEn: PagesMessages = {
             id: "lost-seed",
             q: "What if I lose my wallet seed phrase?",
             a: [
-              { type: "p", text: "MOVEMATCH cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Phantom, Solflare, nor MOVEMATCH have access to it." },
+              { type: "p", text: "FORM8 cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Phantom, Solflare, nor FORM8 have access to it." },
               { type: "p", text: "If the seed is lost, the wallet (and any funds in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
             ],
           },
@@ -1999,7 +1999,7 @@ export const pagesUk: PagesMessages = {
     seasonTag: (label) => `Сезон ${label}`,
     pageTitle: "Season Points",
     subtitleLead:
-      "Season Points (SP) — це наш спосіб виміряти твій внесок протягом сезону. Вони відображають активність, участь і стабільність у MoveMatch.",
+      "Season Points (SP) — це наш спосіб виміряти твій внесок протягом сезону. Вони відображають активність, участь і стабільність у FORM8.",
     subtitleBenefits:
       "Сьогодні SP не дають прямих бонусів, але допоможуть нам знаходити й винагороджувати найактивніших учасників, коли з’являться нові можливості. Детальніше в ",
     faqInlineLink: "FAQ",
@@ -2138,7 +2138,7 @@ export const pagesUk: PagesMessages = {
     clipboardHint:
       "X відкрився в новій вкладці. Зображення в буфері — встав у вікно поста (⌘V).",
     registeredShareButton: "Поділитись у X",
-    posterCta: "Збери свій склад на MoveMatch",
+    posterCta: "Збери свій склад на FORM8",
     tweetXiLabel: "Основа",
     tweetBenchLabel: "Запас",
     tweetHeaderGw: (gw) => `Мій склад ${gw} на @MoveMatchxyz ⚽`,
@@ -2317,9 +2317,9 @@ export const pagesUk: PagesMessages = {
         items: [
           {
             id: "what-is-movematch",
-            q: "Що таке MOVEMATCH простими словами?",
+            q: "Що таке FORM8 простими словами?",
             a: [
-              { type: "p", text: "MOVEMATCH — це фентезі-футбол на Англійську Прем'єр-лігу (АПЛ). Алгоритм простий:" },
+              { type: "p", text: "FORM8 — це фентезі-футбол на Англійську Прем'єр-лігу (АПЛ). Алгоритм простий:" },
               {
                 type: "ul",
                 items: [
@@ -2369,7 +2369,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Англійська Прем'єр-ліга (АПЛ)?",
             a: [
               { type: "p", text: "Найпопулярніший футбольний чемпіонат у світі. 20 англійських клубів (Манчестер Сіті, Ліверпуль, Арсенал та інші) грають один з одним з серпня по травень." },
-              { type: "p", text: "У MOVEMATCH ми використовуємо реальну статистику з матчів АПЛ — тому твої «віртуальні» гравці насправді справжні футболісти, які виходять на поле." },
+              { type: "p", text: "У FORM8 ми використовуємо реальну статистику з матчів АПЛ — тому твої «віртуальні» гравці насправді справжні футболісти, які виходять на поле." },
             ],
           },
           {
@@ -2377,7 +2377,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке тур (gameweek)?",
             a: [
               { type: "p", text: "Один раунд матчів. Зазвичай це 10 матчів за 2-3 дні (десь з п'ятниці по неділю, інколи понеділок)." },
-              { type: "p", text: "Кожен тур у MOVEMATCH — окремий конкурс: збираєш склад → грає тур → нараховуються очки → виплачуються призи. Потім — наступний тур." },
+              { type: "p", text: "Кожен тур у FORM8 — окремий конкурс: збираєш склад → грає тур → нараховуються очки → виплачуються призи. Потім — наступний тур." },
             ],
           },
           {
@@ -2402,7 +2402,7 @@ export const pagesUk: PagesMessages = {
                   "FWD (нападник) — головна задача — забивати голи.",
                 ],
               },
-              { type: "p", text: "У MOVEMATCH потрібно вибрати 11 гравців у стандартній фентезі-формації (1 воротар + 3-5 захисників + 3-5 півзахисників + 1-3 нападники)." },
+              { type: "p", text: "У FORM8 потрібно вибрати 11 гравців у стандартній фентезі-формації (1 воротар + 3-5 захисників + 3-5 півзахисників + 1-3 нападники)." },
             ],
           },
           {
@@ -2456,14 +2456,14 @@ export const pagesUk: PagesMessages = {
             q: "Що таке крипто-гаманець і навіщо він мені?",
             a: [
               { type: "p", text: "Гаманець — це програма (розширення для браузера або застосунок на телефоні), яка зберігає твою криптовалюту і «підписує» твої дії в блокчейні." },
-              { type: "p", text: "На MOVEMATCH гаманець — твій акаунт: і логін, і банк, і спосіб підтвердити «так, я хочу зареєструвати цей склад на цей тур»." },
+              { type: "p", text: "На FORM8 гаманець — твій акаунт: і логін, і банк, і спосіб підтвердити «так, я хочу зареєструвати цей склад на цей тур»." },
             ],
           },
           {
             id: "which-wallet",
             q: "Який гаманець потрібен? Де його взяти?",
             a: [
-              { type: "p", text: "MOVEMATCH підтримує Phantom і Solflare — обери будь-який, коли натискаєш «Підключити гаманець»." },
+              { type: "p", text: "FORM8 підтримує Phantom і Solflare — обери будь-який, коли натискаєш «Підключити гаманець»." },
               { type: "p", text: "Phantom (рекомендуємо) — найпоширеніший гаманець для Solana: phantom.com. Self-custodial, є розширення для Chrome і застосунок для телефону (iOS / Android): відправка, своп, підключення до dApps." },
               { type: "p", text: "Solflare (альтернатива) теж працює всюди в Solana — розширення й мобільний застосунок із solflare.com. Зручно, якщо вже користуєшся Solflare." },
               {
@@ -2482,7 +2482,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Solana і USDC?",
             a: [
               { type: "p", text: "Solana — це блокчейн-мережа (як інтернет, тільки для криптовалют): швидка, а комісії за транзакції — частки цента." },
-              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На MOVEMATCH ти платиш внески за склад і отримуєш призи в USDC. Отримати можна свопом у Phantom чи Solflare або переказом із біржі." },
+              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На FORM8 ти платиш внески за склад і отримуєш призи в USDC. Отримати можна свопом у Phantom чи Solflare або переказом із біржі." },
             ],
           },
           {
@@ -2496,7 +2496,7 @@ export const pagesUk: PagesMessages = {
                   "У Phantom або Solflare відкрий Swap і обміняй SOL (чи інший токен на балансі) на USDC — кілька тапів.",
                   "Або виведи USDC у мережі Solana напряму з біржі — Binance, Coinbase, Kraken тощо.",
                   "Потрібно щонайменше 5 USDC на один склад. Залиш трохи SOL на комісії мережі.",
-                  "Заходь на MOVEMATCH → Підключи гаманець → обери Phantom або Solflare → Склад → Підтверди і підпиши.",
+                  "Заходь на FORM8 → Підключи гаманець → обери Phantom або Solflare → Склад → Підтверди і підпиши.",
                 ],
               },
               {
@@ -2511,7 +2511,7 @@ export const pagesUk: PagesMessages = {
             a: [
               { type: "p", text: "Так. «Підключити гаманець» — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
               { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Phantom або Solflare). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
-              { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу MOVEMATCH." },
+              { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу FORM8." },
             ],
           },
           {
@@ -2519,7 +2519,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке смарт-контракт і чому це важливо?",
             a: [
               { type: "p", text: "Смарт-контракт — це програма, яка автоматично виконується в блокчейні без посередників. Її код відкритий і його не можна непомітно змінити." },
-              { type: "p", text: "У MOVEMATCH контракт відповідає за: прийом твого внеску у фонд, фіксацію складу так, що ніхто (навіть розробники) не зможе його підмінити, і виплату призів топ-10." },
+              { type: "p", text: "У FORM8 контракт відповідає за: прийом твого внеску у фонд, фіксацію складу так, що ніхто (навіть розробники) не зможе його підмінити, і виплату призів топ-10." },
               { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїм USDC." },
             ],
           },
@@ -2548,7 +2548,7 @@ export const pagesUk: PagesMessages = {
                   "1. Встанови Phantom з phantom.com (рекомендуємо) або Solflare з solflare.com.",
                   "2. Створи акаунт і збережи seed-фразу на папері.",
                   "3. Отримай USDC — своп усередині гаманця або вивід із біржі в мережі Solana. Потрібно ~5 USDC + трохи SOL на комісії.",
-                  "4. На MOVEMATCH натисни «Підключити гаманець», обери Phantom або Solflare.",
+                  "4. На FORM8 натисни «Підключити гаманець», обери Phantom або Solflare.",
                   "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
                   "6. Натисни «Підтвердити склад» і підпиши транзакцію в гаманці.",
                   "7. Чекай початку туру — далі все рахується автоматично.",
@@ -2674,7 +2674,7 @@ export const pagesUk: PagesMessages = {
             a: [
               {
                 type: "p",
-                text: "Season Points (SP) — сезонний рахунок лояльності, який відстежує твою активність у MoveMatch. Сезон SP починається з турнірів Чемпіонату світу і продовжується в EPL — стрік зберігається між обома змаганнями.",
+                text: "Season Points (SP) — сезонний рахунок лояльності, який відстежує твою активність у FORM8. Сезон SP починається з турнірів Чемпіонату світу і продовжується в EPL — стрік зберігається між обома змаганнями.",
               },
               { type: "p", text: "SP можна отримати за:" },
               {
@@ -2689,7 +2689,7 @@ export const pagesUk: PagesMessages = {
               },
               {
                 type: "p",
-                text: "Season Points не впливають на геймплей і не дають конкурентної переваги. Вони допомагають нам бачити найактивніших і найстабільніших учасників спільноти MoveMatch.",
+                text: "Season Points не впливають на геймплей і не дають конкурентної переваги. Вони допомагають нам бачити найактивніших і найстабільніших учасників спільноти FORM8.",
               },
               {
                 type: "p",
@@ -2712,7 +2712,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-scam",
             q: "Як я знаю, що це не шахрайство?",
             a: [
-              { type: "p", text: "Усі ключові дії (твій склад, призовий фонд, очки, виплати) фіксуються в блокчейні Solana, і їх можна перевірити в публічному експлорері — ніхто, навіть розробники MOVEMATCH, не може непомітно нічого змінити." },
+              { type: "p", text: "Усі ключові дії (твій склад, призовий фонд, очки, виплати) фіксуються в блокчейні Solana, і їх можна перевірити в публічному експлорері — ніхто, навіть розробники FORM8, не може непомітно нічого змінити." },
               { type: "p", text: "Адміністрація НЕ може: підмінити чужий склад після дедлайну, забрати щось з призового фонду, переписати очки. Смарт-контракт цього просто не дозволяє." },
             ],
           },
@@ -2728,7 +2728,7 @@ export const pagesUk: PagesMessages = {
             id: "lost-seed",
             q: "А якщо я втратив seed-фразу від гаманця?",
             a: [
-              { type: "p", text: "MOVEMATCH тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Phantom, ні Solflare, ні MOVEMATCH не мають доступу до неї." },
+              { type: "p", text: "FORM8 тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Phantom, ні Solflare, ні FORM8 не мають доступу до неї." },
               { type: "p", text: "Якщо seed утрачено — гаманець (і кошти на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
             ],
           },

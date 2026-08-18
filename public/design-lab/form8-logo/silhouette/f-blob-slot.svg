@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="currentColor">
+
+  <defs>
+    <mask id="m">
+      <rect width="320" height="320" fill="white"/>
+      <rect x="138" y="96" width="44" height="128" rx="22" fill="black"/>
+    </mask>
+  </defs>
+  <path mask="url(#m)" d="
+    M160 36
+    C220 36 268 78 276 130
+    C284 182 260 230 220 262
+    C190 286 160 292 160 292
+    C160 292 130 286 100 262
+    C60 230 36 182 44 130
+    C52 78 100 36 160 36
+    Z
+  "/>
+</svg>

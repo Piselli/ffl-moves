@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { MENU_DESTINATIONS } from "./menuLinks";
@@ -59,17 +59,8 @@ export function PauseShell() {
       >
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="MoveMatch"
-              width={140}
-              height={90}
-              className="h-10 w-auto sm:h-11"
-              priority
-            />
-            <span className="font-display text-2xl font-black uppercase tracking-tighter sm:text-3xl">
-              MOVE<span className="text-[#00f948]">MATCH</span>
-            </span>
+            <Form8Mark className="h-10 sm:h-11" priority />
+            <Form8Wordmark className="text-2xl sm:text-3xl" />
           </Link>
           <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
             Paused · Select destination

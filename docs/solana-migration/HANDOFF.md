@@ -759,3 +759,28 @@ STOP — фаза 5 закрита. Далі фаза 6 (Opus 5).
 gameweek. Без попереднього `commit_stats` інструкція відхиляється (`StatsNotCommitted`).
 `commit_stats` також відхиляє нульовий hash. Оновлено `chainClient`, admin UI,
 тести, runbook §6. **Потрібен redeploy програми** (devnet і далі mainnet).
+
+---
+
+## 2026-08-15 — підготовка mainnet без SOL
+
+Власник не має зараз SOL / платного RPC. Зроблено все, що не вимагає грошей.
+
+**3-4-3 разом із 4-3-3**
+
+- `validate_team` у програмі пускає обидві схеми; Anchor-тест реєструє 3-4-3.
+- Клієнт відхиляє інші XI до відправки транзакції.
+- Пітч (реєстрація, лідерборд, share-постер) читає layout з `PITCH_SLOT_LAYOUTS`.
+- `MIN_PUBLIC_LEADERBOARD_GW` = 1 (новий сезон на Solana, не Movement 35+).
+
+**Артефакти деплою**
+
+- `[programs.mainnet]` у `Anchor.toml` — той самий program id, що на devnet.
+- `.env.example` має закоментований блок Vercel Production.
+- `npm run preflight:solana:offline` — ключі, INITIALIZER, USDC mint, house ATA
+  у скрипті, обидві схеми. Без RPC.
+- Runbook §9 розділяє безкоштовні галочки і те, що коштує SOL.
+
+**Далі, коли зʼявляться гроші:** ~3–4 SOL на deployer, Helius/QuickNode,
+`bash scripts/deploy-mainnet.sh`, `initialize-mainnet.mjs`, Vercel env,
+`create_gameweek` на GW1 (FPL дедлайн 2026-08-21 17:30 UTC).

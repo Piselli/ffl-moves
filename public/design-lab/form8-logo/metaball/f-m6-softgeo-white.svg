@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect width="640" height="640" fill="#fff"/>
+  <defs>
+<filter id="f-m6-softgeo-white" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+  <feColorMatrix in="blur" type="matrix"
+    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -10" result="goo"/>
+  <feComposite in="goo" in2="goo" operator="src"/>
+</filter>
+</defs><g filter="url(#f-m6-softgeo-white)" fill="#0a0a0a"><rect x="280" y="150" width="64" height="360" rx="32.0" ry="32.0"/><rect x="280" y="148" width="175" height="64" rx="32.0" ry="32.0"/><rect x="255" y="300" width="140" height="58" rx="29.0" ry="29.0"/><circle cx="312" cy="495" r="36"/></g><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f · metaball · soft-geo · on white</text>
+</svg>

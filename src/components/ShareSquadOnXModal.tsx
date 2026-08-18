@@ -138,7 +138,7 @@ export function ShareSquadOnXModal({
                   starters={starters}
                   bench={bench}
                   tourLabel={tourLabel}
-                  brandLabel="MoveMatch"
+                  brandLabel="FORM8"
                   startersLabel={g.startersSection}
                   benchLabel={g.benchSection}
                   ctaLine={ss.posterCta}
@@ -156,7 +156,7 @@ export function ShareSquadOnXModal({
               starters={starters}
               bench={bench}
               tourLabel={tourLabel}
-              brandLabel="MoveMatch"
+              brandLabel="FORM8"
               startersLabel={g.startersSection}
               benchLabel={g.benchSection}
               ctaLine={ss.posterCta}

@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   className?: string;
   src?: string;
+  /** Tailwind object-* position, e.g. object-center / object-[center_62%] */
+  objectClassName?: string;
   onImageLoad?: () => void;
   onImageError?: () => void;
 };
@@ -14,6 +16,7 @@ type Props = {
 export function LockerRoomBackground({
   className,
   src = "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png",
+  objectClassName = "object-center",
   onImageLoad,
   onImageError,
 }: Props) {
@@ -28,7 +31,7 @@ export function LockerRoomBackground({
         unoptimized
         quality={95}
         sizes="100vw"
-        className="object-cover object-center"
+        className={cn("object-cover", objectClassName)}
         style={{ imageRendering: "auto" }}
         onLoad={onImageLoad}
         onError={onImageError}

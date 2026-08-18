@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+  <rect width="640" height="640" fill="#ffffff"/>
+  <path d="M 220 175 V 470" fill="none" stroke="#0a0a0a" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/><path d="M 220 175 H 355" fill="none" stroke="#0a0a0a" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/><path d="M 185 320 H 405" fill="none" stroke="#0a0a0a" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/><path d="M 513 250 A 58 58 0 1 1 397 250 A 58 58 0 1 1 513 250" fill="none" stroke="#0a0a0a" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/><path d="M 513 356 A 58 58 0 1 1 397 356 A 58 58 0 1 1 513 356" fill="none" stroke="#0a0a0a" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f8 · ribbon · R4 crossbar ligature · on white</text>
+</svg>

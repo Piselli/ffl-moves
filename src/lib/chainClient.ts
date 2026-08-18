@@ -20,6 +20,7 @@ import {
   SOLANA_RPC_URL,
   SOLANA_USDC_MINT,
 } from "@/lib/constants";
+import { isValidStarterFormation } from "@/lib/formation";
 import {
   buildResultsTree,
   verifyResultProof,
@@ -521,11 +522,14 @@ export async function buildRegisterTeam(
   squad: UserTeam,
 ): Promise<TransactionInstruction[]> {
   if (squad.playerIds.length !== TEAM_SIZE || squad.positions.length !== TEAM_SIZE || squad.clubs.length !== TEAM_SIZE) {
-    throw new Error("A MoveMatch squad must contain exactly 14 players.");
+    throw new Error("A FORM8 squad must contain exactly 14 players.");
+  }
+  if (!isValidStarterFormation(squad.positions)) {
+    throw new Error("Starting XI must be 4-3-3 or 3-4-3.");
   }
   const ownerKey = key(owner);
   const config = await getConfig();
-  if (!config) throw new Error("MoveMatch has not been initialized on this network.");
+  if (!config) throw new Error("FORM8 has not been initialized on this network.");
   const treasury = treasuryPda();
   const ownerAta = getAssociatedTokenAddressSync(USDC_MINT, ownerKey);
   const treasuryAta = getAssociatedTokenAddressSync(USDC_MINT, treasury, true);

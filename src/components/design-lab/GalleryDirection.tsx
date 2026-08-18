@@ -36,7 +36,7 @@ export function GalleryDirection() {
 
       <div className="grid min-h-[480px] grid-cols-1 lg:grid-cols-[240px_1fr]">
         <aside className="border-b border-neutral-200 p-6 lg:border-b-0 lg:border-r">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">MoveMatch</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">FORM8</p>
           <nav className="mt-8 space-y-1 text-[13px] text-neutral-500">
             {["Squad", "Fixtures", "Leaderboard", "Archive"].map((item) => (
               <div

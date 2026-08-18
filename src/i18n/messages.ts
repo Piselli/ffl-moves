@@ -268,24 +268,24 @@ const uk: SiteMessages = {
       "У Safari потрібне окреме розширення Phantom (phantom.com/download).",
     solflareInstalledTips:
       "1) Іконка гаманця у панелі браузера → підключи цей сайт. 2) Обери Solana. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
-    socialXAria: "MoveMatch на X (Twitter) — новини та підтримка",
+    socialXAria: "FORM8 на X (Twitter) — новини та підтримка",
   },
   footer: {
     socialHint: "Питання й баги — у Telegram @movematch. Новини туру та оновлення — у X.",
     socialHintShort: "Питання в Telegram · новини в X",
-    socialAria: "MoveMatch на X (Twitter)",
+    socialAria: "FORM8 на X (Twitter)",
   },
   communityStrip: {
     label: "Новини та підтримка на",
     badge: "Спільнота",
-    aria: "MoveMatch на X (Twitter) — новини та підтримка",
+    aria: "FORM8 на X (Twitter) — новини та підтримка",
   },
   devBanner: {
     envHint:
       "Перевір .env.local: на mainnet не має бути devnet RPC або дефолтного program ID.",
   },
   home: {
-    heroAlt: "Тактична дошка MOVEMATCH",
+    heroAlt: "Тактична дошка FORM8",
     heroLine1: "Розбираєшся в АПЛ",
     heroLine2: "краще за інших?",
     heroLine3: "Час на цьому заробити",
@@ -510,24 +510,24 @@ const en: SiteMessages = {
       "Safari needs the separate Phantom Safari extension (phantom.com/download).",
     solflareInstalledTips:
       "1) Wallet toolbar icon → connect this site. 2) Select Solana. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
-    socialXAria: "MoveMatch on X (Twitter) — news and support",
+    socialXAria: "FORM8 on X (Twitter) — news and support",
   },
   footer: {
     socialHint: "Questions and bugs — Telegram @movematch. Gameweek news and updates — on X.",
     socialHintShort: "Questions on Telegram · news on X",
-    socialAria: "MoveMatch on X (Twitter)",
+    socialAria: "FORM8 on X (Twitter)",
   },
   communityStrip: {
     label: "News & support on",
     badge: "Community",
-    aria: "MoveMatch on X (Twitter) — news and support",
+    aria: "FORM8 on X (Twitter) — news and support",
   },
   devBanner: {
     envHint:
       "Check .env.local: avoid a devnet RPC or the default program ID on mainnet.",
   },
   home: {
-    heroAlt: "MOVEMATCH tactical board",
+    heroAlt: "FORM8 tactical board",
     heroLine1: "Know the EPL",
     heroLine2: "Better than everyone?",
     heroLine3: "Time to earn from it",

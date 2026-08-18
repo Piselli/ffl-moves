@@ -1,0 +1,13 @@
+{
+  "family": "alt-reset",
+  "note": "Hard reset. Literal 4-3-3 encoding dropped. D2 bar-family killed except keep baseline.",
+  "kept_baseline": "../formation-433/d2-keep.png",
+  "directions": [
+    { "id": "A1", "file": "form8-alt-f8.png", "name": "F8 ligature" },
+    { "id": "A2", "file": "form8-alt-slash.png", "name": "Slash ring" },
+    { "id": "A3", "file": "form8-alt-dual.png", "name": "Dual interlock" },
+    { "id": "A4", "file": "form8-alt-arcs.png", "name": "Arcs + core" },
+    { "id": "A5", "file": "form8-alt-ribbon.png", "name": "Ribbon fold" },
+    { "id": "A6", "file": "form8-alt-wedge.png", "name": "Wedge press" }
+  ]
+}

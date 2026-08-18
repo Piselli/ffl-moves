@@ -37,7 +37,7 @@ export function PosterDirection() {
             24
           </motion.p>
 
-          <p className="relative z-10 font-mono text-[10px] uppercase tracking-[0.3em] text-black/60">MoveMatch presents</p>
+          <p className="relative z-10 font-mono text-[10px] uppercase tracking-[0.3em] text-black/60">FORM8 presents</p>
 
           <motion.h2
             className="relative z-10 mt-4 font-black uppercase leading-[0.9] tracking-[-0.03em] text-[#e8e4dc]"

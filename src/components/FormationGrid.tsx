@@ -3,6 +3,12 @@
 import { Player } from "@/lib/types";
 import { PlayerCard } from "./PlayerCard";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_FORMATION,
+  formationRows,
+  slotPosition,
+  type FormationId,
+} from "@/lib/formation";
 
 interface FormationGridProps {
   starters: (Player | null)[];
@@ -10,18 +16,16 @@ interface FormationGridProps {
   onPlayerClick?: (index: number, isBench: boolean) => void;
   /** Static preview — no clicks or hover scale (e.g. marketing demo). */
   readOnly?: boolean;
+  formationId?: FormationId;
 }
 
 export function FormationGrid({
   starters,
   onPlayerClick,
   readOnly = false,
+  formationId = DEFAULT_FORMATION,
 }: FormationGridProps) {
-  // Formation: 4-3-3
-  // Index 0: GK
-  // Index 1-4: DEF
-  // Index 5-7: MID
-  // Index 8-10: FWD
+  const rows = formationRows(formationId);
 
   const renderSlot = (
     player: Player | null,
@@ -29,14 +33,8 @@ export function FormationGrid({
     isBench: boolean = false
   ) => {
     const position = isBench
-      ? ["DEF", "MID", "FWD"][index]
-      : index === 0
-      ? "GK"
-      : index <= 4
-      ? "DEF"
-      : index <= 7
-      ? "MID"
-      : "FWD";
+      ? (["DEF", "MID", "FWD"] as const)[index]
+      : slotPosition(index, formationId);
 
     const positionColors: Record<string, string> = {
       GK:  "border-rose-500/40    text-rose-400",
@@ -110,25 +108,17 @@ export function FormationGrid({
 
       {/* Formation layout */}
       <div className="relative space-y-6">
-        {/* Forwards (3) */}
-        <div className="flex justify-center gap-8">
-          {[8, 9, 10].map((i) => renderSlot(starters[i], i))}
-        </div>
-
-        {/* Midfielders (3) */}
-        <div className="flex justify-center gap-8">
-          {[5, 6, 7].map((i) => renderSlot(starters[i], i))}
-        </div>
-
-        {/* Defenders (4) */}
-        <div className="flex justify-center gap-6">
-          {[1, 2, 3, 4].map((i) => renderSlot(starters[i], i))}
-        </div>
-
-        {/* Goalkeeper (1) */}
-        <div className="flex justify-center">
-          {renderSlot(starters[0], 0)}
-        </div>
+        {rows.map((row) => (
+          <div
+            key={row.join("-")}
+            className={cn(
+              "flex justify-center",
+              row.length >= 4 ? "gap-6" : "gap-8",
+            )}
+          >
+            {row.map((i) => renderSlot(starters[i], i))}
+          </div>
+        ))}
       </div>
 
     </div>

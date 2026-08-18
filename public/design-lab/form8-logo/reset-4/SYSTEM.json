@@ -1,0 +1,14 @@
+{
+  "family": "reset-4",
+  "lanes": [
+    "lettermark-F",
+    "F8-ligature",
+    "wordmark",
+    "wear-prop"
+  ],
+  "reject": [
+    "pitch diagrams",
+    "4-3-3 silhouettes",
+    "abstract no-meaning marks"
+  ]
+}

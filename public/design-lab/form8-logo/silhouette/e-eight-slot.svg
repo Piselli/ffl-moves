@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="currentColor">
+
+  <defs>
+    <mask id="m">
+      <rect width="320" height="320" fill="white"/>
+      <rect x="140" y="188" width="40" height="88" rx="20" fill="black"/>
+    </mask>
+  </defs>
+  <g mask="url(#m)">
+    <circle cx="160" cy="100" r="78"/>
+    <circle cx="160" cy="220" r="90"/>
+  </g>
+</svg>

@@ -37,7 +37,7 @@ export function BroadcastStudioShell() {
             On air
           </span>
           <span className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">
-            MoveMatch Studio · GW {data.gameweek} Results
+            FORM8 Studio · GW {data.gameweek} Results
           </span>
         </div>
 

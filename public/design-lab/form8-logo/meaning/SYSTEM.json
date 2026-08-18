@@ -1,0 +1,13 @@
+{
+  "family": "meaning-first",
+  "rule": "Every mark must carry readable football or brand meaning",
+  "maybe": "maybe-dual.png",
+  "directions": [
+    { "id": "M1", "file": "m-letterf.png", "sense": "Form / formation lettermark" },
+    { "id": "M2", "file": "m-pitch.png", "sense": "Football pitch" },
+    { "id": "M3", "file": "m-halves.png", "sense": "Pitch halves + center line" },
+    { "id": "M4", "file": "m-triangle.png", "sense": "Passing / coaching triangle" },
+    { "id": "M5", "file": "m-goal.png", "sense": "Goal mouth" },
+    { "id": "M6", "file": "m-eight.png", "sense": "form8 numeral" }
+  ]
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { cn } from "@/lib/utils";
 import { LAB_LEADERBOARD } from "./mockData";
 
@@ -32,10 +32,8 @@ export function GlassDepthShell() {
       <header className="relative z-20">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="" width={120} height={76} className="h-7 w-auto" />
-            <span className="font-display text-sm font-black uppercase tracking-tighter">
-              MOVE<span className="text-[#00f948]">MATCH</span>
-            </span>
+            <Form8Mark className="h-7" />
+            <Form8Wordmark className="text-sm" />
           </Link>
           <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60 backdrop-blur-md">
             GW {data.gameweek} · Resolved

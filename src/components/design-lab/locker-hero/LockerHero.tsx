@@ -22,6 +22,14 @@ import { useLockerHeroData } from "./useLockerHeroData";
 import { useSquadPick } from "./useSquadPick";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
+import {
+  getTabletVariant,
+  HOMEPAGE_COMPARE_VARIANTS,
+  loadHomepageLookId,
+  saveHomepageLookId,
+  SHIPPING_TABLET_VARIANT,
+  type TabletVariantId,
+} from "./tabletVariants";
 
 const TabletScene = dynamic(
   () => import("./TabletScene").then((module) => module.TabletScene),
@@ -76,6 +84,8 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const [pointerInTablet, setPointerInTablet] = useState(false);
   const [pitchStyleId, setPitchStyleId] =
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
+  const [homeLookId, setHomeLookId] =
+    useState<TabletVariantId>(SHIPPING_TABLET_VARIANT);
 
   useEffect(() => {
     if (!isSite) return;
@@ -105,12 +115,22 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   }, [isSite]);
 
   useEffect(() => {
+    if (isSite) return;
+    setHomeLookId(loadHomepageLookId());
+  }, [isSite]);
+
+  useEffect(() => {
     setPitchStyleId(loadPitchStyleId());
   }, []);
 
   const onPitchStyleChange = useCallback((id: PitchStyleId) => {
     setPitchStyleId(id);
     savePitchStyleId(id);
+  }, []);
+
+  const onHomeLookChange = useCallback((id: TabletVariantId) => {
+    setHomeLookId(id);
+    saveHomepageLookId(id);
   }, []);
 
   const onPick = useCallback(
@@ -186,6 +206,12 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
               ← All directions
             </Link>
             <Link
+              href="/design-lab/locker-tablet"
+              className="pointer-events-auto text-[11px] text-violet-300/80 underline-offset-2 hover:text-violet-200 hover:underline"
+            >
+              iPad Refero styles
+            </Link>
+            <Link
               href="/design-lab/locker-hero/nameplates"
               className="pointer-events-auto text-[11px] text-amber-300/70 underline-offset-2 hover:text-amber-200 hover:underline"
             >
@@ -195,7 +221,13 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
               href="/design-lab/locker-leaderboard"
               className="pointer-events-auto text-[11px] text-sky-300/70 underline-offset-2 hover:text-sky-200 hover:underline"
             >
-              Leaderboard A/B
+              Lounge TV
+            </Link>
+            <Link
+              href="/design-lab/desk-results"
+              className="pointer-events-auto text-[11px] text-lime-300/70 underline-offset-2 hover:text-lime-200 hover:underline"
+            >
+              Desk results archive
             </Link>
             <Link
               href="/design-lab/locker-menu"
@@ -224,6 +256,62 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       )}
 
       <LockerLabNav liveLinks={!isLab} />
+
+      {isLab ? (
+        <aside className="pointer-events-none absolute bottom-4 right-3 top-20 z-[75] flex w-[9.5rem] flex-col sm:right-5 sm:w-[11rem]">
+          <div className="pointer-events-auto flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/12 bg-black/55 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+            <p className="px-1.5 pb-1 font-display text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">
+              Look archive
+            </p>
+            <p className="mb-1.5 px-1.5 text-[8px] leading-snug text-white/30">
+              Shipping = Crystal. Switch here to compare.
+            </p>
+            <div className="space-y-1">
+              {HOMEPAGE_COMPARE_VARIANTS.map((id) => {
+                const v = getTabletVariant(id);
+                const on = homeLookId === id;
+                const shipping = id === SHIPPING_TABLET_VARIANT;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => onHomeLookChange(id)}
+                    className={cn(
+                      "w-full rounded-xl px-2 py-2 text-left transition active:scale-[0.98]",
+                      on
+                        ? "bg-white/15 ring-1 ring-white/35"
+                        : "bg-white/[0.03] hover:bg-white/[0.07]",
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "font-display text-[10px] font-black uppercase tracking-wide",
+                        on ? "text-white" : "text-white/75",
+                      )}
+                    >
+                      {id === "current" ? "Obsidian" : "Crystal"}
+                      {shipping ? (
+                        <span className="ml-1 text-[8px] font-bold text-[#00f948]/80">
+                          LIVE
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-[9px] leading-snug text-white/40">
+                      {v.hook}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <Link
+              href="/design-lab/locker-tablet"
+              className="mt-2 block px-1.5 text-[9px] text-violet-300/70 underline-offset-2 hover:text-violet-200 hover:underline"
+            >
+              All iPad styles →
+            </Link>
+          </div>
+        </aside>
+      ) : null}
 
       <div
         className={cn(
@@ -258,6 +346,9 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
             onRandom={() => squad.randomize(data.players)}
             pitchStyleId={pitchStyleId}
             onPitchStyleChange={onPitchStyleChange}
+            tabletVariantId={isSite ? SHIPPING_TABLET_VARIANT : homeLookId}
+            formationId={squad.formationId}
+            onFormationChange={squad.setFormationId}
           />
         </TabletScene>
       </div>

@@ -114,7 +114,7 @@ export function PerforatedSlotPreview() {
           <ScreenLabel n="01" title="Entry ticket" />
           <div className="aspect-[3/4] border p-4" style={{ borderColor: "rgba(240,236,228,0.15)", backgroundColor: "#0a0908" }}>
             <div className="flex justify-between font-mono text-[8px] uppercase tracking-widest" style={{ color: SLOT.muted }}>
-              <span>MoveMatch</span>
+              <span>FORM8</span>
               <span>GW 24</span>
             </div>
             <Perforation className="my-3" />

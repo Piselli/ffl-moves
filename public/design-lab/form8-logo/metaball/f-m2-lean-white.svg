@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect width="640" height="640" fill="#fff"/>
+  <defs>
+<filter id="f-m2-lean-white" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+  <feColorMatrix in="blur" type="matrix"
+    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -10" result="goo"/>
+  <feComposite in="goo" in2="goo" operator="src"/>
+</filter>
+</defs><g filter="url(#f-m2-lean-white)" fill="#0a0a0a"><rect x="275" y="145" width="60" height="365" rx="30.0" ry="30.0"/><rect x="275" y="142" width="185" height="60" rx="30.0" ry="30.0"/><rect x="275" y="285" width="125" height="54" rx="27.0" ry="27.0"/><circle cx="305" cy="495" r="38"/></g><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f · metaball · lean · on white</text>
+</svg>

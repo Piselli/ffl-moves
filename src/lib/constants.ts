@@ -10,8 +10,8 @@ function publicEnv(s: string | undefined): string | undefined {
 /** Squad registration entry fee in USDC (on-chain: 5_000_000 micro-units). */
 export const ENTRY_FEE_USDC = 5;
 
-/** First gameweek shown in leaderboard UI (earlier weeks were test / internal). */
-export const MIN_PUBLIC_LEADERBOARD_GW = 35;
+/** First gameweek shown in leaderboard UI. Solana season starts at GW1. */
+export const MIN_PUBLIC_LEADERBOARD_GW = 1;
 
 // Title types
 export const TITLE_TYPES = {
@@ -44,7 +44,8 @@ export const POSITION_NAMES = {
   3: "FWD",
 } as const;
 
-// Formation requirements (4-3-3)
+// Formation totals shared by every scheme (4-3-3 / 3-4-3).
+// Per-row counts live in `src/lib/formation.ts` — default scheme remains 4-3-3.
 export const FORMATION = {
   GK: 1,
   DEF: 4,

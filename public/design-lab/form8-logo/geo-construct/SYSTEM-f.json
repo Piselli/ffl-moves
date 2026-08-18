@@ -1,0 +1,12 @@
+{
+  "family": "geo",
+  "subject": "f only",
+  "variants": [
+    "f-g1-ear",
+    "f-g2-flat",
+    "f-g3-caps"
+  ],
+  "s": 44,
+  "R": 88,
+  "r": 44
+}

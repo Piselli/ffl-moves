@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect width="640" height="640" fill="#ffffff"/>
+  <defs>
+<filter id="mb-m1-f-white" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur"/>
+  <feColorMatrix in="blur" type="matrix"
+    values="1 0 0 0 0
+            0 1 0 0 0
+            0 0 1 0 0
+            0 0 0 28 -10" result="goo"/>
+  <feComposite in="goo" in2="goo" operator="src"/>
+</filter>
+</defs><g filter="url(#mb-m1-f-white)" fill="#0a0a0a"><rect x="250" y="160" width="72" height="340" rx="36.0" ry="36.0"/><rect x="250" y="155" width="200" height="72" rx="36.0" ry="36.0"/><circle cx="450" cy="191.0" r="36.0"/><rect x="250" y="300" width="110" height="61.199999999999996" rx="30.599999999999998" ry="30.599999999999998"/><circle cx="286.0" cy="480" r="44.64"/><circle cx="230" cy="310" r="28"/></g><text x="28" y="612" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9a9a9a">f8 · metaball · m1-f · on white</text>
+</svg>

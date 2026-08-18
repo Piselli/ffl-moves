@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MENU_DESTINATIONS } from "./menuLinks";
@@ -24,16 +24,8 @@ export function BayRailShell() {
 
       <header className="relative z-20 mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt="MoveMatch"
-            width={120}
-            height={76}
-            className="h-7 w-auto"
-          />
-          <span className="font-display text-sm font-black uppercase tracking-tighter drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-            MOVE<span className="text-[#00f948]">MATCH</span>
-          </span>
+          <Form8Mark className="h-7" />
+          <Form8Wordmark className="text-sm drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" />
         </Link>
         <button
           type="button"
