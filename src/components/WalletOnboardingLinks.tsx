@@ -62,11 +62,13 @@ export function WalletOnboardingLinks({
       ? {
           phantom: "Встановити Phantom",
           solflare: "Встановити Solflare",
+          jupiter: "Встановити Jupiter",
           usdc: "Отримати devnet USDC",
         }
       : {
           phantom: "Install Phantom",
           solflare: "Install Solflare",
+          jupiter: "Install Jupiter",
           usdc: "Get devnet USDC",
         };
 
@@ -88,6 +90,14 @@ export function WalletOnboardingLinks({
         className={secondaryLinkClass}
       >
         {t.solflare}
+      </a>
+      <a
+        href="https://jup.ag/download"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={secondaryLinkClass}
+      >
+        {t.jupiter}
       </a>
       <a
         href="https://faucet.circle.com/"

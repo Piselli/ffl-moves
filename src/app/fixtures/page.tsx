@@ -276,7 +276,7 @@ export default function FixturesPage() {
               className="pt-4 text-center"
             >
               <Link
-                href="/gameweek"
+                href="/"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#00f948] text-black font-display font-black uppercase tracking-widest text-sm hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_20px_rgba(0,249,72,0.25)]"
               >
                 {fx.buildSquad}

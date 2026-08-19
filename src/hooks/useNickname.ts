@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 
 const STORAGE_KEY = "fflmove_nicknames";
+const NICK_EVENT = "ffl:nicknames";
 
 /**
  * Solana addresses are case-sensitive base58, so they are their own canonical
@@ -26,7 +27,14 @@ export function useNickname(address?: string | null) {
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setNicknames(readAll());
+    const sync = () => setNicknames(readAll());
+    sync();
+    window.addEventListener(NICK_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(NICK_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   const getNickname = useCallback(
@@ -46,6 +54,7 @@ export function useNickname(address?: string | null) {
     all[addressKey(addr)] = trimmed;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     setNicknames({ ...all });
+    window.dispatchEvent(new Event(NICK_EVENT));
   }, []);
 
   const hasNickname = useCallback(

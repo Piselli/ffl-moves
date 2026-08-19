@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { WalletName } from "@solana/wallet-adapter-base";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet as useAppWallet } from "@/hooks/useSolanaWallet";
 import {
   isMobileBrowser,
   solanaWalletConnectRows,
@@ -22,9 +24,16 @@ function openingMessage(
  * Connect to a Solana wallet from a direct click handler.
  * The selected adapter is connected directly in the click stack so browser
  * extensions can open their approval window without a React-state race.
+ *
+ * After logout, Phantom (Wallet Standard) often still has an authorized
+ * account, so `connect()` resolves immediately and emits `connect` before
+ * WalletProvider has attached listeners to the newly selected adapter.
+ * Re-emit once the provider is listening so the app session updates
+ * without a full page reload.
  */
 export function useWalletConnect() {
-  const { connected, wallets, select, connecting } = useWallet();
+  const { wallets, wallet, select, connecting } = useWallet();
+  const { connected } = useAppWallet();
   const { lastError, clearError } = useWalletAdapterError();
   const m = useSiteMessages();
   const [pending, setPending] = useState(false);
@@ -32,11 +41,13 @@ export function useWalletConnect() {
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const connectedRef = useRef(connected);
   connectedRef.current = connected;
+  const pendingNameRef = useRef<string | null>(null);
 
   const walletRows = useMemo(
-    () => solanaWalletConnectRows(wallets.map(({ adapter }) => ({
+    () => solanaWalletConnectRows(wallets.map(({ adapter, readyState }) => ({
       name: adapter.name,
       icon: adapter.icon,
+      readyState,
     }))),
     [wallets],
   );
@@ -47,6 +58,20 @@ export function useWalletConnect() {
   const scanDone = !desktop || hasInstalled;
   const adapterReady = !connecting;
 
+  useEffect(() => {
+    if (!connected) return;
+    pendingNameRef.current = null;
+    setPending(false);
+    setStatusLine(null);
+  }, [connected]);
+
+  useEffect(() => {
+    if (!pendingNameRef.current || !wallet) return;
+    if (wallet.adapter.name !== pendingNameRef.current) return;
+    if (connected || !wallet.adapter.connected || !wallet.adapter.publicKey) return;
+    wallet.adapter.emit("connect", wallet.adapter.publicKey);
+  }, [connected, wallet]);
+
   const connectWallet = (walletName: string) => {
     if (pending) return;
 
@@ -54,34 +79,59 @@ export function useWalletConnect() {
     setHint(null);
     setStatusLine(openingMessage(walletName, m));
     setPending(true);
+    pendingNameRef.current = walletName;
 
     const watchdog = window.setTimeout(() => {
       if (!connectedRef.current) {
+        pendingNameRef.current = null;
         setHint(hasInstalled ? m.nav.connectHintInstalled : m.nav.connectHintNotInstalled);
         setStatusLine(null);
+        setPending(false);
       }
     }, 3500);
 
     try {
-      select(walletName as never);
-      const selected = wallets.find(({ adapter }) => adapter.name === walletName)?.adapter;
-      if (!selected) throw new Error(`Wallet ${walletName} is unavailable.`);
-      const result = selected.connect() as unknown;
+      const found = wallets.find(({ adapter }) => adapter.name === walletName);
+      const def = solanaWalletDefByAdapterName(walletName);
+      if (!found || found.readyState === "NotDetected" || found.readyState === "Unsupported") {
+        window.clearTimeout(watchdog);
+        pendingNameRef.current = null;
+        setPending(false);
+        setStatusLine(null);
+        if (def) {
+          window.open(
+            isMobileBrowser() ? def.downloadUrl : def.chromeExtensionUrl,
+            "_blank",
+            "noopener,noreferrer",
+          );
+        }
+        setHint(m.nav.connectHintNotInstalled);
+        return;
+      }
+      select(walletName as WalletName);
+      const result = found.adapter.connect() as unknown;
       Promise.resolve(result)
+        .then(() => {
+          window.clearTimeout(watchdog);
+          if (connectedRef.current) {
+            pendingNameRef.current = null;
+            setPending(false);
+            setStatusLine(null);
+          }
+        })
         .catch((e) => {
+          window.clearTimeout(watchdog);
+          pendingNameRef.current = null;
           console.error("Failed to connect:", e);
           const msg = e instanceof Error ? e.message : m.nav.connectHintFailed;
           setHint(msg);
           setStatusLine(null);
-        })
-        .finally(() => {
-          window.clearTimeout(watchdog);
           setPending(false);
-          if (connectedRef.current) setStatusLine(null);
         });
     } catch (e) {
       console.error("Failed to connect:", e);
       window.clearTimeout(watchdog);
+      pendingNameRef.current = null;
       setPending(false);
       setStatusLine(null);
       setHint(m.nav.connectHintFailed);

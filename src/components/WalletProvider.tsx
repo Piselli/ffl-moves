@@ -15,6 +15,7 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SOLANA_RPC_URL } from "@/lib/constants";
+import { PrivySolanaSession } from "@/components/PrivySolanaSession";
 
 type WalletAdapterErrorContextValue = {
   lastError: string | null;
@@ -34,6 +35,9 @@ const queryClient = new QueryClient();
 
 export function WalletProvider({ children }: PropsWithChildren) {
   const [lastError, setLastError] = useState<string | null>(null);
+  // Phantom + Solflare are registered explicitly so they always appear in the
+  // connect list. Jupiter (and other Wallet Standard wallets) is detected when
+  // the extension is installed — see SOLANA_WALLETS in solanaWallets.ts.
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
 
   return (
@@ -50,7 +54,9 @@ export function WalletProvider({ children }: PropsWithChildren) {
             console.error("Wallet adapter error:", error);
           }}
         >
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          <QueryClientProvider client={queryClient}>
+            <PrivySolanaSession>{children}</PrivySolanaSession>
+          </QueryClientProvider>
         </SolanaWalletProvider>
       </ConnectionProvider>
     </WalletAdapterErrorContext.Provider>

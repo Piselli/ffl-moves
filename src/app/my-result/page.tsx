@@ -471,10 +471,7 @@ export default function MyResultPage() {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
-            <Form8Wordmark
-              className="text-xs tracking-widest text-white/20"
-              accentClassName="text-[#00f948]/40"
-            />
+            <Form8Wordmark className="text-xs tracking-widest text-white/20" />
             <span className="text-[10px] text-white/15">{siteHost}</span>
           </div>
         </motion.div>
@@ -487,7 +484,7 @@ export default function MyResultPage() {
           className="mt-5"
         >
           <Link
-            href="/gameweek"
+            href="/"
             className="flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/[0.10] text-white/60 font-display font-bold uppercase tracking-wider text-sm hover:border-white/[0.20] hover:text-white/80 transition-all"
           >
             {mr.ctaNextGw}

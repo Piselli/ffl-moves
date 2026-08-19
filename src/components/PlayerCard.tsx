@@ -180,7 +180,7 @@ export function PlayerCard({
       <div
         onClick={onClick}
         className={cn(
-          "w-full h-full p-1.5 rounded-xl cursor-pointer transition-all flex flex-col items-center justify-between border-2 bg-black/50 backdrop-blur-sm shadow-lg",
+          "flex h-full w-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 bg-black/50 p-1.5 shadow-lg backdrop-blur-sm transition-[border-color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
           positionBorderCompact[player.position]
         )}
       >
@@ -207,10 +207,10 @@ export function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        "group p-3 rounded-2xl cursor-pointer transition-all duration-200 border",
+        "group cursor-pointer rounded-2xl border p-3 transition-[border-color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985]",
         selected
           ? "border-[#00f948]/30 bg-[#00f948]/[0.05] shadow-[0_0_15px_rgba(0,249,72,0.08)]"
-          : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12]"
+          : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.07]"
       )}
     >
       <div className="flex items-center gap-3">

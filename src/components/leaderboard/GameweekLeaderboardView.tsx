@@ -526,7 +526,7 @@ export function GameweekLeaderboardView() {
               </p>
             )}
             <a
-              href="/gameweek"
+              href="/"
               className="inline-flex items-center gap-2 rounded-xl border border-[#00f948]/20 bg-[#00f948]/10 px-6 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-[#00f948] transition-all hover:border-[#00f948]/30 hover:bg-[#00f948]/20"
             >
               {lb.registerSquadCta}

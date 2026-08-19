@@ -11,6 +11,7 @@ import {
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
 import { FormationPicker } from "@/components/FormationPicker";
+import { PositionFilterPills, type PositionFilter } from "@/components/PositionFilterPills";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
@@ -31,10 +32,15 @@ import {
   getGameweekStats,
   getTeamResult,
   getUserTeam,
+  buildRegisterTeam,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/chainClient";
-import { buildRegisterTeam, getUsdcBalance } from "@/lib/chainClient";
+import {
+  isInsufficientFundsError,
+  isWalletUserRejection,
+  shouldOpenDepositBeforeRegister,
+} from "@/lib/registerPayment";
 import Link from "next/link";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -47,8 +53,8 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
+import { useDeposit } from "@/components/DepositProvider";
 
-type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
 
@@ -145,7 +151,8 @@ function tryHydrateTeamDraftFromStorage(
 }
 
 export default function GameweekPage() {
-  const { connected, account, signAndSubmit } = useWallet();
+  const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
+  const { openDeposit } = useDeposit();
   const siteMessages = useSiteMessages();
   const g = siteMessages.pages.gameweek;
   const ss = siteMessages.pages.squadShare;
@@ -157,6 +164,7 @@ export default function GameweekPage() {
   const [formationId, setFormationIdState] =
     useState<FormationId>(DEFAULT_FORMATION);
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
+  const [activeSlot, setActiveSlot] = useState<{ index: number; isBench: boolean } | null>(null);
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -577,7 +585,21 @@ export default function GameweekPage() {
 
     if (!canSelectPlayer(player)) return;
 
-    const slot = getNextAvailableSlot(player.position);
+    let slot = getNextAvailableSlot(player.position);
+    if (
+      activeSlot &&
+      !activeSlot.isBench &&
+      !starters[activeSlot.index] &&
+      slotPosition(activeSlot.index, formationId) === player.position
+    ) {
+      slot = { index: activeSlot.index, isBench: false };
+    } else if (
+      activeSlot?.isBench &&
+      !bench[activeSlot.index] &&
+      player.position !== "GK"
+    ) {
+      slot = { index: activeSlot.index, isBench: true };
+    }
     if (!slot) return;
 
     if (slot.isBench) {
@@ -589,6 +611,7 @@ export default function GameweekPage() {
       newStarters[slot.index] = player;
       setStarters(newStarters);
     }
+    setActiveSlot(null);
   };
 
 
@@ -597,10 +620,19 @@ export default function GameweekPage() {
       const newBench = [...bench];
       newBench[index] = null;
       setBench(newBench);
-    } else if (!isBench && starters[index]) {
+      setActiveSlot(null);
+      return;
+    }
+    if (!isBench && starters[index]) {
       const newStarters = [...starters];
       newStarters[index] = null;
       setStarters(newStarters);
+      setActiveSlot(null);
+      return;
+    }
+    setActiveSlot({ index, isBench });
+    if (!isBench) {
+      setPositionFilter(slotPosition(index, formationId));
     }
   };
 
@@ -623,8 +655,13 @@ export default function GameweekPage() {
     if (!connected || !account || !isTeamComplete || !currentGameweek) return;
 
     const requiredRaw = config?.entryFee && config.entryFee > 0n ? config.entryFee : 5_000_000n;
-    const balance = await getUsdcBalance(account.address.toString());
-    if (balance < requiredRaw) {
+    if (
+      await shouldOpenDepositBeforeRegister(
+        account.address.toString(),
+        requiredRaw,
+        hasExternalWallet,
+      )
+    ) {
       setInsufficientFundsOpen(true);
       return;
     }
@@ -684,23 +721,9 @@ export default function GameweekPage() {
 
       // Clean, user-friendly error message (wallet vendors vary: "User rejected" vs "User has rejected the request", casing, EIP-1193 code 4001)
       const msg = getErrorMessage(error);
-      const msgLower = msg.toLowerCase();
-      const code = errRec?.code;
-      const isUserRejection =
-        code === 4001 ||
-        msgLower.includes("user rejected") ||
-        msgLower.includes("user has rejected") ||
-        msgLower.includes("rejected the request") ||
-        msgLower.includes("user denied") ||
-        msgLower.includes("denied transaction") ||
-        msgLower.includes("denied message") ||
-        msgLower.includes("request rejected") ||
-        msgLower.includes("cancelled") ||
-        msgLower.includes("canceled");
-
-      if (isUserRejection) {
-        // User dismissed the wallet prompt — no error alert
-      } else {
+      if (isInsufficientFundsError(error)) {
+        setInsufficientFundsOpen(true);
+      } else if (!isWalletUserRejection(error)) {
         alert(`${g.registerErrorPrefix} ${msg}`);
       }
     } finally {
@@ -770,7 +793,7 @@ export default function GameweekPage() {
             <button
               type="button"
               onClick={() => setShareModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white px-5 py-2.5 text-sm font-display font-black uppercase tracking-wide text-black transition-all hover:brightness-95"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white px-5 py-2.5 text-sm font-display font-black uppercase tracking-wide text-black transition-[filter,transform] duration-150 hover:brightness-95 active:scale-[0.98]"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -898,7 +921,7 @@ export default function GameweekPage() {
       onClick={handleRandomSquad}
       disabled={playersLoading || players.length === 0}
       className={cn(
-        "shrink-0 px-4 py-3 rounded-2xl font-display font-bold text-sm uppercase tracking-wide transition-all duration-200",
+        "shrink-0 px-4 py-3 rounded-2xl font-display font-bold text-sm uppercase tracking-wide transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         "bg-white/[0.04] border border-white/[0.12] text-white/70 hover:bg-white/[0.08] hover:text-white hover:border-[#00f948]/30",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.04] disabled:hover:text-white/70",
         extraClass,
@@ -913,7 +936,7 @@ export default function GameweekPage() {
       onClick={handleSubmitTeam}
       disabled={!isTeamComplete || isSubmitting}
       className={cn(
-        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-all duration-200",
+        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-[background-color,color,transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         isTeamComplete && !isSubmitting
           ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,249,72,0.25)]"
           : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed",
@@ -922,7 +945,7 @@ export default function GameweekPage() {
     >
       {isSubmitting ? g.submitRegistering : isTeamComplete
         ? g.submitConfirm(entryFeeLabel)
-        : g.submitNeedPlayers(totalCount, FORMATION.TOTAL)}
+        : `${g.submitNeedPlayers(totalCount, FORMATION.TOTAL)} ${g.submitNeedProgress(totalCount, FORMATION.TOTAL)}`}
     </button>
   );
 
@@ -977,6 +1000,7 @@ export default function GameweekPage() {
               starters={starters}
               onPlayerClick={handleSlotClick}
               formationId={formationId}
+              activeIndex={activeSlot && !activeSlot.isBench ? activeSlot.index : null}
             />
 
             {/* Bench */}
@@ -993,10 +1017,12 @@ export default function GameweekPage() {
                     key={idx}
                     onClick={() => handleSlotClick(idx, true)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-left",
+                      "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-[border-color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
                       player
                         ? "bg-white/[0.05] border-white/[0.12] hover:border-rose-400/40"
-                        : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
+                        : activeSlot?.isBench && activeSlot.index === idx
+                          ? "bg-white/[0.06] border-white/25 text-white/60"
+                          : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
                     )}
                   >
                     {player ? (
@@ -1035,23 +1061,11 @@ export default function GameweekPage() {
                 className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] focus:border-[#00f948]/30 transition-colors"
               />
             </div>
-            {/* Position filter */}
-            <div className="flex gap-2 flex-wrap">
-              {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
-                <button
-                  key={pos}
-                  onClick={() => setPositionFilter(pos)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                    positionFilter === pos
-                      ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30 shadow-[0_0_12px_rgba(0,249,72,0.15)]"
-                      : "bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/80"
-                  )}
-                >
-                  {pos}
-                </button>
-              ))}
-            </div>
+            <PositionFilterPills
+              value={positionFilter}
+              onChange={setPositionFilter}
+              layoutId="gw-pos"
+            />
             {/* Team filter */}
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1143,10 +1157,12 @@ export default function GameweekPage() {
             <FormationGrid
               starters={starters}
               onPlayerClick={(idx) => {
+                const occupied = Boolean(starters[idx]);
                 handleSlotClick(idx, false);
-                setMobileTab("players");
+                if (!occupied) setMobileTab("players");
               }}
               formationId={formationId}
+              activeIndex={activeSlot && !activeSlot.isBench ? activeSlot.index : null}
             />
             {/* Bench */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
@@ -1160,12 +1176,18 @@ export default function GameweekPage() {
                 {bench.map((player, idx) => (
                   <button
                     key={idx}
-                    onClick={() => { handleSlotClick(idx, true); if (player) setMobileTab("players"); }}
+                    onClick={() => {
+                      const occupied = Boolean(player);
+                      handleSlotClick(idx, true);
+                      if (!occupied) setMobileTab("players");
+                    }}
                     className={cn(
-                      "flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all text-left",
+                      "flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.98]",
                       player
                         ? "bg-white/[0.05] border-white/[0.12]"
-                        : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
+                        : activeSlot?.isBench && activeSlot.index === idx
+                          ? "bg-white/[0.06] border-white/25 text-white/60"
+                          : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20"
                     )}
                   >
                     {player ? (
@@ -1201,22 +1223,13 @@ export default function GameweekPage() {
                   className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] text-sm transition-colors"
                 />
               </div>
-              <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-                {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => setPositionFilter(pos)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all",
-                      positionFilter === pos
-                        ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30"
-                        : "bg-white/[0.04] border border-white/[0.08] text-white/50"
-                    )}
-                  >
-                    {pos}
-                  </button>
-                ))}
-              </div>
+              <PositionFilterPills
+                value={positionFilter}
+                onChange={setPositionFilter}
+                layoutId="gw-pos-m"
+                size="sm"
+                className="w-full"
+              />
               <div className="relative">
                 <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18M3 14h12M3 18h8" />
@@ -1288,7 +1301,7 @@ export default function GameweekPage() {
             <button
               onClick={() => setMobileTab("pitch")}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
+                "relative flex-1 flex flex-col items-center justify-center py-2 rounded-xl gap-0.5 transition-[color,transform] duration-150 active:scale-[0.97]",
                 mobileTab === "pitch" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60"
               )}
             >
@@ -1313,7 +1326,7 @@ export default function GameweekPage() {
             <button
               onClick={() => setMobileTab("players")}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5",
+                "relative flex-1 flex flex-col items-center justify-center py-2 rounded-xl gap-0.5 transition-[color,transform] duration-150 active:scale-[0.97]",
                 mobileTab === "players" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60"
               )}
             >
@@ -1330,6 +1343,10 @@ export default function GameweekPage() {
         open={insufficientFundsOpen}
         entryFeeLabel={entryFeeLabel}
         onClose={() => setInsufficientFundsOpen(false)}
+        onTopUp={() => {
+          setInsufficientFundsOpen(false);
+          openDeposit();
+        }}
       />
 
     </div>

@@ -225,7 +225,7 @@ export function AplHeroSlide({
           >
             {connected ? (
               <Link
-                href="/gameweek"
+                href="/"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00f948] px-10 py-5 font-display text-lg font-black uppercase tracking-widest text-black shadow-lg shadow-black/25 transition-all duration-200 hover:scale-[1.02] hover:brightness-110 sm:w-auto sm:min-w-[280px]"
               >
                 {m.home.ctaStart}

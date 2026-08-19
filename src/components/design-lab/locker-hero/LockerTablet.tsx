@@ -89,6 +89,15 @@ type Props = {
   tabletVariantId?: TabletVariantId;
   formationId?: FormationId;
   onFormationChange?: (id: FormationId) => void;
+  /** When set, the lime CTA registers in-place instead of leaving the tablet. */
+  onRegister?: () => void;
+  registerLabel?: string;
+  registerProgress?: string | null;
+  registerBusy?: boolean;
+  registerLocked?: boolean;
+  registerHint?: string | null;
+  /** Logged-out with a complete squad: lime CTA opens login instead of filling slots. */
+  registerEntry?: boolean;
 };
 
 function useDeadlineParts(target: string | null) {
@@ -786,6 +795,13 @@ export function LockerTablet({
   tabletVariantId = "crystal",
   formationId = DEFAULT_FORMATION,
   onFormationChange,
+  onRegister,
+  registerLabel,
+  registerProgress = null,
+  registerBusy = false,
+  registerLocked = false,
+  registerHint = null,
+  registerEntry = false,
 }: Props) {
   const reduceMotion = useReducedMotion() ?? false;
   const { variant: tabletVariant, palette, cta } =
@@ -957,7 +973,7 @@ export function LockerTablet({
         } as CSSProperties
       }
     >
-      <div className="relative flex h-7 shrink-0 items-center justify-between px-5 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)]">
+      <div className="relative hidden h-7 shrink-0 items-center justify-between px-5 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)] md:flex">
         <span>{clock}</span>
         <span className="tracking-[0.08em]">Wi-Fi&nbsp;&nbsp;100%</span>
       </div>
@@ -1002,14 +1018,14 @@ export function LockerTablet({
         </div>
       </header>
 
-      <main className="relative grid min-h-0 flex-1 grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] grid-rows-[minmax(0,1fr)_auto] gap-2.5 p-3 pt-2.5">
+      <main className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-1 grid-rows-none gap-2.5 overflow-y-auto overscroll-contain p-3 pt-2.5 md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
         <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "flex min-h-0 flex-col p-3",
+            "order-2 flex min-h-0 flex-col p-3 md:order-none md:col-start-1 md:row-start-1",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1068,7 +1084,7 @@ export function LockerTablet({
         {/* Pitch — flat top-down; scheme / turf chrome in bottom fringe */}
         <section
           className={cn(
-            "relative min-h-0 overflow-hidden rounded-2xl ring-1",
+            "relative order-1 min-h-[min(52vh,420px)] overflow-hidden rounded-2xl ring-1 md:order-none md:col-start-2 md:row-start-1 md:min-h-0",
             pitch.ring,
             isPlatesChrome && "rounded-[22px]",
             interactivePanels &&
@@ -1234,7 +1250,7 @@ export function LockerTablet({
                       type="button"
                       onClick={() => (p ? onClearSlot(idx) : onSlotClick(idx))}
                       className={cn(
-                        "flex h-[108px] w-[82px] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
+                        "flex h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
                         active && !p && "opacity-100",
                         active && p && "brightness-110",
                         isMotionChrome &&
@@ -1313,7 +1329,7 @@ export function LockerTablet({
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "flex min-h-0 flex-col overflow-hidden p-3",
+            "order-3 flex min-h-[50vh] flex-col overflow-hidden p-3 md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1472,7 +1488,7 @@ export function LockerTablet({
           {...(useMaterialShell ? glassProps : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "px-3.5 py-2.5",
+            "order-4 px-3.5 py-2.5 md:order-none md:col-start-1 md:row-start-2",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1494,7 +1510,7 @@ export function LockerTablet({
           </p>
         </Panel>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="order-5 grid grid-cols-2 gap-2.5 md:order-none md:col-start-2 md:row-start-2">
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
@@ -1601,7 +1617,12 @@ export function LockerTablet({
           </Panel>
         </div>
 
-        <div className="flex h-full min-h-0 items-stretch gap-2">
+        <div className="relative order-6 flex h-full min-h-0 items-stretch gap-2 md:order-none md:col-start-3 md:row-start-2">
+          {registerHint ? (
+            <p className="pointer-events-none absolute inset-x-0 -top-5 truncate text-[10px] font-semibold leading-none text-amber-100/90">
+              {registerHint}
+            </p>
+          ) : null}
           <div className="flex shrink-0 flex-col gap-2">
             <button
               type="button"
@@ -1676,17 +1697,42 @@ export function LockerTablet({
               </svg>
             </button>
           </div>
-          <a
-            href="/gameweek"
+          <button
+            type="button"
+            onClick={() => {
+              if (registerEntry) {
+                onRegister?.();
+                return;
+              }
+              if (filledCount < FORMATION.TOTAL) {
+                const emptyStarter = starters.findIndex((p) => !p);
+                if (emptyStarter >= 0) {
+                  onSlotClick(emptyStarter);
+                  return;
+                }
+                const emptyBench = bench.findIndex((p) => !p);
+                if (emptyBench >= 0) onSlotClick(11 + emptyBench);
+                return;
+              }
+              onRegister?.();
+            }}
+            disabled={registerBusy || registerLocked || !onRegister}
             className={cn(
-              "flex flex-1 items-center justify-center rounded-lg px-5 text-[13px] font-black uppercase tracking-[0.06em] transition hover:brightness-[1.06] active:scale-[0.985]",
+              "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
               isMotionChrome &&
                 "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+              (registerBusy || registerLocked || !onRegister) &&
+                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
             )}
             style={cta.style}
           >
-            {cta.label}
-          </a>
+            <span>{registerLabel ?? cta.label}</span>
+            {registerProgress ? (
+              <span className="text-[13px] font-bold tracking-[0.14em] opacity-90">
+                {registerProgress}
+              </span>
+            ) : null}
+          </button>
         </div>
       </main>
     </div>

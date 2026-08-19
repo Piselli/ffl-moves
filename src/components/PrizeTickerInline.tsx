@@ -14,7 +14,7 @@ import {
   isWorldCupCampaignActive,
 } from "@/lib/worldcup";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
-import { shortenAddress } from "@/lib/utils";
+import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Winner = { address: string; rank: number; prizeAmount: bigint };
@@ -97,14 +97,10 @@ export function PrizeTickerInline() {
   const m = useSiteMessages();
   const wc = m.pages.worldCup;
   const wcCampaign = isWorldCupCampaignActive();
+  const { getNickname } = useNickname();
   const [data, setData] = useState<TickerData | null>(null);
-  const [nicknames, setNicknames] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    try {
-      setNicknames(JSON.parse(localStorage.getItem("fflmove_nicknames") ?? "{}"));
-    } catch {}
-
     let cancelled = false;
     fetchWinners()
       .then((d) => { if (!cancelled) setData(d); })
@@ -119,8 +115,7 @@ export function PrizeTickerInline() {
     ? m.home.prizeTickerWc(wc.roundName(round.key))
     : `GW ${data.gwId} prizes`;
 
-  const displayName = (addr: string) =>
-    nicknames[addr.toLowerCase()] ?? shortenAddress(addr);
+  const displayName = (addr: string) => getNickname(addr);
 
   const items = [...data.winners, ...data.winners];
 

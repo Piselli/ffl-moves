@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { PrizeDisplay } from "@/lib/entryFee";
 import { createPrizeDisplay } from "@/lib/entryFee";
-import { shortenAddress } from "@/lib/utils";
+import { useNickname } from "@/hooks/useNickname";
 
 export type TickerWinner = {
   address: string;
@@ -23,19 +22,9 @@ const RANK_COLORS: Record<number, string> = {
 };
 
 export function PrizeTickerStrip({ data, prizeDisplay = createPrizeDisplay() }: Props) {
-  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const { getNickname } = useNickname();
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("fflmove_nicknames") ?? "{}");
-      setNicknames(stored);
-    } catch {
-      // localStorage unavailable
-    }
-  }, []);
-
-  const displayName = (address: string) =>
-    nicknames[address.toLowerCase()] ?? shortenAddress(address);
+  const displayName = (address: string) => getNickname(address);
 
   const keyframes = `@keyframes prize-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`;
 

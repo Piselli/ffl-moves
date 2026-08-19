@@ -2,23 +2,24 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { shortenAddress } from "@/lib/utils";
-import { WalletOnboardingLinks } from "@/components/WalletOnboardingLinks";
-import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
-import { WalletConnectRows } from "@/components/WalletConnectRows";
 import { useNickname } from "@/hooks/useNickname";
-import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityCluster";
 import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
 import { SOCIAL_X_URL } from "@/lib/constants";
-import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { Form8Lockup } from "@/components/Form8Mark";
+import { useDeposit } from "@/components/DepositProvider";
+import { useLogin } from "@/components/LoginProvider";
+import { NavUsdcBalance } from "@/components/NavUsdcBalance";
+import { SPRING_PILL } from "@/lib/uiMotion";
 
 const HIDE_NAV_PATHS = new Set([
   "/",
@@ -32,7 +33,6 @@ const HIDE_NAV_PATHS = new Set([
 
 export function Navbar() {
   const m = useSiteMessages();
-  const { locale } = useSiteLocale();
   const pathname = usePathname();
   const wcCampaign = isWorldCupCampaignActive();
   const wcSurface = isWorldCupSurfaceVisible();
@@ -50,27 +50,25 @@ export function Navbar() {
         { href: "/faq", label: m.nav.faq },
       ]
     : [
-        { href: "/gameweek", label: m.nav.squad },
+        { href: "/", label: m.nav.squad },
         { href: "/leaderboard", label: m.nav.leaderboard },
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
         { href: "/fixtures", label: m.nav.fixtures },
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
         { href: "/faq", label: m.nav.faq },
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
-  const { connected, account, disconnect } = useWallet();
-  const { walletRows, connectWallet, lastError, hint, scanDone } = useWalletConnect();
-  const [showWalletList, setShowWalletList] = useState(false);
+  const { connected, address, disconnect, walletName } = useWallet();
+  const { openLogin } = useLogin();
+  const { openDeposit } = useDeposit();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const navShellRef = useRef<HTMLDivElement>(null);
   const cinematicHeroTop = wcCampaign && pathname === "/" && !scrolled;
-
-  const address = account?.address?.toString() ?? null;
   const { setNickname, hasNickname, myNickname } = useNickname(address);
   const hideNav = HIDE_NAV_PATHS.has(pathname);
+  const reduceMotion = useReducedMotion() ?? false;
 
   // Auto-open nickname modal on first connection
   useEffect(() => {
@@ -96,9 +94,6 @@ export function Navbar() {
     if (hideNav) return;
     function handleClickOutside(event: MouseEvent) {
       const t = event.target as Node;
-      if (dropdownRef.current && !dropdownRef.current.contains(t)) {
-        setShowWalletList(false);
-      }
       if (navShellRef.current && !navShellRef.current.contains(t)) {
         setMobileMenuOpen(false);
       }
@@ -111,20 +106,14 @@ export function Navbar() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    if (!connected) return;
-    setShowWalletList(false);
-  }, [connected]);
-
   if (hideNav) return null;
 
   const logoEl = (
-    <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5 group shrink">
-      <Form8Mark
-        className="shrink-0 group-hover:scale-105 transition-transform duration-300 h-8 sm:h-10"
+    <Link href="/" aria-label="FORM8" className="group shrink-0">
+      <Form8Lockup
         priority
+        className="transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03] group-active:scale-[0.97]"
       />
-      <Form8Wordmark className="text-base sm:text-xl text-white truncate" />
     </Link>
   );
 
@@ -156,7 +145,7 @@ export function Navbar() {
       className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-7xl px-2 sm:px-0 transition-all duration-500"
     >
       <nav
-        className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-all duration-500 ${
+        className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
           scrolled
             ? "bg-black/60 backdrop-blur-2xl border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
             : cinematicHeroTop
@@ -168,12 +157,15 @@ export function Navbar() {
         <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
 
         {/* ── Center: Nav Links ───────────────────────── */}
+        <LayoutGroup id="nav-links">
         <div className="hidden md:flex items-center gap-0.5 lg:gap-1 shrink-0">
           {navLinks.map((link) => {
             const isActive =
-              link.href === "/world-cup"
-                ? pathname === "/world-cup"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+              link.href === "/"
+                ? pathname === "/"
+                : link.href === "/world-cup"
+                  ? pathname === "/world-cup"
+                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const featured = "featured" in link && link.featured;
             return (
               <Link
@@ -182,9 +174,9 @@ export function Navbar() {
                 className="relative flex flex-col items-center px-2.5 xl:px-3 py-2 rounded-lg group"
               >
                 <span
-                  className={`text-[11px] font-black tracking-widest uppercase transition-all duration-200 ${
+                  className={`text-[11px] font-black tracking-widest uppercase transition-colors duration-150 ${
                     isActive
-                      ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+                      ? "text-white"
                       : featured
                         ? "text-[#00f948]/90 group-hover:text-[#00f948]"
                         : "text-white/40 group-hover:text-white/90"
@@ -192,11 +184,15 @@ export function Navbar() {
                 >
                   {link.label}
                 </span>
-                <span
-                  className={`mt-0.5 w-1 h-1 rounded-full transition-all duration-300 ${
-                    isActive ? "bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" : "bg-transparent"
-                  }`}
-                />
+                {isActive ? (
+                  <motion.span
+                    layoutId="nav-active"
+                    className="mt-0.5 h-[2px] w-4 rounded-full bg-[#00f948]"
+                    transition={reduceMotion ? { duration: 0 } : SPRING_PILL}
+                  />
+                ) : (
+                  <span className="mt-0.5 h-[2px] w-4" />
+                )}
               </Link>
             );
           })}
@@ -210,50 +206,61 @@ export function Navbar() {
                 {m.nav.soon}
               </span>
             </div>
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-transparent" />
+            <span className="mt-0.5 h-[2px] w-4" />
           </div>
         </div>
+        </LayoutGroup>
 
         {/* ── Nickname Modal ───────────────────────────── */}
-        {showNicknameModal && address && (
+        {address ? (
           <NicknameModal
+            open={showNicknameModal}
             address={address}
             currentNickname={myNickname}
             onSave={(name) => setNickname(address, name)}
             onClose={() => setShowNicknameModal(false)}
           />
-        )}
+        ) : null}
 
         {/* ── Right: utility cluster + mobile menu + wallet ─────────── */}
-        <div className="relative flex items-center gap-1.5 shrink-0 min-w-0" ref={dropdownRef}>
+        <div className="relative flex items-center gap-1.5 shrink-0 min-w-0">
           <NavUtilityCluster>
             <LanguageSwitcher embedded />
             <NavUtilityDivider />
             <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
-            {connected && account ? (
+            {connected ? (
               <>
                 <NavUtilityDivider />
+                <NavUsdcBalance variant="cluster" />
                 <button
-                  onClick={() => setShowNicknameModal(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none min-w-0 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.06] group"
+                  type="button"
+                  onClick={openDeposit}
+                  className="rounded-lg px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-[#00f948] transition-[background-color,transform] duration-150 hover:bg-[#00f948]/15 active:scale-[0.97] whitespace-nowrap"
+                >
+                  {m.deposit.open}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (address) setShowNicknameModal(true);
+                  }}
+                  disabled={!address}
+                  className="inline-flex items-center gap-1.5 max-w-[7.5rem] min-[400px]:max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none min-w-0 rounded-lg px-2 py-1.5 transition-[background-color,transform] duration-150 hover:bg-white/[0.06] active:scale-[0.97] group disabled:opacity-50"
                   title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse shadow-[0_0_6px_rgba(0,249,72,0.8)] shrink-0" />
                   <span className="text-[10px] xl:text-[11px] text-[#00f948] font-black font-display uppercase tracking-wider truncate">
-                    {myNickname ?? shortenAddress(account.address.toString())}
+                    {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
                   </span>
                 </button>
                 <button
                   onClick={disconnect}
                   aria-label={m.nav.disconnect}
                   title={m.nav.disconnect}
-                  className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-red-400/75 transition-colors hover:bg-red-500/10 hover:text-red-400 shrink-0"
+                  className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-red-400/75 transition-[background-color,color,transform] duration-150 hover:bg-red-500/10 hover:text-red-400 active:scale-[0.97] shrink-0"
                 >
-                  <span className="xl:hidden text-[10px] font-display font-bold uppercase tracking-wider">
+                  <span className="text-[10px] font-display font-bold uppercase tracking-wider">
                     {m.nav.disconnectShort}
-                  </span>
-                  <span className="hidden xl:inline text-[10px] font-display font-bold uppercase tracking-wider">
-                    {m.nav.disconnect}
                   </span>
                 </button>
               </>
@@ -264,9 +271,9 @@ export function Navbar() {
                   id="wallet-connect-btn"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setShowWalletList(!showWalletList);
+                    openLogin();
                   }}
-                  className="rounded-lg px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-[#00f948] transition-colors hover:bg-[#00f948]/15 whitespace-nowrap"
+                  className="rounded-lg bg-white px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-black transition-[background-color,transform] duration-150 hover:bg-white/90 active:scale-[0.97] whitespace-nowrap"
                 >
                   <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
                   <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
@@ -280,9 +287,8 @@ export function Navbar() {
             aria-label={mobileMenuOpen ? m.nav.menuClose : m.nav.menuOpen}
             onClick={() => {
               setMobileMenuOpen((o) => !o);
-              setShowWalletList(false);
             }}
-            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors"
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-[background-color,transform] duration-150 active:scale-[0.96]"
           >
             {mobileMenuOpen ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -294,69 +300,25 @@ export function Navbar() {
               </svg>
             )}
           </button>
-          {showWalletList && !connected ? (
-                <div className="absolute right-0 top-full z-[60] mt-3 sm:mt-4 w-[min(18rem,calc(100vw-2rem))] sm:w-72 rounded-2xl bg-[#0D0F12]/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
-                  <div className="p-4 border-b border-white/[0.06] bg-white/[0.02]">
-                    <p className="text-sm font-display font-black uppercase tracking-wider text-white">
-                      {m.nav.chooseWallet}
-                    </p>
-                    <p className="text-xs text-white/40 mt-1">{m.nav.compatibleChain}</p>
-                    <WalletBeginnerHelp locale={locale} compact className="mt-1.5" />
-                  </div>
-                  <div className="p-2 max-h-[min(70vh,28rem)] overflow-y-auto">
-                    {lastError ? (
-                      <div className="px-3 py-3 mb-1 rounded-xl bg-rose-500/10 border border-rose-500/30">
-                        <p className="text-[11px] text-rose-100/90 leading-relaxed break-words">{lastError}</p>
-                      </div>
-                    ) : null}
-                    {hint ? (
-                      <div className="px-3 py-3 mb-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                        <p className="text-[11px] text-amber-100/90 leading-relaxed">{hint}</p>
-                      </div>
-                    ) : null}
-                    {walletRows.length > 0 ? (
-                      <>
-                        <WalletConnectRows
-                          rows={walletRows}
-                          onConnect={connectWallet}
-                          variant="navbar"
-                        />
-                        {walletRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
-                          <div className="px-2 pb-2 pt-2.5 mt-0.5 border-t border-white/[0.06] space-y-2.5">
-                            <WalletOnboardingLinks locale={locale} variant="footer" />
-                          </div>
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="p-4 text-center">
-                        <span className="text-3xl block mb-3">🔌</span>
-                        <p className="text-sm font-bold text-white mb-1">{m.nav.noWalletsFound}</p>
-                        <p className="text-xs text-white/45 leading-relaxed mb-4">
-                          {m.nav.noWalletsHint}
-                        </p>
-                        <WalletOnboardingLinks locale={locale} />
-                      </div>
-                    )}
-                    {hint &&
-                    walletRows.length > 0 &&
-                    !walletRows.some((r) => r.mode === "app" || r.mode === "extension-missing") ? (
-                      <div className="px-3 pb-2 pt-2 border-t border-white/[0.06]">
-                        <WalletOnboardingLinks locale={locale} variant="footer" />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-          ) : null}
         </div>
       </nav>
 
+      <AnimatePresence>
       {mobileMenuOpen ? (
-        <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-[#0D0F12]/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden p-2 space-y-0.5">
+        <motion.div
+          className="md:hidden mt-2 origin-top overflow-hidden rounded-2xl border border-white/10 bg-[#0D0F12]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl space-y-0.5"
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}
+          transition={reduceMotion ? { duration: 0.12 } : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+        >
           {navLinks.map((link) => {
             const isActive =
-              link.href === "/world-cup"
-                ? pathname === "/world-cup"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+              link.href === "/"
+                ? pathname === "/"
+                : link.href === "/world-cup"
+                  ? pathname === "/world-cup"
+                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const featured = "featured" in link && link.featured;
             return (
               <Link
@@ -402,8 +364,9 @@ export function Navbar() {
               <XLogo className="h-4 w-4 shrink-0 opacity-70" />
             </a>
           </div>
-        </div>
+        </motion.div>
       ) : null}
+      </AnimatePresence>
     </div>
   );
 }

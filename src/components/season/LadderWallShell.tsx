@@ -31,7 +31,7 @@ import type {
   SeasonLeaderboardPayload,
 } from "@/lib/seasonPoints";
 import { tourOwnersMatch } from "@/lib/tourClaimHistory";
-import { cn, shortenAddress } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 function SeasonArcSpark({
   breakdown,
@@ -89,9 +89,7 @@ function LadderRung({
       ? 48
       : Math.round(42 + (entry.totalPoints / maxPoints) * 58);
 
-  const nick = getNickname(entry.owner);
-  const display =
-    nick && nick !== entry.owner ? nick : shortenAddress(entry.owner);
+  const display = getNickname(entry.owner);
 
   return (
     <li

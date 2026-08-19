@@ -226,8 +226,11 @@ export type PagesMessages = {
     statusResolved: string;
     unavailableGwSuffix: (gw: number, statusLabel: string) => string;
     submitRegistering: string;
+    submitRegister: string;
     submitConfirm: (feeMove: string) => string;
     submitNeedPlayers: (picked: number, max: number) => string;
+    submitNeedProgress: (picked: number, max: number) => string;
+    submitRegistered: string;
     headerTitle: (gw: number) => string;
     pickPlayersHint: string;
     randomSquadBtn: string;
@@ -236,13 +239,8 @@ export type PagesMessages = {
     entryFeeLabel: string;
     insufficientFundsTitle: string;
     insufficientFundsBody: (entryFeeLabel: string) => string;
-    insufficientFundsDepositTitle: string;
-    insufficientFundsDepositDescLine1: string;
-    insufficientFundsDepositDescLine2: string;
-    insufficientFundsGasTitle: string;
-    insufficientFundsGasBadge: string;
-    insufficientFundsGasDesc: string;
     insufficientFundsCancel: string;
+    insufficientFundsTopUp: string;
     entryShort: string;
     benchTitle: (n: number, max: number) => string;
     benchSlotEmpty: (idx: number) => string;
@@ -823,8 +821,11 @@ export const pagesEn: PagesMessages = {
     statusResolved: "finished",
     unavailableGwSuffix: (gw, statusLabel) => ` GW ${gw} — ${statusLabel}.`,
     submitRegistering: "Registering…",
+    submitRegister: "Register",
     submitConfirm: (feeLabel) => `Confirm squad · ${feeLabel}`,
-    submitNeedPlayers: (picked: number, max: number) => `Pick ${max} players (${picked}/${max})`,
+    submitNeedPlayers: (_picked: number, max: number) => `Pick ${max} players`,
+    submitNeedProgress: (picked: number, max: number) => `${picked}/${max}`,
+    submitRegistered: "Registered",
     headerTitle: (gw) => `GW ${gw} · Squad selection`,
     pickPlayersHint: "Pick 11 players. Max 3 from the same club.",
     randomSquadBtn: "Random squad",
@@ -832,14 +833,9 @@ export const pagesEn: PagesMessages = {
     maxThreeHint: "Max 3 from the same club",
     entryFeeLabel: "Registration fee",
     insufficientFundsTitle: "Insufficient balance",
-    insufficientFundsBody: (entryFeeLabel) => `Need ${entryFeeLabel} on Solana to register.`,
-    insufficientFundsDepositTitle: "Get USDC in your wallet",
-    insufficientFundsDepositDescLine1: "Swap or transfer USDC on Solana (SPL)",
-    insufficientFundsDepositDescLine2: "Keep a little SOL for transaction fees",
-    insufficientFundsGasTitle: "Network fee",
-    insufficientFundsGasBadge: "SOL",
-    insufficientFundsGasDesc: "A small SOL balance covers transaction fees",
+    insufficientFundsBody: (entryFeeLabel) => `Need ${entryFeeLabel} to register.`,
     insufficientFundsCancel: "Cancel",
+    insufficientFundsTopUp: "Top up",
     entryShort: "Entry",
     benchTitle: (n, max) => `Bench (${n}/${max})`,
     benchSlotEmpty: (idx) => `Sub ${idx + 1}`,
@@ -980,7 +976,7 @@ export const pagesEn: PagesMessages = {
     errSquadNotFound: "Squad not found",
     errPlayersLoad: "Could not load players",
     errGeneric: "Something went wrong",
-    connectTitle: "Connect wallet",
+    connectTitle: "Log in",
     connectHint: "To see your result",
     loading: "Loading result…",
     unavailableTitle: "Result unavailable",
@@ -1040,7 +1036,7 @@ export const pagesEn: PagesMessages = {
     titleEdit: "Change nickname",
     titleWelcome: "Welcome!",
     descEdit: "This name is shown on the leaderboard",
-    descWelcome: "Pick a nickname — it replaces your wallet address",
+    descWelcome: "Shown instead of your address.",
     fieldLabel: "Nickname",
     placeholder: "Enter nickname",
     later: "Later",
@@ -1252,7 +1248,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-free",
             q: "Is it free to play?",
             a: [
-              { type: "p", text: "No. Registering a squad costs a small entry fee in USDC (the exact amount is shown on the Squad page)." },
+              { type: "p", text: "No. Registering a squad costs a small entry fee in USDC (the exact amount is shown on the home screen when you pick your team)." },
               { type: "p", text: "All entry fees from all players go into that gameweek’s prize pool, and winners are paid from it." },
               { type: "p", text: "A small technical share is withheld to support and keep the project running." },
             ],
@@ -1379,9 +1375,9 @@ export const pagesEn: PagesMessages = {
             id: "which-wallet",
             q: "Which wallet do I need? Where do I get it?",
             a: [
-              { type: "p", text: "FORM8 supports Phantom and Solflare — pick either when you press “Connect wallet”." },
+              { type: "p", text: "FORM8 supports Phantom, Solflare, and Jupiter — pick any after you press “Log in”. You can also enter with Google or email, no extension needed." },
               { type: "p", text: "Phantom (recommended) is the most widely used Solana wallet: phantom.com. Self-custodial, available as a Chrome extension and as a phone app (iOS / Android) — send, swap, connect to dApps." },
-              { type: "p", text: "Solflare (alternative) also works everywhere on Solana — extension plus mobile app from solflare.com. Handy if you already use Solflare." },
+              { type: "p", text: "Solflare and Jupiter are alternatives with the same job: extension or mobile app, then connect here. Solflare from solflare.com, Jupiter from jup.ag/download." },
               {
                 type: "ul",
                 items: [
@@ -1398,7 +1394,7 @@ export const pagesEn: PagesMessages = {
             q: "What is Solana and what is USDC?",
             a: [
               { type: "p", text: "Solana is a blockchain network (think of it like the internet, but for crypto) — fast, and transaction fees are fractions of a cent." },
-              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On FORM8 you pay squad entry fees and receive prizes in USDC. Get it via swap inside Phantom or Solflare, or transfer it from an exchange." },
+              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On FORM8 you pay squad entry fees and receive prizes in USDC. Get it via Deposit (card / Apple Pay), a swap inside the wallet, or a transfer from an exchange." },
             ],
           },
           {
@@ -1408,11 +1404,10 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Install Phantom from phantom.com (or Solflare from solflare.com) and create a Solana wallet.",
-                  "In Phantom or Solflare, open Swap and exchange SOL (or another token you already hold) for USDC — takes a few taps.",
-                  "Or withdraw USDC on the Solana network straight from an exchange such as Binance, Coinbase, or Kraken.",
+                  "Install Phantom, Solflare, or Jupiter and create a Solana wallet.",
+                  "Press Deposit and buy USDC in your wallet (card / Apple Pay inside Phantom, Solflare, or Jupiter), or transfer USDC on Solana.",
                   "You need at least 5 USDC to register one squad. Keep a little SOL on the wallet for network fees.",
-                  "Open FORM8 → Connect wallet → pick Phantom or Solflare → Squad page → Confirm squad and sign.",
+                  "Open FORM8 → Log in → Google, email, or a Solana wallet → pick your team on the home screen → Confirm squad and sign.",
                 ],
               },
               {
@@ -1425,8 +1420,8 @@ export const pagesEn: PagesMessages = {
             id: "is-connecting-safe",
             q: "Is it safe to connect my wallet to the site?",
             a: [
-              { type: "p", text: "Yes. “Connect wallet” is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
-              { type: "p", text: "You always sign inside your wallet window (Phantom or Solflare). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
+              { type: "p", text: "Yes. Linking a wallet is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
+              { type: "p", text: "You always sign inside your wallet window (Phantom, Solflare, or Jupiter). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
               { type: "p", text: "Simple rule of thumb: always check the URL — only use the official FORM8 address." },
             ],
           },
@@ -1461,11 +1456,11 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Install Phantom from phantom.com (recommended) or Solflare from solflare.com.",
+                  "1. Install Phantom, Solflare, or Jupiter.",
                   "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Get USDC — swap inside the wallet or withdraw it from an exchange on the Solana network. You need ~5 USDC + a bit of SOL for fees.",
-                  "4. On FORM8 press “Connect wallet” and pick Phantom or Solflare.",
-                  "5. Open the Squad page and pick 11 starters + 3 bench players.",
+                  "3. Get USDC — Deposit and buy in your wallet, or transfer on Solana. You need ~5 USDC + a bit of SOL for fees.",
+                  "4. On FORM8 press “Log in” and pick Google, email, or Phantom / Solflare / Jupiter.",
+                  "5. On the home screen pick 11 starters + 3 bench players.",
                   "6. Press “Confirm squad” and sign the transaction in your wallet.",
                   "7. Wait for kickoff — points are tallied automatically from there.",
                 ],
@@ -1476,7 +1471,7 @@ export const pagesEn: PagesMessages = {
             id: "entry-cost",
             q: "How much does one gameweek entry cost?",
             a: [
-              { type: "p", text: "The exact entry fee is shown on the Squad page (line “Registration fee”). It is 5 USDC per gameweek — a small stablecoin amount to try the game." },
+              { type: "p", text: "The exact entry fee is shown on the home screen when you register. It is 5 USDC per gameweek — a small stablecoin amount to try the game." },
             ],
           },
           {
@@ -1580,7 +1575,7 @@ export const pagesEn: PagesMessages = {
             id: "convert-to-fiat",
             q: "How do I cash out USDC back to normal money?",
             a: [
-              { type: "p", text: "USDC is already pegged to the dollar. Send it from Phantom or Solflare to an exchange (on the Solana network) and cash out there — same as any crypto." },
+              { type: "p", text: "USDC is already pegged to the dollar. Send it from your wallet to an exchange (on the Solana network) and cash out there — same as any crypto." },
               { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
             ],
           },
@@ -1899,8 +1894,11 @@ export const pagesUk: PagesMessages = {
     statusResolved: "завершено",
     unavailableGwSuffix: (gw, statusLabel) => ` Тур ${gw} — ${statusLabel}.`,
     submitRegistering: "Реєстрація...",
+    submitRegister: "Зареєструвати",
     submitConfirm: (feeLabel) => `Підтвердити склад · ${feeLabel}`,
-    submitNeedPlayers: (picked: number, max: number) => `Обери ${max} гравців (${picked}/${max})`,
+    submitNeedPlayers: (_picked: number, max: number) => `Обери ${max} гравців`,
+    submitNeedProgress: (picked: number, max: number) => `${picked}/${max}`,
+    submitRegistered: "Зареєстровано",
     headerTitle: (gw) => `Тур ${gw} · Вибір складу`,
     pickPlayersHint: "Обери 11 гравців. Максимум 3 з однієї команди.",
     randomSquadBtn: "Випадковий склад",
@@ -1909,14 +1907,9 @@ export const pagesUk: PagesMessages = {
     entryFeeLabel: "Вартість реєстрації",
     insufficientFundsTitle: "Недостатньо коштів",
     insufficientFundsBody: (entryFeeLabel) =>
-      `Потрібно ${entryFeeLabel} на Solana для реєстрації.`,
-    insufficientFundsDepositTitle: "Отримай USDC у гаманці",
-    insufficientFundsDepositDescLine1: "Своп або переказ USDC у Solana (SPL)",
-    insufficientFundsDepositDescLine2: "Трохи SOL потрібно для комісій мережі",
-    insufficientFundsGasTitle: "Комісія мережі",
-    insufficientFundsGasBadge: "SOL",
-    insufficientFundsGasDesc: "Невеликий баланс SOL покриває комісії",
+      `Потрібно ${entryFeeLabel} для реєстрації.`,
     insufficientFundsCancel: "Скасувати",
+    insufficientFundsTopUp: "Поповнити",
     entryShort: "Внесок",
     benchTitle: (n, max) => `Запасні (${n}/${max})`,
     benchSlotEmpty: (idx) => `Запасний ${idx + 1}`,
@@ -2057,7 +2050,7 @@ export const pagesUk: PagesMessages = {
     errSquadNotFound: "Склад не знайдено",
     errPlayersLoad: "Не вдалось завантажити гравців",
     errGeneric: "Щось пішло не так",
-    connectTitle: "Підключи гаманець",
+    connectTitle: "Увійди",
     connectHint: "Щоб побачити свій результат",
     loading: "Завантаження результату…",
     unavailableTitle: "Результат недоступний",
@@ -2117,7 +2110,7 @@ export const pagesUk: PagesMessages = {
     titleEdit: "Змінити нікнейм",
     titleWelcome: "Вітаємо!",
     descEdit: "Це ім'я буде відображатись у лідерборді",
-    descWelcome: "Обери нікнейм — він відображатиметься замість адреси гаманця",
+    descWelcome: "Замість адреси в таблицях і шапці.",
     fieldLabel: "Нікнейм",
     placeholder: "Введи нікнейм",
     later: "Пізніше",
@@ -2336,7 +2329,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-free",
             q: "Це безкоштовно?",
             a: [
-              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDC (точна сума завжди видно на сторінці «Склад»)." },
+              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDC (точна сума завжди видно на головній, коли збираєш команду)." },
               { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — виплати переможцям виходять із нього." },
               { type: "p", text: "З фонду утримується невелика технічна частка на підтримку й існування проєкту." },
             ],
@@ -2463,9 +2456,9 @@ export const pagesUk: PagesMessages = {
             id: "which-wallet",
             q: "Який гаманець потрібен? Де його взяти?",
             a: [
-              { type: "p", text: "FORM8 підтримує Phantom і Solflare — обери будь-який, коли натискаєш «Підключити гаманець»." },
+              { type: "p", text: "FORM8 підтримує Phantom, Solflare і Jupiter — обери будь-який після «Увійти». Можна також через Google або email, без розширення." },
               { type: "p", text: "Phantom (рекомендуємо) — найпоширеніший гаманець для Solana: phantom.com. Self-custodial, є розширення для Chrome і застосунок для телефону (iOS / Android): відправка, своп, підключення до dApps." },
-              { type: "p", text: "Solflare (альтернатива) теж працює всюди в Solana — розширення й мобільний застосунок із solflare.com. Зручно, якщо вже користуєшся Solflare." },
+              { type: "p", text: "Solflare і Jupiter — альтернативи з тією ж роботою: розширення або мобільний застосунок, далі підключення тут. Solflare — solflare.com, Jupiter — jup.ag/download." },
               {
                 type: "ul",
                 items: [
@@ -2482,7 +2475,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке Solana і USDC?",
             a: [
               { type: "p", text: "Solana — це блокчейн-мережа (як інтернет, тільки для криптовалют): швидка, а комісії за транзакції — частки цента." },
-              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На FORM8 ти платиш внески за склад і отримуєш призи в USDC. Отримати можна свопом у Phantom чи Solflare або переказом із біржі." },
+              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На FORM8 ти платиш внески за склад і отримуєш призи в USDC. Отримати можна через «Поповнити» (картка / Apple Pay), свопом у гаманці або переказом із біржі." },
             ],
           },
           {
@@ -2492,11 +2485,10 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Встанови Phantom з phantom.com (або Solflare з solflare.com) і створи гаманець Solana.",
-                  "У Phantom або Solflare відкрий Swap і обміняй SOL (чи інший токен на балансі) на USDC — кілька тапів.",
-                  "Або виведи USDC у мережі Solana напряму з біржі — Binance, Coinbase, Kraken тощо.",
+                  "Встанови Phantom, Solflare або Jupiter і створи гаманець Solana.",
+                  "Натисни «Поповнити» і купи USDC у гаманці (картка / Apple Pay всередині Phantom, Solflare або Jupiter), або перекажи USDC у Solana.",
                   "Потрібно щонайменше 5 USDC на один склад. Залиш трохи SOL на комісії мережі.",
-                  "Заходь на FORM8 → Підключи гаманець → обери Phantom або Solflare → Склад → Підтверди і підпиши.",
+                  "Заходь на FORM8 → Увійти → Google, email або гаманець Solana → збери команду на головній → Підтверди і підпиши.",
                 ],
               },
               {
@@ -2509,8 +2501,8 @@ export const pagesUk: PagesMessages = {
             id: "is-connecting-safe",
             q: "Чи безпечно підключати гаманець до сайту?",
             a: [
-              { type: "p", text: "Так. «Підключити гаманець» — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
-              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Phantom або Solflare). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
+              { type: "p", text: "Так. Підключити гаманець — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
+              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Phantom, Solflare або Jupiter). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
               { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу FORM8." },
             ],
           },
@@ -2545,11 +2537,11 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "1. Встанови Phantom з phantom.com (рекомендуємо) або Solflare з solflare.com.",
+                  "1. Встанови Phantom, Solflare або Jupiter.",
                   "2. Створи акаунт і збережи seed-фразу на папері.",
-                  "3. Отримай USDC — своп усередині гаманця або вивід із біржі в мережі Solana. Потрібно ~5 USDC + трохи SOL на комісії.",
-                  "4. На FORM8 натисни «Підключити гаманець», обери Phantom або Solflare.",
-                  "5. Зайди на сторінку «Склад», вибери 11 основних + 3 запасних.",
+                  "3. Отримай USDC — «Поповнити» і купи в гаманці, або переказ у Solana. Потрібно ~5 USDC + трохи SOL на комісії.",
+                  "4. На FORM8 натисни «Увійти», обери Google, email або Phantom / Solflare / Jupiter.",
+                  "5. На головній вибери 11 основних + 3 запасних.",
                   "6. Натисни «Підтвердити склад» і підпиши транзакцію в гаманці.",
                   "7. Чекай початку туру — далі все рахується автоматично.",
                 ],
@@ -2560,7 +2552,7 @@ export const pagesUk: PagesMessages = {
             id: "entry-cost",
             q: "Скільки коштує вхід в один тур?",
             a: [
-              { type: "p", text: "Конкретний внесок видно на сторінці «Склад» (рядок «Вартість реєстрації»). Це 5 USDC за тур — невелика стабільна сума для пробного входу." },
+              { type: "p", text: "Конкретний внесок видно на головній, коли реєструєш склад. Це 5 USDC за тур — невелика стабільна сума для пробного входу." },
             ],
           },
           {
@@ -2664,7 +2656,7 @@ export const pagesUk: PagesMessages = {
             id: "convert-to-fiat",
             q: "Як вивести USDC у звичайні гроші?",
             a: [
-              { type: "p", text: "USDC уже прив’язаний до долара. Надішли його з Phantom або Solflare на біржу (у мережі Solana) і виведи там — як із будь-якою криптою." },
+              { type: "p", text: "USDC уже прив’язаний до долара. Надішли його з гаманця на біржу (у мережі Solana) і виведи там — як із будь-якою криптою." },
               { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
             ],
           },

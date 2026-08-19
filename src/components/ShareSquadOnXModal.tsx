@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { SquadSharePoster } from "@/components/SquadSharePoster";
+import { modalOverlayMotion, modalPanelMotion } from "@/lib/uiMotion";
 import {
   buildSquadShareTweetText,
   shareSquadImageOnX,
@@ -31,6 +33,7 @@ export function ShareSquadOnXModal({
 }) {
   const ss = useSiteMessages().pages.squadShare;
   const g = useSiteMessages().pages.gameweek;
+  const reduce = Boolean(useReducedMotion());
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [sharing, setSharing] = useState(false);
   const [resultHint, setResultHint] = useState<ShareSquadResult | null>(null);
@@ -50,11 +53,16 @@ export function ShareSquadOnXModal({
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !sharing) onClose();
     };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", handler);
+    };
   }, [open, onClose, sharing]);
 
-  if (!open || !portalRoot) return null;
+  if (!portalRoot) return null;
 
   const handleShare = async () => {
     if (!posterRef.current || sharing) return;
@@ -92,19 +100,38 @@ export function ShareSquadOnXModal({
         ? ss.desktopHint
         : null;
 
-  const modal = (
+  const overlay = modalOverlayMotion(reduce);
+  const panel = modalPanelMotion(reduce);
+
+  return createPortal(
+    <AnimatePresence>
+      {open ? (
     <div
       className="fixed inset-0 z-[210] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-squad-modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !sharing) onClose();
-      }}
     >
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+      <motion.button
+        type="button"
+        aria-label={ss.closeAria}
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        initial={overlay.initial}
+        animate={overlay.animate}
+        exit={overlay.exit}
+        transition={overlay.transition}
+        onClick={() => {
+          if (!sharing) onClose();
+        }}
+      />
 
-      <div className="relative w-full max-w-md max-h-[min(92dvh,calc(100dvh-2rem))] overflow-y-auto rounded-2xl border border-white/[0.10] bg-[#111214] shadow-2xl overscroll-contain">
+      <motion.div
+        className="relative w-full max-w-md max-h-[min(92dvh,calc(100dvh-2rem))] overflow-y-auto rounded-2xl border border-white/[0.10] bg-[#111214] shadow-2xl overscroll-contain"
+        initial={panel.initial}
+        animate={panel.animate}
+        exit={panel.exit}
+        transition={panel.transition}
+      >
         <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00f948]/60 to-transparent" />
 
         <div className="p-6">
@@ -122,7 +149,7 @@ export function ShareSquadOnXModal({
               type="button"
               onClick={onClose}
               disabled={sharing}
-              className="-mr-1 -mt-1 p-1 text-white/20 transition-colors hover:text-white/60 disabled:opacity-40"
+              className="-mr-1 -mt-1 p-1 text-white/20 transition-[color,transform] duration-150 hover:text-white/60 active:scale-[0.96] disabled:opacity-40"
               aria-label={ss.closeAria}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -174,7 +201,7 @@ export function ShareSquadOnXModal({
               type="button"
               onClick={onClose}
               disabled={sharing}
-              className="flex-1 rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 disabled:opacity-40"
+              className="flex-1 rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/40 transition-[border-color,color,transform] duration-150 hover:border-white/[0.15] hover:text-white/70 active:scale-[0.98] disabled:opacity-40"
             >
               {ss.laterButton}
             </button>
@@ -182,7 +209,7 @@ export function ShareSquadOnXModal({
               type="button"
               onClick={handleShare}
               disabled={sharing}
-              className="flex flex-grow items-center justify-center gap-2 rounded-xl bg-white py-2.5 px-5 text-sm font-display font-black uppercase tracking-wider text-black transition-all hover:brightness-95 disabled:opacity-50"
+              className="flex flex-grow items-center justify-center gap-2 rounded-xl bg-white py-2.5 px-5 text-sm font-display font-black uppercase tracking-wider text-black transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.98] disabled:opacity-50"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -191,9 +218,10 @@ export function ShareSquadOnXModal({
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
+      ) : null}
+    </AnimatePresence>,
+    portalRoot,
   );
-
-  return createPortal(modal, portalRoot);
 }

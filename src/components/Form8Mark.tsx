@@ -32,22 +32,59 @@ export function Form8Mark({
 
 type WordmarkProps = {
   className?: string;
+  /** @deprecated Wordmark is one color. Kept so old call sites compile. */
   accentClassName?: string;
 };
 
-/** Display lockup: FORM8, eight in lime. */
-export function Form8Wordmark({
-  className,
-  accentClassName = "text-[#00f948]",
-}: WordmarkProps) {
+/** Wordmark is a single color. Lime stays on CTAs, not inside the name. */
+export function Form8Wordmark({ className }: WordmarkProps) {
   return (
     <span
       className={cn(
-        "font-display font-black uppercase tracking-tighter",
+        "[font-family:var(--font-display),sans-serif] font-black uppercase leading-none tracking-[-0.03em]",
         className,
       )}
     >
-      FORM<span className={accentClassName}>8</span>
+      FORM8
+    </span>
+  );
+}
+
+type LockupProps = {
+  className?: string;
+  markClassName?: string;
+  wordmarkClassName?: string;
+  markOnly?: boolean;
+  priority?: boolean;
+};
+
+/**
+ * Header lockup: portrait stencil + name as one unit.
+ * 24px row. Mark fills the row; 21px caps sit on the same optical center.
+ * Gap ≈ 0.55× mark width so the stencil does not glue to the type.
+ */
+export function Form8Lockup({
+  className,
+  markClassName,
+  wordmarkClassName,
+  markOnly = false,
+  priority = false,
+}: LockupProps) {
+  return (
+    <span className={cn("inline-flex h-6 items-center gap-2.5", className)}>
+      <Form8Mark
+        alt=""
+        priority={priority}
+        className={cn("h-6", markClassName)}
+      />
+      {markOnly ? null : (
+        <Form8Wordmark
+          className={cn(
+            "whitespace-nowrap text-[18px]/none text-white sm:text-[21px]/none",
+            wordmarkClassName,
+          )}
+        />
+      )}
     </span>
   );
 }

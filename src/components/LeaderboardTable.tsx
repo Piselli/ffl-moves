@@ -355,7 +355,7 @@ export function LeaderboardTable({
                       <div className="min-w-0">
                         <p
                           className={cn(
-                            "font-mono text-sm font-medium truncate",
+                            "text-sm font-medium truncate",
                             isUser ? "text-[#00f948]" : "text-white/85",
                           )}
                         >

@@ -1,8 +1,19 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Form8Mark, Form8Wordmark } from "@/components/Form8Mark";
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useDeposit } from "@/components/DepositProvider";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NavUsdcBalance } from "@/components/NavUsdcBalance";
+import { NicknameModal } from "@/components/NicknameModal";
+import { useLogin } from "@/components/LoginProvider";
+import { useWallet } from "@/hooks/useSolanaWallet";
+import { useNickname } from "@/hooks/useNickname";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { cn, shortenAddress } from "@/lib/utils";
+import { Form8Lockup } from "@/components/Form8Mark";
 import { LOCKER_NAV_LINKS } from "./navStyles";
 
 type Props = {
@@ -10,19 +21,17 @@ type Props = {
   liveLinks?: boolean;
 };
 
-function Brand({
-  className,
-  markOnly = false,
-}: {
-  className?: string;
-  markOnly?: boolean;
-}) {
+const CHIP =
+  "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-3 text-[11px] font-bold uppercase leading-none tracking-wide";
+
+function Brand({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn("flex min-w-0 items-center gap-2", className)}>
-      <Form8Mark className="h-7 sm:h-8" priority />
-      {!markOnly && (
-        <Form8Wordmark className="truncate text-sm text-white sm:text-[15px]" />
-      )}
+    <Link
+      href="/"
+      aria-label="FORM8"
+      className={cn("relative z-10 flex shrink-0 items-center", className)}
+    >
+      <Form8Lockup priority />
     </Link>
   );
 }
@@ -44,7 +53,7 @@ function Links({
           href={link.href}
           onClick={liveLinks ? undefined : (e) => e.preventDefault()}
           className={cn(
-            "px-2.5 py-1.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white/90 transition-colors hover:text-[#00f948]",
+            "inline-flex h-8 items-center px-2.5 text-[13px] font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948]",
             linkClassName,
           )}
         >
@@ -55,67 +64,192 @@ function Links({
   );
 }
 
-function Right({
-  connectClassName,
-  localeClassName,
-}: {
-  connectClassName?: string;
-  localeClassName?: string;
-}) {
+function Right() {
+  const m = useSiteMessages();
+  const { connected, address, disconnect, walletName } = useWallet();
+  const { openLogin } = useLogin();
+  const { openDeposit } = useDeposit();
+  const { setNickname, myNickname } = useNickname(address);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+
   return (
-    <div className="flex items-center gap-2">
-      <div
-        className={cn(
-          "hidden items-center gap-0.5 p-0.5 sm:flex",
-          localeClassName ?? "rounded-md bg-black/25",
-        )}
-      >
-        <span className="rounded px-2 py-1 text-[10px] font-bold text-white">
-          EN
-        </span>
-        <span className="px-2 py-1 text-[10px] font-bold text-white/40">
-          UA
-        </span>
-      </div>
-      <button
-        type="button"
-        className={cn(
-          "px-3 py-2 text-[11px] font-bold uppercase tracking-wide transition active:scale-[0.98]",
-          connectClassName ??
-            "rounded-lg bg-[#00f948] text-black hover:bg-[#00f948]/90",
-        )}
-      >
-        Connect
-      </button>
+    <div className="relative z-10 flex h-8 items-center gap-1.5">
+      <LanguageSwitcher embedded />
+      {connected ? (
+        <>
+          <NavUsdcBalance />
+          <button
+            type="button"
+            onClick={openDeposit}
+            className={cn(
+              CHIP,
+              "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98]",
+            )}
+          >
+            {m.deposit.open}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (address) setShowNicknameModal(true);
+            }}
+            disabled={!address}
+            title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
+            className={cn(
+              CHIP,
+              "max-w-[7.5rem] truncate border border-white/20 bg-black/40 text-white/85 backdrop-blur-sm transition hover:border-white/35 active:scale-[0.98] disabled:opacity-50",
+            )}
+          >
+            {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
+          </button>
+          <button
+            type="button"
+            onClick={() => disconnect()}
+            title={m.nav.disconnect}
+            className={cn(
+              CHIP,
+              "text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98]",
+            )}
+          >
+            {m.nav.disconnectShort}
+          </button>
+          {address ? (
+            <NicknameModal
+              open={showNicknameModal}
+              address={address}
+              currentNickname={myNickname}
+              onSave={(name) => {
+                setNickname(address, name);
+                setShowNicknameModal(false);
+              }}
+              onClose={() => setShowNicknameModal(false)}
+            />
+          ) : null}
+        </>
+      ) : (
+        <button
+          type="button"
+          id="wallet-connect-btn"
+          onClick={openLogin}
+          className={cn(
+            CHIP,
+            "bg-white text-black transition hover:bg-white/90 active:scale-[0.98]",
+          )}
+        >
+          {m.nav.connectWallet}
+        </button>
+      )}
     </div>
   );
 }
 
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
+ * Logo left, actions right, links optically centered on the viewport.
  */
 export function LockerLabNav({ liveLinks = false }: Props) {
+  const m = useSiteMessages();
+  const pathname = usePathname();
+  const reduceMotion = useReducedMotion() ?? false;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onPointer(event: MouseEvent) {
+      const t = event.target as Node;
+      if (shellRef.current && !shellRef.current.contains(t)) {
+        setMobileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [mobileOpen]);
+
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[80]">
+    <div ref={shellRef} className="pointer-events-none fixed inset-x-0 top-0 z-[80]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
       />
-      <div className="pointer-events-auto relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="pointer-events-auto relative flex h-16 w-full items-center px-5 sm:px-8 lg:px-10">
         <Brand className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]" />
         <Links
           liveLinks={liveLinks}
+          className="mx-4 hidden flex-1 justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2"
           linkClassName={cn(
-            "text-[13px] tracking-[0.14em] text-white",
+            "text-white",
             "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
             "hover:text-[#00f948]",
           )}
         />
-        <Right
-          localeClassName="rounded-md bg-transparent"
-          connectClassName="rounded-lg border border-[#00f948]/50 bg-[#00f948]/20 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[#00f948] shadow-[0_0_24px_rgba(0,249,72,0.25)] backdrop-blur-sm"
-        />
+        <div className="ml-auto flex items-center gap-1.5">
+          <Right />
+          <button
+            type="button"
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
+            onClick={() => setMobileOpen((o) => !o)}
+            className="md:hidden grid h-8 w-8 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96]"
+          >
+            {mobileOpen ? (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {mobileOpen ? (
+          <motion.div
+            className="pointer-events-auto mx-3 origin-top overflow-hidden rounded-2xl border border-white/12 bg-[#0D0F12]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:mx-5 md:hidden"
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}
+            transition={
+              reduceMotion
+                ? { duration: 0.12 }
+                : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+            }
+          >
+            {LOCKER_NAV_LINKS.map((link) => {
+              const active =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => {
+                    if (!liveLinks) e.preventDefault();
+                    setMobileOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition-colors",
+                    active
+                      ? "bg-white/[0.08] text-white"
+                      : "text-white/70 hover:bg-white/[0.05] hover:text-white",
+                  )}
+                >
+                  {link.label}
+                  {active ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#00f948]" />
+                  ) : null}
+                </Link>
+              );
+            })}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

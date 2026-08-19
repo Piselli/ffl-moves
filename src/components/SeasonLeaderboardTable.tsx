@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn, shortenAddress } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { formatSeasonEventLabel } from "@/lib/season-points-rules";
@@ -140,9 +140,6 @@ export function SeasonLeaderboardTable({
                           {m.youBadge}
                         </span>
                       )}
-                    </p>
-                    <p className="text-[10px] text-white/25 font-mono truncate sm:hidden">
-                      {shortenAddress(entry.owner)}
                     </p>
                   </div>
 

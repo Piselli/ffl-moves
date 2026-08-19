@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Oswald, Sofia_Sans_Condensed, Anton } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
+import { PrivyAppProvider } from "@/components/PrivyAppProvider";
+import { DepositProvider } from "@/components/DepositProvider";
+import { LoginProvider } from "@/components/LoginProvider";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
@@ -69,7 +72,10 @@ export default function RootLayout({
       <body className={`${inter.variable} ${oswald.variable} ${wcHero.variable} ${wcDisplay.variable} font-sans antialiased`}>
         <LocaleProvider>
           <PrizeAssetProvider>
+            <PrivyAppProvider>
             <WalletProvider>
+              <DepositProvider>
+              <LoginProvider>
               <ReferralCapture />
               <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
@@ -77,7 +83,10 @@ export default function RootLayout({
               <main className="relative z-10">{children}</main>
               <SiteFooter />
               </div>
+              </LoginProvider>
+              </DepositProvider>
             </WalletProvider>
+            </PrivyAppProvider>
           </PrizeAssetProvider>
         </LocaleProvider>
       </body>

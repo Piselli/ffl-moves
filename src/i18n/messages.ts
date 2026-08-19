@@ -46,6 +46,47 @@ export type SiteMessages = {
     safariExtensionHint: string;
     solflareInstalledTips: string;
     socialXAria: string;
+    installJupiterExtension: string;
+    walletJupiterInstallSub: string;
+    continueWithEmail: string;
+    continueWithEmailSub: string;
+    orUseWallet: string;
+    emailLoginNeedsAppId: string;
+    loginTitle: string;
+    loginWelcome: string;
+    loginOr: string;
+    loginTerms: string;
+    loginPrivacy: string;
+    loginSkinLabel: string;
+    loginSkinCurrent: string;
+    loginSkinIpad: string;
+    loginSkinLocker: string;
+    continueWithGoogle: string;
+    googleLoginNotEnabled: string;
+    emailPlaceholder: string;
+    emailPlaceholderLong: string;
+    emailContinue: string;
+    emailInvalid: string;
+    emailBack: string;
+    enterCode: string;
+    codeSentTo: (email: string) => string;
+  };
+  deposit: {
+    title: string;
+    open: string;
+    close: string;
+    balanceLabel: string;
+    tabCash: string;
+    tabCrypto: string;
+    cashHint: string;
+    cryptoHint: string;
+    buyGuideCta: (wallet: string) => string;
+    copyAddress: string;
+    copied: string;
+    copyFailed: string;
+    needWallet: string;
+    cashSoon: string;
+    solanaAddress: string;
   };
   footer: {
     socialHint: string;
@@ -230,12 +271,12 @@ const uk: SiteMessages = {
     loading: "Завантаження…",
     menuOpen: "Відкрити меню",
     menuClose: "Закрити меню",
-    changeNickname: "Змінити нікнейм",
-    setNickname: "Встановити нікнейм",
-    disconnect: "Від'єднати",
+    changeNickname: "Змінити нік",
+    setNickname: "Вказати нік",
+    disconnect: "Вийти",
     disconnectShort: "Вийти",
-    walletShort: "Гаманець",
-    connectWallet: "Підключити гаманець",
+    walletShort: "Вхід",
+    connectWallet: "Увійти",
     chooseWallet: "Обери гаманець",
     compatibleChain: "Сумісний з Solana",
     installed: "Встановлено",
@@ -243,11 +284,11 @@ const uk: SiteMessages = {
     openInPhantom: "Відкрити в Phantom",
     noWalletsFound: "Гаманців не знайдено",
     noWalletsHint:
-      "Потрібен Phantom або Solflare. Рекомендуємо Phantom. Після встановлення натисни «Підключити гаманець» знову.",
+      "Потрібен Phantom, Solflare або Jupiter. Рекомендуємо Phantom. Після встановлення натисни «Увійти» знову.",
     connectHintNotInstalled:
-      "Схоже, гаманець не відкрився або не встановлено. Завантаж Phantom або Solflare за посиланням нижче й спробуй знову.",
+      "Схоже, гаманець не відкрився або не встановлено. Завантаж Phantom, Solflare або Jupiter за посиланням нижче й спробуй знову.",
     connectHintFailed:
-      "Не вдалося підключити гаманець. Перевір, чи встановлено Phantom або Solflare, або скористайся посиланнями нижче.",
+      "Не вдалося підключити гаманець. Перевір, чи встановлено Phantom, Solflare або Jupiter, або скористайся посиланнями нижче.",
     openingSolflare: "Відкриваємо Solflare… Підтверди підключення у вікні розширення.",
     openingPhantom: "Відкриваємо Phantom… Підтверди підключення у вікні розширення.",
     installSolflareExtension: "Встановити Solflare",
@@ -257,9 +298,9 @@ const uk: SiteMessages = {
     walletBeginnerEyebrow: "Вперше тут?",
     walletBeginnerTitle: "Що таке гаманець",
     desktopExtensionHint:
-      "На Mac у браузері потрібне розширення Phantom або Solflare (Chrome, Brave або Edge).",
+      "На Mac у браузері потрібне розширення Phantom, Solflare або Jupiter (Chrome, Brave або Edge).",
     desktopExtensionRefresh:
-      "Після встановлення онови сторінку (Cmd+Shift+R) і обери Phantom або Solflare. Дозволь розширенню доступ до localhost.",
+      "Після встановлення онови сторінку (Cmd+Shift+R) і обери гаманець. Дозволь розширенню доступ до localhost.",
     scanningSolflare: "Шукаємо розширення Solflare у браузері…",
     scanningWallets: "Шукаємо розширення гаманців у браузері…",
     connectHintInstalled:
@@ -269,6 +310,48 @@ const uk: SiteMessages = {
     solflareInstalledTips:
       "1) Іконка гаманця у панелі браузера → підключи цей сайт. 2) Обери Solana. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
     socialXAria: "FORM8 на X (Twitter) — новини та підтримка",
+    installJupiterExtension: "Встановити Jupiter",
+    walletJupiterInstallSub: "Гаманець Jupiter для Solana",
+    continueWithEmail: "Продовжити з email",
+    continueWithEmailSub: "Google або пошта — без розширення",
+    orUseWallet: "або гаманець",
+    emailLoginNeedsAppId: "Email-вхід ще не увімкнено. Додай NEXT_PUBLIC_PRIVY_APP_ID у .env.local.",
+    loginTitle: "Увійти або зареєструватись",
+    loginWelcome: "Вітаємо у Form8",
+    loginOr: "АБО",
+    loginTerms: "Умови",
+    loginPrivacy: "Приватність",
+    loginSkinLabel: "Варіант плашки",
+    loginSkinCurrent: "Зараз",
+    loginSkinIpad: "iPad",
+    loginSkinLocker: "Плашка",
+    continueWithGoogle: "Продовжити з Google",
+    googleLoginNotEnabled:
+      "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google, плюс localhost у Allowed origins.",
+    emailPlaceholder: "Email",
+    emailPlaceholderLong: "Email адреса",
+    emailContinue: "Далі",
+    emailInvalid: "Введи коректний email.",
+    emailBack: "Інший email",
+    enterCode: "Код з листа",
+    codeSentTo: (email) => `Код надіслано на ${email}`,
+  },
+  deposit: {
+    title: "Поповнити",
+    open: "Поповнити",
+    close: "Закрити",
+    balanceLabel: "Баланс",
+    tabCash: "Картка",
+    tabCrypto: "Крипта",
+    cashHint: "Купи USDC карткою або Apple Pay.",
+    cryptoHint: "Надішли USDC у Solana.",
+    buyGuideCta: (wallet) => `Купити в ${wallet}`,
+    copyAddress: "Копіювати",
+    copied: "Скопійовано",
+    copyFailed: "Не вдалося скопіювати.",
+    needWallet: "Підключи гаманець.",
+    cashSoon: "Картка ще підключається — незабаром.",
+    solanaAddress: "Адреса",
   },
   footer: {
     socialHint: "Питання й баги — у Telegram @movematch. Новини туру та оновлення — у X.",
@@ -474,10 +557,10 @@ const en: SiteMessages = {
     menuClose: "Close menu",
     changeNickname: "Change nickname",
     setNickname: "Set nickname",
-    disconnect: "Disconnect",
-    disconnectShort: "Out",
-    walletShort: "Wallet",
-    connectWallet: "Connect wallet",
+    disconnect: "Log out",
+    disconnectShort: "Log out",
+    walletShort: "Log in",
+    connectWallet: "Log in",
     chooseWallet: "Choose a wallet",
     compatibleChain: "Compatible with Solana",
     installed: "Installed",
@@ -485,11 +568,11 @@ const en: SiteMessages = {
     openInPhantom: "Open in Phantom",
     noWalletsFound: "No wallets found",
     noWalletsHint:
-      "You need Phantom or Solflare. We recommend Phantom. After installing, tap “Connect wallet” again.",
+      "You need Phantom, Solflare, or Jupiter. We recommend Phantom. After installing, tap “Log in” again.",
     connectHintNotInstalled:
-      "The wallet may not have opened or isn’t installed. Download Phantom or Solflare via the links below and try again.",
+      "The wallet may not have opened or isn’t installed. Download Phantom, Solflare, or Jupiter via the links below and try again.",
     connectHintFailed:
-      "Could not connect the wallet. Check that Phantom or Solflare is installed or use the links below.",
+      "Could not connect the wallet. Check that Phantom, Solflare, or Jupiter is installed or use the links below.",
     openingSolflare: "Opening Solflare… Approve the connection in the extension popup.",
     openingPhantom: "Opening Phantom… Approve the connection in the extension popup.",
     installSolflareExtension: "Install Solflare",
@@ -499,9 +582,9 @@ const en: SiteMessages = {
     walletBeginnerEyebrow: "First time here?",
     walletBeginnerTitle: "What is a wallet",
     desktopExtensionHint:
-      "On Mac, the browser needs the Phantom or Solflare extension (Chrome, Brave, or Edge).",
+      "On Mac, the browser needs the Phantom, Solflare, or Jupiter extension (Chrome, Brave, or Edge).",
     desktopExtensionRefresh:
-      "After installing, refresh this page (Cmd+Shift+R) and choose Phantom or Solflare. Allow the extension access to localhost.",
+      "After installing, refresh this page (Cmd+Shift+R) and choose a wallet. Allow the extension access to localhost.",
     scanningSolflare: "Looking for the Solflare extension in your browser…",
     scanningWallets: "Looking for wallet extensions in your browser…",
     connectHintInstalled:
@@ -511,6 +594,48 @@ const en: SiteMessages = {
     solflareInstalledTips:
       "1) Wallet toolbar icon → connect this site. 2) Select Solana. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
     socialXAria: "FORM8 on X (Twitter) — news and support",
+    installJupiterExtension: "Install Jupiter",
+    walletJupiterInstallSub: "Jupiter wallet for Solana",
+    continueWithEmail: "Continue with email",
+    continueWithEmailSub: "Google or email — no extension",
+    orUseWallet: "or a wallet",
+    emailLoginNeedsAppId: "Email login is not on yet. Add NEXT_PUBLIC_PRIVY_APP_ID to .env.local.",
+    loginTitle: "Log in or sign up",
+    loginWelcome: "Welcome to Form8",
+    loginOr: "OR",
+    loginTerms: "Terms",
+    loginPrivacy: "Privacy",
+    loginSkinLabel: "Plaque look",
+    loginSkinCurrent: "Current",
+    loginSkinIpad: "iPad",
+    loginSkinLocker: "Plaque",
+    continueWithGoogle: "Continue with Google",
+    googleLoginNotEnabled:
+      "Google login is off in Privy. Dashboard → Login methods → Socials → Google, and add localhost to Allowed origins.",
+    emailPlaceholder: "Email",
+    emailPlaceholderLong: "Email address",
+    emailContinue: "Continue",
+    emailInvalid: "Enter a valid email.",
+    emailBack: "Use a different email",
+    enterCode: "Code from email",
+    codeSentTo: (email) => `Code sent to ${email}`,
+  },
+  deposit: {
+    title: "Deposit",
+    open: "Deposit",
+    close: "Close",
+    balanceLabel: "Balance",
+    tabCash: "Cash",
+    tabCrypto: "Crypto",
+    cashHint: "Buy USDC with a card or Apple Pay.",
+    cryptoHint: "Send USDC on Solana.",
+    buyGuideCta: (wallet) => `Buy in ${wallet}`,
+    copyAddress: "Copy",
+    copied: "Copied",
+    copyFailed: "Could not copy.",
+    needWallet: "Connect a wallet.",
+    cashSoon: "Card is still being connected — coming soon.",
+    solanaAddress: "Address",
   },
   footer: {
     socialHint: "Questions and bugs — Telegram @movematch. Gameweek news and updates — on X.",

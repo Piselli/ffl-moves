@@ -1,5 +1,5 @@
 /** Wallets intentionally supported by the Solana integration. */
-export const SUPPORTED_SOLANA_WALLET_IDS = ["phantom", "solflare"] as const;
+export const SUPPORTED_SOLANA_WALLET_IDS = ["phantom", "solflare", "jupiter"] as const;
 export type SupportedSolanaWalletId = (typeof SUPPORTED_SOLANA_WALLET_IDS)[number];
 
 export type SolanaWalletDef = {
@@ -9,6 +9,7 @@ export type SolanaWalletDef = {
   chromeExtensionUrl: string;
   downloadUrl: string;
   fallbackIcon?: string;
+  buyGuideUrl: string;
 };
 
 export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
@@ -18,6 +19,8 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     displayName: "Phantom",
     chromeExtensionUrl: "https://phantom.com/download",
     downloadUrl: "https://phantom.com/download",
+    fallbackIcon: "/wallets/phantom.svg",
+    buyGuideUrl: "https://help.phantom.com/hc/en-us/articles/4406388623251-How-do-I-buy-crypto",
   },
   {
     id: "solflare",
@@ -25,6 +28,17 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     displayName: "Solflare",
     chromeExtensionUrl: "https://solflare.com/download",
     downloadUrl: "https://solflare.com/download",
+    fallbackIcon: "/wallets/solflare.svg",
+    buyGuideUrl: "https://solflare.com/buy",
+  },
+  {
+    id: "jupiter",
+    adapterNames: ["Jupiter", "Jupiter Wallet", "Jupiter Mobile"],
+    displayName: "Jupiter",
+    chromeExtensionUrl: "https://jup.ag/download",
+    downloadUrl: "https://jup.ag/download",
+    fallbackIcon: "/wallets/jupiter.png",
+    buyGuideUrl: "https://jup.ag",
   },
 ];
 
@@ -51,6 +65,10 @@ export function isSafariBrowser(): boolean {
 
 type WalletRow = { name: string; icon?: string; readyState?: string };
 
+function isAdapterReady(readyState: string | undefined): boolean {
+  return readyState === "Installed" || readyState === "Loadable";
+}
+
 export type WalletConnectRow = {
   walletId: SupportedSolanaWalletId;
   name: string;
@@ -70,7 +88,7 @@ function rowForWallet(def: SolanaWalletDef, source: WalletRow, mode: WalletConne
     walletId: def.id,
     name: source.name,
     displayName: def.displayName,
-    icon: source.icon,
+    icon: source.icon || def.fallbackIcon,
     installUrl: def.chromeExtensionUrl,
     mode,
   };
@@ -81,6 +99,7 @@ function fallbackRow(def: SolanaWalletDef, mode: WalletConnectRow["mode"]): Wall
     walletId: def.id,
     name: def.adapterNames[0],
     displayName: def.displayName,
+    icon: def.fallbackIcon,
     installUrl: def.chromeExtensionUrl,
     mode,
   };
@@ -92,12 +111,17 @@ export function solanaWalletConnectRows(
   const rows: WalletConnectRow[] = [];
 
   for (const def of SOLANA_WALLETS) {
-    const installed = wallets?.filter((w) => def.adapterNames.includes(w.name)) ?? [];
-    if (installed.length > 0) {
-      rows.push(...installed.map((w) => rowForWallet(def, w, "installed")));
+    const matches = wallets?.filter((w) => def.adapterNames.includes(w.name)) ?? [];
+    const ready = matches.find((w) => isAdapterReady(w.readyState));
+    if (ready) {
+      rows.push(rowForWallet(def, ready, "installed"));
       continue;
     }
-
+    const detected = matches[0];
+    if (detected) {
+      rows.push(rowForWallet(def, detected, "extension-missing"));
+      continue;
+    }
     rows.push(fallbackRow(def, "extension-missing"));
   }
 

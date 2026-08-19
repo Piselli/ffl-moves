@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { SPRING_SNAPPY } from "@/lib/uiMotion";
 import { cn } from "@/lib/utils";
 
 export function WcDragRankList<T>({
@@ -20,6 +22,7 @@ export function WcDragRankList<T>({
 }) {
   const [dragKey, setDragKey] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
+  const reduce = useReducedMotion() ?? false;
 
   const reorder = (fromKey: string, toKey: string) => {
     if (fromKey === toKey) return;
@@ -55,8 +58,10 @@ export function WcDragRankList<T>({
             };
 
         return (
-          <li
+          <motion.li
             key={key}
+            layout={!reduce}
+            transition={reduce ? { duration: 0 } : SPRING_SNAPPY}
             onDragOver={
               readOnly
                 ? undefined
@@ -78,13 +83,13 @@ export function WcDragRankList<T>({
                   }
             }
             className={cn(
-              "transition-transform duration-150",
+              "transition-[transform,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
               isDragging && "scale-[0.98] opacity-40",
               isOver && "translate-y-0.5",
             )}
           >
             {renderItem(item, rank + 1, dragHandleProps)}
-          </li>
+          </motion.li>
         );
       })}
     </ul>

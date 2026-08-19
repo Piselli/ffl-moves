@@ -11,19 +11,25 @@ import {
 import Link from "next/link";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
+import { PositionFilterPills, type PositionFilter } from "@/components/PositionFilterPills";
 import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Player, TeamResult } from "@/lib/types";
 import { MAX_PER_CLUB, FORMATION } from "@/lib/constants";
+import { DEFAULT_FORMATION, slotPosition } from "@/lib/formation";
 import {
   hasRegisteredTeam,
   getGameweekStats,
   getTeamResult,
   getUserTeam,
   buildRegisterTeam,
-  getUsdcBalance,
   type GameweekSummary,
 } from "@/lib/chainClient";
+import {
+  isInsufficientFundsError,
+  isWalletUserRejection,
+  shouldOpenDepositBeforeRegister,
+} from "@/lib/registerPayment";
 import { findActiveWorldCupTourFromChain, getWorldCupRound } from "@/lib/worldcup";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -36,8 +42,8 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { buildRandomSquad } from "@/lib/randomSquad";
+import { useDeposit } from "@/components/DepositProvider";
 
-type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type MobileTab = "pitch" | "players";
 
 const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
@@ -120,7 +126,8 @@ function tryHydrateTeamDraftFromStorage(
 }
 
 export default function WorldCupSquadPage() {
-  const { connected, account, signAndSubmit } = useWallet();
+  const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
+  const { openDeposit } = useDeposit();
   const siteMessages = useSiteMessages();
   const wc = siteMessages.pages.worldCup;
   const g = siteMessages.pages.gameweek;
@@ -131,6 +138,7 @@ export default function WorldCupSquadPage() {
   const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
   const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("ALL");
+  const [activeSlot, setActiveSlot] = useState<{ index: number; isBench: boolean } | null>(null);
   const [teamFilter, setTeamFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -527,7 +535,21 @@ export default function WorldCupSquadPage() {
       return;
     }
     if (!canSelectPlayer(player)) return;
-    const slot = getNextAvailableSlot(player.position);
+    let slot = getNextAvailableSlot(player.position);
+    if (
+      activeSlot &&
+      !activeSlot.isBench &&
+      !starters[activeSlot.index] &&
+      slotPosition(activeSlot.index, DEFAULT_FORMATION) === player.position
+    ) {
+      slot = { index: activeSlot.index, isBench: false };
+    } else if (
+      activeSlot?.isBench &&
+      !bench[activeSlot.index] &&
+      player.position !== "GK"
+    ) {
+      slot = { index: activeSlot.index, isBench: true };
+    }
     if (!slot) return;
     if (slot.isBench) {
       const newBench = [...bench];
@@ -538,6 +560,7 @@ export default function WorldCupSquadPage() {
       newStarters[slot.index] = player;
       setStarters(newStarters);
     }
+    setActiveSlot(null);
   };
 
   const handleSlotClick = (index: number, isBench: boolean) => {
@@ -545,10 +568,19 @@ export default function WorldCupSquadPage() {
       const newBench = [...bench];
       newBench[index] = null;
       setBench(newBench);
-    } else if (!isBench && starters[index]) {
+      setActiveSlot(null);
+      return;
+    }
+    if (!isBench && starters[index]) {
       const newStarters = [...starters];
       newStarters[index] = null;
       setStarters(newStarters);
+      setActiveSlot(null);
+      return;
+    }
+    setActiveSlot({ index, isBench });
+    if (!isBench) {
+      setPositionFilter(slotPosition(index, DEFAULT_FORMATION));
     }
   };
 
@@ -572,8 +604,13 @@ export default function WorldCupSquadPage() {
     if (!connected || !account || !isTeamComplete || !currentTour) return;
 
     const requiredRaw = entryFee != null && entryFee > 0n ? entryFee : 5_000_000n;
-    const balance = await getUsdcBalance(account.address.toString());
-    if (balance < requiredRaw) {
+    if (
+      await shouldOpenDepositBeforeRegister(
+        account.address.toString(),
+        requiredRaw,
+        hasExternalWallet,
+      )
+    ) {
       setInsufficientFundsOpen(true);
       return;
     }
@@ -612,20 +649,11 @@ export default function WorldCupSquadPage() {
       trackReferralConversion(account?.address?.toString() ?? null);
     } catch (error: unknown) {
       const msg = getErrorMessage(error);
-      const msgLower = msg.toLowerCase();
-      const code = error !== null && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
-      const isUserRejection =
-        code === 4001 ||
-        msgLower.includes("user rejected") ||
-        msgLower.includes("user has rejected") ||
-        msgLower.includes("rejected the request") ||
-        msgLower.includes("user denied") ||
-        msgLower.includes("denied transaction") ||
-        msgLower.includes("denied message") ||
-        msgLower.includes("request rejected") ||
-        msgLower.includes("cancelled") ||
-        msgLower.includes("canceled");
-      if (!isUserRejection) alert(`${g.registerErrorPrefix} ${msg}`);
+      if (isInsufficientFundsError(error)) {
+        setInsufficientFundsOpen(true);
+      } else if (!isWalletUserRejection(error)) {
+        alert(`${g.registerErrorPrefix} ${msg}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -808,7 +836,7 @@ export default function WorldCupSquadPage() {
       onClick={handleRandomSquad}
       disabled={playersLoading || players.length === 0}
       className={cn(
-        "shrink-0 px-4 py-3 rounded-2xl font-display font-bold text-sm uppercase tracking-wide transition-all duration-200",
+        "shrink-0 px-4 py-3 rounded-2xl font-display font-bold text-sm uppercase tracking-wide transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         "bg-white/[0.04] border border-white/[0.12] text-white/70 hover:bg-white/[0.08] hover:text-white hover:border-[#00f948]/30",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.04] disabled:hover:text-white/70",
         extraClass,
@@ -823,7 +851,7 @@ export default function WorldCupSquadPage() {
       onClick={handleSubmitTeam}
       disabled={!isTeamComplete || isSubmitting}
       className={cn(
-        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-all duration-200",
+        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-[background-color,color,transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         isTeamComplete && !isSubmitting
           ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,249,72,0.25)]"
           : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed",
@@ -834,7 +862,7 @@ export default function WorldCupSquadPage() {
         ? g.submitRegistering
         : isTeamComplete
           ? g.submitConfirm(entryFeeLabel)
-          : g.submitNeedPlayers(totalCount, FORMATION.TOTAL)}
+          : `${g.submitNeedPlayers(totalCount, FORMATION.TOTAL)} ${g.submitNeedProgress(totalCount, FORMATION.TOTAL)}`}
     </button>
   );
 
@@ -889,7 +917,11 @@ export default function WorldCupSquadPage() {
       <div className="hidden lg:block max-w-7xl mx-auto px-4 pb-8">
         <div className="grid lg:grid-cols-2 gap-8 lg:items-stretch">
           <div className="flex flex-col">
-            <FormationGrid starters={starters} onPlayerClick={handleSlotClick} />
+            <FormationGrid
+              starters={starters}
+              onPlayerClick={handleSlotClick}
+              activeIndex={activeSlot && !activeSlot.isBench ? activeSlot.index : null}
+            />
             <div className="mt-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 shrink-0">
@@ -903,8 +935,12 @@ export default function WorldCupSquadPage() {
                     key={idx}
                     onClick={() => handleSlotClick(idx, true)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-left",
-                      player ? "bg-white/[0.05] border-white/[0.12] hover:border-rose-400/40" : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20",
+                      "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.98]",
+                      player
+                        ? "bg-white/[0.05] border-white/[0.12] hover:border-rose-400/40"
+                        : activeSlot?.isBench && activeSlot.index === idx
+                          ? "bg-white/[0.06] border-white/25 text-white/60"
+                          : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20",
                     )}
                   >
                     {player ? (
@@ -940,22 +976,11 @@ export default function WorldCupSquadPage() {
                   className="w-full pl-10 pr-4 py-3 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] focus:border-[#00f948]/30 transition-colors"
                 />
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => setPositionFilter(pos)}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                      positionFilter === pos
-                        ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30 shadow-[0_0_12px_rgba(0,249,72,0.15)]"
-                        : "bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/80",
-                    )}
-                  >
-                    {pos}
-                  </button>
-                ))}
-              </div>
+              <PositionFilterPills
+                value={positionFilter}
+                onChange={setPositionFilter}
+                layoutId="wc-pos"
+              />
               <div className="relative">
                 <select
                   value={teamFilter}
@@ -1014,7 +1039,15 @@ export default function WorldCupSquadPage() {
       <div className="lg:hidden px-3 pb-28">
         {mobileTab === "pitch" && (
           <div className="flex flex-col gap-3">
-            <FormationGrid starters={starters} onPlayerClick={(idx) => { handleSlotClick(idx, false); setMobileTab("players"); }} />
+            <FormationGrid
+              starters={starters}
+              onPlayerClick={(idx) => {
+                const occupied = Boolean(starters[idx]);
+                handleSlotClick(idx, false);
+                if (!occupied) setMobileTab("players");
+              }}
+              activeIndex={activeSlot && !activeSlot.isBench ? activeSlot.index : null}
+            />
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
               <div className="flex items-center justify-between gap-3 mb-2">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 shrink-0">
@@ -1026,10 +1059,18 @@ export default function WorldCupSquadPage() {
                 {bench.map((player, idx) => (
                   <button
                     key={idx}
-                    onClick={() => { handleSlotClick(idx, true); if (player) setMobileTab("players"); }}
+                    onClick={() => {
+                      const occupied = Boolean(player);
+                      handleSlotClick(idx, true);
+                      if (!occupied) setMobileTab("players");
+                    }}
                     className={cn(
-                      "flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all text-left",
-                      player ? "bg-white/[0.05] border-white/[0.12]" : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20",
+                      "flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.98]",
+                      player
+                        ? "bg-white/[0.05] border-white/[0.12]"
+                        : activeSlot?.isBench && activeSlot.index === idx
+                          ? "bg-white/[0.06] border-white/25 text-white/60"
+                          : "bg-white/[0.02] border-dashed border-white/[0.08] text-white/20",
                     )}
                   >
                     {player ? (
@@ -1063,22 +1104,13 @@ export default function WorldCupSquadPage() {
                   className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#00f948]/50 border border-white/[0.08] text-sm transition-colors"
                 />
               </div>
-              <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-                {(["ALL", "GK", "DEF", "MID", "FWD"] as PositionFilter[]).map((pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => setPositionFilter(pos)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all",
-                      positionFilter === pos
-                        ? "bg-[#00f948]/15 text-[#00f948] border border-[#00f948]/30"
-                        : "bg-white/[0.04] border border-white/[0.08] text-white/50",
-                    )}
-                  >
-                    {pos}
-                  </button>
-                ))}
-              </div>
+              <PositionFilterPills
+                value={positionFilter}
+                onChange={setPositionFilter}
+                layoutId="wc-pos-m"
+                size="sm"
+                className="w-full"
+              />
               <div className="relative">
                 <select
                   value={teamFilter}
@@ -1136,7 +1168,7 @@ export default function WorldCupSquadPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMobileTab("pitch")}
-              className={cn("flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5", mobileTab === "pitch" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60")}
+              className={cn("flex-1 flex flex-col items-center justify-center py-2 rounded-xl gap-0.5 transition-[color,transform] duration-150 active:scale-[0.97]", mobileTab === "pitch" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60")}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" />
@@ -1151,7 +1183,7 @@ export default function WorldCupSquadPage() {
             </div>
             <button
               onClick={() => setMobileTab("players")}
-              className={cn("flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all gap-0.5", mobileTab === "players" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60")}
+              className={cn("flex-1 flex flex-col items-center justify-center py-2 rounded-xl gap-0.5 transition-[color,transform] duration-150 active:scale-[0.97]", mobileTab === "players" ? "bg-[#00f948]/10 text-[#00f948]" : "text-white/30 hover:text-white/60")}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1166,6 +1198,10 @@ export default function WorldCupSquadPage() {
         open={insufficientFundsOpen}
         entryFeeLabel={entryFeeLabel}
         onClose={() => setInsufficientFundsOpen(false)}
+        onTopUp={() => {
+          setInsufficientFundsOpen(false);
+          openDeposit();
+        }}
       />
     </div>
   );

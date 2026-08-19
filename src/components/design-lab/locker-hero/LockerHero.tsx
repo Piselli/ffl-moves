@@ -20,6 +20,9 @@ import {
 import { LockerLabNav } from "./LockerLabNav";
 import { useLockerHeroData } from "./useLockerHeroData";
 import { useSquadPick } from "./useSquadPick";
+import { useLockerRegister } from "./useLockerRegister";
+import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
+import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +33,19 @@ import {
   SHIPPING_TABLET_VARIANT,
   type TabletVariantId,
 } from "./tabletVariants";
+
+/** `null` until mounted so SSR/hydration never loads the 3D iPad on a phone. */
+function useIsPhone(): boolean | null {
+  const [phone, setPhone] = useState<boolean | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return phone;
+}
 
 const TabletScene = dynamic(
   () => import("./TabletScene").then((module) => module.TabletScene),
@@ -65,6 +81,11 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const reduceMotion = useReducedMotion();
   const data = useLockerHeroData();
   const squad = useSquadPick();
+  const register = useLockerRegister({
+    starters: squad.starters,
+    bench: squad.bench,
+    gameweekId: data.openGwId,
+  });
   const prize = usePrizeAsset();
   const { locale } = useSiteLocale();
   const messages = useSiteMessages();
@@ -86,6 +107,9 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
   const [homeLookId, setHomeLookId] =
     useState<TabletVariantId>(SHIPPING_TABLET_VARIANT);
+  const isPhone = useIsPhone();
+  const flatPicker = isSite && isPhone === true;
+  const useTabletScene = !isSite || isPhone === false;
 
   useEffect(() => {
     if (!isSite) return;
@@ -151,8 +175,12 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   }, [data.players, data.playersLoading, squad.filledCount, squad.randomize]);
 
   useEffect(() => {
+    if (flatPicker) setTabletReady(true);
+  }, [flatPicker]);
+
+  useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if (pointerInTablet) return;
+      if (flatPicker || pointerInTablet) return;
       if (Math.abs(e.deltaY) < 6) return;
       if (e.deltaY > 0) {
         setTabletRaised(false);
@@ -162,7 +190,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     };
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
-  }, [pointerInTablet]);
+  }, [flatPicker, pointerInTablet]);
 
   useEffect(() => {
     if (tabletRaised) {
@@ -176,6 +204,41 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     return () => window.clearTimeout(id);
   }, [reduceMotion, tabletRaised]);
 
+  const picker = (
+    <LockerTablet
+      fixtures={data.fixtures}
+      prizePoolRaw={data.prizePoolRaw}
+      entries={data.entries}
+      prize={prize}
+      locale={locale}
+      messages={messages}
+      players={data.players}
+      playersLoading={data.playersLoading}
+      starters={squad.starters}
+      bench={squad.bench}
+      activeSlot={squad.activeSlot}
+      selectedIds={squad.selectedIds}
+      filledCount={squad.filledCount}
+      onSlotClick={squad.setActiveSlot}
+      onClearSlot={squad.clearSlot}
+      onPick={onPick}
+      onReset={squad.reset}
+      onRandom={() => squad.randomize(data.players)}
+      pitchStyleId={pitchStyleId}
+      onPitchStyleChange={onPitchStyleChange}
+      tabletVariantId={isSite ? SHIPPING_TABLET_VARIANT : homeLookId}
+      formationId={squad.formationId}
+      onFormationChange={squad.setFormationId}
+      onRegister={register.register}
+      registerLabel={register.ctaLabel}
+      registerProgress={register.ctaProgress}
+      registerBusy={register.submitting}
+      registerLocked={register.alreadyRegistered}
+      registerHint={register.hint}
+      registerEntry={register.needsLogin}
+    />
+  );
+
   return (
     <div className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white">
       <LockerRoomBackground
@@ -184,14 +247,16 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
         onImageError={onRoomImageError}
       />
 
-      <LockerKits
-        starters={squad.starters}
-        bench={squad.bench}
-        roomBackgroundId={ROOM_BACKGROUND.id}
-        roomFocused={!tabletRaised}
-        glowId={ACTIVE_NAMEPLATE_GLOW}
-        preferBakedQuads
-      />
+      {useTabletScene ? (
+        <LockerKits
+          starters={squad.starters}
+          bench={squad.bench}
+          roomBackgroundId={ROOM_BACKGROUND.id}
+          roomFocused={!tabletRaised}
+          glowId={ACTIVE_NAMEPLATE_GLOW}
+          preferBakedQuads
+        />
+      ) : null}
 
       {isLab ? (
         <div className="pointer-events-none absolute left-4 top-20 z-30 sm:left-6 sm:top-24">
@@ -239,7 +304,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
         </div>
       ) : null}
 
-      {!tabletRaised && tabletSettledDown && (
+      {useTabletScene && !tabletRaised && tabletSettledDown && (
         <button
           type="button"
           onClick={() => setTabletRaised(true)}
@@ -313,45 +378,44 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
         </aside>
       ) : null}
 
-      <div
-        className={cn(
-          "absolute inset-0 z-[60]",
-          !tabletRaised && "pointer-events-none",
-        )}
-      >
-        <TabletScene
-          raised={tabletRaised}
-          reduceMotion={Boolean(reduceMotion)}
-          onPointerInsideChange={setPointerInTablet}
-          onModelReady={onTabletReady}
+      {flatPicker ? (
+        <div className="absolute inset-0 z-[60] overflow-hidden pt-16">{picker}</div>
+      ) : useTabletScene ? (
+        <div
+          className={cn(
+            "absolute inset-0 z-[60]",
+            !tabletRaised && "pointer-events-none",
+          )}
         >
-          <LockerTablet
-            fixtures={data.fixtures}
-            prizePoolRaw={data.prizePoolRaw}
-            entries={data.entries}
-            prize={prize}
-            locale={locale}
-            messages={messages}
-            players={data.players}
-            playersLoading={data.playersLoading}
-            starters={squad.starters}
-            bench={squad.bench}
-            activeSlot={squad.activeSlot}
-            selectedIds={squad.selectedIds}
-            filledCount={squad.filledCount}
-            onSlotClick={squad.setActiveSlot}
-            onClearSlot={squad.clearSlot}
-            onPick={onPick}
-            onReset={squad.reset}
-            onRandom={() => squad.randomize(data.players)}
-            pitchStyleId={pitchStyleId}
-            onPitchStyleChange={onPitchStyleChange}
-            tabletVariantId={isSite ? SHIPPING_TABLET_VARIANT : homeLookId}
-            formationId={squad.formationId}
-            onFormationChange={squad.setFormationId}
-          />
-        </TabletScene>
-      </div>
+          <TabletScene
+            raised={tabletRaised}
+            reduceMotion={Boolean(reduceMotion)}
+            onPointerInsideChange={setPointerInTablet}
+            onModelReady={onTabletReady}
+          >
+            {picker}
+          </TabletScene>
+        </div>
+      ) : null}
+
+      <InsufficientFundsModal
+        open={register.insufficientOpen}
+        entryFeeLabel={register.feeLabel}
+        onClose={() => register.setInsufficientOpen(false)}
+        onTopUp={() => {
+          register.setInsufficientOpen(false);
+          register.openDeposit();
+        }}
+      />
+      <ShareSquadOnXModal
+        open={register.shareOpen}
+        onClose={() => register.setShareOpen(false)}
+        starters={register.registeredStarters}
+        bench={register.registeredBench}
+        context="gameweek"
+        tourLabel={`${messages.pages.gameweek.gwWord} ${register.gameweekId ?? ""}`}
+        sitePath="/"
+      />
 
       {bootMounted ? (
         <LockerHeroBoot

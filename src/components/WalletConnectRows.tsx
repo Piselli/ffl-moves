@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { usePrivyAuth } from "@/components/PrivyAppProvider";
 
 type Props = {
   rows: WalletConnectRow[];
@@ -25,22 +27,75 @@ function ExternalIcon() {
   );
 }
 
+function MailIcon() {
+  return (
+    <svg className="h-5 w-5 text-[#00f948]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M4 7l8 6 8-6" />
+    </svg>
+  );
+}
+
 export function WalletConnectRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
   const m = useSiteMessages();
+  const privy = usePrivyAuth();
+  const [emailHint, setEmailHint] = useState<string | null>(null);
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 
   const shellInstall =
-    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.14] transition-all text-left";
+    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.14] transition-[background-color,border-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] text-left";
   const shellConnect =
-    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#00f948]/30 transition-all text-left disabled:opacity-50 cursor-pointer";
+    "group w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#00f948]/30 transition-[background-color,border-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] text-left disabled:opacity-50 cursor-pointer";
   const iconShell =
     "w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 p-2 flex shrink-0 items-center justify-center";
 
+  const onEmailLogin = () => {
+    setEmailHint(null);
+    if (!privy.configured) {
+      setEmailHint(m.nav.emailLoginNeedsAppId);
+      return;
+    }
+    if (!privy.ready) return;
+    privy.login({ loginMethods: ["email", "google"] });
+  };
+
   return (
     <div className={`flex flex-col gap-1.5 ${pad}`}>
+      <button
+        type="button"
+        disabled={pending || (privy.configured && !privy.ready)}
+        onClick={onEmailLogin}
+        className={shellConnect}
+      >
+        <div className={iconShell}>
+          <MailIcon />
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-[15px] font-display font-bold leading-tight text-white">
+            {m.nav.continueWithEmail}
+          </p>
+          <p className="text-[11px] mt-1 leading-snug text-white/45">{m.nav.continueWithEmailSub}</p>
+        </div>
+      </button>
+      {emailHint ? (
+        <p className="px-1 text-[10px] leading-snug text-amber-200/80">{emailHint}</p>
+      ) : null}
+
+      <div className="flex items-center gap-2 px-1 py-1">
+        <span className="h-px flex-1 bg-white/10" />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+          {m.nav.orUseWallet}
+        </span>
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+
       {rows.map((row) => {
         const installSub =
-          row.walletId === "phantom" ? "Install Phantom to connect." : "Install Solflare to connect.";
+          row.walletId === "phantom"
+            ? m.nav.walletPhantomInstallSub
+            : row.walletId === "solflare"
+              ? m.nav.walletSolflareInstallSub
+              : m.nav.walletJupiterInstallSub;
 
         if (row.mode === "extension-missing") {
           return (
