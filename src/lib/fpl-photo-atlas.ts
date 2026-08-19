@@ -1,8 +1,6 @@
 import type { CSSProperties } from "react";
 import atlas from "@/data/fpl-photo-atlas.json";
 
-export const FPL_SPRITE_URL = "/sprites/fpl-players.webp";
-
 type Frame = { x: number; y: number };
 
 type AtlasFile = {
@@ -11,10 +9,13 @@ type AtlasFile = {
   width: number;
   height: number;
   count: number;
+  builtAt?: string;
   frames: Record<string, Frame>;
 };
 
 const data = atlas as AtlasFile;
+
+export const FPL_SPRITE_URL = `/sprites/fpl-players.webp?v=${data.count}-${data.builtAt ?? data.width}`;
 
 export function getFplPhotoFrame(
   code: number | string | undefined | null

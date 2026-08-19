@@ -50,6 +50,7 @@ public/design-lab/locker-hero/kit/_review/
 # Locker plate iterations — only the shipped v25 is tracked.
 public/design-lab/locker-hero/variants/*
 !public/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png
+!public/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp
 
 # scratch screenshots / local dumps — not product
 /tmp/

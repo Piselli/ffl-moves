@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -20,7 +19,7 @@ import { getPitchChipFont } from "@/components/design-lab/locker-hero/pitchChipF
 import { fitPitchName } from "@/components/design-lab/locker-hero/pitchChipName";
 import { pl2627HomeKit } from "@/components/design-lab/locker-hero/pl2627HomeKits";
 import { getTypeface } from "@/components/design-lab/locker-hero/lockerTypefaces";
-import { pitchCutoutPhotoCandidates } from "@/lib/playerPhoto";
+import { PitchChipCutout } from "@/components/design-lab/locker-hero/PitchChipCutout";
 import {
   DEFAULT_FORMATION,
   formationLanes,
@@ -774,85 +773,21 @@ function ResultsChipCutout({
   player: LabSquadPlayer;
   size: number;
 }) {
-  const candidates = useMemo(() => {
-    // Prefer PL 110×140 busts (same as homepage). Never put hang-kit
-    // `cast` ahead of catalog photos — those files are full-body.
-    const fromCatalog = pitchCutoutPhotoCandidates({
-      photo: player.photo,
-      imageUrl: player.photo,
-      fplPhotoCode: player.fplPhotoCode,
-      apiId: player.apiId,
-    });
-    if (fromCatalog.length > 0) return fromCatalog;
-    return player.cast ? [player.cast] : [];
-  }, [player.photo, player.cast, player.fplPhotoCode, player.apiId]);
-  const [urlIndex, setUrlIndex] = useState(0);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setUrlIndex(0);
-    setFailed(false);
-  }, [candidates.join("|")]);
-
-  const src = !failed ? candidates[urlIndex] ?? null : null;
-  const frameH = Math.round(size * 1.05);
-  const usingCast = Boolean(src && player.cast && src === player.cast);
-
+  const kit = player.teamId ? pl2627HomeKit(player.teamId) : null;
   return (
-    <span
-      className="relative block shrink-0 overflow-hidden"
-      style={{
-        width: size,
-        height: frameH,
-        filter:
-          "drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 0.5px rgba(255,255,255,0.2))",
+    <PitchChipCutout
+      player={{
+        name: player.name,
+        webName: player.name,
+        team: kit?.club ?? null,
+        teamId: player.teamId,
+        photo: player.photo,
+        fplPhotoCode: player.fplPhotoCode,
+        apiId: player.apiId,
       }}
-    >
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          onError={() => {
-            if (urlIndex + 1 < candidates.length) setUrlIndex((i) => i + 1);
-            else setFailed(true);
-          }}
-          className="pointer-events-none absolute left-1/2 max-w-none -translate-x-1/2 object-cover object-[center_8%]"
-          style={
-            usingCast
-              ? {
-                  // Standing cast art → zoom into head/shoulders
-                  top: "0%",
-                  width: "155%",
-                  height: "210%",
-                  objectPosition: "center 12%",
-                  background: "transparent",
-                }
-              : {
-                  top: "-4%",
-                  width: "118%",
-                  height: "132%",
-                  background: "transparent",
-                }
-          }
-        />
-      ) : (
-        <svg
-          viewBox="0 0 64 80"
-          width={size}
-          height={frameH}
-          className="text-white/55"
-          aria-hidden
-        >
-          <path
-            fill="currentColor"
-            d="M32 15c7.2 0 13 5.6 13 12.5 0 5.2-3.1 9.7-7.6 11.7 9.2 2.2 15.6 10.4 15.6 20.2V68H10v-8.6c0-9.8 6.4-18 15.6-20.2C21.1 37.2 18 32.7 18 27.5 18 20.6 23.8 15 32 15z"
-          />
-        </svg>
-      )}
-      <span className="sr-only">{player.name}</span>
-    </span>
+      name={player.name}
+      size={size}
+    />
   );
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Form8Lockup } from "@/components/Form8Mark";
 import { LOCKER_NAV_LINKS } from "@/components/design-lab/locker-hero/navStyles";
+import { LockerTalentsSoon } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NicknameModal } from "@/components/NicknameModal";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
@@ -56,7 +57,28 @@ export function ResultsPlaceNav() {
           </Link>
 
           <nav className="mx-4 hidden flex-1 items-center justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2">
-            {LOCKER_NAV_LINKS.map((link) => {
+            {LOCKER_NAV_LINKS.slice(0, 2).map((link) => {
+              const active =
+                pathname === link.href ||
+                pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "inline-flex h-8 items-center px-2.5 text-[13px] font-semibold uppercase leading-none tracking-[0.14em] transition-colors",
+                    "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
+                    active
+                      ? "text-[#00f948]"
+                      : "text-white hover:text-[#00f948]",
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+            <LockerTalentsSoon className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]" />
+            {LOCKER_NAV_LINKS.slice(2).map((link) => {
               const active =
                 pathname === link.href ||
                 pathname.startsWith(`${link.href}/`);

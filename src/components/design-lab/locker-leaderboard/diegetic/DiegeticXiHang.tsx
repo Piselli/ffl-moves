@@ -29,7 +29,7 @@ export function DiegeticXiHang() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[#1a1816] text-white">
-      <DiegeticRoomWash src="/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png" />
+      <DiegeticRoomWash src="/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp" />
       <ResultsPlaceNav />
 
       {/* Hung XI — diegetic */}

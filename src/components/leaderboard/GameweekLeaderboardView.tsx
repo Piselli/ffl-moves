@@ -15,7 +15,7 @@ import {
   findOpenGameweek,
   findHighestGameweekId,
   findLatestResolvedGameweekId,
-  getTeamResult,
+  getGameweekResults,
   getGameweekEntrants,
   getUserTeam,
   getGameweekStats,
@@ -31,8 +31,6 @@ import { isWorldCupTour } from "@/lib/worldcup";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import {
-  fetchTourClaimHistoryFromApi,
-  mergePriorClaimsIntoResults,
   ownerHasPriorClaimPrize,
   tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
@@ -112,15 +110,7 @@ export function GameweekLeaderboardView() {
       setCurrentGameweek(gwData);
 
       if (gwData && gwData.status === "resolved") {
-        const addresses = await getGameweekEntrants(gwId);
-        const [results, priorClaimed] = await Promise.all([
-          Promise.all(addresses.map((addr) => getTeamResult(addr, gwId))),
-          fetchTourClaimHistoryFromApi(gwId),
-        ]);
-        const validResults = mergePriorClaimsIntoResults(
-          results.filter((r): r is TeamResult => r !== null),
-          priorClaimed,
-        );
+        const validResults = await getGameweekResults(gwId);
         validResults.sort((a, b) => {
           if (a.rank !== b.rank) return a.rank - b.rank;
           if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;

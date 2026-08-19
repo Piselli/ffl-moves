@@ -408,16 +408,22 @@ async function verifiedResults(gameweekId: number): Promise<TeamResult[]> {
   const [gameweek, payload] = await Promise.all([getGameweek(gameweekId), resultsPayload(gameweekId)]);
   if (!gameweek?.resultsRoot || !payload) return [];
   const root = Buffer.from(gameweek.resultsRoot, "hex");
-  const rows = await Promise.all(payload.results.map(async (row) => ({
+  const claimedSet = new Set(
+    await getClaimedOwners(
+      gameweekId,
+      payload.results.map((row) => row.owner),
+    ),
+  );
+  const rows = payload.results.map((row) => ({
     ...row,
     prizeAmount: BigInt(row.prizeAmount),
-    claimed: await isPrizeClaimed(row.owner, gameweekId),
+    claimed: claimedSet.has(row.owner),
     ratingBonus: 0,
     titleTriggered: false,
     titleMultiplier: 0,
     guildTriggered: false,
     guildMultiplier: 0,
-  })));
+  }));
   // A row is only shown once its proof reconstructs the on-chain root *and* the
   // tree pays exactly what the oracle allocated, which is what the program enforces.
   return rows.filter((row) => {

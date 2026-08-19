@@ -25,6 +25,7 @@ import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
+import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
 import {
   getTabletVariant,
   HOMEPAGE_COMPARE_VARIANTS,
@@ -58,7 +59,7 @@ const TABLET_MOTION_MS = 520;
 /** Locked production kit room — v25 hangers (no logos). */
 const ROOM_BACKGROUND = {
   id: "v25",
-  src: "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png",
+  src: "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp",
 } as const;
 
 type LockerHeroVariant = "lab" | "site";
@@ -117,6 +118,12 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     img.src = ROOM_BACKGROUND.src;
     img.onload = () => setRoomImageReady(true);
     img.onerror = () => setRoomImageReady(true);
+    const preload = document.createElement("link");
+    preload.rel = "preload";
+    preload.as = "image";
+    preload.href = FPL_SPRITE_URL;
+    document.head.appendChild(preload);
+    return () => preload.remove();
   }, [isSite]);
 
   useEffect(() => {

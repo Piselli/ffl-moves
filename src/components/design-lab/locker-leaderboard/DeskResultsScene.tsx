@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { LockerRoomBackground } from "@/components/design-lab/locker-hero/LockerRoomBackground";
+import { TabletDomFrame } from "@/components/design-lab/locker-hero/TabletDomFrame";
+import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
 import { cn } from "@/lib/utils";
 import { BoardBroadcast } from "./BoardBroadcast";
 import { ResultsTablet } from "./ResultsTablet";
@@ -70,6 +72,15 @@ export function DeskResultsScene({ lab = false }: Props) {
   const onTabletReady = useCallback(() => setTabletReady(true), []);
 
   useEffect(() => {
+    const preload = document.createElement("link");
+    preload.rel = "preload";
+    preload.as = "image";
+    preload.href = FPL_SPRITE_URL;
+    document.head.appendChild(preload);
+    return () => preload.remove();
+  }, []);
+
+  useEffect(() => {
     const id = window.setTimeout(() => {
       setRoomReady(true);
       setTabletReady(true);
@@ -89,7 +100,10 @@ export function DeskResultsScene({ lab = false }: Props) {
   }, [pointerInTablet]);
 
   void roomReady;
-  void tabletReady;
+
+  const tabletScreen = (
+    <ResultsTablet room={room} chromeId={chromeId} />
+  );
 
   return (
     <div className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white">
@@ -195,15 +209,34 @@ export function DeskResultsScene({ lab = false }: Props) {
           !tabletRaised && "pointer-events-none",
         )}
       >
-        <TabletScene
-          placement="desk"
-          raised={tabletRaised}
-          reduceMotion={Boolean(reduceMotion)}
-          onPointerInsideChange={setPointerInTablet}
-          onModelReady={onTabletReady}
+        {!tabletReady ? (
+          <TabletDomFrame
+            placement="desk"
+            raised={tabletRaised}
+            reduceMotion={Boolean(reduceMotion)}
+            onPointerInsideChange={setPointerInTablet}
+          >
+            {tabletScreen}
+          </TabletDomFrame>
+        ) : null}
+        <div
+          className={cn(
+            "absolute inset-0",
+            !tabletReady && "pointer-events-none opacity-0",
+          )}
+          aria-hidden={!tabletReady || undefined}
         >
-          <ResultsTablet room={room} chromeId={chromeId} />
-        </TabletScene>
+          <TabletScene
+            placement="desk"
+            raised={tabletRaised}
+            reduceMotion={Boolean(reduceMotion)}
+            skipDomFallback
+            onPointerInsideChange={setPointerInTablet}
+            onModelReady={onTabletReady}
+          >
+            {tabletReady ? tabletScreen : null}
+          </TabletScene>
+        </div>
       </div>
     </div>
   );

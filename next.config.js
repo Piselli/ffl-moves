@@ -48,10 +48,23 @@ function publicEnvFromEnvLocal() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@stableyard/widget", "@privy-io/react-auth"],
+  transpilePackages: ["@privy-io/react-auth"],
   env: publicEnvFromEnvLocal(),
   async redirects() {
     return [{ source: "/gameweek", destination: "/", permanent: false }];
+  },
+  async headers() {
+    return [
+      {
+        source: "/sprites/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
   },
   webpack: (config, { dev, webpack: webpackApi }) => {
     // Privy optional peers (Stripe onramp, Farcaster, Abstract). Webpack still

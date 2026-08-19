@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   fplPhotoCodeFromUrl,
@@ -29,6 +29,8 @@ type Props = {
   initials?: string | null;
   /** Fixed hue 0–359 instead of hashing `teamName` or `alt` */
   accentHue?: number | null;
+  /** Skip the viewport gate — pitch chips are already on-screen (incl. 3D Html). */
+  eager?: boolean;
 };
 
 /** Minimal bust — single smooth silhouette, no extra strokes or layers */
@@ -48,6 +50,25 @@ function FallbackSilhouette({ className }: { className?: string }) {
   );
 }
 
+/** Wait to fetch remote portraits until the chip is near the viewport. */
+function useNearViewport<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setNear(true);
+      },
+      { rootMargin: "160px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+  return { ref, near };
+}
+
 export function FplPhotoAvatar({
   fplPhotoCode,
   apiId,
@@ -58,7 +79,10 @@ export function FplPhotoAvatar({
   teamName,
   initials: initialsProp,
   accentHue,
+  eager = false,
 }: Props) {
+  const { ref, near } = useNearViewport<HTMLDivElement>();
+  const allowRemote = eager || near;
   // Track BOTH "loaded" and "failed" so the fallback can render underneath the
   // <img> until the request actually succeeds. This prevents the browser's
   // default broken-image icon from flashing while the request is in-flight or
@@ -106,8 +130,8 @@ export function FplPhotoAvatar({
   // World Cup portraits use API-Sports. FPL atlas wins whenever we have a frame
   // (even if apiId is present as a CDN fallback for missing PL assets).
   const useSprite = hasFplAtlas() && frame != null;
-
-  const showImg = Boolean(resolvedPhotoUrl) && !imgFailed;
+  const showImg =
+    Boolean(resolvedPhotoUrl) && !imgFailed && !useSprite && allowRemote;
   const fallbackVisible = !imgLoaded || imgFailed;
 
   const initials =
@@ -143,6 +167,7 @@ export function FplPhotoAvatar({
 
   return (
     <div
+      ref={ref}
       role="img"
       aria-label={alt}
       title={alt}

@@ -1257,7 +1257,7 @@ export const pagesEn: PagesMessages = {
             id: "can-i-actually-win",
             q: "Can I really win something?",
             a: [
-              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you automatically receive a share of the prize pool in USDC on your wallet." },
+              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you earn a share of the prize pool in USDC. When the round is resolved, press Claim on the Leaderboard and sign — the USDC lands in your wallet." },
               { type: "p", text: "How much depends on your final rank and how many people entered the round." },
             ],
           },
@@ -2338,7 +2338,7 @@ export const pagesUk: PagesMessages = {
             id: "can-i-actually-win",
             q: "Чи я справді можу щось виграти?",
             a: [
-              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі автоматично нараховується частка призового фонду в USDC — її потім можна забрати на свій гаманець." },
+              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі нараховується частка призового фонду в USDC. Коли тур закрито, на лідерборді з’являється Claim — натисни і підпиши, щоб USDC зайшли на гаманець." },
               { type: "p", text: "Розмір виграшу залежить від місця і від кількості учасників туру." },
             ],
           },

@@ -2,6 +2,9 @@
  * Builds a single WebP sprite + manifest from FPL official headshots.
  * Run: node scripts/build-fpl-photo-atlas.mjs
  * Requires: sharp (devDependency)
+ *
+ * Packs every selectable player into one image so the picker never fans out
+ * to /api/player-photo. Missing tiles stay empty in the UI (silhouette).
  */
 import sharp from "sharp";
 import fs from "fs";
@@ -14,18 +17,28 @@ const OUT_IMG = path.join(ROOT, "public", "sprites", "fpl-players.webp");
 const OUT_JSON = path.join(ROOT, "src", "data", "fpl-photo-atlas.json");
 
 const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
-const PHOTO_BASE =
-  "https://resources.premierleague.com/premierleague/photos/players/250x250/p";
+const PHOTO_HOST = "https://resources.premierleague.com/premierleague/photos/players";
 
 const COLS = 26;
-const CELL = 64;
+/** 80px: sharp enough for 54px list + ~76px pitch chips, still one small file. */
+const CELL = 80;
 
 const FETCH_HEADERS = {
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "image/png,image/*;q=0.8,*/*;q=0.5",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
   Referer: "https://fantasy.premierleague.com/",
 };
+
+function photoUrls(code) {
+  const file = `p${code}`;
+  return [
+    `${PHOTO_HOST}/110x140/${file}.png`,
+    `${PHOTO_HOST}/110x140/${file}.jpg`,
+    `${PHOTO_HOST}/250x250/${file}.png`,
+    `${PHOTO_HOST}/250x250/${file}.jpg`,
+  ];
+}
 
 async function fetchBootstrap() {
   const res = await fetch(FPL_URL, {
@@ -41,18 +54,24 @@ async function fetchBootstrap() {
 }
 
 async function fetchOnePng(code) {
-  const url = `${PHOTO_BASE}${code}.png`;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetch(url, { headers: FETCH_HEADERS });
-      if (!res.ok) {
+  for (const url of photoUrls(code)) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(url, { headers: FETCH_HEADERS });
+        if (!res.ok) {
+          await new Promise((r) => setTimeout(r, 60 * (attempt + 1)));
+          continue;
+        }
+        const type = res.headers.get("content-type") || "";
+        if (type && !type.startsWith("image/")) continue;
+        const buf = Buffer.from(await res.arrayBuffer());
+        return sharp(buf)
+          .resize(CELL, CELL, { fit: "cover", position: "top" })
+          .png()
+          .toBuffer();
+      } catch {
         await new Promise((r) => setTimeout(r, 80 * (attempt + 1)));
-        continue;
       }
-      const buf = Buffer.from(await res.arrayBuffer());
-      return sharp(buf).resize(CELL, CELL, { fit: "cover" }).png().toBuffer();
-    } catch {
-      await new Promise((r) => setTimeout(r, 120 * (attempt + 1)));
     }
   }
   return null;
@@ -62,40 +81,40 @@ async function main() {
   console.log("Fetching FPL bootstrap…");
   const data = await fetchBootstrap();
   const elements = data.elements.filter(
-    (el) => el.can_select && el.status !== "u"
+    (el) => el.can_select && el.status !== "u",
   );
   console.log(`Selectable players: ${elements.length}`);
 
-  const frames = {};
-  const composites = [];
-  let ok = 0;
-
-  const concurrency = 12;
+  const downloaded = [];
+  const concurrency = 10;
   for (let i = 0; i < elements.length; i += concurrency) {
     const chunk = elements.slice(i, i + concurrency);
     const results = await Promise.all(
-      chunk.map(async (el, j) => {
-        const idx = i + j;
-        const row = Math.floor(idx / COLS);
-        const col = idx % COLS;
-        const x = col * CELL;
-        const y = row * CELL;
-        const buf = await fetchOnePng(el.code);
-        return { code: el.code, x, y, buf, idx };
-      })
+      chunk.map(async (el) => ({
+        code: el.code,
+        buf: await fetchOnePng(el.code),
+      })),
     );
-    for (const r of results) {
-      if (r.buf) {
-        frames[String(r.code)] = { x: r.x, y: r.y };
-        composites.push({ input: r.buf, left: r.x, top: r.y });
-        ok++;
-      }
-    }
-    process.stdout.write(`\rDownloaded ${Math.min(i + concurrency, elements.length)}/${elements.length}`);
+    downloaded.push(...results);
+    process.stdout.write(
+      `\rDownloaded ${Math.min(i + concurrency, elements.length)}/${elements.length}`,
+    );
   }
-  console.log(`\nComposited tiles: ${ok}`);
 
-  const totalRows = Math.ceil(elements.length / COLS);
+  const frames = {};
+  const composites = [];
+  let packed = 0;
+  for (const r of downloaded) {
+    if (!r.buf) continue;
+    const col = packed % COLS;
+    const row = Math.floor(packed / COLS);
+    frames[String(r.code)] = { x: col * CELL, y: row * CELL };
+    composites.push({ input: r.buf, left: col * CELL, top: row * CELL });
+    packed++;
+  }
+  console.log(`\nComposited tiles: ${packed}`);
+
+  const totalRows = Math.max(1, Math.ceil(packed / COLS));
   const width = COLS * CELL;
   const height = totalRows * CELL;
 
@@ -111,7 +130,7 @@ async function main() {
     },
   })
     .composite(composites)
-    .webp({ quality: 82, effort: 4 })
+    .webp({ quality: 72, effort: 6 })
     .toFile(OUT_IMG);
 
   const manifest = {
@@ -119,11 +138,13 @@ async function main() {
     cols: COLS,
     width,
     height,
-    count: ok,
+    count: packed,
+    builtAt: new Date().toISOString().slice(0, 10),
     frames,
   };
   fs.writeFileSync(OUT_JSON, JSON.stringify(manifest));
-  console.log("Wrote", OUT_IMG);
+  const stat = fs.statSync(OUT_IMG);
+  console.log("Wrote", OUT_IMG, `(${Math.round(stat.size / 1024)} KB)`);
   console.log("Wrote", OUT_JSON);
 }
 

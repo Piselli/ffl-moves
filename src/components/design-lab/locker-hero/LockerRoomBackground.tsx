@@ -15,7 +15,7 @@ type Props = {
 /** Locker plate: atmosphere is baked into the asset — keep the compositor thin. */
 export function LockerRoomBackground({
   className,
-  src = "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png",
+  src = "/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp",
   objectClassName = "object-center",
   onImageLoad,
   onImageError,

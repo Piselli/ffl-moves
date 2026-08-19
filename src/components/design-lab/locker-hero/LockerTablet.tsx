@@ -16,6 +16,7 @@ import {
 } from "framer-motion";
 import type { Player } from "@/lib/types";
 import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
+import { PitchChipCutout } from "./PitchChipCutout";
 import { Form8Mark } from "@/components/Form8Mark";
 import type { PrizeAssetContextValue } from "@/components/PrizeAssetProvider";
 import type { SiteMessages } from "@/i18n/messages";
@@ -42,7 +43,6 @@ import {
 } from "./tabletVariants";
 import { pl2627HomeKit } from "./pl2627HomeKits";
 import { clubKitFor } from "./clubKitColors";
-import { pitchCutoutPhotoCandidates } from "@/lib/playerPhoto";
 import {
   DEFAULT_FORMATION,
   formationRows,
@@ -274,7 +274,7 @@ const PLATE_FONT_SIZE = 10.5;
 const PLATE_TEXT_W = 70;
 const PLATE_CHIP_W = 76; // text + 3px pad each side
 
-/** Freestanding bust — normalized head/shoulders crop for mixed PL assets. */
+/** Freestanding bust — atlas first, same cutout as the results XI. */
 function ChipCutout({
   player,
   name,
@@ -284,70 +284,7 @@ function ChipCutout({
   name: string;
   size?: number;
 }) {
-  const candidates = useMemo(
-    () => pitchCutoutPhotoCandidates(player),
-    [player.photo, player.imageUrl, player.fplPhotoCode, player.apiId],
-  );
-  const [urlIndex, setUrlIndex] = useState(0);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setUrlIndex(0);
-    setFailed(false);
-  }, [candidates.join("|")]);
-
-  const src = !failed ? candidates[urlIndex] ?? null : null;
-  const frameH = Math.round(size * 1.05);
-
-  return (
-    <span
-      className="relative block shrink-0 overflow-hidden"
-      style={{
-        width: size,
-        height: frameH,
-        filter:
-          "drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 0.5px rgba(255,255,255,0.2))",
-      }}
-    >
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          onError={() => {
-            if (urlIndex + 1 < candidates.length) {
-              setUrlIndex((i) => i + 1);
-            } else {
-              setFailed(true);
-            }
-          }}
-          className="pointer-events-none absolute left-1/2 max-w-none -translate-x-1/2 object-cover object-[center_8%]"
-          style={{
-            // Crop lower torso so wide/far PL shots (Virgil) match chest-up busts
-            top: "-4%",
-            width: "118%",
-            height: "132%",
-            background: "transparent",
-          }}
-        />
-      ) : (
-        <svg
-          viewBox="0 0 64 80"
-          width={size}
-          height={frameH}
-          className="text-white/55"
-          aria-hidden
-        >
-          <path
-            fill="currentColor"
-            d="M32 15c7.2 0 13 5.6 13 12.5 0 5.2-3.1 9.7-7.6 11.7 9.2 2.2 15.6 10.4 15.6 20.2V68H10v-8.6c0-9.8 6.4-18 15.6-20.2C21.1 37.2 18 32.7 18 27.5 18 20.6 23.8 15 32 15z"
-          />
-        </svg>
-      )}
-      <span className="sr-only">{name}</span>
-    </span>
-  );
+  return <PitchChipCutout player={player} name={name} size={size} />;
 }
 
 /** Custom club filter — native <select> is nearly unusable inside drei Html. */

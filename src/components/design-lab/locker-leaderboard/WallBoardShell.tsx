@@ -12,7 +12,7 @@ export function WallBoardShell() {
     <div className="relative min-h-[100dvh] overflow-hidden bg-[#161412] text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <Image
-          src="/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.png"
+          src="/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp"
           alt=""
           fill
           unoptimized

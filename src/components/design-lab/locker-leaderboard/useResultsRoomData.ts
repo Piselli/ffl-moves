@@ -7,17 +7,14 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import {
   getConfig,
   getGameweek,
-  getGameweekEntrants,
-  getTeamResult,
   getUserTeam,
   getGameweekStats,
   findHighestGameweekId,
+  getGameweekResults,
   buildClaimPrize,
   type GameweekSummary,
 } from "@/lib/chainClient";
 import {
-  fetchTourClaimHistoryFromApi,
-  mergePriorClaimsIntoResults,
   ownerHasPriorClaimPrize,
   tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
@@ -44,6 +41,28 @@ import {
 } from "@/lib/formation";
 
 type XiPayload = { xi: LabSquadPlayer[]; formationId: FormationId };
+
+let playerCatalogPromise: Promise<Player[]> | null = null;
+
+function loadPlayerCatalog(): Promise<Player[]> {
+  if (!playerCatalogPromise) {
+    playerCatalogPromise = fetch("/api/players")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((catalogRes) => {
+        const catalogList: Player[] = Array.isArray(catalogRes)
+          ? catalogRes
+          : Array.isArray(catalogRes?.players)
+            ? catalogRes.players
+            : [];
+        return catalogList;
+      })
+      .catch(() => {
+        playerCatalogPromise = null;
+        return [] as Player[];
+      });
+  }
+  return playerCatalogPromise;
+}
 
 /** Never scan WC tour ids (or the gap beneath them) when looking for EPL boards. */
 function eplScanCeiling(highestId: number): number {
@@ -72,14 +91,19 @@ export type ResultsRoomData = {
 };
 
 async function findResolvedIds(highestId: number, count: number): Promise<number[]> {
+  const ceiling = eplScanCeiling(highestId);
+  const candidates: number[] = [];
+  for (let id = ceiling; id >= MIN_PUBLIC_LEADERBOARD_GW; id -= 1) {
+    if (!isWorldCupTour(id)) candidates.push(id);
+  }
   const ids: number[] = [];
-  let id = eplScanCeiling(highestId);
-  while (id >= MIN_PUBLIC_LEADERBOARD_GW && ids.length < count) {
-    if (!isWorldCupTour(id)) {
-      const g = await getGameweek(id);
-      if (g?.status === "resolved") ids.push(id);
+  const BATCH = 8;
+  for (let i = 0; i < candidates.length && ids.length < count; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH);
+    const gws = await Promise.all(batch.map((id) => getGameweek(id)));
+    for (let j = 0; j < batch.length && ids.length < count; j += 1) {
+      if (gws[j]?.status === "resolved") ids.push(batch[j]!);
     }
-    id -= 1;
   }
   return ids;
 }
@@ -172,16 +196,8 @@ export function useResultsRoomData(): ResultsRoomData {
     async (gwId: number): Promise<LabLeaderboardSnapshot | null> => {
       const gw = await getGameweek(gwId);
       if (!gw || gw.status !== "resolved") return null;
-      const addresses = await getGameweekEntrants(gwId);
-      const [results, priorClaimed] = await Promise.all([
-        Promise.all(addresses.map((addr) => getTeamResult(addr, gwId))),
-        fetchTourClaimHistoryFromApi(gwId),
-      ]);
-      const valid = mergePriorClaimsIntoResults(
-        results.filter((r): r is TeamResult => r !== null),
-        priorClaimed,
-      );
-      valid.sort((a, b) => {
+      const results = await getGameweekResults(gwId);
+      const valid = [...results].sort((a, b) => {
         if (a.rank !== b.rank) return a.rank - b.rank;
         if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
         return a.owner.localeCompare(b.owner);
@@ -211,25 +227,30 @@ export function useResultsRoomData(): ResultsRoomData {
         const eplCeiling = eplScanCeiling(
           Math.max(Number(config.currentGameweek) || 0, highestId),
         );
-        // Newest → older resolved EPL boards (hard cap so WC pointer never
-        // forces a 9k RPC walk).
-        const resolvedDesc = await findResolvedIds(eplCeiling, 40);
+        // First two resolved boards are enough to paint the tablet; the
+        // stepper list fills in the background so we never wait on 40 RPCs.
+        const firstPair = await findResolvedIds(eplCeiling, 2);
         if (cancelled) return;
 
-        const resolvedAsc = [...resolvedDesc].reverse();
-        setPickerGws(resolvedAsc);
-        setResolvedPair(resolvedDesc.slice(0, 2));
-
-        const primary = resolvedDesc[0] ?? 0;
+        setPickerGws([...firstPair].reverse());
+        setResolvedPair(firstPair);
+        const primary = firstPair[0] ?? 0;
         if (primary > 0) setSelectedGw(primary);
+        setLoading(false);
+        void loadPlayerCatalog();
 
-        const seasonRes = await fetch("/api/season-points").then((r) =>
-          r.ok ? (r.json() as Promise<SeasonLeaderboardPayload>) : null,
-        );
-        if (cancelled) return;
-        if (seasonRes?.entries?.length) {
-          setSeasonHighlights(seasonToHighlights(seasonRes, getNickname, wallet));
-        }
+        void findResolvedIds(eplCeiling, 40).then((resolvedDesc) => {
+          if (cancelled) return;
+          setPickerGws([...resolvedDesc].reverse());
+          setResolvedPair(resolvedDesc.slice(0, 2));
+        });
+
+        void fetch("/api/season-points")
+          .then((r) => (r.ok ? (r.json() as Promise<SeasonLeaderboardPayload>) : null))
+          .then((seasonRes) => {
+            if (cancelled || !seasonRes?.entries?.length) return;
+            setSeasonHighlights(seasonToHighlights(seasonRes, getNickname, wallet));
+          });
       } catch (e) {
         console.error("Results room bootstrap failed", e);
       } finally {
@@ -259,25 +280,20 @@ export function useResultsRoomData(): ResultsRoomData {
         prevId > 0 ? fetchGwBoard(prevId) : Promise.resolve(null),
       ]);
 
-      if (tabletSnap) {
+      if (tabletSnap?.rows.length) {
         setTablet(tabletSnap);
         setSource("live");
       } else {
-        // Empty sheet for the requested GW — never leave stale mock names
-        // after the user stepped away from a live board.
-        const gwMeta = await getGameweek(selectedGw);
+        // Keep the preview sheet until published results land — an empty
+        // table reads as broken, not as "still loading".
+        setSource("mock");
         setTablet({
-          gameweek: selectedGw,
-          status: gwMeta?.status ?? "closed",
-          prizePoolLabel: gwMeta
-            ? prize.formatUnits(gwMeta.prizePool)
-            : "0",
-          prizeSymbol: prize.symbol,
-          entries: gwMeta?.totalEntries ?? 0,
-          isPreview: gwMeta?.status === "closed",
-          rows: [],
+          ...LAB_LEADERBOARD,
+          gameweek: selectedGw || LAB_LEADERBOARD.gameweek,
+          prizePoolLabel:
+            tabletSnap?.prizePoolLabel ?? LAB_LEADERBOARD.prizePoolLabel,
+          prizeSymbol: tabletSnap?.prizeSymbol ?? LAB_LEADERBOARD.prizeSymbol,
         });
-        setSource(gwMeta ? "live" : "mock");
       }
 
       if (prevSnap) {
@@ -295,7 +311,7 @@ export function useResultsRoomData(): ResultsRoomData {
     } finally {
       setLoading(false);
     }
-  }, [fetchGwBoard, prize, resolvedPair, selectedGw]);
+  }, [fetchGwBoard, resolvedPair, selectedGw]);
 
   useEffect(() => {
     void loadBoards();
@@ -384,17 +400,12 @@ export function useResultsRoomData(): ResultsRoomData {
       }
 
       try {
-        const [chainTeam, catalogRes] = await Promise.all([
+        const [chainTeam, catalogList] = await Promise.all([
           getUserTeam(owner, gwId),
-          fetch("/api/players").then((r) => (r.ok ? r.json() : null)),
+          loadPlayerCatalog(),
         ]);
         if (!chainTeam?.playerIds?.length) return null;
 
-        const catalogList: Player[] = Array.isArray(catalogRes)
-          ? catalogRes
-          : Array.isArray(catalogRes?.players)
-            ? catalogRes.players
-            : [];
         const catalog = new Map(catalogList.map((p) => [p.id, p]));
         const squad = squadPlayersFromChain(
           {

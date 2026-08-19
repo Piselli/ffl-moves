@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Oswald, Sofia_Sans_Condensed, Anton } from "next/font/google";
+import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { PrivyAppProvider } from "@/components/PrivyAppProvider";
@@ -12,19 +12,8 @@ import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { PrizeAssetProvider } from "@/components/PrizeAssetProvider";
 
-const inter   = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const oswald  = Oswald({ subsets: ["latin"], variable: "--font-display" });
-const wcHero  = Sofia_Sans_Condensed({
-  subsets: ["latin", "cyrillic"],
-  weight: ["600", "900"],
-  variable: "--font-wc-hero",
-});
-// Poster-grade masthead face for the World Cup wordmark (official-tournament feel).
-const wcDisplay = Anton({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-wc-display",
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const oswald = Oswald({ subsets: ["latin"], variable: "--font-display" });
 
 const siteTitle = "FORM8 — Premier League fantasy on Solana";
 const siteDescription =
@@ -66,10 +55,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preload" href="/sprites/fpl-players.webp" as="image" type="image/webp" />
-      </head>
-      <body className={`${inter.variable} ${oswald.variable} ${wcHero.variable} ${wcDisplay.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <LocaleProvider>
           <PrizeAssetProvider>
             <PrivyAppProvider>

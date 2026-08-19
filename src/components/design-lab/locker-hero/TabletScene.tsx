@@ -5,6 +5,7 @@ import {
   Suspense,
   useEffect,
   useRef,
+  useState,
   type ErrorInfo,
   type ReactNode,
 } from "react";
@@ -19,8 +20,14 @@ import {
   MathUtils,
   PCFSoftShadowMap,
 } from "three";
-import { IpadFrame } from "./IpadFrame";
 import { IPAD_BODY_H, IPAD_BODY_W, IpadMesh } from "./IpadMesh";
+import {
+  IPAD_FRAME_SIZE,
+  TABLET_MOTION_MS,
+  TabletDomFrame,
+} from "./TabletDomFrame";
+
+export { TABLET_MOTION_MS };
 
 type Placement = "locker" | "desk";
 
@@ -31,6 +38,8 @@ type Props = {
   onPointerInsideChange?: (inside: boolean) => void;
   onModelReady?: () => void;
   placement?: Placement;
+  /** Parent already shows TabletDomFrame — don't double-mount screen content. */
+  skipDomFallback?: boolean;
 };
 
 /**
@@ -38,38 +47,18 @@ type Props = {
  * together (coplanar). Canvas uses frameloop="demand" so drei Html stops
  * rewriting its CSS matrix once the tip settles — that was the flicker.
  */
-export const TABLET_MOTION_MS = 520;
 const TABLET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-
-const IPAD_FRAME_SIZE =
-  "aspect-[0.2816/0.2155] w-[min(99vw,calc(98.9vh*0.2816/0.2155))] shrink-0 will-change-transform";
 
 const CANVAS_LOCKER_RAISED = "translate3d(0, 3vh, 0) scale(1)";
 const CANVAS_LOCKER_LOWERED = "translate3d(0, 46vh, 0) scale(0.9)";
 const CANVAS_DESK_RAISED = "translate3d(0, 4vh, 0) scale(1)";
 const CANVAS_DESK_LOWERED = "translate3d(0, 24vh, 0) scale(0.9)";
 
-const DOM_LOCKER_RAISED =
-  "translate3d(0, 3vh, 0) rotateX(0deg) rotateZ(0deg) scale(1)";
-const DOM_LOCKER_LOWERED =
-  "translate3d(0, 46vh, 0) rotateX(28deg) rotateZ(1.4deg) scale(0.9)";
-const DOM_DESK_RAISED =
-  "translate3d(0, 4vh, 0) rotateX(0deg) rotateZ(0deg) scale(1)";
-const DOM_DESK_LOWERED =
-  "translate3d(0, 24vh, 0) rotateX(14deg) rotateZ(0.3deg) scale(0.9)";
-
 function canvasTabletTransform(placement: Placement, raised: boolean): string {
   if (placement === "desk") {
     return raised ? CANVAS_DESK_RAISED : CANVAS_DESK_LOWERED;
   }
   return raised ? CANVAS_LOCKER_RAISED : CANVAS_LOCKER_LOWERED;
-}
-
-function domTabletTransform(placement: Placement, raised: boolean): string {
-  if (placement === "desk") {
-    return raised ? DOM_DESK_RAISED : DOM_DESK_LOWERED;
-  }
-  return raised ? DOM_LOCKER_RAISED : DOM_LOCKER_LOWERED;
 }
 
 function threeTilt(
@@ -301,29 +290,14 @@ function StaticFallback({
   }, [onModelReady]);
 
   return (
-    <div
-      className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
-      style={{
-        pointerEvents: raised ? "auto" : "none",
-        perspective: "1200px",
-        perspectiveOrigin: placement === "desk" ? "50% 55%" : "50% 35%",
-      }}
+    <TabletDomFrame
+      raised={raised}
+      reduceMotion={reduceMotion}
+      onPointerInsideChange={onPointerInsideChange}
+      placement={placement}
     >
-      <div
-        className={IPAD_FRAME_SIZE}
-        style={{
-          transform: domTabletTransform(placement, raised),
-          transition: reduceMotion
-            ? "none"
-            : `transform ${TABLET_MOTION_MS}ms ${TABLET_EASE}`,
-          transformOrigin: placement === "desk" ? "50% 85%" : "50% 50%",
-        }}
-      >
-        <IpadFrame onPointerInsideChange={onPointerInsideChange}>
-          {children}
-        </IpadFrame>
-      </div>
-    </div>
+      {children}
+    </TabletDomFrame>
   );
 }
 
@@ -399,6 +373,15 @@ function TabletAtmosphere({
 
 export function TabletScene(props: Props) {
   const placement = props.placement ?? "locker";
+  const [webglReady, setWebglReady] = useState(false);
+  const skipDom = props.skipDomFallback === true;
+  const showDom = !skipDom && !webglReady;
+
+  const onReady = () => {
+    setWebglReady(true);
+    props.onModelReady?.();
+  };
+
   const fallback = (
     <StaticFallback
       raised={props.raised}
@@ -413,13 +396,24 @@ export function TabletScene(props: Props) {
 
   return (
     <SceneErrorBoundary fallback={fallback}>
+      {showDom ? (
+        <TabletDomFrame
+          raised={props.raised}
+          reduceMotion={props.reduceMotion}
+          onPointerInsideChange={props.onPointerInsideChange}
+          placement={placement}
+        >
+          {props.children}
+        </TabletDomFrame>
+      ) : null}
       <div
         className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
         style={{
-          pointerEvents: props.raised ? "auto" : "none",
+          pointerEvents: showDom || !props.raised ? "none" : "auto",
           perspective: "1400px",
           perspectiveOrigin: placement === "desk" ? "50% 58%" : "50% 38%",
         }}
+        aria-hidden={showDom || undefined}
       >
         <div
           className={`relative ${IPAD_FRAME_SIZE}`}
@@ -457,10 +451,12 @@ export function TabletScene(props: Props) {
                 raised={props.raised}
                 reduceMotion={props.reduceMotion}
                 placement={placement}
-                onPointerInsideChange={props.onPointerInsideChange}
-                onModelReady={props.onModelReady}
+                onPointerInsideChange={
+                  showDom ? undefined : props.onPointerInsideChange
+                }
+                onModelReady={onReady}
               >
-                {props.children}
+                {skipDom || webglReady ? props.children : null}
               </IpadScene>
             </Suspense>
           </Canvas>
