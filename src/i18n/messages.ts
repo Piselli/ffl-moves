@@ -52,6 +52,7 @@ export type SiteMessages = {
     continueWithEmailSub: string;
     orUseWallet: string;
     emailLoginNeedsAppId: string;
+    emailLoginNeedsAppIdLocal: string;
     loginTitle: string;
     loginWelcome: string;
     loginOr: string;
@@ -315,7 +316,10 @@ const uk: SiteMessages = {
     continueWithEmail: "Продовжити з email",
     continueWithEmailSub: "Google або пошта — без розширення",
     orUseWallet: "або гаманець",
-    emailLoginNeedsAppId: "Email-вхід ще не увімкнено. Додай NEXT_PUBLIC_PRIVY_APP_ID у .env.local.",
+    emailLoginNeedsAppId:
+      "Вхід через Google і email зараз недоступний. Увійди гаманцем нижче.",
+    emailLoginNeedsAppIdLocal:
+      "Privy ще не в білді. Локально: NEXT_PUBLIC_PRIVY_APP_ID у .env.local. На проді: та сама змінна в Vercel Production + Redeploy.",
     loginTitle: "Увійти або зареєструватись",
     loginWelcome: "Вітаємо у Form8",
     loginOr: "АБО",
@@ -327,7 +331,7 @@ const uk: SiteMessages = {
     loginSkinLocker: "Плашка",
     continueWithGoogle: "Продовжити з Google",
     googleLoginNotEnabled:
-      "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google, плюс localhost у Allowed origins.",
+      "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz і https://movematch.xyz.",
     emailPlaceholder: "Email",
     emailPlaceholderLong: "Email адреса",
     emailContinue: "Далі",
@@ -599,7 +603,10 @@ const en: SiteMessages = {
     continueWithEmail: "Continue with email",
     continueWithEmailSub: "Google or email — no extension",
     orUseWallet: "or a wallet",
-    emailLoginNeedsAppId: "Email login is not on yet. Add NEXT_PUBLIC_PRIVY_APP_ID to .env.local.",
+    emailLoginNeedsAppId:
+      "Google and email login is not available yet. Use a wallet below.",
+    emailLoginNeedsAppIdLocal:
+      "Privy is not in this build. Local: NEXT_PUBLIC_PRIVY_APP_ID in .env.local. Production: the same variable on Vercel Production, then Redeploy.",
     loginTitle: "Log in or sign up",
     loginWelcome: "Welcome to Form8",
     loginOr: "OR",
@@ -611,7 +618,7 @@ const en: SiteMessages = {
     loginSkinLocker: "Plaque",
     continueWithGoogle: "Continue with Google",
     googleLoginNotEnabled:
-      "Google login is off in Privy. Dashboard → Login methods → Socials → Google, and add localhost to Allowed origins.",
+      "Google login is off in Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz, and https://movematch.xyz.",
     emailPlaceholder: "Email",
     emailPlaceholderLong: "Email address",
     emailContinue: "Continue",

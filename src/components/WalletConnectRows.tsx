@@ -5,6 +5,7 @@ import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { usePrivyAuth } from "@/components/PrivyAppProvider";
+import { isLocalDevHost } from "@/lib/privy";
 
 type Props = {
   rows: WalletConnectRow[];
@@ -52,7 +53,9 @@ export function WalletConnectRows({ rows, pending = false, onConnect, variant = 
   const onEmailLogin = () => {
     setEmailHint(null);
     if (!privy.configured) {
-      setEmailHint(m.nav.emailLoginNeedsAppId);
+      setEmailHint(
+        isLocalDevHost() ? m.nav.emailLoginNeedsAppIdLocal : m.nav.emailLoginNeedsAppId,
+      );
       return;
     }
     if (!privy.ready) return;

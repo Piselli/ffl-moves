@@ -1,6 +1,13 @@
 "use client";
 
-import { LockerHero } from "@/components/design-lab/locker-hero/LockerHero";
+import dynamic from "next/dynamic";
+import { PageRouteLoading } from "@/components/PageRouteLoading";
+
+const LockerHero = dynamic(
+  () =>
+    import("@/components/design-lab/locker-hero/LockerHero").then((m) => m.LockerHero),
+  { ssr: false, loading: () => <PageRouteLoading /> },
+);
 
 /**
  * Production homepage = locker room + tablet.

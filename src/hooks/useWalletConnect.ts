@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { WalletName } from "@solana/wallet-adapter-base";
+import type { WalletAdapter, WalletName } from "@solana/wallet-adapter-base";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWallet as useAppWallet } from "@/hooks/useSolanaWallet";
 import {
@@ -18,6 +18,16 @@ function openingMessage(
 ): string {
   const def = solanaWalletDefByAdapterName(walletName);
   return def ? `Opening ${def.displayName}…` : m.nav.loading;
+}
+
+/** Re-emit connect after WalletProvider attaches listeners (Phantom race). */
+function syncAdapterConnect(adapter: WalletAdapter, appConnected: boolean) {
+  if (appConnected || !adapter.connected || !adapter.publicKey) return;
+  queueMicrotask(() => {
+    if (adapter.connected && adapter.publicKey) {
+      adapter.emit("connect", adapter.publicKey);
+    }
+  });
 }
 
 /**
@@ -70,7 +80,12 @@ export function useWalletConnect() {
     if (wallet.adapter.name !== pendingNameRef.current) return;
     if (connected || !wallet.adapter.connected || !wallet.adapter.publicKey) return;
     wallet.adapter.emit("connect", wallet.adapter.publicKey);
-  }, [connected, wallet]);
+  }, [
+    connected,
+    wallet,
+    wallet?.adapter.connected,
+    wallet?.adapter.publicKey?.toBase58(),
+  ]);
 
   const connectWallet = (walletName: string) => {
     if (pending) return;
@@ -109,9 +124,12 @@ export function useWalletConnect() {
         return;
       }
       select(walletName as WalletName);
-      const result = found.adapter.connect() as unknown;
+      const adapter = found.adapter;
+      const result = adapter.connect() as unknown;
+      syncAdapterConnect(adapter, connectedRef.current);
       Promise.resolve(result)
         .then(() => {
+          syncAdapterConnect(adapter, connectedRef.current);
           window.clearTimeout(watchdog);
           if (connectedRef.current) {
             pendingNameRef.current = null;

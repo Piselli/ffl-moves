@@ -24,8 +24,9 @@ function parseEnvFile(filePath) {
 
 /**
  * Next.js gives shell `process.env` precedence over `.env.local`, which breaks
- * NEXT_PUBLIC_* when zsh exports old testnet values. Inject from `.env.local`
- * into the compiled `env` so file wins for these keys.
+ * NEXT_PUBLIC_* when zsh exports old testnet values. Prefer `.env.local` when
+ * present (local), then fall back to process.env (Vercel Production).
+ * Webpack DefinePlugin below inlines these so the browser actually sees them.
  */
 function publicEnvFromEnvLocal() {
   const envLocal = parseEnvFile(path.join(__dirname, ".env.local"));
@@ -39,8 +40,15 @@ function publicEnvFromEnvLocal() {
   ];
   const out = {};
   for (const k of keys) {
-    const v = envLocal[k];
-    if (v != null && String(v).trim().length > 0) out[k] = String(v).trim();
+    const fromFile = envLocal[k];
+    if (fromFile != null && String(fromFile).trim().length > 0) {
+      out[k] = String(fromFile).trim();
+      continue;
+    }
+    const fromProcess = process.env[k];
+    if (fromProcess != null && String(fromProcess).trim().length > 0) {
+      out[k] = String(fromProcess).trim();
+    }
   }
   return out;
 }

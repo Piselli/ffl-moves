@@ -7,6 +7,11 @@ export function isPrivyConfigured(): boolean {
   return PRIVY_APP_ID.length > 0;
 }
 
+export function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  return /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+}
+
 export function privyLinkedSolanaAddress(user: User | null | undefined): string | null {
   if (!user) return null;
   for (const account of user.linkedAccounts) {

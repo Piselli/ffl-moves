@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
@@ -7,11 +8,15 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { DepositModal } from "@/components/DepositModal";
 import { DepositContext } from "@/components/depositContext";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { getUsdcBalance } from "@/lib/chainClient";
 import { formatFeeUnits } from "@/lib/entryFee";
+
+const DepositModal = dynamic(
+  () => import("@/components/DepositModal").then((m) => m.DepositModal),
+  { ssr: false },
+);
 
 export { useDeposit } from "@/components/depositContext";
 
@@ -59,7 +64,7 @@ export function DepositProvider({ children }: PropsWithChildren) {
   return (
     <DepositContext.Provider value={{ openDeposit, balanceLabel, refreshBalance }}>
       {children}
-      <DepositModal open={open} onClose={closeDeposit} />
+      {open ? <DepositModal open={open} onClose={closeDeposit} /> : null}
     </DepositContext.Provider>
   );
 }

@@ -31,6 +31,9 @@ const HIDE_NAV_PATHS = new Set([
   "/design-lab/leaderboard-concepts",
 ]);
 
+/** Heavy 3D routes — skip viewport prefetch so lighter pages stay snappy. */
+const HEAVY_ROUTES = new Set(["/", "/leaderboard", "/season-leaderboard"]);
+
 export function Navbar() {
   const m = useSiteMessages();
   const pathname = usePathname();
@@ -109,7 +112,7 @@ export function Navbar() {
   if (hideNav) return null;
 
   const logoEl = (
-    <Link href="/" aria-label="FORM8" className="group shrink-0">
+    <Link href="/" prefetch={false} aria-label="FORM8" className="group shrink-0">
       <Form8Lockup
         priority
         className="transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03] group-active:scale-[0.97]"
@@ -171,6 +174,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={!HEAVY_ROUTES.has(link.href)}
                 className="relative flex flex-col items-center px-2.5 xl:px-3 py-2 rounded-lg group"
               >
                 <span
@@ -324,6 +328,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={!HEAVY_ROUTES.has(link.href)}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest transition-colors ${
                   isActive

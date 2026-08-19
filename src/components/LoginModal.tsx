@@ -24,7 +24,7 @@ import {
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { isPrivyConfigured } from "@/lib/privy";
+import { isLocalDevHost, isPrivyConfigured } from "@/lib/privy";
 import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { SPRING_PILL } from "@/lib/uiMotion";
@@ -436,7 +436,7 @@ function FallbackAuthFields({ theme }: { theme: LoginSkinTheme }) {
       </div>
       {hint ? (
         <p className="text-center text-[16px] leading-snug text-amber-200/85">
-          {m.nav.emailLoginNeedsAppId}
+          {isLocalDevHost() ? m.nav.emailLoginNeedsAppIdLocal : m.nav.emailLoginNeedsAppId}
         </p>
       ) : null}
     </div>

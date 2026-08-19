@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   createContext,
   useCallback,
@@ -9,9 +10,13 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { LoginModal } from "@/components/LoginModal";
 import { PrivyLoginSession } from "@/components/PrivyLoginSession";
 import { useWallet } from "@/hooks/useSolanaWallet";
+
+const LoginModal = dynamic(
+  () => import("@/components/LoginModal").then((m) => m.LoginModal),
+  { ssr: false },
+);
 
 type LoginContextValue = {
   open: boolean;
@@ -48,7 +53,7 @@ export function LoginProvider({ children }: PropsWithChildren) {
     <LoginContext.Provider value={value}>
       <PrivyLoginSession>
         {children}
-        <LoginModal open={open} onClose={closeLogin} />
+        {open ? <LoginModal open={open} onClose={closeLogin} /> : null}
       </PrivyLoginSession>
     </LoginContext.Provider>
   );
