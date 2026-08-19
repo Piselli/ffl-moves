@@ -32,6 +32,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
 import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { SitePageShell } from "@/components/SitePageShell";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 function normAddr(a: string | undefined | null): string {
@@ -639,8 +640,8 @@ export default function AdminPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
+      <SitePageShell centered width="lg">
+        <div className="glass-card rounded-2xl p-12 text-center w-full max-w-lg">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -649,25 +650,25 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-white mb-4">Admin Panel</h1>
           <p className="text-muted-foreground">Please connect your wallet to access admin functions.</p>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
+      <SitePageShell centered width="lg">
+        <div className="glass-card rounded-2xl p-12 text-center w-full max-w-lg">
           <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
   if (!config) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
+      <SitePageShell centered width="lg">
+        <div className="glass-card rounded-2xl p-12 text-center w-full max-w-lg">
           <h1 className="text-2xl font-bold text-white mb-3">{ad.loadFailedTitle}</h1>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">{ad.loadFailedBody}</p>
           <button
@@ -678,14 +679,14 @@ export default function AdminPage() {
             {ad.retry}
           </button>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
   if (!isAdmin && !isOracle) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 text-center">
-        <div className="glass-card rounded-2xl p-12">
+      <SitePageShell centered width="lg">
+        <div className="glass-card rounded-2xl p-12 text-center w-full max-w-lg">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -708,16 +709,17 @@ export default function AdminPage() {
             Use Phantom on <strong className="text-white/70">Devnet</strong> — the app reads Solana devnet, not mainnet.
           </p>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
+    <SitePageShell width="lg" className="pb-12">
+    <div>
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
         <p className="text-muted-foreground">
-          Solana devnet — manage EPL gameweeks, fees, and settlement
+          Solana {SOLANA_CLUSTER} — manage EPL gameweeks, fees, and settlement
         </p>
         <div className="mt-3 flex gap-3">
           {isAdmin && (
@@ -1357,5 +1359,6 @@ export default function AdminPage() {
 
       </div>
     </div>
+    </SitePageShell>
   );
 }

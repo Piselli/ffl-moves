@@ -1,33 +1,57 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isWorldCupPublicEnabled } from "@/lib/worldCupAccess";
+import {
+  isDesignLabPublic,
+  isDesignPreviewPublic,
+  isLocalPreviewHost,
+  isPublicFlagEnabled,
+} from "@/lib/localPreviewAccess";
 
-const LOCAL_PREVIEW_HOSTS = new Set(["localhost", "127.0.0.1"]);
+function localOnlyRedirect(request: NextRequest): NextResponse | null {
+  const host = request.headers.get("host")?.split(":")[0]?.toLowerCase() ?? "";
+  if (isLocalPreviewHost(host)) return null;
+  return NextResponse.redirect(new URL("/", request.url));
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host")?.split(":")[0]?.toLowerCase() ?? "";
-  const local = LOCAL_PREVIEW_HOSTS.has(host);
 
   if (pathname === "/design-lab" || pathname.startsWith("/design-lab/")) {
     const last = pathname.split("/").pop() ?? "";
     const isStaticAsset = last.includes(".");
-    if (!isStaticAsset && !local && process.env.NEXT_PUBLIC_DESIGN_LAB_PUBLIC !== "true") {
-      return NextResponse.redirect(new URL("/", request.url));
+    if (!isStaticAsset && !isDesignLabPublic()) {
+      const blocked = localOnlyRedirect(request);
+      if (blocked) return blocked;
     }
     return NextResponse.next();
   }
 
-  if (pathname !== "/world-cup" && !pathname.startsWith("/world-cup/")) {
+  if (pathname === "/design-preview" || pathname.startsWith("/design-preview/")) {
+    if (!isDesignPreviewPublic()) {
+      const blocked = localOnlyRedirect(request);
+      if (blocked) return blocked;
+    }
     return NextResponse.next();
   }
-  if (isWorldCupPublicEnabled()) return NextResponse.next();
 
-  if (local) return NextResponse.next();
+  if (pathname === "/world-cup" || pathname.startsWith("/world-cup/")) {
+    if (!isPublicFlagEnabled("NEXT_PUBLIC_WC_PUBLIC_ENABLED")) {
+      const blocked = localOnlyRedirect(request);
+      if (blocked) return blocked;
+    }
+    return NextResponse.next();
+  }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/world-cup", "/world-cup/:path*", "/design-lab", "/design-lab/:path*"],
+  matcher: [
+    "/world-cup",
+    "/world-cup/:path*",
+    "/design-lab",
+    "/design-lab/:path*",
+    "/design-preview",
+    "/design-preview/:path*",
+  ],
 };

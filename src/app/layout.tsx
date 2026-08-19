@@ -5,7 +5,6 @@ import { WalletProvider } from "@/components/WalletProvider";
 import { PrivyAppProvider } from "@/components/PrivyAppProvider";
 import { DepositProvider } from "@/components/DepositProvider";
 import { LoginProvider } from "@/components/LoginProvider";
-import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -65,7 +64,6 @@ export default function RootLayout({
               <ReferralCapture />
               <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
-              <Navbar />
               <main className="relative z-10">{children}</main>
               <SiteFooter />
               </div>

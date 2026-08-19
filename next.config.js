@@ -59,7 +59,13 @@ const nextConfig = {
   transpilePackages: ["@privy-io/react-auth"],
   env: publicEnvFromEnvLocal(),
   async redirects() {
-    return [{ source: "/gameweek", destination: "/", permanent: false }];
+    return [
+      { source: "/gameweek", destination: "/", permanent: false },
+      { source: "/classic", destination: "/", permanent: false },
+      { source: "/leaderboard/classic", destination: "/leaderboard", permanent: false },
+      { source: "/season-leaderboard/classic", destination: "/season-leaderboard", permanent: false },
+      { source: "/titles", destination: "/", permanent: false },
+    ];
   },
   async headers() {
     return [

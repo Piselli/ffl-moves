@@ -149,8 +149,8 @@ export async function findHighestWorldCupTourId(): Promise<number> {
  * When true, the product surfaces World Cup as the primary competition (homepage stats,
  * nav, ticker). Set `NEXT_PUBLIC_WC_CAMPAIGN_ACTIVE=false` after the tournament to restore EPL focus.
  */
+/** Archived by default — set NEXT_PUBLIC_WC_CAMPAIGN_ACTIVE=true to restore WC hero/nav. */
 export function isWorldCupCampaignActive(): boolean {
   const v = process.env.NEXT_PUBLIC_WC_CAMPAIGN_ACTIVE;
-  if (v === "false" || v === "0") return false;
-  return true;
+  return v === "true" || v === "1";
 }

@@ -56,6 +56,14 @@ export function useLockerRegister(opts: {
   );
 
   useEffect(() => {
+    if (gameweekId != null) {
+      setHint(null);
+      return;
+    }
+    setHint(g.unavailableIntro);
+  }, [gameweekId, g.unavailableIntro]);
+
+  useEffect(() => {
     let cancelled = false;
     getConfig()
       .then((cfg) => {
@@ -107,12 +115,8 @@ export function useLockerRegister(opts: {
       openLogin();
       return;
     }
-    if (alreadyRegistered || submitting) return;
+    if (alreadyRegistered || submitting || gameweekId == null) return;
     if (!isComplete) return;
-    if (gameweekId == null) {
-      setHint(g.unavailableIntro);
-      return;
-    }
 
     if (
       await shouldOpenDepositBeforeRegister(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getConfig, findActiveGameweek } from "@/lib/chainClient";
+import { getConfig, findOpenGameweek } from "@/lib/chainClient";
 import type { Player } from "@/lib/types";
 
 export type LockerFixture = {
@@ -35,8 +35,14 @@ export function useLockerHeroData() {
     (async () => {
       try {
         const cfg = await getConfig();
-        const gw = await findActiveGameweek();
-        if (cancelled || !gw) return;
+        const gw = await findOpenGameweek();
+        if (cancelled) return;
+        if (!gw) {
+          setPrizePoolRaw(null);
+          setEntries(null);
+          setOpenGwId(null);
+          return;
+        }
         setPrizePoolRaw(gw.prizePool);
         setEntries(gw.totalEntries);
         setOpenGwId(gw.id);

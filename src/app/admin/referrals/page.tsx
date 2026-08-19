@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SitePageShell } from "@/components/SitePageShell";
 import { buildReferralLink, normalizeRefCode } from "@/lib/referralClient";
 
 type ReferralStat = {
@@ -144,7 +145,8 @@ export default function ReferralDashboardPage() {
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-28 pb-16">
+    <SitePageShell width="xl">
+    <div>
       <header className="mb-8">
         <h1 className="text-3xl font-display font-black uppercase tracking-tight text-white">
           Referrals
@@ -318,5 +320,6 @@ export default function ReferralDashboardPage() {
         </section>
       )}
     </div>
+    </SitePageShell>
   );
 }

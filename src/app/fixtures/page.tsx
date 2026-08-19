@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
+import { SitePageShell } from "@/components/SitePageShell";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import { getConfig, findActiveGameweek } from "@/lib/chainClient";
+import { getConfig, findOpenGameweek } from "@/lib/chainClient";
 
 type Fixture = {
   id: number;
@@ -61,7 +62,7 @@ export default function FixturesPage() {
     (async () => {
       try {
         const cfg = await getConfig();
-        const gw = cfg ? await findActiveGameweek() : null;
+        const gw = cfg ? await findOpenGameweek() : null;
         if (!cancelled && gw?.id != null && Number.isFinite(gw.id)) setRegistrationGwId(gw.id);
       } catch {
         /* keep null — API falls back to FPL-only pick */
@@ -93,8 +94,8 @@ export default function FixturesPage() {
   const deadlineRaw = data ? resolveFplDeadlineRaw(data.gameweek) : null;
 
   return (
-    <div className="bg-[#0D0F12] min-h-screen text-white">
-      <div className="max-w-4xl mx-auto px-6 sm:px-10 pt-28 pb-16">
+    <SitePageShell>
+      <div className="pb-4">
 
         {/* Header */}
         <motion.div
@@ -103,16 +104,6 @@ export default function FixturesPage() {
           transition={{ duration: 0.6 }}
           className="mb-10"
         >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-[10px] font-bold uppercase tracking-widest transition-colors mb-6"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            {fx.back}
-          </Link>
-
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               {data && (
@@ -289,6 +280,6 @@ export default function FixturesPage() {
         )}
 
       </div>
-    </div>
+    </SitePageShell>
   );
 }

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_TG_HANDLE } from "@/lib/constants";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { SitePageShell } from "@/components/SitePageShell";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
 // ─── Category icons (small inline SVGs — match the site’s look) ──────────────
@@ -251,12 +252,8 @@ export default function FaqPage() {
   }, []);
 
   return (
-    <div className="bg-[#0D0F12] min-h-screen text-white">
-      {/* Ambient glows */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(139,92,246,0.07)_0%,transparent_55%)] pointer-events-none -z-10" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_80%_100%,rgba(0,249,72,0.04)_0%,transparent_55%)] pointer-events-none -z-10" />
-
-      <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-10 pt-28 sm:pt-32 pb-20">
+    <SitePageShell width="lg" className="pb-20">
+      <div className="max-w-4xl mx-auto">
 
         {/* ─── Header ─────────────────────────────────────────────────── */}
         <motion.div
@@ -479,6 +476,6 @@ export default function FaqPage() {
           </motion.button>
         ) : null}
       </AnimatePresence>
-    </div>
+    </SitePageShell>
   );
 }

@@ -18,6 +18,7 @@ import { FplPhotoAvatar } from "@/components/FplPhotoAvatar";
 import { initialsFromDisplayName } from "@/lib/avatar-fallback";
 import { useSiteMessages, useSiteLocale } from "@/i18n/LocaleProvider";
 import { messages } from "@/i18n/messages";
+import { SitePageShell } from "@/components/SitePageShell";
 import { TEAM_NOT_IN_SITE_CATALOG } from "@/lib/catalog-placeholders";
 
 const positionColor: Record<string, string> = {
@@ -259,33 +260,31 @@ export default function MyResultPage() {
   // ── Not connected ──────────────────────────────────────────────────────────
   if (!connected) {
     return (
-      <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white">
+      <SitePageShell centered width="md">
         <div className="text-center px-6">
           <p className="text-4xl mb-4">🔒</p>
           <h1 className="text-xl font-display font-black uppercase mb-2">{mr.connectTitle}</h1>
           <p className="text-white/40 text-sm">{mr.connectHint}</p>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center">
+      <SitePageShell centered width="md">
         <div className="flex flex-col items-center gap-3 text-white/30">
           <div className="w-8 h-8 border-2 border-white/10 border-t-[#00f948] rounded-full animate-spin" />
           <p className="text-sm">{mr.loading}</p>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="bg-[#0D0F12] min-h-screen flex items-center justify-center text-white px-6">
-        <div className="text-center max-w-sm">
+      <SitePageShell centered width="md">
+        <div className="text-center max-w-sm px-6">
           <p className="text-3xl mb-4">⚠️</p>
           <h1 className="text-lg font-display font-black uppercase mb-2">{mr.unavailableTitle}</h1>
           <p className="text-white/40 text-sm mb-6">{error}</p>
@@ -293,7 +292,7 @@ export default function MyResultPage() {
             {mr.viewLeaderboard}
           </Link>
         </div>
-      </div>
+      </SitePageShell>
     );
   }
 
@@ -302,8 +301,8 @@ export default function MyResultPage() {
   const hasStats = Object.keys(gwStats).length > 0;
 
   return (
-    <div className="bg-[#0D0F12] min-h-screen text-white">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-28 pb-16">
+    <SitePageShell width="md">
+      <div>
 
         {/* Preview banner */}
         {isPreview && (
@@ -492,6 +491,6 @@ export default function MyResultPage() {
         </motion.div>
 
       </div>
-    </div>
+    </SitePageShell>
   );
 }

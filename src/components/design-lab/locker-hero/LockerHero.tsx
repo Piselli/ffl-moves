@@ -240,7 +240,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       registerLabel={register.ctaLabel}
       registerProgress={register.ctaProgress}
       registerBusy={register.submitting}
-      registerLocked={register.alreadyRegistered}
+      registerLocked={register.alreadyRegistered || data.openGwId == null}
       registerHint={register.hint}
       registerEntry={register.needsLogin}
     />
