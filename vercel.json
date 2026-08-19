@@ -1,4 +1,9 @@
 {
   "installCommand": "npm ci",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_PRIVY_APP_ID": "cmsz6r8p700hk0cjy2df9qn67"
+    }
+  }
 }
