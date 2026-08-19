@@ -14,7 +14,7 @@ import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { cn, shortenAddress } from "@/lib/utils";
 import { Form8Lockup } from "@/components/Form8Mark";
-import { LOCKER_NAV_LINKS } from "./navStyles";
+import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
 
 type Props = {
   /** When true, nav links navigate (site). Lab keeps preventDefault for mock. */
@@ -62,9 +62,14 @@ function Links({
   linkClassName?: string;
   liveLinks?: boolean;
 }) {
+  const m = useSiteMessages();
+  const links = primarySiteNavLinks(m);
+  const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
+  const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
+
   return (
     <nav className={cn("hidden items-center md:flex", className)}>
-      {LOCKER_NAV_LINKS.slice(0, 2).map((link) => (
+      {beforeTalents.map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -78,7 +83,7 @@ function Links({
         </Link>
       ))}
       <LockerTalentsSoon className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]" />
-      {LOCKER_NAV_LINKS.slice(2).map((link) => (
+      {afterTalents.map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -184,6 +189,9 @@ export function LockerLabNav({ liveLinks = false }: Props) {
   const reduceMotion = useReducedMotion() ?? false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
+  const links = primarySiteNavLinks(m);
+  const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
+  const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -253,7 +261,7 @@ export function LockerLabNav({ liveLinks = false }: Props) {
                 : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
             }
           >
-            {LOCKER_NAV_LINKS.slice(0, 2).map((link) => {
+            {beforeTalents.map((link) => {
               const active =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
@@ -286,7 +294,7 @@ export function LockerLabNav({ liveLinks = false }: Props) {
                 </span>
               </span>
             </div>
-            {LOCKER_NAV_LINKS.slice(2).map((link) => {
+            {afterTalents.map((link) => {
               const active =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (

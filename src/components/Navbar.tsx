@@ -20,6 +20,7 @@ import { useDeposit } from "@/components/DepositProvider";
 import { useLogin } from "@/components/LoginProvider";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
 import { SPRING_PILL } from "@/lib/uiMotion";
+import { primarySiteNavLinks } from "@/lib/siteNav";
 
 const HIDE_NAV_PATHS = new Set([
   "/",
@@ -53,12 +54,8 @@ export function Navbar() {
         { href: "/faq", label: m.nav.faq },
       ]
     : [
-        { href: "/", label: m.nav.squad },
-        { href: "/leaderboard", label: m.nav.leaderboard },
-        { href: "/season-leaderboard", label: m.nav.seasonPoints },
-        { href: "/fixtures", label: m.nav.fixtures },
+        ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
-        { href: "/faq", label: m.nav.faq },
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
   const { connected, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
@@ -126,11 +123,11 @@ export function Navbar() {
       <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-7xl px-2 sm:px-0">
         <nav className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:hidden">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 lg:hidden">
             <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
             <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
           </div>
-          <div className="hidden md:flex flex-1 justify-end items-center gap-3">
+          <div className="hidden lg:flex flex-1 justify-end items-center gap-3">
             <NavUtilityCluster>
               <LanguageSwitcher embedded />
               <NavUtilityDivider />
@@ -161,7 +158,7 @@ export function Navbar() {
 
         {/* ── Center: Nav Links ───────────────────────── */}
         <LayoutGroup id="nav-links">
-        <div className="hidden md:flex items-center gap-0.5 lg:gap-1 shrink-0">
+        <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0 min-w-0">
           {navLinks.map((link) => {
             const isActive =
               link.href === "/"
@@ -175,10 +172,10 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 prefetch={!HEAVY_ROUTES.has(link.href)}
-                className="relative flex flex-col items-center px-2.5 xl:px-3 py-2 rounded-lg group"
+                className="relative flex flex-col items-center px-2 xl:px-3 py-2 rounded-lg group shrink-0"
               >
                 <span
-                  className={`text-[11px] font-black tracking-widest uppercase transition-colors duration-150 ${
+                  className={`whitespace-nowrap text-[10px] xl:text-[11px] font-black tracking-wide xl:tracking-widest uppercase transition-colors duration-150 ${
                     isActive
                       ? "text-white"
                       : featured
@@ -203,7 +200,7 @@ export function Navbar() {
           {/* Таланти — coming soon, non-clickable */}
           <div className="relative flex flex-col items-center px-2.5 py-2 rounded-lg cursor-not-allowed select-none">
             <div className="relative">
-              <span className="text-[11px] font-black tracking-widest uppercase text-white/20">
+              <span className="text-[10px] xl:text-[11px] font-black tracking-wide xl:tracking-widest uppercase text-white/20">
                 {m.nav.talents}
               </span>
               <span className="absolute -top-2 -right-7 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
@@ -292,7 +289,7 @@ export function Navbar() {
             onClick={() => {
               setMobileMenuOpen((o) => !o);
             }}
-            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-[background-color,transform] duration-150 active:scale-[0.96]"
+            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-[background-color,transform] duration-150 active:scale-[0.96]"
           >
             {mobileMenuOpen ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -310,7 +307,7 @@ export function Navbar() {
       <AnimatePresence>
       {mobileMenuOpen ? (
         <motion.div
-          className="md:hidden mt-2 origin-top overflow-hidden rounded-2xl border border-white/10 bg-[#0D0F12]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl space-y-0.5"
+          className="lg:hidden mt-2 origin-top overflow-hidden rounded-2xl border border-white/10 bg-[#0D0F12]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl space-y-0.5"
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -6 }}

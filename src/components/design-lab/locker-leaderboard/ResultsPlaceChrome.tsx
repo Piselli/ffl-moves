@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Form8Lockup } from "@/components/Form8Mark";
-import { LOCKER_NAV_LINKS } from "@/components/design-lab/locker-hero/navStyles";
 import { LockerTalentsSoon } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "@/components/design-lab/locker-hero/navStyles";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NicknameModal } from "@/components/NicknameModal";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
@@ -30,6 +30,9 @@ export function ResultsPlaceNav() {
   const { setNickname, hasNickname, myNickname } = useNickname(address);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const links = primarySiteNavLinks(m);
+  const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
+  const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
 
   useEffect(() => setMounted(true), []);
 
@@ -57,7 +60,7 @@ export function ResultsPlaceNav() {
           </Link>
 
           <nav className="mx-4 hidden flex-1 items-center justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2">
-            {LOCKER_NAV_LINKS.slice(0, 2).map((link) => {
+            {beforeTalents.map((link) => {
               const active =
                 pathname === link.href ||
                 pathname.startsWith(`${link.href}/`);
@@ -78,7 +81,7 @@ export function ResultsPlaceNav() {
               );
             })}
             <LockerTalentsSoon className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]" />
-            {LOCKER_NAV_LINKS.slice(2).map((link) => {
+            {afterTalents.map((link) => {
               const active =
                 pathname === link.href ||
                 pathname.startsWith(`${link.href}/`);
@@ -101,7 +104,7 @@ export function ResultsPlaceNav() {
           </nav>
 
           <nav className="relative z-10 ml-2 flex max-w-[42vw] items-center gap-0.5 overflow-x-auto md:hidden">
-            {LOCKER_NAV_LINKS.slice(0, 2).map((link) => (
+            {beforeTalents.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

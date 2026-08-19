@@ -263,7 +263,7 @@ const uk: SiteMessages = {
   nav: {
     squad: "Склад",
     leaderboard: "Лідерборд",
-    seasonPoints: "Season SP",
+    seasonPoints: "Сезон",
     fixtures: "Матчі",
     faq: "FAQ",
     worldCup: "Чемпіонат світу",
@@ -550,7 +550,7 @@ const en: SiteMessages = {
   nav: {
     squad: "Squad",
     leaderboard: "Leaderboard",
-    seasonPoints: "Season SP",
+    seasonPoints: "Season",
     fixtures: "Fixtures",
     faq: "FAQ",
     worldCup: "World Cup",

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Form8Lockup } from "@/components/Form8Mark";
-import { LOCKER_NAV_LINKS } from "@/components/design-lab/locker-hero/navStyles";
+import { primarySiteNavLinks } from "@/components/design-lab/locker-hero/navStyles";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { BoardThemeId } from "./themes";
 
 type Props = {
@@ -15,7 +16,9 @@ type Props = {
  * neon = homepage glow Connect · quiet = same chrome, no neon shout
  */
 export function LabChromeNav({ theme = "neon" }: Props) {
+  const m = useSiteMessages();
   const quiet = theme === "quiet";
+  const links = primarySiteNavLinks(m);
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[80]">
@@ -32,7 +35,7 @@ export function LabChromeNav({ theme = "neon" }: Props) {
         </Link>
 
         <nav className="mx-4 hidden flex-1 items-center justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2">
-          {LOCKER_NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
