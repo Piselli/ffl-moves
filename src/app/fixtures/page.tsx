@@ -5,6 +5,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
 import { SitePageShell } from "@/components/SitePageShell";
+import { SitePageHeader } from "@/components/SitePageHeader";
+import { SiteSectionLabel } from "@/components/SiteSectionLabel";
+import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { getConfig, findOpenGameweek } from "@/lib/chainClient";
 
@@ -94,54 +97,39 @@ export default function FixturesPage() {
   const deadlineRaw = data ? resolveFplDeadlineRaw(data.gameweek) : null;
 
   return (
-    <SitePageShell>
-      <div className="pb-4">
+    <SitePageShell width="xl">
+      <SitePageHeader
+        eyebrow={data?.gameweek.name}
+        title={fx.title}
+        trailing={
+          deadlineRaw != null && deadlineRaw !== "" ? (
+            <GlassPanel matte className="px-5 py-3.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">
+                {fx.deadlineLabel}
+              </p>
+              <p className="mt-1 font-display text-lg font-black tabular-nums text-white">
+                {formatFplDeadlineLocale(deadlineRaw, locale === "uk" ? "uk" : "en")}
+              </p>
+            </GlassPanel>
+          ) : undefined
+        }
+      />
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-10"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              {data && (
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00f948] text-[10px] font-bold uppercase tracking-widest mb-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f948]" />
-                  {data.gameweek.name}
-                </div>
-              )}
-              <h1 className="text-4xl md:text-5xl font-display font-black text-white uppercase tracking-tight leading-[1.1]">
-                {fx.title}
-              </h1>
-            </div>
-
-            {deadlineRaw != null && deadlineRaw !== "" && (
-              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3 text-right sm:text-left shrink-0">
-                <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold mb-1">{fx.deadlineLabel}</p>
-                <p className="text-base font-display font-black text-white">
-                  {formatFplDeadlineLocale(deadlineRaw, locale === "uk" ? "uk" : "en")}
-                </p>
-              </div>
-            )}
+      {data && totalMatches > 0 ? (
+        <div className="mb-8 flex items-center gap-3">
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+            <div
+              className="h-full rounded-full bg-[#00f948] transition-all duration-700"
+              style={{ width: `${(finishedCount / totalMatches) * 100}%` }}
+            />
           </div>
+          <span className="shrink-0 text-xs font-medium tabular-nums text-white/35">
+            {fx.progressDone(finishedCount, totalMatches)}
+          </span>
+        </div>
+      ) : null}
 
-          {/* Progress bar */}
-          {data && totalMatches > 0 && (
-            <div className="mt-5 flex items-center gap-3">
-              <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#00f948] rounded-full transition-all duration-700"
-                  style={{ width: `${(finishedCount / totalMatches) * 100}%` }}
-                />
-              </div>
-              <span className="text-xs text-white/30 font-medium tabular-nums shrink-0">
-                {fx.progressDone(finishedCount, totalMatches)}
-              </span>
-            </div>
-          )}
-        </motion.div>
+      <div className="pb-4">
 
         {/* Loading */}
         {loading && (
@@ -182,11 +170,9 @@ export default function FixturesPage() {
                 transition={{ duration: 0.5, delay: gi * 0.07 }}
               >
                 {/* Date label */}
-                <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-3 capitalize">
-                  {date}
-                </p>
+                <SiteSectionLabel>{date}</SiteSectionLabel>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {matches.map((match) => {
                     const time =
                       match.kickoffTime != null
@@ -203,10 +189,13 @@ export default function FixturesPage() {
                       : null;
 
                     return (
-                      <div
+                      <GlassPanel
                         key={match.id}
-                        className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200"
+                        matte
+                        interactive
+                        className="px-4 py-3.5 sm:px-5 sm:py-4"
                       >
+                        <div className="flex items-center gap-3 sm:gap-4">
                         {/* Home team */}
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           <img
@@ -252,7 +241,8 @@ export default function FixturesPage() {
                             onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
                           />
                         </div>
-                      </div>
+                        </div>
+                      </GlassPanel>
                     );
                   })}
                 </div>

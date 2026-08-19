@@ -5,8 +5,11 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_TG_HANDLE } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { SitePageShell } from "@/components/SitePageShell";
+import { SitePageHeader } from "@/components/SitePageHeader";
+import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
 // ─── Category icons (small inline SVGs — match the site’s look) ──────────────
@@ -102,28 +105,31 @@ function FaqRow({
   return (
     <div
       id={anchorId}
-      className={`group rounded-xl border transition-colors duration-200 ${
-        isOpen
-          ? "border-[#00f948]/25 bg-[#00f948]/[0.03]"
-          : "border-white/[0.07] bg-white/[0.015] hover:border-white/[0.14] hover:bg-white/[0.03]"
-      }`}
-      style={{ scrollMarginTop: "100px" }}
+      className="scroll-mt-28"
+      style={{ scrollMarginTop: "7rem" }}
     >
+      <GlassPanel
+        matte
+        className={cn(
+          "transition-[box-shadow] duration-200",
+          isOpen && "ring-1 ring-[#00f948]/30",
+        )}
+      >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
       >
-        <span className="text-[15px] sm:text-base font-semibold text-white/90 leading-snug">{item.q}</span>
+        <span className="text-[15px] font-semibold leading-snug text-white/90 sm:text-base">{item.q}</span>
         <span
-          className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border transition-all duration-200 ${
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
             isOpen
-              ? "bg-[#00f948]/15 border-[#00f948]/40 text-[#00f948] rotate-180"
-              : "bg-white/[0.04] border-white/10 text-white/50 group-hover:text-white/80"
+              ? "rotate-180 border-[#00f948]/40 bg-[#00f948]/15 text-[#00f948]"
+              : "border-white/10 bg-white/[0.04] text-white/50 group-hover:text-white/80"
           }`}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </span>
@@ -139,7 +145,7 @@ function FaqRow({
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/[0.05]">
+            <div className="space-y-3 border-t border-white/[0.06] px-5 pb-5 pt-1">
               {item.a.map((block, i) => (
                 <AnswerBlock key={i} block={block} />
               ))}
@@ -147,6 +153,7 @@ function FaqRow({
           </motion.div>
         ) : null}
       </AnimatePresence>
+      </GlassPanel>
     </div>
   );
 }
@@ -253,33 +260,17 @@ export default function FaqPage() {
 
   return (
     <SitePageShell width="lg" className="pb-20">
-      <div className="max-w-4xl mx-auto">
-
-        {/* ─── Header ─────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-10 sm:mb-14"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00f948]/10 border border-[#00f948]/25 text-[#00f948] text-[10px] font-bold uppercase tracking-widest mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
-            {faq.eyebrow}
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black uppercase tracking-tight leading-[1.05] text-white mb-4">
-            {faq.title}
-          </h1>
-          <p className="text-base sm:text-lg text-white/55 leading-relaxed max-w-2xl">{faq.subtitle}</p>
-        </motion.div>
+        <SitePageHeader eyebrow={faq.eyebrow} title={faq.title} subtitle={faq.subtitle} />
 
         {/* ─── Search + bulk toggle ───────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between"
+          className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="relative flex-1 max-w-xl">
+          <GlassPanel matte className="relative min-h-0 flex-1 max-w-xl px-1 py-0.5">
+          <div className="relative flex-1">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none"
               fill="none"
@@ -296,7 +287,7 @@ export default function FaqPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={faq.searchPlaceholder}
               aria-label={faq.searchAriaLabel}
-              className="w-full rounded-xl bg-white/[0.03] border border-white/10 pl-11 pr-10 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00f948]/40 focus:bg-white/[0.05] transition-colors"
+              className="w-full rounded-xl bg-transparent py-3 pl-11 pr-10 text-sm text-white placeholder-white/30 transition-colors focus:outline-none focus:ring-0"
             />
             {query ? (
               <button
@@ -311,8 +302,9 @@ export default function FaqPage() {
               </button>
             ) : null}
           </div>
+          </GlassPanel>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => (allVisibleOpen ? collapseAll() : expandAll())}
@@ -423,9 +415,10 @@ export default function FaqPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6 }}
-          className="mt-16 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-transparent p-7 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8"
+          className="mt-16"
         >
-          <div className="flex-1 min-w-0">
+          <GlassPanel matte className="flex flex-col gap-5 p-7 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
+          <div className="min-w-0 flex-1">
             <h3 className="text-xl sm:text-2xl font-display font-black text-white uppercase tracking-tight mb-2">
               {faq.contactTitle}
             </h3>
@@ -440,6 +433,7 @@ export default function FaqPage() {
             {faq.contactCta}
             <span className="normal-case tracking-normal font-bold">{SOCIAL_TG_HANDLE}</span>
           </a>
+          </GlassPanel>
         </motion.div>
 
         {/* Quick link back home */}
@@ -454,7 +448,6 @@ export default function FaqPage() {
             FORM8
           </Link>
         </div>
-      </div>
 
       {/* ─── Floating "back to top" button ──────────────────────────── */}
       <AnimatePresence>

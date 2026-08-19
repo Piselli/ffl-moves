@@ -13,7 +13,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
-import { ResultsPlaceNav } from "@/components/design-lab/locker-leaderboard/ResultsPlaceChrome";
+import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -245,11 +246,13 @@ function RulesBody({
 
 function RulesRail({ m }: { m: ReturnType<typeof useSiteMessages>["pages"]["seasonLeaderboard"] }) {
   return (
-    <aside className="pointer-events-auto w-full max-w-[14.5rem] shrink-0 border-l border-white/[0.08] bg-black/40 px-4 py-5 backdrop-blur-[2px] lg:sticky lg:top-20 lg:self-start">
+    <aside className="pointer-events-auto w-full shrink-0 lg:sticky lg:top-24 lg:w-[15rem] lg:self-start">
+      <GlassPanel matte className="px-4 py-5">
       <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
         {m.rulesTitle}
       </p>
       <RulesBody m={m} />
+      </GlassPanel>
     </aside>
   );
 }
@@ -315,31 +318,25 @@ export function LadderWallShell() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] overflow-x-hidden bg-[#050505] text-white">
-      {/* Atmosphere — sparse wall, not photo room */}
+    <div className="relative min-h-[100dvh] overflow-x-hidden bg-[#0D0F12] text-white">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(0,249,72,0.06),transparent_45%),linear-gradient(180deg,#0a0908_0%,#050505_40%,#030303_100%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-[max(0px,calc(50%-28rem))] w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_0%,rgba(0,249,72,0.05),transparent_50%)]"
       />
 
-      <ResultsPlaceNav />
+      <LockerLabNav liveLinks />
 
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-16 pt-20 sm:px-6 lg:flex-row lg:items-start lg:gap-0 lg:pt-24">
-        <div className="min-w-0 flex-1 lg:pr-8">
-          <header className="mb-8 max-w-xl">
+      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-5 pb-16 pt-24 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:px-10">
+        <div className="min-w-0 flex-1">
+          <header className="mb-8 max-w-2xl">
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#00f948]/70">
               {m.seasonTag(data?.seasonLabel ?? CURRENT_SEASON.label)}
             </p>
             <h1 className="mt-2 font-display text-4xl font-black uppercase tracking-tight sm:text-5xl">
-              Ladder wall
+              {m.pageTitle}
             </h1>
-            <p className="mt-2 text-sm text-white/45">
-              Season standings as rank rungs — width tracks SP. Tap a rung for the
-              season arc.
+            <p className="mt-3 text-sm leading-relaxed text-white/45">
+              {m.subtitleLead}
             </p>
             {data?.status === "ended" ? (
               <span className="mt-3 inline-block border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/55">
@@ -402,14 +399,14 @@ export function LadderWallShell() {
           ) : null}
 
           {!isLoading && !error && data?.status === "inactive" ? (
-            <div className="border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center">
+            <GlassPanel matte className="px-6 py-12 text-center">
               <p className="font-display text-sm font-bold uppercase tracking-wide text-white/70">
                 {m.inactiveTitle}
               </p>
               <p className="mx-auto mt-2 max-w-md text-sm text-white/35">
                 {m.inactiveHint}
               </p>
-            </div>
+            </GlassPanel>
           ) : null}
 
           {!isLoading && !error && data && data.status !== "inactive" ? (
