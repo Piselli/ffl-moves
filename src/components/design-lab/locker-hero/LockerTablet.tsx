@@ -1065,7 +1065,7 @@ export function LockerTablet({
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
           <Form8Mark
             className={cn(
-              "h-7 shrink-0 md:h-9",
+              "hidden h-9 shrink-0 md:block",
               isMotionChrome &&
                 "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
             )}

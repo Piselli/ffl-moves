@@ -38,7 +38,7 @@ export function SitePageShell({
       <LockerLabNav liveLinks />
       <div
         className={cn(
-          "relative mx-auto px-5 sm:px-8 lg:px-10 pt-24 pb-16",
+          "relative mx-auto px-5 sm:px-8 lg:px-10 pt-20 pb-16 md:pt-24",
           WIDTH[width],
           centered && "flex min-h-screen items-center justify-center py-24",
           className,

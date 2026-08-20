@@ -215,53 +215,34 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
       {!tabletShell ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)] md:block"
+          className="pointer-events-none absolute inset-x-0 top-0 hidden h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)] md:block"
         />
-      ) : (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-14 border-b border-white/10 bg-black md:hidden"
-        />
-      )}
+      ) : null}
       <div className="pointer-events-auto w-full">
         <div
           className={cn(
             BRAND_LOCKUP_NAV_INNER,
-            "max-md:h-14 max-md:gap-2 max-md:px-3 sm:max-md:px-4",
+            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:px-3 max-md:backdrop-blur-xl sm:max-md:px-4",
             tabletShell && "max-md:bg-black",
           )}
         >
-          <div
-            className={cn(
-              "flex min-w-0 flex-1 items-center justify-start",
-              tabletShell && "max-md:hidden",
-            )}
-          >
-            <BrandLockup
-              priority
-              className="max-md:[&_span:last-child]:hidden max-md:gap-0"
-              linkClassName="relative z-10 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-            />
-          </div>
+          <BrandLockup
+            priority
+            className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
+            linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+          />
           <Links
             liveLinks={liveLinks}
-            className="hidden shrink-0 md:flex"
+            className="hidden min-w-0 flex-1 justify-center md:flex"
             linkClassName={cn(
               "text-white",
               "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
               "hover:text-[#00f948]",
             )}
           />
-          <div
-            className={cn(
-              "flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:gap-2",
-              tabletShell && "max-md:flex-none",
-            )}
-          >
-            <div className="shrink-0 md:hidden">
-              <LanguageSwitcher embedded />
-            </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 md:gap-2">
             <Right compact />
+            <LanguageSwitcher embedded />
             <button
               type="button"
               aria-expanded={mobileOpen}
@@ -281,9 +262,6 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             </button>
           </div>
         </div>
-      </div>
-      <div className="pointer-events-auto absolute right-5 top-0 z-20 hidden h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] md:flex lg:right-10">
-        <LanguageSwitcher embedded />
       </div>
 
       <AnimatePresence>

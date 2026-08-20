@@ -59,6 +59,7 @@ import {
   persistTeamDraftFromLineup,
   tryHydrateTeamDraftFromStorage,
 } from "@/lib/teamDraftStorage";
+import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
@@ -892,8 +893,9 @@ export default function GameweekPage() {
 
   return (
     <div className="bg-[#0D0F12] min-h-screen">
+      <LockerLabNav liveLinks />
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 pt-28">
+      <div className="max-w-7xl mx-auto px-4 pt-20 md:pt-28">
         {/* Desktop header */}
         <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 mb-8 items-start">
           <div>

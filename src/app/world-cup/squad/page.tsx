@@ -48,6 +48,7 @@ import {
   tryHydrateTeamDraftFromStorage,
   wcTeamDraftKey,
 } from "@/lib/teamDraftStorage";
+import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 
 type MobileTab = "pitch" | "players";
 
@@ -815,7 +816,8 @@ export default function WorldCupSquadPage() {
 
   return (
     <div className="bg-[#0D0F12] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 pt-28">
+      <LockerLabNav liveLinks />
+      <div className="max-w-7xl mx-auto px-4 pt-20 md:pt-28">
         <div className="mb-4">
           <Link href="/world-cup" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
             {wc.backToHub}
