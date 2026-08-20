@@ -19,6 +19,8 @@ import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
 type Props = {
   /** When true, nav links navigate (site). Lab keeps preventDefault for mock. */
   liveLinks?: boolean;
+  /** Mobile flat tablet — solid bar, no room gradient. */
+  tabletShell?: boolean;
 };
 
 const CHIP =
@@ -102,19 +104,20 @@ function Right({ compact = false }: { compact?: boolean }) {
       {connected ? (
         <>
           <NavUsdcBalance
-            className={cn(compact && "h-7 max-w-[5.25rem] px-2 text-[10px] normal-case tracking-tight")}
+            className={cn(
+              compact &&
+                "h-7 max-w-[4.75rem] px-1.5 text-[10px] normal-case tracking-tight",
+            )}
           />
           <button
             type="button"
             onClick={openDeposit}
             className={cn(
               chip,
-              "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98]",
-              compact && "px-2",
+              "hidden bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98] md:inline-flex",
             )}
           >
-            <span className="md:hidden">+</span>
-            <span className="hidden md:inline">{m.deposit.open}</span>
+            {m.deposit.open}
           </button>
           <button
             type="button"
@@ -176,7 +179,7 @@ function Right({ compact = false }: { compact?: boolean }) {
  * Locked top menu — lit type: no bar, letters lit by room spots.
  * form8 left, actions right, links centered; locale sits in the top-right corner.
  */
-export function LockerLabNav({ liveLinks = false }: Props) {
+export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
   const pathname = usePathname();
   const reduceMotion = useReducedMotion() ?? false;
@@ -209,13 +212,31 @@ export function LockerLabNav({ liveLinks = false }: Props) {
 
   return (
     <div ref={shellRef} className="pointer-events-none fixed inset-x-0 top-0 z-[80]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
-      />
+      {!tabletShell ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)] md:block"
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-14 border-b border-white/10 bg-black md:hidden"
+        />
+      )}
       <div className="pointer-events-auto w-full">
-        <div className={cn(BRAND_LOCKUP_NAV_INNER, "max-md:h-14 max-md:gap-2 max-md:px-3 sm:max-md:px-4")}>
-          <div className="flex min-w-0 flex-1 items-center justify-start">
+        <div
+          className={cn(
+            BRAND_LOCKUP_NAV_INNER,
+            "max-md:h-14 max-md:gap-2 max-md:px-3 sm:max-md:px-4",
+            tabletShell && "max-md:bg-black",
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-start",
+              tabletShell && "max-md:hidden",
+            )}
+          >
             <BrandLockup
               priority
               className="max-md:[&_span:last-child]:hidden max-md:gap-0"
@@ -231,8 +252,13 @@ export function LockerLabNav({ liveLinks = false }: Props) {
               "hover:text-[#00f948]",
             )}
           />
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:gap-2">
-            <div className="md:hidden">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:gap-2",
+              tabletShell && "max-md:flex-none",
+            )}
+          >
+            <div className="shrink-0 md:hidden">
               <LanguageSwitcher embedded />
             </div>
             <Right compact />
@@ -241,7 +267,7 @@ export function LockerLabNav({ liveLinks = false }: Props) {
               aria-expanded={mobileOpen}
               aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
               onClick={() => setMobileOpen((o) => !o)}
-              className="md:hidden grid h-8 w-8 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96]"
+              className="relative z-20 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96] md:hidden"
             >
               {mobileOpen ? (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

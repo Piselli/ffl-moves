@@ -259,22 +259,31 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   );
 
   return (
-    <div className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white">
-      <LockerRoomBackground
-        src={ROOM_BACKGROUND.src}
-        onImageLoad={onRoomImageLoad}
-        onImageError={onRoomImageError}
-      />
+    <div
+      className={cn(
+        "fixed inset-0 z-[45] overflow-hidden text-white",
+        flatPicker ? "bg-black" : "bg-[#1a1816]",
+      )}
+    >
+      {!flatPicker ? (
+        <>
+          <LockerRoomBackground
+            src={ROOM_BACKGROUND.src}
+            onImageLoad={onRoomImageLoad}
+            onImageError={onRoomImageError}
+          />
 
-      {useTabletScene ? (
-        <LockerKits
-          starters={squad.starters}
-          bench={squad.bench}
-          roomBackgroundId={ROOM_BACKGROUND.id}
-          roomFocused={!tabletRaised}
-          glowId={ACTIVE_NAMEPLATE_GLOW}
-          preferBakedQuads
-        />
+          {useTabletScene ? (
+            <LockerKits
+              starters={squad.starters}
+              bench={squad.bench}
+              roomBackgroundId={ROOM_BACKGROUND.id}
+              roomFocused={!tabletRaised}
+              glowId={ACTIVE_NAMEPLATE_GLOW}
+              preferBakedQuads
+            />
+          ) : null}
+        </>
       ) : null}
 
       {isLab ? (
@@ -339,7 +348,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
         </p>
       )}
 
-      <LockerLabNav liveLinks={!isLab} />
+      <LockerLabNav liveLinks={!isLab} tabletShell={flatPicker} />
 
       {isLab ? (
         <aside className="pointer-events-none absolute bottom-4 right-3 top-20 z-[75] flex w-[9.5rem] flex-col sm:right-5 sm:w-[11rem]">
@@ -398,7 +407,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       ) : null}
 
       {flatPicker ? (
-        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden pt-14 md:pt-[4.25rem]">
+        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden bg-black pt-14 md:pt-[4.25rem]">
           {picker}
         </div>
       ) : useTabletScene ? (

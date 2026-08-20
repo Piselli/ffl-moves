@@ -598,6 +598,74 @@ function PitchEmptyChip({
   );
 }
 
+/** Slim bench row — lives below the pitch on mobile, never overlays GK. */
+function MobileBenchBar({
+  bench,
+  activeSlot,
+  onClearSlot,
+  onSlotClick,
+}: {
+  bench: (Player | null)[];
+  activeSlot: number | null;
+  onClearSlot: (index: number) => void;
+  onSlotClick: (index: number) => void;
+}) {
+  return (
+    <div className="order-2 flex shrink-0 flex-col gap-1 md:hidden">
+      <p className="px-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
+        Subs
+      </p>
+      <div className="flex gap-1">
+        {bench.slice(0, 3).map((p, i) => {
+          const slotIndex = 11 + i;
+          const active = activeSlot === slotIndex;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() =>
+                p ? onClearSlot(slotIndex) : onSlotClick(slotIndex)
+              }
+              className={cn(
+                "flex min-h-[34px] min-w-0 flex-1 items-center gap-1 rounded-xl border px-1.5 py-1 transition active:scale-[0.98]",
+                active
+                  ? "border-[color:var(--lt-accent)]/45 bg-[color:var(--lt-accent-soft)]"
+                  : "border-[color:var(--lt-ink)]/15 bg-[color:var(--lt-ink)]/[0.06]",
+              )}
+              aria-label={
+                p ? (p.webName ?? p.name) : `Empty bench ${i + 1}`
+              }
+            >
+              {p ? (
+                <>
+                  <FplPhotoAvatar
+                    fplPhotoCode={p.fplPhotoCode}
+                    apiId={p.apiId}
+                    photoUrl={p.photo}
+                    alt={p.webName ?? p.name}
+                    size={24}
+                    teamName={p.team}
+                    initials={p.webName ?? p.name}
+                    className="shrink-0 rounded-md"
+                    eager
+                  />
+                  <span className="min-w-0 truncate text-[10px] font-bold leading-tight text-[color:var(--lt-ink)]">
+                    {p.webName ?? p.name}
+                  </span>
+                </>
+              ) : (
+                <span className="w-full text-center text-[10px] font-semibold text-[color:var(--lt-muted)]">
+                  + SUB
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** drei Html eats wheel — capture on tablet root and scroll the list under the cursor. */
 function useLocalWheelScroll() {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -997,7 +1065,7 @@ export function LockerTablet({
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
           <Form8Mark
             className={cn(
-              "hidden h-9 md:block",
+              "h-7 shrink-0 md:h-9",
               isMotionChrome &&
                 "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
             )}
@@ -1286,7 +1354,7 @@ export function LockerTablet({
             )}
           </div>
 
-          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 max-md:pb-9 md:py-1">
+          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 md:py-1">
             {rows.map((row) => (
               <div key={row.join("-")} className="flex justify-evenly gap-0.5">
                 {row.map((idx) => {
@@ -1301,7 +1369,8 @@ export function LockerTablet({
                       className={cn(
                         "flex flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
                         "h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)]",
-                        "max-md:h-[clamp(46px,11.5vw,58px)] max-md:w-[clamp(38px,10vw,48px)]",
+                        "max-md:h-[clamp(40px,10vw,52px)] max-md:w-[clamp(34px,8.8vw,44px)]",
+                        p && "max-md:overflow-visible max-md:[&>span]:origin-bottom max-md:[&>span]:scale-[0.78]",
                         active && !p && "opacity-100",
                         active && p && "brightness-110",
                         isMotionChrome &&
@@ -1328,33 +1397,16 @@ export function LockerTablet({
               </div>
             ))}
           </div>
-
-          <div className="absolute inset-x-1.5 bottom-7 z-20 flex items-end justify-center gap-1 md:hidden">
-            {bench.slice(0, 3).map((p, i) => {
-              const slotIndex = 11 + i;
-              const active = activeSlot === slotIndex;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() =>
-                    p ? onClearSlot(slotIndex) : handleSlotClick(slotIndex)
-                  }
-                  className="flex min-w-0 flex-1 justify-center rounded-md bg-black/35 px-0.5 py-0.5 ring-1 ring-white/15 backdrop-blur-sm transition-[transform,filter] duration-150 active:scale-[0.96]"
-                  aria-label={
-                    p ? (p.webName ?? p.name) : `Empty bench ${i + 1}`
-                  }
-                >
-                  {p ? (
-                    <PitchPlayerChip player={p} compact />
-                  ) : (
-                    <PitchEmptyChip pos="SUB" active={active} compact />
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </section>
+
+        {mobileTab === "pitch" ? (
+          <MobileBenchBar
+            bench={bench}
+            activeSlot={activeSlot}
+            onClearSlot={onClearSlot}
+            onSlotClick={handleSlotClick}
+          />
+        ) : null}
 
         <Panel
           {...(useMaterialShell
