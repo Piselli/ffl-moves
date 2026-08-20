@@ -24,6 +24,9 @@ type Props = {
 const CHIP =
   "inline-flex h-9 shrink-0 items-center justify-center rounded-lg px-4 text-xs font-bold uppercase leading-none tracking-wide sm:h-10 sm:px-5";
 
+const MOBILE_CHIP =
+  "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-2.5 text-[10px] font-bold uppercase leading-none tracking-wide";
+
 const NAV_LINK =
   "inline-flex h-9 items-center px-2.5 text-sm font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10";
 
@@ -85,28 +88,33 @@ function Links({
   );
 }
 
-function Right() {
+function Right({ compact = false }: { compact?: boolean }) {
   const m = useSiteMessages();
   const { connected, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
   const { setNickname, myNickname } = useNickname(address);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const chip = compact ? MOBILE_CHIP : CHIP;
 
   return (
-    <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+    <div className="relative z-10 flex min-w-0 items-center gap-1 sm:gap-1.5 md:gap-2">
       {connected ? (
         <>
-          <NavUsdcBalance />
+          <NavUsdcBalance
+            className={cn(compact && "h-7 max-w-[5.25rem] px-2 text-[10px] normal-case tracking-tight")}
+          />
           <button
             type="button"
             onClick={openDeposit}
             className={cn(
-              CHIP,
+              chip,
               "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98]",
+              compact && "px-2",
             )}
           >
-            {m.deposit.open}
+            <span className="md:hidden">+</span>
+            <span className="hidden md:inline">{m.deposit.open}</span>
           </button>
           <button
             type="button"
@@ -116,8 +124,8 @@ function Right() {
             disabled={!address}
             title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
             className={cn(
-              CHIP,
-              "max-w-[7.5rem] truncate border border-white/20 bg-black/40 text-white/85 backdrop-blur-sm transition hover:border-white/35 active:scale-[0.98] disabled:opacity-50",
+              chip,
+              "hidden max-w-[7.5rem] truncate border border-white/20 bg-black/40 text-white/85 backdrop-blur-sm transition hover:border-white/35 active:scale-[0.98] disabled:opacity-50 md:inline-flex",
             )}
           >
             {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
@@ -127,8 +135,8 @@ function Right() {
             onClick={() => disconnect()}
             title={m.nav.disconnect}
             className={cn(
-              CHIP,
-              "text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98]",
+              chip,
+              "hidden text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98] md:inline-flex",
             )}
           >
             {m.nav.disconnectShort}
@@ -152,8 +160,9 @@ function Right() {
           id="wallet-connect-btn"
           onClick={openLogin}
           className={cn(
-            CHIP,
+            chip,
             "bg-white text-black transition hover:bg-white/90 active:scale-[0.98]",
+            compact && "px-3",
           )}
         >
           {m.nav.connectWallet}
@@ -172,7 +181,12 @@ export function LockerLabNav({ liveLinks = false }: Props) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion() ?? false;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
+  const { connected, address, disconnect, walletName } = useWallet();
+  const { openDeposit, balanceLabel } = useDeposit();
+  const { openLogin } = useLogin();
+  const { setNickname, myNickname } = useNickname(address);
   const links = primarySiteNavLinks(m);
   const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
   const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
@@ -200,10 +214,11 @@ export function LockerLabNav({ liveLinks = false }: Props) {
         className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
       />
       <div className="pointer-events-auto w-full">
-        <div className={BRAND_LOCKUP_NAV_INNER}>
+        <div className={cn(BRAND_LOCKUP_NAV_INNER, "max-md:h-14 max-md:gap-2 max-md:px-3 sm:max-md:px-4")}>
           <div className="flex min-w-0 flex-1 items-center justify-start">
             <BrandLockup
               priority
+              className="max-md:[&_span:last-child]:hidden max-md:gap-0"
               linkClassName="relative z-10 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
             />
           </div>
@@ -216,8 +231,11 @@ export function LockerLabNav({ liveLinks = false }: Props) {
               "hover:text-[#00f948]",
             )}
           />
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-            <Right />
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:gap-2">
+            <div className="md:hidden">
+              <LanguageSwitcher embedded />
+            </div>
+            <Right compact />
             <button
               type="button"
               aria-expanded={mobileOpen}
@@ -238,7 +256,7 @@ export function LockerLabNav({ liveLinks = false }: Props) {
           </div>
         </div>
       </div>
-      <div className="pointer-events-auto absolute right-5 top-0 z-20 flex h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] lg:right-10">
+      <div className="pointer-events-auto absolute right-5 top-0 z-20 hidden h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] md:flex lg:right-10">
         <LanguageSwitcher embedded />
       </div>
 
@@ -313,9 +331,75 @@ export function LockerLabNav({ liveLinks = false }: Props) {
                 </Link>
               );
             })}
+            {connected ? (
+              <>
+                <div className="my-1 h-px bg-white/10" />
+                <div className="flex items-center justify-between rounded-xl px-4 py-3">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                    {m.deposit.balanceLabel}
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-white">
+                    {balanceLabel ?? "—"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openDeposit();
+                    setMobileOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-[#00f948] transition-colors hover:bg-white/[0.05]"
+                >
+                  {m.deposit.open}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (address) setShowNicknameModal(true);
+                    setMobileOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+                >
+                  {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    disconnect();
+                    setMobileOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-red-400/80 transition-colors hover:bg-red-500/10"
+                >
+                  {m.nav.disconnect}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  openLogin();
+                  setMobileOpen(false);
+                }}
+                className="mt-1 flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-black transition hover:bg-white/90"
+              >
+                {m.nav.connectWallet}
+              </button>
+            )}
           </motion.div>
         ) : null}
       </AnimatePresence>
+      {address ? (
+        <NicknameModal
+          open={showNicknameModal}
+          address={address}
+          currentNickname={myNickname}
+          onSave={(name) => {
+            setNickname(address, name);
+            setShowNicknameModal(false);
+          }}
+          onClose={() => setShowNicknameModal(false)}
+        />
+      ) : null}
     </div>
   );
 }

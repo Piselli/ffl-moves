@@ -398,7 +398,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       ) : null}
 
       {flatPicker ? (
-        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden pt-[4.25rem]">
+        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden pt-14 md:pt-[4.25rem]">
           {picker}
         </div>
       ) : useTabletScene ? (

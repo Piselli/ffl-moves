@@ -59,6 +59,22 @@ type MobileTab = "pitch" | "players";
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 const SPRING_PILL = { type: "spring" as const, stiffness: 420, damping: 34 };
 
+function useIsNarrowTablet(): boolean {
+  const [narrow, setNarrow] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return narrow;
+}
+
 const DISPLAY: CSSProperties = {
   fontFamily: "var(--lt-font-display)",
   letterSpacing: "var(--lt-display-tracking)",
@@ -794,6 +810,7 @@ export function LockerTablet({
   const [clock, setClock] = useState("");
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
+  const isNarrow = useIsNarrowTablet();
   const tabletRootRef = useLocalWheelScroll();
 
   const handleSlotClick = useCallback(
@@ -931,12 +948,24 @@ export function LockerTablet({
 
   const rows = formationRows(formationId);
   const slotPos = (i: number) => slotPosition(i, formationId);
+  const chipCompact = isNarrow;
+  const prizeLabel =
+    prizePoolRaw == null
+      ? "—"
+      : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en");
+  const deadlineLabel =
+    !deadline || !deadlineParts
+      ? "—"
+      : deadlineParts.expired
+        ? m.home.deadlinePassed
+        : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`;
+  const managersLabel = entries == null ? "—" : String(entries);
 
   return (
     <div
       ref={tabletRootRef}
       data-lt-chrome={tabletVariant.chrome}
-      className="relative flex h-full w-full flex-col overflow-hidden pb-2.5"
+      className="relative flex h-full w-full flex-col overflow-hidden max-md:pb-0 md:pb-2.5"
       style={
         {
           color: "var(--lt-ink)",
@@ -957,7 +986,7 @@ export function LockerTablet({
 
       <header
         className={cn(
-          "relative flex h-[52px] shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] px-5",
+          "relative flex shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
           isGlass && chrome === "current" && "border-white/60 bg-black",
           isGlass &&
             (isTripledChrome || isMotionChrome || isPlatesChrome) &&
@@ -965,27 +994,30 @@ export function LockerTablet({
           isCrystal && "border-white/35 bg-black/30 backdrop-blur-xl",
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
           <Form8Mark
             className={cn(
-              "h-9",
+              "hidden h-9 md:block",
               isMotionChrome &&
                 "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
             )}
           />
-          <div>
+          <div className="min-w-0">
             <p
-              className="text-[17px] font-black leading-none text-[color:var(--lt-ink)]"
+              className="truncate text-[14px] font-black leading-none text-[color:var(--lt-ink)] md:text-[17px]"
               style={DISPLAY}
             >
               Pick your team
             </p>
-            <p className="mt-1 text-[10px] font-semibold text-[color:var(--lt-muted)]">
-              FORM8 Fantasy EPL
+            <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
+              <span className="md:hidden">
+                GW {gwId ?? "—"} · {filledCount}/{FORMATION.TOTAL}
+              </span>
+              <span className="hidden md:inline">FORM8 Fantasy EPL</span>
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="hidden shrink-0 text-right md:block">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
             Selected
           </p>
@@ -995,7 +1027,46 @@ export function LockerTablet({
         </div>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3 pt-2.5 md:grid md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
+      <div className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[var(--lt-hairline)] px-3 py-2 md:hidden">
+        <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
+          <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
+            Pool
+          </p>
+          <p
+            className="mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]"
+            style={DISPLAY}
+          >
+            {prizeLabel}
+          </p>
+        </div>
+        <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
+          <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
+            Deadline
+          </p>
+          <p
+            className={cn(
+              "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none",
+              isGlass ? "text-white" : "text-[color:var(--lt-accent)]",
+            )}
+            style={isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }}
+          >
+            {deadlineLabel}
+          </p>
+        </div>
+        <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
+          <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
+            Managers
+          </p>
+          <p
+            className="mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]"
+            style={DISPLAY}
+          >
+            {managersLabel}
+          </p>
+        </div>
+      </div>
+
+      <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2.5 md:p-3 md:pt-2.5 md:grid md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
         <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
@@ -1068,7 +1139,6 @@ export function LockerTablet({
             interactivePanels &&
               "transition-[transform,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-[1.03]",
           )}
-          data-tab={mobileTab === "pitch" ? "visible" : "hidden"}
           style={{
             background: pitch.base,
             boxShadow: pitch.shadow,
@@ -1120,7 +1190,7 @@ export function LockerTablet({
           ) : null}
           {onPitchStyleChange ? (
             <div
-              className="absolute bottom-0.5 right-2 z-20 flex items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/15 backdrop-blur-sm"
+              className="absolute bottom-0.5 right-2 z-20 hidden items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/15 backdrop-blur-sm md:flex"
               role="group"
               aria-label="Pitch look"
             >
@@ -1216,9 +1286,9 @@ export function LockerTablet({
             )}
           </div>
 
-          <div className="relative z-10 flex h-full flex-col justify-evenly px-0.5 py-1">
+          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 max-md:pb-9 md:py-1">
             {rows.map((row) => (
-              <div key={row.join("-")} className="flex justify-evenly">
+              <div key={row.join("-")} className="flex justify-evenly gap-0.5">
                 {row.map((idx) => {
                   const p = starters[idx];
                   const pos = slotPos(idx);
@@ -1229,7 +1299,9 @@ export function LockerTablet({
                       type="button"
                       onClick={() => (p ? onClearSlot(idx) : handleSlotClick(idx))}
                       className={cn(
-                        "flex h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
+                        "flex flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
+                        "h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)]",
+                        "max-md:h-[clamp(46px,11.5vw,58px)] max-md:w-[clamp(38px,10vw,48px)]",
                         active && !p && "opacity-100",
                         active && p && "brightness-110",
                         isMotionChrome &&
@@ -1246,9 +1318,9 @@ export function LockerTablet({
                       aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
                     >
                       {p ? (
-                        <PitchPlayerChip player={p} />
+                        <PitchPlayerChip player={p} compact={chipCompact} />
                       ) : (
-                        <PitchEmptyChip pos={pos} active={active} />
+                        <PitchEmptyChip pos={pos} active={active} compact={chipCompact} />
                       )}
                     </button>
                   );
@@ -1256,21 +1328,8 @@ export function LockerTablet({
               </div>
             ))}
           </div>
-        </section>
 
-        <Panel
-          {...(useMaterialShell ? { as: "section" as const, ...glassProps } : {})}
-          className={cn(
-            !useMaterialShell && PANEL,
-            "hidden shrink-0 px-3.5 py-2.5 max-md:block md:hidden",
-            mobileTab !== "pitch" && "max-md:hidden",
-            isPlatesChrome && "rounded-[22px]",
-          )}
-        >
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
-            3 substitutes
-          </p>
-          <div className="mt-1.5 flex min-w-0 items-end justify-evenly gap-1.5">
+          <div className="absolute inset-x-1.5 bottom-7 z-20 flex items-end justify-center gap-1 md:hidden">
             {bench.slice(0, 3).map((p, i) => {
               const slotIndex = 11 + i;
               const active = activeSlot === slotIndex;
@@ -1281,7 +1340,7 @@ export function LockerTablet({
                   onClick={() =>
                     p ? onClearSlot(slotIndex) : handleSlotClick(slotIndex)
                   }
-                  className="flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]"
+                  className="flex min-w-0 flex-1 justify-center rounded-md bg-black/35 px-0.5 py-0.5 ring-1 ring-white/15 backdrop-blur-sm transition-[transform,filter] duration-150 active:scale-[0.96]"
                   aria-label={
                     p ? (p.webName ?? p.name) : `Empty bench ${i + 1}`
                   }
@@ -1295,7 +1354,7 @@ export function LockerTablet({
               );
             })}
           </div>
-        </Panel>
+        </section>
 
         <Panel
           {...(useMaterialShell

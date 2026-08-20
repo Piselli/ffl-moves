@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   variant?: "chip" | "cluster";
+  className?: string;
 };
 
-export function NavUsdcBalance({ variant = "chip" }: Props) {
+export function NavUsdcBalance({ variant = "chip", className }: Props) {
   const { connected } = useWallet();
   const { openDeposit, balanceLabel } = useDeposit();
   const d = useSiteMessages().deposit;
@@ -33,6 +34,7 @@ export function NavUsdcBalance({ variant = "chip" }: Props) {
           "h-8 rounded-lg border border-white/20 bg-black/40 px-2.5 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm hover:border-white/35",
         variant === "cluster" &&
           "rounded-lg px-2 py-1.5 hover:bg-white/[0.06]",
+        className,
       )}
     >
       <motion.span
