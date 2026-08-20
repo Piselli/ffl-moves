@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { getConfig, findOpenGameweek } from "@/lib/chainClient";
 import type { Player } from "@/lib/types";
 
+let playersCache: Player[] = [];
+
 export type LockerFixture = {
   id: number;
   kickoffTime: string | null;
@@ -27,8 +29,8 @@ export function useLockerHeroData() {
   const [openGwId, setOpenGwId] = useState<number | null>(null);
   const [chainLoading, setChainLoading] = useState(true);
   const [fixtures, setFixtures] = useState<LockerFixturesPayload | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [playersLoading, setPlayersLoading] = useState(true);
+  const [players, setPlayers] = useState<Player[]>(playersCache);
+  const [playersLoading, setPlayersLoading] = useState(playersCache.length === 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +79,7 @@ export function useLockerHeroData() {
 
   useEffect(() => {
     let cancelled = false;
-    setPlayersLoading(true);
+    if (playersCache.length === 0) setPlayersLoading(true);
     fetch("/api/players")
       .then(async (r) => {
         if (!r.ok) throw new Error("players api unavailable");
@@ -86,10 +88,12 @@ export function useLockerHeroData() {
         return data as Player[];
       })
       .then((list) => {
+        playersCache = list;
         if (!cancelled) setPlayers(list);
       })
       .catch(() =>
         import("@/data/players.json").then((m) => {
+          playersCache = m.default as Player[];
           if (!cancelled) setPlayers(m.default as Player[]);
         }),
       )

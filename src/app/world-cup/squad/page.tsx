@@ -3,10 +3,10 @@
 import {
   useState,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
-  type Dispatch,
-  type SetStateAction,
+  useCallback,
 } from "react";
 import Link from "next/link";
 import { useWallet } from "@/hooks/useSolanaWallet";
@@ -43,6 +43,11 @@ import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { buildRandomSquad } from "@/lib/randomSquad";
 import { useDeposit } from "@/components/DepositProvider";
+import {
+  persistTeamDraftFromLineup,
+  tryHydrateTeamDraftFromStorage,
+  wcTeamDraftKey,
+} from "@/lib/teamDraftStorage";
 
 type MobileTab = "pitch" | "players";
 
@@ -55,74 +60,8 @@ function isCompleteRegisteredSnapshot(
   return t.starters.length === 11 && t.bench.length === FORMATION.BENCH;
 }
 
-function teamDraftStorageKey(tourId: number, addr: string) {
-  return `wc_team_draft_v1_t${tourId}_${addr}`;
-}
 function registeredStorageKey(tourId: number, addr: string) {
   return `wc_team_v2_t${tourId}_${addr}`;
-}
-
-type TeamDraftPayload = { starterIds: (number | null)[]; benchIds: (number | null)[] };
-
-function lineupIdsFromDraft(
-  draft: TeamDraftPayload,
-  catalog: Map<number, Player>,
-): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
-  if (!Array.isArray(draft.starterIds) || draft.starterIds.length !== 11) return null;
-  if (!Array.isArray(draft.benchIds) || draft.benchIds.length !== FORMATION.BENCH) return null;
-  const starters = draft.starterIds.map((id) => (typeof id !== "number" ? null : catalog.get(id) ?? null));
-  const bench = draft.benchIds.map((id) => (typeof id !== "number" ? null : catalog.get(id) ?? null));
-  return { starters, bench };
-}
-
-function lineupIdsDraftPayload(starters: (Player | null)[], bench: (Player | null)[]): TeamDraftPayload {
-  return {
-    starterIds: starters.map((p) => (p ? p.id : null)),
-    benchIds: bench.map((p) => (p ? p.id : null)),
-  };
-}
-
-function tryHydrateTeamDraftFromStorage(
-  tourId: number,
-  addr: string,
-  playersCatalog: Player[],
-  setStarters: Dispatch<SetStateAction<(Player | null)[]>>,
-  setBench: Dispatch<SetStateAction<(Player | null)[]>>,
-) {
-  if (typeof window === "undefined" || playersCatalog.length === 0) return;
-  try {
-    const raw = window.localStorage.getItem(teamDraftStorageKey(tourId, addr));
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as TeamDraftPayload;
-    const catalog = new Map(playersCatalog.map((p) => [p.id, p]));
-    const restored = lineupIdsFromDraft(parsed, catalog);
-    if (!restored) return;
-    if (![...restored.starters, ...restored.bench].some(Boolean)) return;
-
-    const unique = new Set<number>();
-    let dupOrBad = false;
-    const registerId = (p: Player | null) => {
-      if (!p) return;
-      if (unique.has(p.id)) dupOrBad = true;
-      unique.add(p.id);
-    };
-    restored.starters.forEach(registerId);
-    restored.bench.forEach(registerId);
-
-    let clubViolation = false;
-    const counts: Record<number, number> = {};
-    Array.from(unique).forEach((id) => {
-      const p = catalog.get(id)!;
-      const n = (counts[p.teamId] = (counts[p.teamId] || 0) + 1);
-      if (n > MAX_PER_CLUB) clubViolation = true;
-    });
-    if (dupOrBad || clubViolation) return;
-
-    setStarters(restored.starters);
-    setBench(restored.bench);
-  } catch {
-    /* ignore corrupt draft */
-  }
 }
 
 export default function WorldCupSquadPage() {
@@ -156,6 +95,41 @@ export default function WorldCupSquadPage() {
 
   const walletIdentityRef = useRef<string | undefined>(undefined);
   const lineupTouchedNonEmptySessionRef = useRef(false);
+  const draftHydrateAttemptedRef = useRef(false);
+
+  const persistOpenTourDraft = useCallback(
+    (nextStarters: (Player | null)[], nextBench: (Player | null)[]) => {
+      if (
+        typeof window === "undefined" ||
+        !account?.address ||
+        !currentTour ||
+        currentTour.status !== "open" ||
+        tourLoading ||
+        playersLoading ||
+        players.length === 0 ||
+        alreadyRegistered
+      ) {
+        return;
+      }
+      persistTeamDraftFromLineup(
+        wcTeamDraftKey(currentTour.id, account.address.toString()),
+        nextStarters,
+        nextBench,
+        {
+          removeIfEmptyAndTouched:
+            draftHydrateAttemptedRef.current && lineupTouchedNonEmptySessionRef.current,
+        },
+      );
+    },
+    [
+      account?.address,
+      alreadyRegistered,
+      currentTour,
+      players.length,
+      playersLoading,
+      tourLoading,
+    ],
+  );
 
   // Registration fee is read from the shared on-chain config (same as EPL).
   const [entryFee, setEntryFee] = useState<bigint | null>(null);
@@ -246,6 +220,7 @@ export default function WorldCupSquadPage() {
       setStarters(Array(11).fill(null));
       setBench(Array(FORMATION.BENCH).fill(null));
       lineupTouchedNonEmptySessionRef.current = false;
+      draftHydrateAttemptedRef.current = false;
     }
     setTourLoading(true);
 
@@ -356,13 +331,9 @@ export default function WorldCupSquadPage() {
     ) {
       return;
     }
-    tryHydrateTeamDraftFromStorage(
-      currentTour.id,
-      account.address.toString(),
-      players,
-      setStarters,
-      setBench,
-    );
+    const storageKey = wcTeamDraftKey(currentTour.id, account.address.toString());
+    tryHydrateTeamDraftFromStorage(storageKey, players, setStarters, setBench);
+    draftHydrateAttemptedRef.current = true;
   }, [tourLoading, alreadyRegistered, account?.address, currentTour, players.length]);
 
   useEffect(() => {
@@ -373,34 +344,10 @@ export default function WorldCupSquadPage() {
     if (!connected) setIsSubmitting(false);
   }, [connected]);
 
-  // Persist unfinished lineup for the open tour.
-  useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !connected ||
-      !account?.address ||
-      !currentTour ||
-      currentTour.status !== "open" ||
-      tourLoading ||
-      playersLoading ||
-      players.length === 0 ||
-      alreadyRegistered
-    ) {
-      return;
-    }
-    const key = teamDraftStorageKey(currentTour.id, account.address.toString());
-    const draft = lineupIdsDraftPayload(starters, bench);
-    const isEmpty = draft.starterIds.every((id) => id == null) && draft.benchIds.every((id) => id == null);
-    try {
-      if (isEmpty) {
-        if (lineupTouchedNonEmptySessionRef.current) window.localStorage.removeItem(key);
-      } else {
-        window.localStorage.setItem(key, JSON.stringify(draft));
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [connected, account?.address, currentTour, tourLoading, playersLoading, players.length, alreadyRegistered, starters, bench]);
+  // Persist unfinished lineup for the open tour (layout effect runs before paint / route change).
+  useLayoutEffect(() => {
+    persistOpenTourDraft(starters, bench);
+  }, [persistOpenTourDraft, starters, bench]);
 
   // Hydrate registered squad from chain for closed/resolved when catalog/localStorage is incomplete.
   useEffect(() => {
@@ -637,7 +584,7 @@ export default function WorldCupSquadPage() {
         const addr = account.address.toString();
         localStorage.setItem(registeredStorageKey(currentTour.id, addr), JSON.stringify(teamSnapshot));
         try {
-          localStorage.removeItem(teamDraftStorageKey(currentTour.id, addr));
+          localStorage.removeItem(wcTeamDraftKey(currentTour.id, addr));
         } catch {
           /* ignore */
         }

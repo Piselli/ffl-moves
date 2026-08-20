@@ -40,6 +40,8 @@ type Props = {
   placement?: Placement;
   /** Parent already shows TabletDomFrame — don't double-mount screen content. */
   skipDomFallback?: boolean;
+  /** Change when screen contents swap (picks) so Html can rewrite its CSS matrix. */
+  contentEpoch?: string;
 };
 
 /**
@@ -147,6 +149,7 @@ function TiltedIpad({
   children,
   onPointerInsideChange,
   onModelReady,
+  contentEpoch,
 }: {
   placement: Placement;
   raised: boolean;
@@ -154,6 +157,7 @@ function TiltedIpad({
   children: ReactNode;
   onPointerInsideChange?: (inside: boolean) => void;
   onModelReady?: () => void;
+  contentEpoch?: string;
 }) {
   const group = useRef<Group>(null);
   const target = threeTilt(placement, raised);
@@ -166,10 +170,17 @@ function TiltedIpad({
     booted.current = false;
     settleFrames.current = 0;
     invalidate();
-    // Keep drawing through the CSS translate transition too.
     const id = window.setTimeout(() => invalidate(), TABLET_MOTION_MS + 48);
     return () => window.clearTimeout(id);
   }, [raised, placement, invalidate]);
+
+  // Html freezes its CSS matrix on demand-loop idle. A pick/randomize
+  // re-render would otherwise flash the 2D identity pose for a beat.
+  useEffect(() => {
+    if (contentEpoch == null) return;
+    settleFrames.current = 0;
+    invalidate();
+  }, [contentEpoch, invalidate]);
 
   // Priority -1: apply tip BEFORE drei Html samples matrixWorld this frame.
   useFrame((_, dt) => {
@@ -226,6 +237,7 @@ function IpadScene({
   children,
   onPointerInsideChange,
   onModelReady,
+  contentEpoch,
 }: Props) {
   return (
     <>
@@ -245,6 +257,7 @@ function IpadScene({
           reduceMotion={reduceMotion}
           onPointerInsideChange={onPointerInsideChange}
           onModelReady={onModelReady}
+          contentEpoch={contentEpoch}
         >
           {children}
         </TiltedIpad>
@@ -451,6 +464,7 @@ export function TabletScene(props: Props) {
                 raised={props.raised}
                 reduceMotion={props.reduceMotion}
                 placement={placement}
+                contentEpoch={props.contentEpoch}
                 onPointerInsideChange={
                   showDom ? undefined : props.onPointerInsideChange
                 }

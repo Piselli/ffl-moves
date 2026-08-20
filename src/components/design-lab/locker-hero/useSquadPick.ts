@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Player } from "@/lib/types";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import {
@@ -12,6 +12,12 @@ import {
   type FormationId,
 } from "@/lib/formation";
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
+import {
+  homeTeamDraftKey,
+  persistTeamDraftFromLineup,
+  readRestoredTeamDraft,
+  readTeamDraftHasPlayers,
+} from "@/lib/teamDraftStorage";
 
 function firstEmptyStarter(
   starters: (Player | null)[],
@@ -31,16 +37,98 @@ function firstEmptyBench(bench: (Player | null)[]): number | null {
   return null;
 }
 
-export function useSquadPick() {
+function emptyStarters(): (Player | null)[] {
+  return Array(11).fill(null);
+}
+
+function emptyBench(): (Player | null)[] {
+  return Array(FORMATION.BENCH).fill(null);
+}
+
+export function useSquadPick(opts?: {
+  players?: Player[];
+  gameweekId?: number | null;
+  /** Wait for catalog + GW so we don't restore an empty/stale draft. */
+  ready?: boolean;
+}) {
+  const players = opts?.players ?? [];
+  const gameweekId = opts?.gameweekId ?? null;
+  const ready = opts?.ready ?? true;
+
   const [formationId, setFormationIdState] =
     useState<FormationId>(DEFAULT_FORMATION);
-  const [starters, setStarters] = useState<(Player | null)[]>(Array(11).fill(null));
-  const [bench, setBench] = useState<(Player | null)[]>(Array(FORMATION.BENCH).fill(null));
+  const [starters, setStarters] = useState<(Player | null)[]>(() => {
+    return (
+      readRestoredTeamDraft(homeTeamDraftKey(), players, gameweekId)?.starters ??
+      emptyStarters()
+    );
+  });
+  const [bench, setBench] = useState<(Player | null)[]>(() => {
+    return (
+      readRestoredTeamDraft(homeTeamDraftKey(), players, gameweekId)?.bench ??
+      emptyBench()
+    );
+  });
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [hydrateSettled, setHydrateSettled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    if (!readTeamDraftHasPlayers(homeTeamDraftKey())) return true;
+    return Boolean(
+      readRestoredTeamDraft(homeTeamDraftKey(), players, gameweekId),
+    );
+  });
+  const draftHydrateAttemptedRef = useRef(hydrateSettled);
+  const skipEmptyPersistRef = useRef(false);
+  const lineupTouchedNonEmptySessionRef = useRef(
+    starters.some(Boolean) || bench.some(Boolean),
+  );
 
   useEffect(() => {
     setFormationIdState(loadFormationId());
   }, []);
+
+  useEffect(() => {
+    if (starters.some(Boolean) || bench.some(Boolean)) {
+      lineupTouchedNonEmptySessionRef.current = true;
+    }
+  }, [starters, bench]);
+
+  useLayoutEffect(() => {
+    if (draftHydrateAttemptedRef.current) return;
+    if (!ready) return;
+    if (players.length === 0) return;
+
+    const restored = readRestoredTeamDraft(
+      homeTeamDraftKey(),
+      players,
+      gameweekId,
+    );
+    if (restored) {
+      skipEmptyPersistRef.current = true;
+      setStarters(restored.starters);
+      setBench(restored.bench);
+      lineupTouchedNonEmptySessionRef.current = true;
+    }
+    draftHydrateAttemptedRef.current = true;
+    setHydrateSettled(true);
+  }, [players, gameweekId, ready]);
+
+  useLayoutEffect(() => {
+    if (
+      skipEmptyPersistRef.current &&
+      !starters.some(Boolean) &&
+      !bench.some(Boolean)
+    ) {
+      skipEmptyPersistRef.current = false;
+      return;
+    }
+    persistTeamDraftFromLineup(homeTeamDraftKey(), starters, bench, {
+      removeIfEmptyAndTouched:
+        draftHydrateAttemptedRef.current &&
+        lineupTouchedNonEmptySessionRef.current,
+      gwId: gameweekId,
+    });
+  }, [starters, bench, gameweekId]);
 
   const setFormationId = useCallback((id: FormationId) => {
     setFormationIdState(id);
@@ -191,5 +279,6 @@ export function useSquadPick() {
     pickPlayer,
     reset,
     randomize,
+    hydrateSettled,
   };
 }

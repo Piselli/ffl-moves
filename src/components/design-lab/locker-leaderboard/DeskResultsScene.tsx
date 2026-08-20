@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { LockerRoomBackground } from "@/components/design-lab/locker-hero/LockerRoomBackground";
-import { TabletDomFrame } from "@/components/design-lab/locker-hero/TabletDomFrame";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
 import { cn } from "@/lib/utils";
 import { BoardBroadcast } from "./BoardBroadcast";
@@ -53,7 +52,8 @@ export function DeskResultsScene({ lab = false }: Props) {
   const [tabletRaised, setTabletRaised] = useState(true);
   const [pointerInTablet, setPointerInTablet] = useState(false);
   const [roomReady, setRoomReady] = useState(false);
-  const [tabletReady, setTabletReady] = useState(false);
+  /** Fade in 3D iPad only after model + camera settle — skip oversized CSS fallback. */
+  const [tabletShown, setTabletShown] = useState(false);
   const [chromeId, setChromeId] = useState<ResultsChromeId>(
     lab ? DEFAULT_RESULTS_CHROME : SHIPPING_RESULTS_CHROME,
   );
@@ -69,7 +69,12 @@ export function DeskResultsScene({ lab = false }: Props) {
 
   const onRoomLoad = useCallback(() => setRoomReady(true), []);
   const onRoomError = useCallback(() => setRoomReady(true), []);
-  const onTabletReady = useCallback(() => setTabletReady(true), []);
+  const onTabletReady = useCallback(() => {
+    // Two frames so ResponsiveCamera + Html screen bounds match final desk scale.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setTabletShown(true));
+    });
+  }, []);
 
   useEffect(() => {
     const preload = document.createElement("link");
@@ -81,10 +86,7 @@ export function DeskResultsScene({ lab = false }: Props) {
   }, []);
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      setRoomReady(true);
-      setTabletReady(true);
-    }, 12_000);
+    const id = window.setTimeout(() => setTabletShown(true), 12_000);
     return () => window.clearTimeout(id);
   }, []);
 
@@ -205,38 +207,24 @@ export function DeskResultsScene({ lab = false }: Props) {
 
       <div
         className={cn(
-          "absolute inset-0 z-[60]",
-          !tabletRaised && "pointer-events-none",
+          "absolute inset-0 z-[60] transition-opacity ease-[cubic-bezier(0.22,1,0.36,1)]",
+          tabletShown ? "opacity-100" : "pointer-events-none opacity-0",
+          tabletShown && !tabletRaised && "pointer-events-none",
         )}
+        style={{
+          transitionDuration: reduceMotion ? "0ms" : "320ms",
+        }}
       >
-        {!tabletReady ? (
-          <TabletDomFrame
-            placement="desk"
-            raised={tabletRaised}
-            reduceMotion={Boolean(reduceMotion)}
-            onPointerInsideChange={setPointerInTablet}
-          >
-            {tabletScreen}
-          </TabletDomFrame>
-        ) : null}
-        <div
-          className={cn(
-            "absolute inset-0",
-            !tabletReady && "pointer-events-none opacity-0",
-          )}
-          aria-hidden={!tabletReady || undefined}
+        <TabletScene
+          placement="desk"
+          raised={tabletRaised}
+          reduceMotion={Boolean(reduceMotion)}
+          skipDomFallback
+          onPointerInsideChange={setPointerInTablet}
+          onModelReady={onTabletReady}
         >
-          <TabletScene
-            placement="desk"
-            raised={tabletRaised}
-            reduceMotion={Boolean(reduceMotion)}
-            skipDomFallback
-            onPointerInsideChange={setPointerInTablet}
-            onModelReady={onTabletReady}
-          >
-            {tabletReady ? tabletScreen : null}
-          </TabletScene>
-        </div>
+          {tabletScreen}
+        </TabletScene>
       </div>
     </div>
   );

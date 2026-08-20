@@ -56,7 +56,6 @@ type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 
 /** Emil / TripleD — snappy UI enter (never ease-in). */
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
-const SPRING_SNAPPY = { type: "spring" as const, stiffness: 480, damping: 34 };
 const SPRING_PILL = { type: "spring" as const, stiffness: 420, damping: 34 };
 
 const DISPLAY: CSSProperties = {
@@ -1203,55 +1202,11 @@ export function LockerTablet({
                       }
                       aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
                     >
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        {p ? (
-                          <motion.span
-                            key={p.id}
-                            className="flex"
-                            initial={
-                              reduceMotion
-                                ? false
-                                : { opacity: 0, scale: 0.94, y: 8 }
-                            }
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={
-                              reduceMotion
-                                ? { opacity: 0 }
-                                : { opacity: 0, scale: 0.96, y: -4 }
-                            }
-                            transition={
-                              reduceMotion
-                                ? { duration: 0.12 }
-                                : SPRING_SNAPPY
-                            }
-                          >
-                            <PitchPlayerChip player={p} />
-                          </motion.span>
-                        ) : (
-                          <motion.span
-                            key={`empty-${idx}-${pos}`}
-                            className="flex"
-                            initial={
-                              reduceMotion
-                                ? false
-                                : { opacity: 0, scale: 0.96 }
-                            }
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={
-                              reduceMotion
-                                ? { opacity: 0 }
-                                : { opacity: 0, scale: 0.94 }
-                            }
-                            transition={
-                              reduceMotion
-                                ? { duration: 0.1 }
-                                : { duration: 0.16, ease: EASE_OUT }
-                            }
-                          >
-                            <PitchEmptyChip pos={pos} active={active} />
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
+                      {p ? (
+                        <PitchPlayerChip player={p} />
+                      ) : (
+                        <PitchEmptyChip pos={pos} active={active} />
+                      )}
                     </button>
                   );
                 })}
@@ -1510,43 +1465,15 @@ export function LockerTablet({
                         : `Empty bench ${i + 1}`
                     }
                   >
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      {p ? (
-                        <motion.span
-                          key={p.id}
-                          className="flex"
-                          initial={
-                            reduceMotion
-                              ? false
-                              : { opacity: 0, scale: 0.94, y: 6 }
-                          }
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={
-                            reduceMotion
-                              ? { opacity: 0 }
-                              : { opacity: 0, scale: 0.96 }
-                          }
-                          transition={
-                            reduceMotion ? { duration: 0.1 } : SPRING_SNAPPY
-                          }
-                        >
-                          <PitchPlayerChip player={p} compact />
-                        </motion.span>
-                      ) : (
-                        <motion.span
-                          key={`bench-empty-${i}`}
-                          className="flex"
-                          initial={false}
-                          animate={{ opacity: 1 }}
-                        >
-                          <PitchEmptyChip
-                            pos="SUB"
-                            active={active}
-                            compact
-                          />
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
+                    {p ? (
+                      <PitchPlayerChip player={p} compact />
+                    ) : (
+                      <PitchEmptyChip
+                        pos="SUB"
+                        active={active}
+                        compact
+                      />
+                    )}
                   </button>
                 );
               })}

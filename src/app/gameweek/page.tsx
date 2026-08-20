@@ -3,10 +3,10 @@
 import {
   useState,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
-  type Dispatch,
-  type SetStateAction,
+  useCallback,
 } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { FormationGrid } from "@/components/FormationGrid";
@@ -54,6 +54,11 @@ import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
 import { useDeposit } from "@/components/DepositProvider";
+import {
+  fflTeamDraftKey,
+  persistTeamDraftFromLineup,
+  tryHydrateTeamDraftFromStorage,
+} from "@/lib/teamDraftStorage";
 
 type TeamFilter = string;
 type MobileTab = "pitch" | "players";
@@ -70,85 +75,6 @@ function isCompleteRegisteredSnapshot(
 }
 
 /** Incomplete squad while GW is still open — separate from confirmed `ffl_team_v2_*` snapshots */
-function teamDraftStorageKey(gwId: number, addr: string) {
-  return `ffl_team_draft_v1_gw${gwId}_${addr}`;
-}
-
-type TeamDraftPayload = {
-  starterIds: (number | null)[];
-  benchIds: (number | null)[];
-};
-
-function lineupIdsFromDraft(
-  draft: TeamDraftPayload,
-  catalog: Map<number, Player>,
-): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
-  if (!Array.isArray(draft.starterIds) || draft.starterIds.length !== 11) return null;
-  if (!Array.isArray(draft.benchIds) || draft.benchIds.length !== FORMATION.BENCH) return null;
-  const starters = draft.starterIds.map((id) =>
-    typeof id !== "number" ? null : (catalog.get(id) ?? null),
-  );
-  const bench = draft.benchIds.map((id) =>
-    typeof id !== "number" ? null : (catalog.get(id) ?? null),
-  );
-  return { starters, bench };
-}
-
-function lineupIdsDraftPayload(
-  starters: (Player | null)[],
-  bench: (Player | null)[],
-): TeamDraftPayload {
-  return {
-    starterIds: starters.map((p) => (p ? p.id : null)),
-    benchIds: bench.map((p) => (p ? p.id : null)),
-  };
-}
-
-/** After chain confirms open GW & not registered — avoids hydrating draft before we know registration. */
-function tryHydrateTeamDraftFromStorage(
-  gwId: number,
-  addr: string,
-  playersCatalog: Player[],
-  setStarters: Dispatch<SetStateAction<(Player | null)[]>>,
-  setBench: Dispatch<SetStateAction<(Player | null)[]>>,
-) {
-  if (typeof window === "undefined" || playersCatalog.length === 0) return;
-
-  try {
-    const raw = window.localStorage.getItem(teamDraftStorageKey(gwId, addr));
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as TeamDraftPayload;
-    const catalog = new Map(playersCatalog.map((p) => [p.id, p]));
-    const restored = lineupIdsFromDraft(parsed, catalog);
-    if (!restored) return;
-    const hasAnyone = [...restored.starters, ...restored.bench].some(Boolean);
-    if (!hasAnyone) return;
-
-    const unique = new Set<number>();
-    let dupOrBad = false;
-    const registerId = (p: Player | null) => {
-      if (!p) return;
-      if (unique.has(p.id)) dupOrBad = true;
-      unique.add(p.id);
-    };
-    restored.starters.forEach(registerId);
-    restored.bench.forEach(registerId);
-
-    let clubViolation = false;
-    const counts: Record<number, number> = {};
-    Array.from(unique).forEach((id) => {
-      const p = catalog.get(id)!;
-      const n = (counts[p.teamId] = (counts[p.teamId] || 0) + 1);
-      if (n > MAX_PER_CLUB) clubViolation = true;
-    });
-    if (dupOrBad || clubViolation) return;
-
-    setStarters(restored.starters);
-    setBench(restored.bench);
-  } catch {
-    /* ignore corrupt draft */
-  }
-}
 
 export default function GameweekPage() {
   const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
@@ -188,6 +114,41 @@ export default function GameweekPage() {
    * session, clearing to empty intentionally removes the stale draft key.
    */
   const lineupTouchedNonEmptySessionRef = useRef(false);
+  const draftHydrateAttemptedRef = useRef(false);
+
+  const persistOpenGwDraft = useCallback(
+    (nextStarters: (Player | null)[], nextBench: (Player | null)[]) => {
+      if (
+        typeof window === "undefined" ||
+        !account?.address ||
+        !currentGameweek ||
+        currentGameweek.status !== "open" ||
+        gameweekLoading ||
+        playersLoading ||
+        players.length === 0 ||
+        alreadyRegistered
+      ) {
+        return;
+      }
+      persistTeamDraftFromLineup(
+        fflTeamDraftKey(currentGameweek.id, account.address.toString()),
+        nextStarters,
+        nextBench,
+        {
+          removeIfEmptyAndTouched:
+            draftHydrateAttemptedRef.current && lineupTouchedNonEmptySessionRef.current,
+        },
+      );
+    },
+    [
+      account?.address,
+      alreadyRegistered,
+      currentGameweek,
+      gameweekLoading,
+      players.length,
+      playersLoading,
+    ],
+  );
 
   useEffect(() => {
     setFormationIdState(loadFormationId());
@@ -251,11 +212,15 @@ export default function GameweekPage() {
   }, []);
 
   useEffect(() => {
+    const prevIdentity = walletIdentityRef.current;
     const nextIdentity = account?.address?.toString();
-    const identityChanged = walletIdentityRef.current !== nextIdentity;
+    const switchedWallet =
+      prevIdentity !== undefined &&
+      nextIdentity !== undefined &&
+      prevIdentity !== nextIdentity;
     walletIdentityRef.current = nextIdentity;
 
-    if (identityChanged) {
+    if (switchedWallet) {
       setAlreadyRegistered(false);
       setRegisteredTeam(null);
       setGameweekStats({});
@@ -263,6 +228,7 @@ export default function GameweekPage() {
       setStarters(Array(11).fill(null));
       setBench(Array(FORMATION.BENCH).fill(null));
       lineupTouchedNonEmptySessionRef.current = false;
+      draftHydrateAttemptedRef.current = false;
     }
     setGameweekLoading(true);
 
@@ -348,14 +314,28 @@ export default function GameweekPage() {
                 }
               } catch { /* ignore */ }
             }
-          } else {
-            tryHydrateTeamDraftFromStorage(targetGwId, addr, players, setStarters, setBench);
           }
         }
       }
     }
     fetchData();
-  }, [account?.address, players.length]);
+  }, [account?.address]);
+
+  useEffect(() => {
+    if (
+      gameweekLoading ||
+      alreadyRegistered ||
+      !account?.address ||
+      !currentGameweek ||
+      currentGameweek.status !== "open" ||
+      players.length === 0
+    ) {
+      return;
+    }
+    const storageKey = fflTeamDraftKey(currentGameweek.id, account.address.toString());
+    tryHydrateTeamDraftFromStorage(storageKey, players, setStarters, setBench);
+    draftHydrateAttemptedRef.current = true;
+  }, [gameweekLoading, alreadyRegistered, account?.address, currentGameweek, players.length]);
 
   /** Tracks when current session has had at least one filled slot (avoids wiping draft on initial empty state). */
   useEffect(() => {
@@ -370,48 +350,9 @@ export default function GameweekPage() {
   }, [connected]);
 
   /** Persist unfinished lineup for open GW before on-chain confirmation (refresh / tab switch). */
-  useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !connected ||
-      !account?.address ||
-      !currentGameweek ||
-      currentGameweek.status !== "open" ||
-      gameweekLoading ||
-      playersLoading ||
-      players.length === 0 ||
-      alreadyRegistered
-    ) {
-      return;
-    }
-    const gwId = currentGameweek.id;
-    const addr = account.address.toString();
-    const key = teamDraftStorageKey(gwId, addr);
-    const draft = lineupIdsDraftPayload(starters, bench);
-    const isEmpty =
-      draft.starterIds.every((id) => id == null) && draft.benchIds.every((id) => id == null);
-    try {
-      if (isEmpty) {
-        if (lineupTouchedNonEmptySessionRef.current) {
-          window.localStorage.removeItem(key);
-        }
-      } else {
-        window.localStorage.setItem(key, JSON.stringify(draft));
-      }
-    } catch {
-      /* ignore quota / privacy mode */
-    }
-  }, [
-    connected,
-    account?.address,
-    currentGameweek,
-    gameweekLoading,
-    playersLoading,
-    players.length,
-    alreadyRegistered,
-    starters,
-    bench,
-  ]);
+  useLayoutEffect(() => {
+    persistOpenGwDraft(starters, bench);
+  }, [persistOpenGwDraft, starters, bench]);
 
   // Closed/resolved: hydrate squad from chain once wallet/GW are known (catalog may be empty — resolve via FPL ids).
   useEffect(() => {
@@ -693,7 +634,7 @@ export default function GameweekPage() {
         const key = `ffl_team_v2_gw${currentGameweek.id}_${account.address.toString()}`;
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
         try {
-          localStorage.removeItem(teamDraftStorageKey(currentGameweek.id, account.address.toString()));
+          localStorage.removeItem(fflTeamDraftKey(currentGameweek.id, account.address.toString()));
         } catch {
           /* ignore */
         }

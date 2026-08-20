@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -81,7 +81,11 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const isLab = !isSite;
   const reduceMotion = useReducedMotion();
   const data = useLockerHeroData();
-  const squad = useSquadPick();
+  const squad = useSquadPick({
+    players: data.players,
+    gameweekId: data.openGwId,
+    ready: !data.chainLoading && !data.playersLoading && data.players.length > 0,
+  });
   const register = useLockerRegister({
     starters: squad.starters,
     bench: squad.bench,
@@ -95,7 +99,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const [tabletReady, setTabletReady] = useState(!isSite);
   const [bootVisible, setBootVisible] = useState(isSite);
   const [bootMounted, setBootMounted] = useState(isSite);
-  const sceneReady = roomImageReady && tabletReady;
+  const sceneReady = roomImageReady && tabletReady && squad.hydrateSettled;
 
   const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
   const onRoomImageError = useCallback(() => setRoomImageReady(true), []);
@@ -210,6 +214,14 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     );
     return () => window.clearTimeout(id);
   }, [reduceMotion, tabletRaised]);
+
+  const squadEpoch = useMemo(
+    () =>
+      [...squad.starters, ...squad.bench]
+        .map((p) => (p ? String(p.id) : "-"))
+        .join(","),
+    [squad.starters, squad.bench],
+  );
 
   const picker = (
     <LockerTablet
@@ -399,6 +411,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
             reduceMotion={Boolean(reduceMotion)}
             onPointerInsideChange={setPointerInTablet}
             onModelReady={onTabletReady}
+            contentEpoch={squadEpoch}
           >
             {picker}
           </TabletScene>
