@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BrandLockup, BRAND_LOCKUP_NAV_INNER } from "@/components/BrandLockup";
 import { useDeposit } from "@/components/DepositProvider";
-import { Form8Lockup } from "@/components/Form8Mark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
 import { NicknameModal } from "@/components/NicknameModal";
@@ -14,7 +13,6 @@ import { useLogin } from "@/components/LoginProvider";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { isLocalDevHost } from "@/lib/privy";
 import { cn, shortenAddress } from "@/lib/utils";
 import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
 
@@ -24,43 +22,10 @@ type Props = {
 };
 
 const CHIP =
-  "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-3 text-[11px] font-bold uppercase leading-none tracking-wide";
-
-const CHIP_PREVIEW =
   "inline-flex h-9 shrink-0 items-center justify-center rounded-lg px-4 text-xs font-bold uppercase leading-none tracking-wide sm:h-10 sm:px-5";
 
 const NAV_LINK =
-  "inline-flex items-center px-2.5 text-[13px] font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948]";
-
-const NAV_LINK_PREVIEW =
-  "inline-flex items-center px-2.5 text-sm font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948]";
-
-function Brand({
-  className,
-  preview,
-}: {
-  className?: string;
-  preview: boolean;
-}) {
-  if (preview) {
-    return (
-      <BrandLockup
-        priority
-        linkClassName={cn("relative z-10", className)}
-      />
-    );
-  }
-
-  return (
-    <Link
-      href="/"
-      aria-label="FORM8"
-      className={cn("relative z-10 flex shrink-0 items-center", className)}
-    >
-      <Form8Lockup priority />
-    </Link>
-  );
-}
+  "inline-flex h-9 items-center px-2.5 text-sm font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10";
 
 export function LockerTalentsSoon({ className }: { className?: string }) {
   const m = useSiteMessages();
@@ -83,12 +48,10 @@ function Links({
   className,
   linkClassName,
   liveLinks = false,
-  preview = false,
 }: {
   className?: string;
   linkClassName?: string;
   liveLinks?: boolean;
-  preview?: boolean;
 }) {
   const m = useSiteMessages();
   const links = primarySiteNavLinks(m);
@@ -102,11 +65,7 @@ function Links({
           key={link.href}
           href={link.href}
           onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-          className={cn(
-            preview ? NAV_LINK_PREVIEW : NAV_LINK,
-            preview ? "h-9 sm:h-10" : "h-8",
-            linkClassName,
-          )}
+          className={cn(NAV_LINK, linkClassName)}
         >
           {link.label}
         </Link>
@@ -117,11 +76,7 @@ function Links({
           key={link.href}
           href={link.href}
           onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-          className={cn(
-            preview ? NAV_LINK_PREVIEW : NAV_LINK,
-            preview ? "h-9 sm:h-10" : "h-8",
-            linkClassName,
-          )}
+          className={cn(NAV_LINK, linkClassName)}
         >
           {link.label}
         </Link>
@@ -130,7 +85,7 @@ function Links({
   );
 }
 
-function Right({ preview = false }: { preview?: boolean }) {
+function Right() {
   const m = useSiteMessages();
   const { connected, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
@@ -138,11 +93,8 @@ function Right({ preview = false }: { preview?: boolean }) {
   const { setNickname, myNickname } = useNickname(address);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
 
-  const chip = preview ? CHIP_PREVIEW : CHIP;
-
   return (
     <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
-      {!preview ? <LanguageSwitcher embedded /> : null}
       {connected ? (
         <>
           <NavUsdcBalance />
@@ -150,7 +102,7 @@ function Right({ preview = false }: { preview?: boolean }) {
             type="button"
             onClick={openDeposit}
             className={cn(
-              chip,
+              CHIP,
               "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98]",
             )}
           >
@@ -164,7 +116,7 @@ function Right({ preview = false }: { preview?: boolean }) {
             disabled={!address}
             title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
             className={cn(
-              chip,
+              CHIP,
               "max-w-[7.5rem] truncate border border-white/20 bg-black/40 text-white/85 backdrop-blur-sm transition hover:border-white/35 active:scale-[0.98] disabled:opacity-50",
             )}
           >
@@ -175,7 +127,7 @@ function Right({ preview = false }: { preview?: boolean }) {
             onClick={() => disconnect()}
             title={m.nav.disconnect}
             className={cn(
-              chip,
+              CHIP,
               "text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98]",
             )}
           >
@@ -200,7 +152,7 @@ function Right({ preview = false }: { preview?: boolean }) {
           id="wallet-connect-btn"
           onClick={openLogin}
           className={cn(
-            chip,
+            CHIP,
             "bg-white text-black transition hover:bg-white/90 active:scale-[0.98]",
           )}
         >
@@ -213,22 +165,17 @@ function Right({ preview = false }: { preview?: boolean }) {
 
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
- * Logo left, actions right, links optically centered on the viewport.
+ * form8 left, actions right, links centered; locale sits in the top-right corner.
  */
 export function LockerLabNav({ liveLinks = false }: Props) {
   const m = useSiteMessages();
   const pathname = usePathname();
   const reduceMotion = useReducedMotion() ?? false;
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [brandPreview, setBrandPreview] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
   const links = primarySiteNavLinks(m);
   const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
   const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
-
-  useEffect(() => {
-    setBrandPreview(isLocalDevHost());
-  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -252,70 +199,25 @@ export function LockerLabNav({ liveLinks = false }: Props) {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
       />
-      {brandPreview ? (
-        <>
-          <div className="pointer-events-auto w-full">
-            <div className={BRAND_LOCKUP_NAV_INNER}>
-              <div className="flex min-w-0 flex-1 items-center justify-start">
-                <Brand
-                  preview
-                  className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-                />
-              </div>
-              <Links
-                liveLinks={liveLinks}
-                preview
-                className="hidden shrink-0 md:flex"
-                linkClassName={cn(
-                  "text-white",
-                  "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
-                  "hover:text-[#00f948]",
-                )}
-              />
-              <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-                <Right preview />
-                <button
-                  type="button"
-                  aria-expanded={mobileOpen}
-                  aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
-                  onClick={() => setMobileOpen((o) => !o)}
-                  className="md:hidden grid h-8 w-8 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96]"
-                >
-                  {mobileOpen ? (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
+      <div className="pointer-events-auto w-full">
+        <div className={BRAND_LOCKUP_NAV_INNER}>
+          <div className="flex min-w-0 flex-1 items-center justify-start">
+            <BrandLockup
+              priority
+              linkClassName="relative z-10 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+            />
           </div>
-          <div className="pointer-events-auto absolute right-5 top-0 z-20 flex h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] lg:right-10">
-            <LanguageSwitcher embedded />
-          </div>
-        </>
-      ) : (
-        <div className="pointer-events-auto relative flex h-16 w-full items-center px-5 sm:px-8 lg:px-10">
-          <Brand
-            preview={false}
-            className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-          />
           <Links
             liveLinks={liveLinks}
-            preview={false}
-            className="mx-4 hidden flex-1 justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2"
+            className="hidden shrink-0 md:flex"
             linkClassName={cn(
               "text-white",
               "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
               "hover:text-[#00f948]",
             )}
           />
-          <div className="ml-auto flex items-center gap-1.5">
-            <Right preview={false} />
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
+            <Right />
             <button
               type="button"
               aria-expanded={mobileOpen}
@@ -335,7 +237,10 @@ export function LockerLabNav({ liveLinks = false }: Props) {
             </button>
           </div>
         </div>
-      )}
+      </div>
+      <div className="pointer-events-auto absolute right-5 top-0 z-20 flex h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] lg:right-10">
+        <LanguageSwitcher embedded />
+      </div>
 
       <AnimatePresence>
         {mobileOpen ? (

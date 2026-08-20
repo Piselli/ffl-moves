@@ -9,8 +9,7 @@ type Props = {
 };
 
 /**
- * Recommended brand lockup — form8 · Inter Semibold · Polymarket scale.
- * Localhost preview only until approved for prod.
+ * Shipping brand lockup — form8 · Inter Semibold · Polymarket scale.
  */
 export function BrandLockup({
   priority = false,
