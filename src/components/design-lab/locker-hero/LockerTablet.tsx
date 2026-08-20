@@ -53,6 +53,7 @@ import { FormationPicker } from "@/components/FormationPicker";
 import { FORMATION } from "@/lib/constants";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
+type MobileTab = "pitch" | "players";
 
 /** Emil / TripleD — snappy UI enter (never ease-in). */
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
@@ -792,7 +793,47 @@ export function LockerTablet({
   const [teamFilter, setTeamFilter] = useState("");
   const [clock, setClock] = useState("");
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const tabletRootRef = useLocalWheelScroll();
+
+  const handleSlotClick = useCallback(
+    (idx: number) => {
+      const empty = idx < 11 ? !starters[idx] : !bench[idx - 11];
+      onSlotClick(idx);
+      if (empty) setMobileTab("players");
+    },
+    [bench, onSlotClick, starters],
+  );
+
+  const onRegisterClick = useCallback(() => {
+    if (registerEntry) {
+      onRegister?.();
+      return;
+    }
+    if (filledCount < FORMATION.TOTAL) {
+      const emptyStarter = starters.findIndex((p) => !p);
+      if (emptyStarter >= 0) {
+        onSlotClick(emptyStarter);
+        setMobileTab("players");
+        return;
+      }
+      const emptyBench = bench.findIndex((p) => !p);
+      if (emptyBench >= 0) {
+        onSlotClick(11 + emptyBench);
+        setMobileTab("players");
+        return;
+      }
+      return;
+    }
+    onRegister?.();
+  }, [
+    bench,
+    filledCount,
+    onRegister,
+    onSlotClick,
+    registerEntry,
+    starters,
+  ]);
 
   /** Selecting an empty pitch slot scopes the list to that position. */
   useEffect(() => {
@@ -954,14 +995,14 @@ export function LockerTablet({
         </div>
       </header>
 
-      <main className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-1 grid-rows-none gap-2.5 overflow-y-auto overscroll-contain p-3 pt-2.5 md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3 pt-2.5 md:grid md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
         <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "order-2 flex min-h-0 flex-col p-3 md:order-none md:col-start-1 md:row-start-1",
+            "order-2 flex min-h-0 flex-col p-3 max-md:hidden md:order-none md:col-start-1 md:row-start-1",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1020,12 +1061,14 @@ export function LockerTablet({
         {/* Pitch — flat top-down; scheme / turf chrome in bottom fringe */}
         <section
           className={cn(
-            "relative order-1 min-h-[min(52vh,420px)] overflow-hidden rounded-2xl ring-1 md:order-none md:col-start-2 md:row-start-1 md:min-h-0",
+            "relative order-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 md:order-none md:col-start-2 md:row-start-1 md:min-h-0 md:flex-none",
+            mobileTab !== "pitch" && "max-md:hidden",
             pitch.ring,
             isPlatesChrome && "rounded-[22px]",
             interactivePanels &&
               "transition-[transform,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-[1.03]",
           )}
+          data-tab={mobileTab === "pitch" ? "visible" : "hidden"}
           style={{
             background: pitch.base,
             boxShadow: pitch.shadow,
@@ -1184,7 +1227,7 @@ export function LockerTablet({
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => (p ? onClearSlot(idx) : onSlotClick(idx))}
+                      onClick={() => (p ? onClearSlot(idx) : handleSlotClick(idx))}
                       className={cn(
                         "flex h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)] flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
                         active && !p && "opacity-100",
@@ -1216,12 +1259,53 @@ export function LockerTablet({
         </section>
 
         <Panel
+          {...(useMaterialShell ? { as: "section" as const, ...glassProps } : {})}
+          className={cn(
+            !useMaterialShell && PANEL,
+            "hidden shrink-0 px-3.5 py-2.5 max-md:block md:hidden",
+            mobileTab !== "pitch" && "max-md:hidden",
+            isPlatesChrome && "rounded-[22px]",
+          )}
+        >
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
+            3 substitutes
+          </p>
+          <div className="mt-1.5 flex min-w-0 items-end justify-evenly gap-1.5">
+            {bench.slice(0, 3).map((p, i) => {
+              const slotIndex = 11 + i;
+              const active = activeSlot === slotIndex;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() =>
+                    p ? onClearSlot(slotIndex) : handleSlotClick(slotIndex)
+                  }
+                  className="flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]"
+                  aria-label={
+                    p ? (p.webName ?? p.name) : `Empty bench ${i + 1}`
+                  }
+                >
+                  {p ? (
+                    <PitchPlayerChip player={p} compact />
+                  ) : (
+                    <PitchEmptyChip pos="SUB" active={active} compact />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Panel>
+
+        <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "order-3 flex min-h-[50vh] flex-col overflow-hidden p-3 md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
+            "order-3 flex min-h-0 flex-col overflow-hidden p-3 md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
+            mobileTab !== "players" && "max-md:hidden",
+            "max-md:flex-1",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1380,7 +1464,7 @@ export function LockerTablet({
           {...(useMaterialShell ? glassProps : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "order-4 px-3.5 py-2.5 md:order-none md:col-start-1 md:row-start-2",
+            "order-4 px-3.5 py-2.5 max-md:hidden md:order-none md:col-start-1 md:row-start-2",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1402,7 +1486,7 @@ export function LockerTablet({
           </p>
         </Panel>
 
-        <div className="order-5 grid grid-cols-2 gap-2.5 md:order-none md:col-start-2 md:row-start-2">
+        <div className="order-5 grid grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2">
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
@@ -1481,7 +1565,7 @@ export function LockerTablet({
           </Panel>
         </div>
 
-        <div className="relative order-6 flex h-full min-h-0 items-stretch gap-2 md:order-none md:col-start-3 md:row-start-2">
+        <div className="relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2">
           {registerHint ? (
             <p className="pointer-events-none absolute inset-x-0 -top-5 truncate text-[10px] font-semibold leading-none text-amber-100/90">
               {registerHint}
@@ -1563,23 +1647,7 @@ export function LockerTablet({
           </div>
           <button
             type="button"
-            onClick={() => {
-              if (registerEntry) {
-                onRegister?.();
-                return;
-              }
-              if (filledCount < FORMATION.TOTAL) {
-                const emptyStarter = starters.findIndex((p) => !p);
-                if (emptyStarter >= 0) {
-                  onSlotClick(emptyStarter);
-                  return;
-                }
-                const emptyBench = bench.findIndex((p) => !p);
-                if (emptyBench >= 0) onSlotClick(11 + emptyBench);
-                return;
-              }
-              onRegister?.();
-            }}
+            onClick={onRegisterClick}
             disabled={registerBusy || registerLocked || !onRegister}
             className={cn(
               "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
@@ -1599,6 +1667,138 @@ export function LockerTablet({
           </button>
         </div>
       </main>
+
+      <div className="shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+        {registerHint ? (
+          <p className="mb-2 truncate text-center text-[10px] font-semibold leading-none text-amber-100/90">
+            {registerHint}
+          </p>
+        ) : null}
+        {filledCount >= FORMATION.TOTAL ? (
+          <button
+            type="button"
+            onClick={onRegisterClick}
+            disabled={registerBusy || registerLocked || !onRegister}
+            className={cn(
+              "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3.5 text-[16px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
+              isMotionChrome &&
+                "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+              (registerBusy || registerLocked || !onRegister) &&
+                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+            )}
+            style={cta.style}
+          >
+            <span>{registerLabel ?? cta.label}</span>
+            {registerProgress ? (
+              <span className="text-[12px] font-bold tracking-[0.14em] opacity-90">
+                {registerProgress}
+              </span>
+            ) : null}
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMobileTab("pitch")}
+              className={cn(
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+                mobileTab === "pitch"
+                  ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
+                  : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
+              )}
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                aria-hidden
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+              <span className="text-[10px] font-bold uppercase tracking-wide">
+                Team
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("players")}
+              className={cn(
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+                mobileTab === "players"
+                  ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
+                  : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
+              )}
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"
+                />
+              </svg>
+              <span className="text-[10px] font-bold uppercase tracking-wide">
+                Pick
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onRandom}
+              aria-label="Random squad"
+              title="Random squad"
+              className={cn(
+                "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition active:scale-[0.96]",
+                isGlass
+                  ? "bg-black/55 text-white ring-1 ring-[color:var(--lt-glass-ring)] backdrop-blur-md"
+                  : "border-2 border-[var(--lt-reset-border)] bg-[var(--lt-reset-bg)] text-[color:var(--lt-reset-text)]",
+              )}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-[18px] w-[18px]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8" cy="8" r="1.15" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="16" r="1.15" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={onRegisterClick}
+              disabled={registerBusy || registerLocked || !onRegister}
+              className={cn(
+                "flex min-w-0 flex-[1.4] flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2.5 text-[13px] font-black uppercase leading-none tracking-[0.04em] transition active:scale-[0.985]",
+                isMotionChrome &&
+                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.97]",
+                (registerBusy || registerLocked || !onRegister) &&
+                  "cursor-default opacity-80 active:scale-100",
+              )}
+              style={cta.style}
+            >
+              <span className="truncate">{registerLabel ?? cta.label}</span>
+              <span className="text-[10px] font-bold tabular-nums opacity-90">
+                {filledCount}/{FORMATION.TOTAL}
+              </span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

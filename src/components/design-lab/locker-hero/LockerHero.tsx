@@ -113,7 +113,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const [homeLookId, setHomeLookId] =
     useState<TabletVariantId>(SHIPPING_TABLET_VARIANT);
   const isPhone = useIsPhone();
-  const flatPicker = isSite && isPhone === true;
+  const flatPicker = isSite && isPhone !== false;
   const useTabletScene = !isSite || isPhone === false;
 
   useEffect(() => {
@@ -398,7 +398,9 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       ) : null}
 
       {flatPicker ? (
-        <div className="absolute inset-0 z-[60] overflow-hidden pt-16">{picker}</div>
+        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden pt-[4.25rem]">
+          {picker}
+        </div>
       ) : useTabletScene ? (
         <div
           className={cn(
