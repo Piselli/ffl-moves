@@ -252,36 +252,70 @@ export function LockerLabNav({ liveLinks = false }: Props) {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
       />
-      <div className="pointer-events-auto w-full">
-        <div
-          className={cn(
-            brandPreview
-              ? BRAND_LOCKUP_NAV_INNER
-              : "relative flex h-16 w-full items-center px-5 sm:px-8 lg:px-10",
-          )}
-        >
-          <div className="flex min-w-0 flex-1 items-center justify-start">
-            <Brand
-              preview={brandPreview}
-              className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-            />
+      {brandPreview ? (
+        <>
+          <div className="pointer-events-auto w-full">
+            <div className={BRAND_LOCKUP_NAV_INNER}>
+              <div className="flex min-w-0 flex-1 items-center justify-start">
+                <Brand
+                  preview
+                  className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+                />
+              </div>
+              <Links
+                liveLinks={liveLinks}
+                preview
+                className="hidden shrink-0 md:flex"
+                linkClassName={cn(
+                  "text-white",
+                  "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
+                  "hover:text-[#00f948]",
+                )}
+              />
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
+                <Right preview />
+                <button
+                  type="button"
+                  aria-expanded={mobileOpen}
+                  aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
+                  onClick={() => setMobileOpen((o) => !o)}
+                  className="md:hidden grid h-8 w-8 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96]"
+                >
+                  {mobileOpen ? (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
+          <div className="pointer-events-auto absolute right-5 top-0 z-20 flex h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] lg:right-10">
+            <LanguageSwitcher embedded />
+          </div>
+        </>
+      ) : (
+        <div className="pointer-events-auto relative flex h-16 w-full items-center px-5 sm:px-8 lg:px-10">
+          <Brand
+            preview={false}
+            className="drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+          />
           <Links
             liveLinks={liveLinks}
-            preview={brandPreview}
-            className={cn(
-              "hidden shrink-0 md:flex",
-              !brandPreview &&
-                "mx-4 min-w-0 flex-1 justify-center min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2",
-            )}
+            preview={false}
+            className="mx-4 hidden flex-1 justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2"
             linkClassName={cn(
               "text-white",
               "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
               "hover:text-[#00f948]",
             )}
           />
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-            <Right preview={brandPreview} />
+          <div className="ml-auto flex items-center gap-1.5">
+            <Right preview={false} />
             <button
               type="button"
               aria-expanded={mobileOpen}
@@ -301,13 +335,7 @@ export function LockerLabNav({ liveLinks = false }: Props) {
             </button>
           </div>
         </div>
-      </div>
-
-      {brandPreview ? (
-        <div className="pointer-events-auto absolute right-5 top-0 z-20 flex h-[4.25rem] items-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] sm:right-8 sm:h-[4.5rem] lg:right-10">
-          <LanguageSwitcher embedded />
-        </div>
-      ) : null}
+      )}
 
       <AnimatePresence>
         {mobileOpen ? (
