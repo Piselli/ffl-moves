@@ -16,30 +16,6 @@ import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n
 function CategoryIcon({ id, className }: { id: FaqCategoryId; className?: string }) {
   const cls = `w-5 h-5 ${className ?? ""}`;
   switch (id) {
-    case "what-is-this":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7" strokeLinecap="round" />
-          <circle cx="12" cy="17" r="0.6" fill="currentColor" />
-        </svg>
-      );
-    case "football-101":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 3l3 3-1 4-4 1-3-3 1-4 4-1Z" />
-          <path d="M12 12l3 3M12 12l-3 3M12 12l3-3M12 12l-3-3" />
-        </svg>
-      );
-    case "web3-101":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <rect x="3" y="6" width="18" height="13" rx="2.5" />
-          <path d="M3 10h18" />
-          <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
-        </svg>
-      );
     case "how-to-play":
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -52,17 +28,19 @@ function CategoryIcon({ id, className }: { id: FaqCategoryId; className?: string
           <path d="M12 3l2.6 5.5 6 .9-4.4 4.2 1 6L12 16.8 6.8 19.6l1-6L3.4 9.4l6-.9L12 3Z" strokeLinejoin="round" />
         </svg>
       );
+    case "web3-101":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <rect x="3" y="6" width="18" height="13" rx="2.5" />
+          <path d="M3 10h18" />
+          <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
+        </svg>
+      );
     case "trust-and-safety":
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path d="M12 3l8 3v6c0 4.5-3.4 8.4-8 9-4.6-.6-8-4.5-8-9V6l8-3Z" strokeLinejoin="round" />
           <path d="M9.5 12l2 2 3.5-4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "whats-next":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
   }

@@ -127,6 +127,7 @@ export function TabletStylesLab() {
               bench={squad.bench}
               activeSlot={squad.activeSlot}
               selectedIds={squad.selectedIds}
+              clubCounts={squad.clubCounts}
               filledCount={squad.filledCount}
               onSlotClick={squad.setActiveSlot}
               onClearSlot={squad.clearSlot}

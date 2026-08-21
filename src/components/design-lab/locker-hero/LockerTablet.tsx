@@ -50,7 +50,8 @@ import {
   type FormationId,
 } from "@/lib/formation";
 import { FormationPicker } from "@/components/FormationPicker";
-import { FORMATION } from "@/lib/constants";
+import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
+import { PickHelpOverlay } from "./PickHelpOverlay";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type MobileTab = "pitch" | "players";
@@ -93,6 +94,8 @@ type Props = {
   bench: (Player | null)[];
   activeSlot: number | null;
   selectedIds: Set<number>;
+  /** Players already picked per club `teamId` — drives club-limit UI. */
+  clubCounts: Record<number, number>;
   filledCount: number;
   onSlotClick: (index: number) => void;
   onClearSlot: (index: number) => void;
@@ -805,6 +808,7 @@ export function LockerTablet({
   bench,
   activeSlot,
   selectedIds,
+  clubCounts,
   filledCount,
   onSlotClick,
   onClearSlot,
@@ -877,6 +881,9 @@ export function LockerTablet({
   const [teamFilter, setTeamFilter] = useState("");
   const [clock, setClock] = useState("");
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
+  const [scoringOpen, setScoringOpen] = useState(false);
+  const [howtoOpen, setHowtoOpen] = useState(false);
+  const pickCopy = m.pages.lockerPick;
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
   const tabletRootRef = useLocalWheelScroll();
@@ -1085,6 +1092,33 @@ export function LockerTablet({
             </p>
           </div>
         </div>
+
+        <nav
+          aria-label={pickCopy.howToPlayBtn}
+          className="absolute left-1/2 top-1/2 z-[1] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 px-1 sm:gap-2.5"
+        >
+          <button
+            type="button"
+            onClick={() => setHowtoOpen(true)}
+            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)] transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+          >
+            {pickCopy.howToPlayBtn}
+          </button>
+          <span
+            aria-hidden
+            className="text-[10px] font-semibold text-[color:var(--lt-ink)]/25"
+          >
+            ·
+          </span>
+          <button
+            type="button"
+            onClick={() => setScoringOpen(true)}
+            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)] transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+          >
+            {pickCopy.scoringBtn}
+          </button>
+        </nav>
+
         <div className="hidden shrink-0 text-right md:block">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
             Selected
@@ -1093,6 +1127,7 @@ export function LockerTablet({
             {filledCount} of {FORMATION.TOTAL}
           </p>
         </div>
+        <div className="w-14 shrink-0 md:hidden" aria-hidden />
       </header>
 
       <div className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[var(--lt-hairline)] px-3 py-2 md:hidden">
@@ -1421,17 +1456,17 @@ export function LockerTablet({
           )}
         >
           <div className="shrink-0">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <div>
+            <div className="mb-2 flex items-center justify-between gap-2 px-1">
+              <div className="min-w-0">
                 <p className="text-[14px] font-bold text-[color:var(--lt-ink)]">
-                  Players
+                  {pickCopy.playersTitle}
                 </p>
                 <p className="mt-0.5 text-[11px] font-medium text-[color:var(--lt-muted)]">
-                  Choose for active position
+                  {pickCopy.playersSubtitle}
                 </p>
               </div>
               <span className="text-[10px] font-semibold tabular-nums text-[color:var(--lt-muted)]">
-                {filtered.length} found
+                {pickCopy.playersFound(filtered.length)}
               </span>
             </div>
             <input
@@ -1503,33 +1538,47 @@ export function LockerTablet({
             ) : (
               filtered.map((p) => {
                 const taken = selectedIds.has(p.id);
+                const clubCapped =
+                  !taken && (clubCounts[p.teamId] ?? 0) >= MAX_PER_CLUB;
                 const flash = flashPickId === p.id;
                 return (
                   <motion.button
                     key={p.id}
                     type="button"
-                    disabled={taken}
+                    disabled={taken || clubCapped}
+                    aria-disabled={taken || clubCapped}
                     onClick={() => {
+                      if (taken || clubCapped) return;
                       onPick(p);
                       setFlashPickId(p.id);
                     }}
                     className={cn(
-                      "group flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
-                      taken
-                        ? "cursor-default opacity-40"
-                        : "rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
-                      flash && !taken && "bg-[color:var(--lt-ink)]/[0.10]",
+                      "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                      taken && "cursor-default opacity-40",
+                      clubCapped &&
+                        "cursor-default opacity-[0.48] saturate-[0.4]",
+                      !taken &&
+                        !clubCapped &&
+                        "rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
+                      flash && !taken && !clubCapped && "bg-[color:var(--lt-ink)]/[0.10]",
                     )}
                   >
-                    <FplPhotoAvatar
-                      fplPhotoCode={p.fplPhotoCode}
-                      apiId={p.apiId}
-                      photoUrl={p.photo}
-                      alt={p.webName ?? p.name}
-                      size={54}
-                      teamName={p.team}
-                      initials={p.webName ?? p.name}
-                    />
+                    <span
+                      className={cn(
+                        "transition-[filter,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                        clubCapped && "brightness-[0.72]",
+                      )}
+                    >
+                      <FplPhotoAvatar
+                        fplPhotoCode={p.fplPhotoCode}
+                        apiId={p.apiId}
+                        photoUrl={p.photo}
+                        alt={p.webName ?? p.name}
+                        size={54}
+                        teamName={p.team}
+                        initials={p.webName ?? p.name}
+                      />
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-bold text-[color:var(--lt-ink)]">
                         {p.webName ?? p.name}
@@ -1538,32 +1587,46 @@ export function LockerTablet({
                         {p.position} · {p.team}
                       </p>
                     </div>
-                    <motion.span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[16px] font-bold"
-                      animate={
-                        flash && !reduceMotion
-                          ? { scale: [1, 0.88, 1.08, 1] }
-                          : { scale: 1 }
-                      }
-                      transition={
-                        flash
-                          ? { duration: 0.28, ease: EASE_OUT }
-                          : { duration: 0.12 }
-                      }
-                      style={
-                        isGlass
-                          ? {
-                              background: "#FFFFFF",
-                              color: "#000000",
-                            }
-                          : {
-                              background: "var(--lt-accent-soft)",
-                              color: "var(--lt-accent)",
-                            }
-                      }
-                    >
-                      {taken ? "·" : "+"}
-                    </motion.span>
+                    {clubCapped ? (
+                      <span className="flex shrink-0 flex-col items-end gap-0.5 self-center">
+                        <p
+                          className="text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--lt-muted)]"
+                          style={DISPLAY}
+                        >
+                          {pickCopy.clubLimitBadge}
+                        </p>
+                        <p className="max-w-[5.5rem] text-right text-[10px] font-semibold leading-tight text-[color:var(--lt-soft)]">
+                          {pickCopy.clubLimitTip}
+                        </p>
+                      </span>
+                    ) : (
+                      <motion.span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-full text-[16px] font-bold"
+                        animate={
+                          flash && !reduceMotion
+                            ? { scale: [1, 0.88, 1.08, 1] }
+                            : { scale: 1 }
+                        }
+                        transition={
+                          flash
+                            ? { duration: 0.28, ease: EASE_OUT }
+                            : { duration: 0.12 }
+                        }
+                        style={
+                          isGlass
+                            ? {
+                                background: "#FFFFFF",
+                                color: "#000000",
+                              }
+                            : {
+                                background: "var(--lt-accent-soft)",
+                                color: "var(--lt-accent)",
+                              }
+                        }
+                      >
+                        {taken ? "·" : "+"}
+                      </motion.span>
+                    )}
                   </motion.button>
                 );
               })
@@ -1910,6 +1973,19 @@ export function LockerTablet({
           </div>
         )}
       </div>
+
+      <PickHelpOverlay
+        kind="scoring"
+        open={scoringOpen}
+        onClose={() => setScoringOpen(false)}
+        messages={m}
+      />
+      <PickHelpOverlay
+        kind="howto"
+        open={howtoOpen}
+        onClose={() => setHowtoOpen(false)}
+        messages={m}
+      />
     </div>
   );
 }

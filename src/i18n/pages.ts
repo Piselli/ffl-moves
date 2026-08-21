@@ -11,13 +11,10 @@ export type FaqItem = {
 };
 
 export type FaqCategoryId =
-  | "what-is-this"
-  | "football-101"
-  | "web3-101"
   | "how-to-play"
   | "scoring-and-rewards"
-  | "trust-and-safety"
-  | "whats-next";
+  | "web3-101"
+  | "trust-and-safety";
 
 export type FaqCategory = {
   id: FaqCategoryId;
@@ -583,6 +580,26 @@ export type PagesMessages = {
     contactCta: string;
     contactHref: string;
     categories: FaqCategory[];
+  };
+  /** Homepage locker tablet — pick list + in-flow rules. */
+  lockerPick: {
+    playersTitle: string;
+    playersSubtitle: string;
+    playersFound: (n: number) => string;
+    clubLimitBadge: string;
+    clubLimitTip: string;
+    scoringBtn: string;
+    howToPlayBtn: string;
+    scoringTitle: string;
+    scoringSubtitle: string;
+    goalsByPos: string;
+    prizeSplitTitle: string;
+    prizeSplitHint: string;
+    scoringFaqLink: string;
+    howToPlayTitle: string;
+    howToPlaySubtitle: string;
+    howToPlaySteps: string[];
+    close: string;
   };
 };
 
@@ -1206,7 +1223,7 @@ export const pagesEn: PagesMessages = {
     eyebrow: "Help center",
     title: "Frequently asked questions",
     subtitle:
-      "New to fantasy football, or to crypto, or to both? You are in the right place. Start from the top — answers go from “what is this site even?” all the way down to scoring details.",
+      "Short answers for what you need while you play — squad rules, scoring, wallet, and trust. Deep scoring details also live in the pick sheet on the home screen.",
     searchPlaceholder: "Search a question…",
     searchAriaLabel: "Search FAQ",
     expandAll: "Expand all",
@@ -1223,246 +1240,29 @@ export const pagesEn: PagesMessages = {
     contactHref: "https://t.me/movematch",
     categories: [
       {
-        id: "what-is-this",
-        title: "What is this site?",
-        blurb: "First contact — read this if you just landed here.",
+        id: "how-to-play",
+        title: "How to play",
+        blurb: "Squad, fee, deadline — the essentials.",
         items: [
           {
             id: "what-is-movematch",
             q: "What is FORM8 in plain English?",
             a: [
-              { type: "p", text: "FORM8 is fantasy football on the English Premier League (EPL). The loop is simple:" },
-              {
-                type: "ul",
-                items: [
-                  "Before each gameweek you build a squad from real EPL players.",
-                  "Those players play real Premier League matches.",
-                  "Their on-pitch actions (goals, assists, saves, etc.) earn you points.",
-                  "The top 10 managers of the gameweek share a prize pool, paid in USDC.",
-                ],
-              },
-              { type: "p", text: "No betting on match outcomes — it is a skill contest about reading football, not a lottery." },
+              { type: "p", text: "FORM8 is fantasy football on the English Premier League. Before each gameweek you pick a squad of real EPL players; their real match actions earn you points; the top managers share a USDC prize pool." },
+              { type: "p", text: "No betting on match outcomes — it is a skill contest about reading football." },
             ],
           },
-          {
-            id: "is-it-free",
-            q: "Is it free to play?",
-            a: [
-              { type: "p", text: "No. Registering a squad costs a small entry fee in USDC (the exact amount is shown on the home screen when you pick your team)." },
-              { type: "p", text: "All entry fees from all players go into that gameweek’s prize pool, and winners are paid from it." },
-              { type: "p", text: "A small technical share is withheld to support and keep the project running." },
-            ],
-          },
-          {
-            id: "can-i-actually-win",
-            q: "Can I really win something?",
-            a: [
-              { type: "p", text: "Yes. If your squad finishes in the top 10 by points, you earn a share of the prize pool in USDC. When the round is resolved, press Claim on the Leaderboard and sign — the USDC lands in your wallet." },
-              { type: "p", text: "How much depends on your final rank and how many people entered the round." },
-            ],
-          },
-          {
-            id: "is-this-gambling",
-            q: "Is this gambling?",
-            a: [
-              { type: "p", text: "Not in the casino sense. It is fantasy sports — a skill game, like chess with a prize pool. The winner is the one who reads form and fixtures best, not the one who got lucky on a spin." },
-              { type: "p", text: "In most jurisdictions fantasy sports are not classified as gambling, but check your local rules to be safe." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "football-101",
-        title: "Football 101",
-        blurb: "Don’t know what a clean sheet is? Start here.",
-        items: [
-          {
-            id: "what-is-epl",
-            q: "What is the English Premier League (EPL)?",
-            a: [
-              { type: "p", text: "The most popular football championship in the world. Twenty English clubs (Manchester City, Liverpool, Arsenal, etc.) play each other from August to May." },
-              { type: "p", text: "FORM8 uses real match stats from the EPL — your “virtual” players are real footballers playing real matches." },
-            ],
-          },
-          {
-            id: "what-is-gameweek",
-            q: "What is a “gameweek”?",
-            a: [
-              { type: "p", text: "One round of fixtures. Usually 10 matches across 2–3 days (Friday to Sunday, sometimes Monday)." },
-              { type: "p", text: "Each gameweek on FORM8 is a self-contained contest: pick a squad → matches play → points are tallied → prizes are paid. Then the next round opens." },
-            ],
-          },
-          {
-            id: "what-is-deadline",
-            q: "What does “deadline” mean?",
-            a: [
-              { type: "p", text: "The cut-off time to register your squad. It is the kickoff whistle of the first match of the gameweek." },
-              { type: "p", text: "After the deadline your squad is locked. Otherwise people could “tune” their picks once they already saw matches play out." },
-            ],
-          },
-          {
-            id: "positions",
-            q: "What do GK, DEF, MID and FWD mean?",
-            a: [
-              { type: "p", text: "The four positions on the pitch:" },
-              {
-                type: "ul",
-                items: [
-                  "GK (goalkeeper) — stands in goal and stops shots.",
-                  "DEF (defender) — guards their half, blocks attackers.",
-                  "MID (midfielder) — plays in the middle, creates plays, sometimes scores.",
-                  "FWD (forward / striker) — main job is to score goals.",
-                ],
-              },
-              { type: "p", text: "On FORM8 you pick 11 players in a standard fantasy formation (1 GK + 3–5 DEF + 3–5 MID + 1–3 FWD)." },
-            ],
-          },
-          {
-            id: "football-terms",
-            q: "What is a clean sheet, an assist, a hat-trick, match rating?",
-            a: [
-              {
-                type: "ul",
-                items: [
-                  "Clean sheet — the team didn’t concede a goal during the match. Bonus for goalkeepers and defenders.",
-                  "Assist — the pass that leads directly to a goal. Valuable for forwards and midfielders.",
-                  "Hat-trick — three goals scored by the same player in one match. Rare, so it gets its own bonus.",
-                  "Match rating — a performance score for each player per game (e.g. 7.5, 8.2). High ratings earn bonus points; a very low rating can cost −1.",
-                ],
-              },
-            ],
-          },
-          {
-            id: "max-three-per-club",
-            q: "Why a maximum of 3 players from one club?",
-            a: [
-              { type: "p", text: "To prevent “stacking” a single team. If, say, Sunderland plays Manchester City, it would be unfair if everyone simply picked 11 City players." },
-              { type: "p", text: "The “max 3 per club” rule forces you to diversify and actually decide which players will have the best round." },
-            ],
-          },
-          {
-            id: "what-is-form",
-            q: "What does a player’s “form” mean?",
-            a: [
-              { type: "p", text: "The average number of points a player has scored per match in our system over recent rounds. A player “in form” usually keeps scoring or assisting; one out of form usually doesn’t." },
-              { type: "p", text: "It is a hint, not a guarantee. Tactics, injuries and the opponent all matter." },
-            ],
-          },
-          {
-            id: "starters-vs-bench",
-            q: "What is the difference between starters and bench?",
-            a: [
-              { type: "p", text: "The 11 starters are your main lineup — their points count immediately." },
-              { type: "p", text: "The 3 bench players are your safety net. If a starter doesn’t play in the real match (injury, manager left them out, etc.), the system automatically substitutes one of your bench players in and counts their points instead of zero." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "web3-101",
-        title: "Web3 101",
-        blurb: "Wallets, tokens, blockchain — without the jargon.",
-        items: [
-          {
-            id: "what-is-wallet",
-            q: "What is a crypto wallet and why do I need one?",
-            a: [
-              { type: "p", text: "A wallet is a small app (browser extension or phone app) that holds your crypto and signs your actions on a blockchain." },
-              { type: "p", text: "On FORM8 the wallet is your account — your login, your bank, and your way to confirm “yes, I want to register this squad”." },
-            ],
-          },
-          {
-            id: "which-wallet",
-            q: "Which wallet do I need? Where do I get it?",
-            a: [
-              { type: "p", text: "FORM8 supports Phantom, Solflare, and Jupiter — pick any after you press “Log in”. You can also enter with Google or email, no extension needed." },
-              { type: "p", text: "Phantom (recommended) is the most widely used Solana wallet: phantom.com. Self-custodial, available as a Chrome extension and as a phone app (iOS / Android) — send, swap, connect to dApps." },
-              { type: "p", text: "Solflare and Jupiter are alternatives with the same job: extension or mobile app, then connect here. Solflare from solflare.com, Jupiter from jup.ag/download." },
-              {
-                type: "ul",
-                items: [
-                  "Create a new wallet inside the extension or app.",
-                  "Write down the seed phrase (12–24 words) on paper and store it somewhere safe.",
-                  "Never share your seed phrase with anyone — it is full access to your wallet.",
-                  "Lose the seed and tell no one — wallet is gone forever. Write it and share it — funds will be stolen.",
-                ],
-              },
-            ],
-          },
-          {
-            id: "what-is-movement",
-            q: "What is Solana and what is USDC?",
-            a: [
-              { type: "p", text: "Solana is a blockchain network (think of it like the internet, but for crypto) — fast, and transaction fees are fractions of a cent." },
-              { type: "p", text: "USDC is the dollar stablecoin issued by Circle, always worth about $1. On FORM8 you pay squad entry fees and receive prizes in USDC. Get it via Deposit (card / Apple Pay), a swap inside the wallet, or a transfer from an exchange." },
-            ],
-          },
-          {
-            id: "how-to-get-move",
-            q: "How do I get USDC to start playing?",
-            a: [
-              {
-                type: "ul",
-                items: [
-                  "Install Phantom, Solflare, or Jupiter and create a Solana wallet.",
-                  "Press Deposit and buy USDC in your wallet (card / Apple Pay inside Phantom, Solflare, or Jupiter), or transfer USDC on Solana.",
-                  "You need at least 5 USDC to register one squad. Keep a little SOL on the wallet for network fees.",
-                  "Open FORM8 → Log in → Google, email, or a Solana wallet → pick your team on the home screen → Confirm squad and sign.",
-                ],
-              },
-              {
-                type: "p",
-                text: "Careful with the network: withdraw USDC on Solana, not on Ethereum or another chain, or the funds will not show up in your wallet here.",
-              },
-            ],
-          },
-          {
-            id: "is-connecting-safe",
-            q: "Is it safe to connect my wallet to the site?",
-            a: [
-              { type: "p", text: "Yes. Linking a wallet is not “hand over the keys.” The site only sees your public address and asks for your signature on each specific action (register a squad, claim a prize)." },
-              { type: "p", text: "You always sign inside your wallet window (Phantom, Solflare, or Jupiter). The site never sees your seed phrase or private key, and cannot move a single token without your explicit signature." },
-              { type: "p", text: "Simple rule of thumb: always check the URL — only use the official FORM8 address." },
-            ],
-          },
-          {
-            id: "what-is-smart-contract",
-            q: "What is a smart contract and why does it matter?",
-            a: [
-              { type: "p", text: "A smart contract is a program that runs automatically on a blockchain with no middlemen. Its code is open and cannot be silently changed." },
-              { type: "p", text: "On FORM8 the contract handles taking your entry fee into the pool, locking your squad so even the developers cannot tamper with it, and paying out the top 10." },
-              { type: "p", text: "Everything is auditable — you can verify in a public block explorer exactly what happened to your USDC." },
-            ],
-          },
-          {
-            id: "why-claim",
-            q: "Why do I need to press “Claim” to receive a prize?",
-            a: [
-              { type: "p", text: "It is how blockchains work — the prize doesn’t arrive automatically. Your wallet must sign a separate transaction that moves USDC from the contract to your address." },
-              { type: "p", text: "On the Leaderboard a Claim button appears next to your result. Press it → sign in your wallet → USDC lands on your wallet. You can do this whenever you want." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "how-to-play",
-        title: "How to play",
-        blurb: "Step by step — from zero to your first squad.",
-        items: [
           {
             id: "first-steps",
-            q: "Where do I start? Step-by-step.",
+            q: "Where do I start?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "1. Install Phantom, Solflare, or Jupiter.",
-                  "2. Create a wallet and back up the seed phrase on paper.",
-                  "3. Get USDC — Deposit and buy in your wallet, or transfer on Solana. You need ~5 USDC + a bit of SOL for fees.",
-                  "4. On FORM8 press “Log in” and pick Google, email, or Phantom / Solflare / Jupiter.",
-                  "5. On the home screen pick 11 starters + 3 bench players.",
-                  "6. Press “Confirm squad” and sign the transaction in your wallet.",
-                  "7. Wait for kickoff — points are tallied automatically from there.",
+                  "Log in with Google, email, or a Solana wallet (Phantom / Solflare / Jupiter).",
+                  "Get USDC for the entry fee (shown on the home screen) plus a little SOL for fees.",
+                  "On the home screen pick 11 starters + 3 bench. Max 3 players from the same club.",
+                  "Confirm squad and sign. After the deadline your squad is locked.",
                 ],
               },
             ],
@@ -1471,145 +1271,122 @@ export const pagesEn: PagesMessages = {
             id: "entry-cost",
             q: "How much does one gameweek entry cost?",
             a: [
-              { type: "p", text: "The exact entry fee is shown on the home screen when you register. It is 5 USDC per gameweek — a small stablecoin amount to try the game." },
+              { type: "p", text: "The exact fee is shown when you register — currently 5 USDC per gameweek. Entry fees fund that round’s prize pool (minus a small technical share)." },
+            ],
+          },
+          {
+            id: "max-three-per-club",
+            q: "Why a maximum of 3 players from one club?",
+            a: [
+              { type: "p", text: "To stop everyone stacking one strong side. When you already have 3 from a club, the rest of that club darkens with a LIMIT mark in the player list." },
+            ],
+          },
+          {
+            id: "starters-vs-bench",
+            q: "What is the difference between starters and bench?",
+            a: [
+              { type: "p", text: "The 11 starters score immediately. The 3 bench players are auto-subs if a starter does not play in the real match — so their points can replace a zero." },
             ],
           },
           {
             id: "change-squad",
             q: "Can I change my squad after registering?",
             a: [
-              { type: "p", text: "While the round has not started yet (i.e. before the deadline) — yes, but every change is a new transaction with a small network fee." },
-              { type: "p", text: "After the deadline the squad is locked on-chain. That is not our policy — it is how blockchains work: once written, it cannot be rewritten." },
-            ],
-          },
-          {
-            id: "missed-deadline",
-            q: "What if I miss the deadline?",
-            a: [
-              { type: "p", text: "Just wait for the next round. A new gameweek with a new squad opens every week, and there is no penalty for skipping." },
-            ],
-          },
-          {
-            id: "multiple-squads",
-            q: "How many squads can I register per gameweek?",
-            a: [
-              { type: "p", text: "One squad per wallet per gameweek. If you want several entries, you need additional wallets (additional addresses) — each pays its own entry fee." },
-            ],
-          },
-          {
-            id: "injured-player",
-            q: "What if my player gets injured or doesn’t play?",
-            a: [
-              { type: "p", text: "He scores 0 in that match. BUT if you have 3 bench players, the system automatically subs one of them in and counts their points instead." },
-              { type: "p", text: "This is why your bench should usually contain players who are likely to actually start somewhere in the gameweek." },
-            ],
-          },
-          {
-            id: "when-points",
-            q: "When will I see my points?",
-            a: [
-              { type: "p", text: "Points update in near real time during gameweek matches (with a small delay — stats come from official EPL sources)." },
-              { type: "p", text: "Final points are fixed once the last match of the round is played and the admin submits the stats to the smart contract." },
+              { type: "p", text: "Before the deadline — yes (each change is a new transaction). After the deadline the squad is locked on-chain." },
             ],
           },
           {
             id: "when-payout",
             q: "When and how do I get my prize?",
             a: [
-              { type: "p", text: "After the last match of the round the admin closes the gameweek, stats go to the contract, and final ranks and prizes are computed." },
-              { type: "p", text: "Once the round is published as Resolved (usually within a day), a Claim button appears next to your result on the Leaderboard. Press it — and USDC lands on your wallet." },
+              { type: "p", text: "After the round is resolved, a Claim button appears next to your result on the Leaderboard. Sign — USDC lands in your wallet." },
             ],
           },
         ],
       },
       {
         id: "scoring-and-rewards",
-        title: "Scoring & rewards",
-        blurb: "How points are calculated and how prizes are split.",
+        title: "Scoring & prizes",
+        blurb: "Points, prize split, Season Points.",
         items: [
           {
             id: "how-scoring-works",
-            q: "How exactly are points calculated?",
+            q: "How are points calculated?",
             a: [
-              { type: "p", text: "Every useful action by your player on the pitch turns into points. Standard rewards:" },
+              { type: "p", text: "Useful actions on the pitch become points. Highlights:" },
               {
                 type: "ul",
                 items: [
-                  "Goal — from +4 to +6 points (depending on position)",
-                  "Assist — a few points",
-                  "Clean sheet — for goalkeepers and defenders",
-                  "Saves — for goalkeepers",
-                  "60+ minutes played — extra points",
-                  "High match rating — +1 to +3 (≥7.5 / ≥8.0 / ≥9.0)",
-                  "Hat-trick — separate big bonus",
+                  "Goal — GK +10, DEF +6, MID/FWD +5",
+                  "Assist — +3",
+                  "Clean sheet (60+ min) — GK/DEF +4, MID +1",
+                  "GK saves — +1 per 3 saves; penalty save +5",
+                  "Minutes — +1 (1–59) or +2 (60+)",
+                  "Match rating bonuses — +1 / +2 / +3 at ≥7.5 / ≥8.0 / ≥9.0; very low rating can cost −1",
+                  "Cards, own goal, missed penalty — negative points",
                 ],
               },
-              { type: "p", text: "Penalties: red/yellow card, own goal, missed penalty, very low rating — negative points. Full table is on the homepage in the “More actions, more points” section." },
-            ],
-          },
-          {
-            id: "defender-vs-forward-goal",
-            q: "Why is a defender’s goal worth more than a forward’s?",
-            a: [
-              { type: "p", text: "Because for a forward a goal is the routine — that is literally his job. For a defender it is a rare event that is hard to predict and that significantly changes the match." },
-              { type: "p", text: "Fantasy systems reward picking the “riskier” options instead of just stacking obvious goalscorers." },
+              { type: "p", text: "Open Scoring on the home pick screen for the full compact table." },
             ],
           },
           {
             id: "how-much-can-i-win",
-            q: "How much can I win?",
+            q: "How is the prize pool split?",
             a: [
-              { type: "p", text: "It depends on the prize pool of the round and your final rank. Prize pool = sum of all entry fees of the round (minus a small technical share)." },
-              { type: "p", text: "More entries → bigger pool. The top 10 split it on a fixed grid: 1st gets the largest share, 10th the smallest. The split is shown on the homepage in the “Split the prize pool” section." },
+              { type: "p", text: "Prize pool = entry fees for the round (minus a small technical share). Top 10 split it: 1st 30%, 2nd 20%, 3rd 15%, then 8% → 2% down to 10th." },
+              { type: "p", text: "Live pool size is on the home pick screen; claim is on the Leaderboard after resolve." },
             ],
           },
           {
             id: "11th-no-prize",
-            q: "What if I finish 11th — no prize at all?",
+            q: "What if I finish outside the prizes?",
             a: [
-              { type: "p", text: "Then you get nothing this round. The entry fee does not return — it stays in the pool the winners already split." },
-              { type: "p", text: "Try the next gameweek: new squad, new chances." },
-            ],
-          },
-          {
-            id: "convert-to-fiat",
-            q: "How do I cash out USDC back to normal money?",
-            a: [
-              { type: "p", text: "USDC is already pegged to the dollar. Send it from your wallet to an exchange (on the Solana network) and cash out there — same as any crypto." },
-              { type: "p", text: "Technically 2–3 transactions. The whole loop usually takes 15–30 minutes." },
+              { type: "p", text: "No payout that round — the entry fee stays in the pool winners already split. Next gameweek is a fresh squad and a fresh chance." },
             ],
           },
           {
             id: "season-points",
             q: "What are Season Points (SP)?",
             a: [
-              {
-                type: "p",
-                text: "Season Points (SP) are a season-long loyalty score that tracks your activity across FORM8. The SP season begins with World Cup tournaments and continues into the EPL, with the same streak carrying over between both competitions.",
-              },
-              { type: "p", text: "You can earn SP by:" },
-              {
-                type: "ul",
-                items: [
-                  "Registering for a tournament (+25)",
-                  "Your first-ever registration (+50, one-time)",
-                  "Finishing in the Top 10 (1st = 200 SP, down to 10th = 25 SP)",
-                  "Maintaining a streak (+10 / +15 / +20 from 4+ consecutive rounds)",
-                  "Claiming your rewards (+10)",
-                ],
-              },
-              {
-                type: "p",
-                text: "Season Points don't affect gameplay or give any competitive advantage. They simply help us recognize the most active and consistent members of the FORM8 community over time.",
-              },
-              {
-                type: "p",
-                text: "The SP season starts when the feature goes live, with everyone beginning from zero. After the World Cup ends, your Season Points and streak continue into the EPL without resetting.",
-              },
-              {
-                type: "p",
-                text: "You can always check your current Season Points and ranking on the Season SP page.",
-              },
+              { type: "p", text: "SP is a season-long loyalty score (registrations, top-10 finishes, streaks, claims). It does not change match scoring." },
+              { type: "p", text: "Check your SP and ranking on the Season page." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "web3-101",
+        title: "Wallet & USDC",
+        blurb: "Login, fees, and claiming — without the jargon.",
+        items: [
+          {
+            id: "what-is-wallet",
+            q: "What is a crypto wallet and why do I need one?",
+            a: [
+              { type: "p", text: "A wallet holds your crypto and signs actions on-chain. On FORM8 it is your account: login, entry fee, and prize claim." },
+              { type: "p", text: "You can also enter with Google or email — a wallet is still used under the hood for payments." },
+            ],
+          },
+          {
+            id: "which-wallet",
+            q: "Which wallet do I need?",
+            a: [
+              { type: "p", text: "Phantom, Solflare, or Jupiter — pick any after Log in. Phantom is the most common: phantom.com (extension or iOS/Android)." },
+              { type: "p", text: "Back up your seed phrase offline. Never share it. Lose it and the wallet is gone forever." },
+            ],
+          },
+          {
+            id: "what-is-movement",
+            q: "What is Solana and what is USDC?",
+            a: [
+              { type: "p", text: "Solana is the network FORM8 runs on — fast, with tiny fees. USDC is a dollar stablecoin (~$1). Entry fees and prizes are in USDC." },
+            ],
+          },
+          {
+            id: "why-claim",
+            q: "Why do I need to press “Claim” to receive a prize?",
+            a: [
+              { type: "p", text: "On-chain payouts need your wallet signature to move USDC. Claim on the Leaderboard when the round is resolved." },
             ],
           },
         ],
@@ -1617,57 +1394,64 @@ export const pagesEn: PagesMessages = {
       {
         id: "trust-and-safety",
         title: "Trust & safety",
-        blurb: "How can I be sure this is fair and not a scam?",
+        blurb: "Fair play and what we can (and cannot) do.",
         items: [
           {
             id: "is-it-scam",
             q: "How do I know this is not a scam?",
             a: [
-              { type: "p", text: "Every key action — your squad, the prize pool, the points, the payouts — is recorded on the Solana blockchain and can be verified in a public explorer. No one, not even the FORM8 developers, can silently change anything." },
-              { type: "p", text: "The admin cannot: replace your squad after the deadline, take from the prize pool, or rewrite points. The smart contract simply does not allow it." },
+              { type: "p", text: "Squads, pool, points, and payouts are recorded on Solana and verifiable in a public explorer. The admin cannot rewrite your locked squad or silently drain the prize pool." },
+            ],
+          },
+          {
+            id: "is-this-gambling",
+            q: "Is this gambling?",
+            a: [
+              { type: "p", text: "It is fantasy sports — a skill contest. Check your local rules to be safe." },
             ],
           },
           {
             id: "what-if-bug",
             q: "What if there is a bug and I lose my entry fee?",
             a: [
-              { type: "p", text: "The contract is tested, but there is always some risk. For now, only play with amounts you are willing to risk." },
-              { type: "p", text: "If a bug in our logic is confirmed — we refund. Bug reports and questions: Telegram @movematch." },
+              { type: "p", text: "Only play with amounts you are willing to risk. Confirmed bugs in our logic — we refund. Contact: Telegram @movematch." },
             ],
           },
           {
             id: "lost-seed",
             q: "What if I lose my wallet seed phrase?",
             a: [
-              { type: "p", text: "FORM8 cannot help here. Your wallet is yours, and the seed phrase is the only way to recover it. Neither Phantom, Solflare, nor FORM8 have access to it." },
-              { type: "p", text: "If the seed is lost, the wallet (and any funds in it) is lost forever. Always store the seed offline, on paper, somewhere safe." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "whats-next",
-        title: "What’s next",
-        blurb: "Roadmap features you may have spotted in the menu.",
-        items: [
-          {
-            id: "what-are-talents",
-            q: "What are the “Talents” I see in the menu (marked “soon”)?",
-            a: [
-              { type: "p", text: "An upcoming feature, in development. Talents are bonus multipliers (+5%, +10% or +15%) that boost a player’s final score in your squad." },
-              { type: "p", text: "They will unlock through a separate game mechanic. Once they’re live, we will announce it." },
-            ],
-          },
-          {
-            id: "guilds-and-titles",
-            q: "What about guilds and titles?",
-            a: [
-              { type: "p", text: "Guilds (team play) and titles (achievements) are also on the roadmap. Both are still in development — follow the announcements for updates." },
+              { type: "p", text: "FORM8 cannot recover it. Store the seed offline. If it is lost, the wallet and funds are gone." },
             ],
           },
         ],
       },
     ],
+  },
+  lockerPick: {
+    playersTitle: "Players",
+    playersSubtitle: "Choose for active position",
+    playersFound: (n) => `${n} found`,
+    clubLimitBadge: "LIMIT",
+    clubLimitTip: "Max 3 per club",
+    scoringBtn: "Scoring",
+    howToPlayBtn: "How to play",
+    scoringTitle: "Scoring",
+    scoringSubtitle: "",
+    goalsByPos: "Goals",
+    prizeSplitTitle: "Prize split",
+    prizeSplitHint: "",
+    scoringFaqLink: "FAQ",
+    howToPlayTitle: "How to play",
+    howToPlaySubtitle: "",
+    howToPlaySteps: [
+      "Pick 11 starters and 3 on the bench",
+      "No more than 3 players from one club",
+      "Confirm with the entry fee in USDC",
+      "Squad locks at the deadline",
+      "Top 10 split the prize pool",
+    ],
+    close: "Close",
   },
 };
 
@@ -2280,417 +2064,170 @@ export const pagesUk: PagesMessages = {
     eyebrow: "Довідка",
     title: "Часті питання",
     subtitle:
-      "Не знаєш ні фентезі-футболу, ні крипти, ні того й того? Тоді ти за адресою. Читай зверху вниз — відповіді йдуть від «що це за сайт взагалі?» до деталей нарахування очок.",
+      "Короткі відповіді для гри — склад, очки, гаманець і довіра. Детальна таблиця очок також у аркуші Scoring на головному екрані піку.",
     searchPlaceholder: "Знайти питання...",
     searchAriaLabel: "Пошук по FAQ",
     expandAll: "Розгорнути все",
     collapseAll: "Згорнути все",
-    foundCount: (n) => {
-      const mod10 = n % 10;
-      const mod100 = n % 100;
-      let word = "питань";
-      if (mod10 === 1 && mod100 !== 11) word = "питання";
-      else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) word = "питання";
-      return `Знайдено ${n} ${word}`;
-    },
+    foundCount: (n) => `${n} ${n === 1 ? "питання" : n < 5 ? "питання" : "питань"}`,
     noResultsTitle: "Нічого не знайдено",
     noResultsHint: "Спробуй інше слово або очисти пошук, щоб переглянути всі категорії.",
     clearSearch: "Очистити пошук",
     backToTop: "Нагору",
-    contactTitle: "Не знайшов відповіді?",
+    contactTitle: "Залишилось питання?",
     contactBody:
-      "Якщо щось незрозуміло або знайшов баг — напиши в Telegram @movematch. Відповідаємо швидко. Оголошення й новини — також у X.",
+      "Якщо щось незрозуміло або знайшов баг — пиши в Telegram @movematch. Відповідаємо швидко. Анонси також у X.",
     contactCta: "Написати в",
     contactHref: "https://t.me/movematch",
     categories: [
       {
-        id: "what-is-this",
-        title: "Що це за сайт?",
-        blurb: "Перший контакт — почни з цього розділу, якщо щойно сюди потрапив.",
+        id: "how-to-play",
+        title: "Як грати",
+        blurb: "Склад, внесок, дедлайн — головне.",
         items: [
           {
             id: "what-is-movematch",
             q: "Що таке FORM8 простими словами?",
             a: [
-              { type: "p", text: "FORM8 — це фентезі-футбол на Англійську Прем'єр-лігу (АПЛ). Алгоритм простий:" },
-              {
-                type: "ul",
-                items: [
-                  "Перед кожним туром ти збираєш свій склад із реальних футболістів АПЛ.",
-                  "Ці футболісти грають у реальних матчах туру.",
-                  "За їхні дії на полі (голи, асисти, сейви тощо) тобі нараховуються очки.",
-                  "Топ-10 менеджерів за очками ділять призовий фонд у USDC.",
-                ],
-              },
-              { type: "p", text: "Жодних ставок на матчі — це змагання за вміння аналізувати футбол, а не лотерея." },
+              { type: "p", text: "FORM8 — фентезі-футбол по Англійській Прем’єр-лізі. Перед туром збираєш склад із реальних гравців АПЛ; їхні дії в матчах дають очки; топ менеджерів ділить призовий фонд у USDC." },
+              { type: "p", text: "Це не ставки на результат матчу — це навичка читати футбол." },
             ],
           },
-          {
-            id: "is-it-free",
-            q: "Це безкоштовно?",
-            a: [
-              { type: "p", text: "Ні. Щоб зареєструвати склад, треба сплатити невеликий внесок у USDC (точна сума завжди видно на головній, коли збираєш команду)." },
-              { type: "p", text: "Усі внески всіх учасників складаються в призовий фонд цього туру — виплати переможцям виходять із нього." },
-              { type: "p", text: "З фонду утримується невелика технічна частка на підтримку й існування проєкту." },
-            ],
-          },
-          {
-            id: "can-i-actually-win",
-            q: "Чи я справді можу щось виграти?",
-            a: [
-              { type: "p", text: "Так. Якщо твій склад потрапляє в топ-10 за очками, тобі нараховується частка призового фонду в USDC. Коли тур закрито, на лідерборді з’являється Claim — натисни і підпиши, щоб USDC зайшли на гаманець." },
-              { type: "p", text: "Розмір виграшу залежить від місця і від кількості учасників туру." },
-            ],
-          },
-          {
-            id: "is-this-gambling",
-            q: "Це азартна гра?",
-            a: [
-              { type: "p", text: "Не в розумінні «казино». Це фентезі-спорт, скіл-гра — як шахи з призовим фондом. Виграє той, хто краще аналізує форму гравців і розклад туру, а не той, кому пощастило зі спіном рулетки." },
-              { type: "p", text: "У більшості юрисдикцій фентезі-спорт не вважається азартними іграми, але остаточно перевір власне законодавство." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "football-101",
-        title: "Футбол з нуля",
-        blurb: "Не знаєш, що таке «суха пара»? Починай звідси.",
-        items: [
-          {
-            id: "what-is-epl",
-            q: "Що таке Англійська Прем'єр-ліга (АПЛ)?",
-            a: [
-              { type: "p", text: "Найпопулярніший футбольний чемпіонат у світі. 20 англійських клубів (Манчестер Сіті, Ліверпуль, Арсенал та інші) грають один з одним з серпня по травень." },
-              { type: "p", text: "У FORM8 ми використовуємо реальну статистику з матчів АПЛ — тому твої «віртуальні» гравці насправді справжні футболісти, які виходять на поле." },
-            ],
-          },
-          {
-            id: "what-is-gameweek",
-            q: "Що таке тур (gameweek)?",
-            a: [
-              { type: "p", text: "Один раунд матчів. Зазвичай це 10 матчів за 2-3 дні (десь з п'ятниці по неділю, інколи понеділок)." },
-              { type: "p", text: "Кожен тур у FORM8 — окремий конкурс: збираєш склад → грає тур → нараховуються очки → виплачуються призи. Потім — наступний тур." },
-            ],
-          },
-          {
-            id: "what-is-deadline",
-            q: "Що таке дедлайн?",
-            a: [
-              { type: "p", text: "Час, до якого треба встигнути зареєструвати склад. Це момент свистка першого матчу туру." },
-              { type: "p", text: "Після дедлайну склад зафіксовано і змінити його не можна — інакше можна було б «підлаштовувати» вибір під вже зіграні матчі." },
-            ],
-          },
-          {
-            id: "positions",
-            q: "Що означає GK, DEF, MID, FWD?",
-            a: [
-              { type: "p", text: "Це чотири позиції на полі:" },
-              {
-                type: "ul",
-                items: [
-                  "GK (воротар) — стоїть у воротах, не дає забити.",
-                  "DEF (захисник) — оберігає свою половину поля, не пускає чужих у штрафний.",
-                  "MID (півзахисник) — грає в центрі, віддає паси, інколи забиває.",
-                  "FWD (нападник) — головна задача — забивати голи.",
-                ],
-              },
-              { type: "p", text: "У FORM8 потрібно вибрати 11 гравців у стандартній фентезі-формації (1 воротар + 3-5 захисників + 3-5 півзахисників + 1-3 нападники)." },
-            ],
-          },
-          {
-            id: "football-terms",
-            q: "Що таке «суха пара», «асист», «хет-трик», рейтинг матчу?",
-            a: [
-              {
-                type: "ul",
-                items: [
-                  "Суха пара (clean sheet) — команда не пропустила жодного гола за матч. Бонус для воротарів і захисників.",
-                  "Асист — пас, після якого партнер забив. Цінна дія для нападників і півзахисників.",
-                  "Хет-трик — три голи в одному матчі від одного гравця. Рідкість, тому окремий бонус.",
-                  "Рейтинг матчу — оцінка гри кожного гравця за матч (наприклад, 7.5, 8.2). Високий рейтинг дає бонусні очки; дуже низький — штраф −1.",
-                ],
-              },
-            ],
-          },
-          {
-            id: "max-three-per-club",
-            q: "Чому максимум 3 гравці з однієї команди?",
-            a: [
-              { type: "p", text: "Щоб не можна було «забити склад одним клубом». Якщо проти умовного «Сандерленда» грає Манчестер Сіті, було б нечесно якби всі взяли 11 гравців Сіті." },
-              { type: "p", text: "Обмеження «макс 3 з клубу» змушує тебе диверсифікувати склад і реально вибирати, хто з кого матиме найкращу гру в цьому турі." },
-            ],
-          },
-          {
-            id: "what-is-form",
-            q: "Що означає «форма» гравця?",
-            a: [
-              { type: "p", text: "Середня кількість очок, які гравець набирає за матч у нашій системі за останні тури. Гравець «у формі» зазвичай продовжує забивати або асистувати, гравець «не в формі» — навпаки." },
-              { type: "p", text: "Це підказка кого вибирати, але не гарантія. Тренери, травми, суперник — все має значення." },
-            ],
-          },
-          {
-            id: "starters-vs-bench",
-            q: "Чим основа відрізняється від запасних?",
-            a: [
-              { type: "p", text: "11 гравців основи — твій стартовий склад. Їхні очки рахуються одразу." },
-              { type: "p", text: "3 запасних — резерв. Якщо хтось з основи не вийшов на поле в реальному матчі (травма, тренер його не випустив), система автоматично «замінить» його одним із запасних і зарахує саме його очки замість нуля." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "web3-101",
-        title: "Веб-3 з нуля",
-        blurb: "Гаманці, токени, blockchain — без жаргону.",
-        items: [
-          {
-            id: "what-is-wallet",
-            q: "Що таке крипто-гаманець і навіщо він мені?",
-            a: [
-              { type: "p", text: "Гаманець — це програма (розширення для браузера або застосунок на телефоні), яка зберігає твою криптовалюту і «підписує» твої дії в блокчейні." },
-              { type: "p", text: "На FORM8 гаманець — твій акаунт: і логін, і банк, і спосіб підтвердити «так, я хочу зареєструвати цей склад на цей тур»." },
-            ],
-          },
-          {
-            id: "which-wallet",
-            q: "Який гаманець потрібен? Де його взяти?",
-            a: [
-              { type: "p", text: "FORM8 підтримує Phantom, Solflare і Jupiter — обери будь-який після «Увійти». Можна також через Google або email, без розширення." },
-              { type: "p", text: "Phantom (рекомендуємо) — найпоширеніший гаманець для Solana: phantom.com. Self-custodial, є розширення для Chrome і застосунок для телефону (iOS / Android): відправка, своп, підключення до dApps." },
-              { type: "p", text: "Solflare і Jupiter — альтернативи з тією ж роботою: розширення або мобільний застосунок, далі підключення тут. Solflare — solflare.com, Jupiter — jup.ag/download." },
-              {
-                type: "ul",
-                items: [
-                  "Створи новий гаманець у розширенні або застосунку.",
-                  "Обов'язково запиши seed-фразу (12-24 слова) на папері й сховай у безпечному місці.",
-                  "Ніколи нікому не давай seed-фразу — це повний доступ до твого гаманця.",
-                  "Втратиш seed і нікому не дав — гаманець відновити неможливо. Запишеш і поділишся з кимось — гроші вкрадуть.",
-                ],
-              },
-            ],
-          },
-          {
-            id: "what-is-movement",
-            q: "Що таке Solana і USDC?",
-            a: [
-              { type: "p", text: "Solana — це блокчейн-мережа (як інтернет, тільки для криптовалют): швидка, а комісії за транзакції — частки цента." },
-              { type: "p", text: "USDC — доларовий стейблкоїн від Circle, який завжди коштує близько $1. На FORM8 ти платиш внески за склад і отримуєш призи в USDC. Отримати можна через «Поповнити» (картка / Apple Pay), свопом у гаманці або переказом із біржі." },
-            ],
-          },
-          {
-            id: "how-to-get-move",
-            q: "Як отримати USDC, щоб зіграти?",
-            a: [
-              {
-                type: "ul",
-                items: [
-                  "Встанови Phantom, Solflare або Jupiter і створи гаманець Solana.",
-                  "Натисни «Поповнити» і купи USDC у гаманці (картка / Apple Pay всередині Phantom, Solflare або Jupiter), або перекажи USDC у Solana.",
-                  "Потрібно щонайменше 5 USDC на один склад. Залиш трохи SOL на комісії мережі.",
-                  "Заходь на FORM8 → Увійти → Google, email або гаманець Solana → збери команду на головній → Підтверди і підпиши.",
-                ],
-              },
-              {
-                type: "p",
-                text: "Уважно з мережею: виводь USDC саме в Solana, а не в Ethereum чи іншій мережі — інакше кошти не зʼявляться в потрібному гаманці.",
-              },
-            ],
-          },
-          {
-            id: "is-connecting-safe",
-            q: "Чи безпечно підключати гаманець до сайту?",
-            a: [
-              { type: "p", text: "Так. Підключити гаманець — це не «віддати ключі». Сайт лише бачить твою публічну адресу і кожного разу окремо просить твого підпису на конкретну дію (зареєструвати склад, забрати приз)." },
-              { type: "p", text: "Підпис ти даєш сам у вікні гаманця (Phantom, Solflare або Jupiter). Сайт ніколи не отримує seed-фразу або приватний ключ і без твого явного підпису не може витратити жодного токена." },
-              { type: "p", text: "Просте правило: перевіряй URL — заходь лише на офіційну адресу FORM8." },
-            ],
-          },
-          {
-            id: "what-is-smart-contract",
-            q: "Що таке смарт-контракт і чому це важливо?",
-            a: [
-              { type: "p", text: "Смарт-контракт — це програма, яка автоматично виконується в блокчейні без посередників. Її код відкритий і його не можна непомітно змінити." },
-              { type: "p", text: "У FORM8 контракт відповідає за: прийом твого внеску у фонд, фіксацію складу так, що ніхто (навіть розробники) не зможе його підмінити, і виплату призів топ-10." },
-              { type: "p", text: "Тому все відкрито — ти можеш сам перевірити в блокчейн-експлорері, що саме сталося з твоїм USDC." },
-            ],
-          },
-          {
-            id: "why-claim",
-            q: "Чому я маю натискати «Claim», щоб забрати виграш?",
-            a: [
-              { type: "p", text: "Це особливість блокчейна — приз не приходить автоматично. Гаманець мусить підписати окрему транзакцію на перерахунок USDC з контракту на твою адресу." },
-              { type: "p", text: "На сторінці «Лідерборд» поряд з твоїм результатом з'явиться кнопка «Claim». Натискаєш → підписуєш у гаманці → USDC падає на гаманець. Зробити це можна в будь-який зручний момент." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "how-to-play",
-        title: "Як грати",
-        blurb: "Покрокова механіка — від нуля до першого складу.",
-        items: [
           {
             id: "first-steps",
-            q: "З чого почати? Покрокова інструкція.",
+            q: "З чого почати?",
             a: [
               {
                 type: "ul",
                 items: [
-                  "1. Встанови Phantom, Solflare або Jupiter.",
-                  "2. Створи акаунт і збережи seed-фразу на папері.",
-                  "3. Отримай USDC — «Поповнити» і купи в гаманці, або переказ у Solana. Потрібно ~5 USDC + трохи SOL на комісії.",
-                  "4. На FORM8 натисни «Увійти», обери Google, email або Phantom / Solflare / Jupiter.",
-                  "5. На головній вибери 11 основних + 3 запасних.",
-                  "6. Натисни «Підтвердити склад» і підпиши транзакцію в гаманці.",
-                  "7. Чекай початку туру — далі все рахується автоматично.",
+                  "Увійди через Google, email або Solana-гаманець (Phantom / Solflare / Jupiter).",
+                  "Підготуй USDC на внесок (сума на головному екрані) і трохи SOL на комісії.",
+                  "На головному екрані обери 11 в основі + 3 запасних. Максимум 3 з однієї команди.",
+                  "Підтверди склад і підпиши. Після дедлайну склад заблоковано.",
                 ],
               },
             ],
           },
           {
             id: "entry-cost",
-            q: "Скільки коштує вхід в один тур?",
+            q: "Скільки коштує участь у турі?",
             a: [
-              { type: "p", text: "Конкретний внесок видно на головній, коли реєструєш склад. Це 5 USDC за тур — невелика стабільна сума для пробного входу." },
+              { type: "p", text: "Точна сума видно при реєстрації — зараз 5 USDC за тур. Внески формують призовий фонд туру (мінус невелика технічна частка)." },
+            ],
+          },
+          {
+            id: "max-three-per-club",
+            q: "Чому максимум 3 гравці з однієї команди?",
+            a: [
+              { type: "p", text: "Щоб ніхто не зібрав усю сильну сторону. Коли вже є 3 з клубу, інші з нього темніють і мають позначку LIMIT у списку." },
+            ],
+          },
+          {
+            id: "starters-vs-bench",
+            q: "Чим основа відрізняється від лавки?",
+            a: [
+              { type: "p", text: "11 стартовиків рахуються одразу. 3 запасних — автозаміна, якщо стартовик не вийшов у реальному матчі." },
             ],
           },
           {
             id: "change-squad",
             q: "Чи можна змінити склад після реєстрації?",
             a: [
-              { type: "p", text: "Поки тур ще не почався (до дедлайну) — так, але кожна зміна — нова транзакція з невеликою комісією мережі." },
-              { type: "p", text: "Після дедлайну склад зафіксовано в блокчейні. Це не наша примха — це властивість блокчейна: те, що записано, переписати не можна." },
-            ],
-          },
-          {
-            id: "missed-deadline",
-            q: "Що якщо я пропустив дедлайн?",
-            a: [
-              { type: "p", text: "Просто чекаєш наступного туру. Кожен тиждень — новий тур з новим складом, жодних штрафів за пропуск." },
-            ],
-          },
-          {
-            id: "multiple-squads",
-            q: "Скільки складів можна зареєструвати на один тур?",
-            a: [
-              { type: "p", text: "Один склад на один гаманець на тур. Якщо хочеш кілька — потрібен інший гаманець (інша адреса), і кожен з них окремо платить внесок." },
-            ],
-          },
-          {
-            id: "injured-player",
-            q: "Що якщо мій гравець травмувався і не вийшов?",
-            a: [
-              { type: "p", text: "У такому матчі він набирає 0 очок. АЛЕ якщо у тебе є 3 запасних, система автоматично «впустить на поле» одного з них замість того, хто не зіграв, і зарахує саме його очки." },
-              { type: "p", text: "Тому має сенс серед запасних брати тих, хто з найбільшою ймовірністю зіграє в цьому турі." },
-            ],
-          },
-          {
-            id: "when-points",
-            q: "Коли я побачу свої очки?",
-            a: [
-              { type: "p", text: "Очки оновлюються в реальному часі під час матчів туру (з невеликою затримкою — статистика збирається з офіційних джерел АПЛ)." },
-              { type: "p", text: "Остаточний результат фіксується після завершення останнього матчу туру і подачі статистики в смарт-контракт адміністрацією." },
+              { type: "p", text: "До дедлайну — так (кожна зміна = нова транзакція). Після дедлайну склад заблоковано ончейн." },
             ],
           },
           {
             id: "when-payout",
-            q: "Коли і як я отримую виграш?",
+            q: "Коли і як отримати приз?",
             a: [
-              { type: "p", text: "Після останнього матчу туру адміністрація закриває тур, статистика подається в смарт-контракт, обчислюються остаточні місця і призи." },
-              { type: "p", text: "Як тільки тур опубліковано як Resolved (зазвичай протягом доби), на сторінці «Лідерборд» поряд з твоїм результатом з'являється кнопка «Claim». Натискаєш — і USDC приходить на гаманець." },
+              { type: "p", text: "Після резолву туру на Лідерборді з’являється Claim біля твого результату. Підпиши — USDC прийде на гаманець." },
             ],
           },
         ],
       },
       {
         id: "scoring-and-rewards",
-        title: "Очки і виграш",
-        blurb: "Як рахуються очки і як ділиться призовий фонд.",
+        title: "Очки і призи",
+        blurb: "Нарахування, розподіл фонду, Season Points.",
         items: [
           {
             id: "how-scoring-works",
-            q: "Як саме рахуються очки?",
+            q: "Як нараховуються очки?",
             a: [
-              { type: "p", text: "Кожна корисна дія гравця на полі = очки тобі. Стандартні нарахування:" },
+              { type: "p", text: "Корисні дії на полі стають очками. Головне:" },
               {
                 type: "ul",
                 items: [
-                  "Гол — від +4 до +6 очок (залежно від позиції)",
-                  "Асист — кілька очок",
-                  "Суха пара — для воротарів і захисників",
-                  "Сейви — для воротарів",
-                  "Гра 60+ хвилин — додаткові очки",
-                  "Високий рейтинг матчу — +1 до +3 (≥7.5 / ≥8.0 / ≥9.0)",
-                  "Хет-трик — окремий великий бонус",
+                  "Гол — ВР +10, ЗАХ +6, ПЗ/НАП +5",
+                  "Асист — +3",
+                  "Суха пара (60+ хв) — ВР/ЗАХ +4, ПЗ +1",
+                  "Сейви ВР — +1 за кожні 3; відбитий пенальті +5",
+                  "Хвилини — +1 (1–59) або +2 (60+)",
+                  "Рейтинг матчу — +1 / +2 / +3 при ≥7.5 / ≥8.0 / ≥9.0; дуже низький може дати −1",
+                  "Картки, автогол, незабитий пенальті — мінус",
                 ],
               },
-              { type: "p", text: "Штрафи: червона/жовта картка, автогол, незабитий пенальті, низький рейтинг — мінусові очки. Повна таблиця нарахувань — на головній у розділі «Чим більше дій — тим більше очок»." },
-            ],
-          },
-          {
-            id: "defender-vs-forward-goal",
-            q: "Чому за гол захисника дають більше ніж за гол нападника?",
-            a: [
-              { type: "p", text: "Бо для нападника гол — рутина, його основна задача. А для захисника — рідкісна подія, яку складно передбачити, і яка значно змінює матч." },
-              { type: "p", text: "Так фентезі-системи стимулюють вибирати «ризикові» варіанти, а не лише забивних форвардів." },
+              { type: "p", text: "Повну компактну таблицю відкрий через Scoring на екрані піку." },
             ],
           },
           {
             id: "how-much-can-i-win",
-            q: "Скільки можна виграти?",
+            q: "Як ділиться призовий фонд?",
             a: [
-              { type: "p", text: "Залежить від призового фонду туру і твого місця. Призовий фонд = сума внесків усіх учасників туру (мінус мала технічна частка)." },
-              { type: "p", text: "Чим більше учасників, тим більший фонд. Топ-10 ділять його за фіксованою сіткою: 1-ше місце — найбільша частка, 10-те — найменша. Розподіл видно на головній у розділі «Розділи призовий пул»." },
+              { type: "p", text: "Фонд = внески туру (мінус невелика технічна частка). Топ-10 ділять: 1 місце 30%, 2 — 20%, 3 — 15%, далі 8% → 2% до 10-го." },
+              { type: "p", text: "Живий розмір фонду — на екрані піку; клейм — на Лідерборді після резолву." },
             ],
           },
           {
             id: "11th-no-prize",
-            q: "Що якщо я 11-й, без призу?",
+            q: "Що якщо я поза призами?",
             a: [
-              { type: "p", text: "Цього туру нічого не отримуєш. Внесок не повертається — він залишається в призовому фонді, який вже й розділили переможці." },
-              { type: "p", text: "Спробуй наступний тур: новий склад, нові шанси." },
-            ],
-          },
-          {
-            id: "convert-to-fiat",
-            q: "Як вивести USDC у звичайні гроші?",
-            a: [
-              { type: "p", text: "USDC уже прив’язаний до долара. Надішли його з гаманця на біржу (у мережі Solana) і виведи там — як із будь-якою криптою." },
-              { type: "p", text: "Технічно це 2-3 транзакції. На все треба ~15-30 хвилин." },
+              { type: "p", text: "Виплати немає — внесок лишається в фонді, який уже ділять переможці. Наступний тур — новий склад і новий шанс." },
             ],
           },
           {
             id: "season-points",
             q: "Що таке Season Points (SP)?",
             a: [
-              {
-                type: "p",
-                text: "Season Points (SP) — сезонний рахунок лояльності, який відстежує твою активність у FORM8. Сезон SP починається з турнірів Чемпіонату світу і продовжується в EPL — стрік зберігається між обома змаганнями.",
-              },
-              { type: "p", text: "SP можна отримати за:" },
-              {
-                type: "ul",
-                items: [
-                  "Реєстрацію в турнірі (+25)",
-                  "Першу реєстрацію взагалі (+50, одноразово)",
-                  "Місце в топ-10 (1-ше = 200 SP, 10-те = 25 SP)",
-                  "Стрік (+10 / +15 / +20 з 4+ турів поспіль)",
-                  "Клейм винагороди (+10)",
-                ],
-              },
-              {
-                type: "p",
-                text: "Season Points не впливають на геймплей і не дають конкурентної переваги. Вони допомагають нам бачити найактивніших і найстабільніших учасників спільноти FORM8.",
-              },
-              {
-                type: "p",
-                text: "Сезон SP стартує, коли функція стає активною — усі починають з нуля. Після завершення ЧС твої SP і стрік продовжуються в EPL без скидання.",
-              },
-              {
-                type: "p",
-                text: "Поточний рахунок і місце в рейтингу завжди можна переглянути на сторінці Season SP.",
-              },
+              { type: "p", text: "SP — сезонний рахунок активності (реєстрації, топ-10, стріки, клейми). На очки матчу не впливає." },
+              { type: "p", text: "Свій SP і місце дивись на сторінці Season." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "web3-101",
+        title: "Гаманець і USDC",
+        blurb: "Вхід, внесок і клейм — без зайвого жаргону.",
+        items: [
+          {
+            id: "what-is-wallet",
+            q: "Що таке криптогаманець і навіщо він?",
+            a: [
+              { type: "p", text: "Гаманець тримає крипту і підписує дії в мережі. У FORM8 це твій акаунт: логін, внесок і отримання призу." },
+              { type: "p", text: "Можна увійти через Google або email — для платежів гаманець усе одно використовується." },
+            ],
+          },
+          {
+            id: "which-wallet",
+            q: "Який гаманець потрібен?",
+            a: [
+              { type: "p", text: "Phantom, Solflare або Jupiter — будь-який після Log in. Найпоширеніший — Phantom: phantom.com (розширення або iOS/Android)." },
+              { type: "p", text: "Збережи seed-фразу офлайн. Нікому не показуй. Втратив — гаманець зник назавжди." },
+            ],
+          },
+          {
+            id: "what-is-movement",
+            q: "Що таке Solana і USDC?",
+            a: [
+              { type: "p", text: "Solana — мережа, на якій працює FORM8: швидко й з мізерними комісіями. USDC — стейблкоїн ≈ $1. Внески й призи — в USDC." },
+            ],
+          },
+          {
+            id: "why-claim",
+            q: "Чому треба натискати «Claim», щоб отримати приз?",
+            a: [
+              { type: "p", text: "Ончейн-виплата потребує підпису гаманця, щоб переказати USDC. Claim — на Лідерборді, коли тур резолвлено." },
             ],
           },
         ],
@@ -2698,56 +2235,63 @@ export const pagesUk: PagesMessages = {
       {
         id: "trust-and-safety",
         title: "Безпека і чесність",
-        blurb: "Як упевнитись, що це не шахрайство.",
+        blurb: "Чесна гра і що ми можемо (і не можемо) зробити.",
         items: [
           {
             id: "is-it-scam",
-            q: "Як я знаю, що це не шахрайство?",
+            q: "Як зрозуміти, що це не шахрайство?",
             a: [
-              { type: "p", text: "Усі ключові дії (твій склад, призовий фонд, очки, виплати) фіксуються в блокчейні Solana, і їх можна перевірити в публічному експлорері — ніхто, навіть розробники FORM8, не може непомітно нічого змінити." },
-              { type: "p", text: "Адміністрація НЕ може: підмінити чужий склад після дедлайну, забрати щось з призового фонду, переписати очки. Смарт-контракт цього просто не дозволяє." },
+              { type: "p", text: "Склади, фонд, очки й виплати фіксуються в Solana і перевіряються в публічному експлорері. Адмін не може переписати заблокований склад чи тихо забрати фонд." },
+            ],
+          },
+          {
+            id: "is-this-gambling",
+            q: "Це азартна гра?",
+            a: [
+              { type: "p", text: "Це фентезі-спорт — гра на навичку. Перевір локальні правила, щоб бути спокійним." },
             ],
           },
           {
             id: "what-if-bug",
-            q: "Що якщо у вас баг і я втрачу внесок?",
+            q: "Що якщо баг і я втрачу внесок?",
             a: [
-              { type: "p", text: "Контракт тестується, але ризик завжди є. Поки що грай на суми, які ти готовий ризикнути." },
-              { type: "p", text: "У разі підтвердженого бага в нашій логіці контракту — повертаємо. Скарги й питання — пиши в Telegram @movematch." },
+              { type: "p", text: "Грай на суми, які готовий ризикнути. Підтверджений баг у нашій логіці — повертаємо. Контакт: Telegram @movematch." },
             ],
           },
           {
             id: "lost-seed",
-            q: "А якщо я втратив seed-фразу від гаманця?",
+            q: "Що якщо втратив seed-фразу?",
             a: [
-              { type: "p", text: "FORM8 тут нічим не допоможе. Гаманець належить тобі, і твоя seed-фраза — єдиний спосіб його відновити. Ні Phantom, ні Solflare, ні FORM8 не мають доступу до неї." },
-              { type: "p", text: "Якщо seed утрачено — гаманець (і кошти на ньому) втрачено назавжди. Тому seed зберігай оффлайн на папері в безпечному місці." },
-            ],
-          },
-        ],
-      },
-      {
-        id: "whats-next",
-        title: "Що буде далі",
-        blurb: "Майбутні фічі, які ти міг побачити в меню.",
-        items: [
-          {
-            id: "what-are-talents",
-            q: "Що таке «Таланти», які я бачу в меню (з позначкою soon)?",
-            a: [
-              { type: "p", text: "Майбутня фіча, поки що в розробці. «Таланти» — це бонусні множники (+5%, +10% або +15%) на фінальний рахунок гравця у твоєму складі." },
-              { type: "p", text: "Розблоковуватимуться окремою механікою. Як тільки запустимо — буде анонс." },
-            ],
-          },
-          {
-            id: "guilds-and-titles",
-            q: "А «Гільдії» / «Титули»?",
-            a: [
-              { type: "p", text: "Це теж заплановані механіки для команд (гільдії) і досягнень (титули). Поки що в розробці. Слідкуй за оновленнями." },
+              { type: "p", text: "FORM8 не відновить її. Зберігай офлайн. Втратив — гаманець і кошти зникли." },
             ],
           },
         ],
       },
     ],
+  },
+  lockerPick: {
+    playersTitle: "Гравці",
+    playersSubtitle: "Обери для активної позиції",
+    playersFound: (n) => `${n} знайдено`,
+    clubLimitBadge: "ЛІМІТ",
+    clubLimitTip: "Макс. 3 з клубу",
+    scoringBtn: "Очки",
+    howToPlayBtn: "Як грати",
+    scoringTitle: "Очки",
+    scoringSubtitle: "",
+    goalsByPos: "Голи",
+    prizeSplitTitle: "Призовий фонд",
+    prizeSplitHint: "",
+    scoringFaqLink: "FAQ",
+    howToPlayTitle: "Як грати",
+    howToPlaySubtitle: "",
+    howToPlaySteps: [
+      "Обери 11 в основі і 3 запасних",
+      "Не більше 3 гравців з одного клубу",
+      "Підтверди склад — внесок у USDC",
+      "Після дедлайну склад блокується",
+      "Топ-10 ділять призовий фонд",
+    ],
+    close: "Закрити",
   },
 };

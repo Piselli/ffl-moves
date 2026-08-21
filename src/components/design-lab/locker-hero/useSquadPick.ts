@@ -273,6 +273,7 @@ export function useSquadPick(opts?: {
     activeSlot,
     setActiveSlot,
     selectedIds,
+    clubCounts,
     filledCount,
     squadTotal,
     clearSlot,
