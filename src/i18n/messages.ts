@@ -53,18 +53,12 @@ export type SiteMessages = {
     orUseWallet: string;
     emailLoginNeedsAppId: string;
     emailLoginNeedsAppIdLocal: string;
-    loginTitle: string;
     loginWelcome: string;
     loginOr: string;
     loginTerms: string;
     loginPrivacy: string;
-    loginSkinLabel: string;
-    loginSkinCurrent: string;
-    loginSkinIpad: string;
-    loginSkinLocker: string;
     continueWithGoogle: string;
     googleLoginNotEnabled: string;
-    emailPlaceholder: string;
     emailPlaceholderLong: string;
     emailContinue: string;
     emailInvalid: string;
@@ -320,19 +314,13 @@ const uk: SiteMessages = {
       "Вхід через Google і email зараз недоступний. Увійди гаманцем нижче.",
     emailLoginNeedsAppIdLocal:
       "Privy ще не в білді. Локально: NEXT_PUBLIC_PRIVY_APP_ID у .env.local. На проді: та сама змінна в Vercel Production + Redeploy.",
-    loginTitle: "Увійти або зареєструватись",
     loginWelcome: "Вітаємо у Form8",
     loginOr: "АБО",
     loginTerms: "Умови",
     loginPrivacy: "Приватність",
-    loginSkinLabel: "Варіант плашки",
-    loginSkinCurrent: "Зараз",
-    loginSkinIpad: "iPad",
-    loginSkinLocker: "Плашка",
     continueWithGoogle: "Продовжити з Google",
     googleLoginNotEnabled:
       "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz і https://movematch.xyz.",
-    emailPlaceholder: "Email",
     emailPlaceholderLong: "Email адреса",
     emailContinue: "Далі",
     emailInvalid: "Введи коректний email.",
@@ -607,19 +595,13 @@ const en: SiteMessages = {
       "Google and email login is not available yet. Use a wallet below.",
     emailLoginNeedsAppIdLocal:
       "Privy is not in this build. Local: NEXT_PUBLIC_PRIVY_APP_ID in .env.local. Production: the same variable on Vercel Production, then Redeploy.",
-    loginTitle: "Log in or sign up",
     loginWelcome: "Welcome to Form8",
     loginOr: "OR",
     loginTerms: "Terms",
     loginPrivacy: "Privacy",
-    loginSkinLabel: "Plaque look",
-    loginSkinCurrent: "Current",
-    loginSkinIpad: "iPad",
-    loginSkinLocker: "Plaque",
     continueWithGoogle: "Continue with Google",
     googleLoginNotEnabled:
       "Google login is off in Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz, and https://movematch.xyz.",
-    emailPlaceholder: "Email",
     emailPlaceholderLong: "Email address",
     emailContinue: "Continue",
     emailInvalid: "Enter a valid email.",

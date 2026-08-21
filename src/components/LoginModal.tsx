@@ -9,16 +9,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLoginWithEmail } from "@privy-io/react-auth";
 import { usePrivyAuth } from "@/components/PrivyAppProvider";
 import { usePrivyLoginSession } from "@/components/PrivyLoginSession";
 import {
-  LOGIN_SKINS,
-  LOGIN_SKIN_THEMES,
-  loadLoginSkin,
-  saveLoginSkin,
-  type LoginSkin,
+  LOGIN_THEME,
   type LoginSkinTheme,
 } from "@/components/loginSkins";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
@@ -27,7 +23,6 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { isLocalDevHost, isPrivyConfigured } from "@/lib/privy";
 import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
-import { SPRING_PILL } from "@/lib/uiMotion";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -229,7 +224,6 @@ function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
   const [hint, setHint] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const submittedCode = useRef("");
-  const emailOk = email.trim().includes("@");
   const emailBusy =
     sending ||
     emailState.status === "sending-code" ||
@@ -371,21 +365,19 @@ function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
         <GoogleMark mono={theme.googleMono} />
         {m.nav.continueWithGoogle}
       </button>
-      {theme.polyLayout ? <OrDivider theme={theme} label={m.nav.loginOr} /> : null}
+      <OrDivider theme={theme} label={m.nav.loginOr} />
       <form onSubmit={onSendCode} className="relative">
         <input
           type="email"
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={
-            theme.polyLayout ? m.nav.emailPlaceholderLong : m.nav.emailPlaceholder
-          }
+          placeholder={m.nav.emailPlaceholderLong}
           className={theme.inputClass}
         />
         <ContinueControl
           theme={theme}
-          disabled={emailBusy || (theme.continueKind === "text" && !emailOk)}
+          disabled={emailBusy}
           label={m.nav.emailContinue}
         />
       </form>
@@ -415,20 +407,18 @@ function FallbackAuthFields({ theme }: { theme: LoginSkinTheme }) {
         <GoogleMark mono={theme.googleMono} />
         {m.nav.continueWithGoogle}
       </button>
-      {theme.polyLayout ? <OrDivider theme={theme} label={m.nav.loginOr} /> : null}
+      <OrDivider theme={theme} label={m.nav.loginOr} />
       <div className="relative">
         <input
           type="email"
           readOnly
           onFocus={show}
-          placeholder={
-            theme.polyLayout ? m.nav.emailPlaceholderLong : m.nav.emailPlaceholder
-          }
+          placeholder={m.nav.emailPlaceholderLong}
           className={theme.inputClass}
         />
         <ContinueControl
           theme={theme}
-          disabled={theme.continueKind === "text"}
+          disabled={false}
           label={m.nav.emailContinue}
           type="button"
           onClick={show}
@@ -467,14 +457,9 @@ function LoginPlaqueBody({
   const m = useSiteMessages();
   return (
     <>
-      <div
-        className={cn(
-          "flex flex-col items-center",
-          theme.polyLayout ? "mb-9 pt-1" : "mb-8 pt-1",
-        )}
-      >
+      <div className="mb-9 flex flex-col items-center pt-1">
         <h2 id={titleId} className={theme.titleClass}>
-          {theme.polyLayout ? m.nav.loginWelcome : m.nav.loginTitle}
+          {m.nav.loginWelcome}
         </h2>
       </div>
 
@@ -509,67 +494,16 @@ function LoginPlaqueBody({
         </p>
       ) : null}
 
-      {theme.polyLayout ? (
-        <p className={cn("mt-8 text-center", theme.footerClass)}>
-          <Link href="/faq" className="transition-colors hover:text-white">
-            {m.nav.loginTerms}
-          </Link>
-          <span className="mx-1.5 opacity-50">•</span>
-          <Link href="/faq" className="transition-colors hover:text-white">
-            {m.nav.loginPrivacy}
-          </Link>
-        </p>
-      ) : null}
+      <p className={cn("mt-8 text-center", theme.footerClass)}>
+        <Link href="/faq" className="transition-colors hover:text-white">
+          {m.nav.loginTerms}
+        </Link>
+        <span className="mx-1.5 opacity-50">•</span>
+        <Link href="/faq" className="transition-colors hover:text-white">
+          {m.nav.loginPrivacy}
+        </Link>
+      </p>
     </>
-  );
-}
-
-function SkinPicker({
-  skin,
-  onChange,
-}: {
-  skin: LoginSkin;
-  onChange: (id: LoginSkin) => void;
-}) {
-  const m = useSiteMessages();
-  const reduce = Boolean(useReducedMotion());
-  const labels: Record<LoginSkin, string> = {
-    current: m.nav.loginSkinCurrent,
-    crystal: m.nav.loginSkinIpad,
-    locker: m.nav.loginSkinLocker,
-  };
-
-  return (
-    <LayoutGroup id="login-skin">
-    <div
-      role="radiogroup"
-      aria-label={m.nav.loginSkinLabel}
-      className="relative z-10 flex items-center gap-1 rounded-full border border-white/12 bg-black/50 p-1 backdrop-blur-xl"
-    >
-      {LOGIN_SKINS.map((id) => (
-        <button
-          key={id}
-          type="button"
-          role="radio"
-          aria-checked={skin === id}
-          onClick={() => onChange(id)}
-          className={cn(
-            "relative rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]",
-            skin === id ? "text-black" : "text-white/55 hover:text-white",
-          )}
-        >
-          {skin === id ? (
-            <motion.span
-              layoutId="login-skin-pill"
-              className="absolute inset-0 rounded-full bg-white"
-              transition={reduce ? { duration: 0 } : SPRING_PILL}
-            />
-          ) : null}
-          <span className="relative z-10">{labels[id]}</span>
-        </button>
-      ))}
-    </div>
-    </LayoutGroup>
   );
 }
 
@@ -580,12 +514,10 @@ export function LoginModal({ open, onClose }: Props) {
   const { walletRows, connectWallet, pending, hint, statusLine, lastError } =
     useWalletConnect();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [skin, setSkin] = useState<LoginSkin>("current");
-  const theme = LOGIN_SKIN_THEMES[skin];
+  const theme = LOGIN_THEME;
 
   useEffect(() => {
     setPortalRoot(document.body);
-    setSkin(loadLoginSkin());
   }, []);
 
   useEffect(() => {
@@ -602,17 +534,12 @@ export function LoginModal({ open, onClose }: Props) {
     };
   }, [open, onClose]);
 
-  const onPickSkin = (id: LoginSkin) => {
-    setSkin(id);
-    saveLoginSkin(id);
-  };
-
   if (!portalRoot) return null;
 
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-[200] flex min-h-[100dvh] items-center justify-center p-4 pb-20 sm:p-6">
+        <div className="fixed inset-0 z-[200] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6">
           <motion.button
             type="button"
             aria-label={m.nav.menuClose}
@@ -644,23 +571,8 @@ export function LoginModal({ open, onClose }: Props) {
                 : { type: "spring", duration: 0.42, bounce: 0 }
             }
             className={theme.plaqueClass}
-            style={theme.glass ? undefined : theme.plaqueStyle}
           >
-            {theme.glass ? (
-              <GlassPanel crystal className="w-full !rounded-2xl p-8 sm:p-9">
-                <LoginPlaqueBody
-                  theme={theme}
-                  titleId={titleId}
-                  walletRows={walletRows}
-                  pending={pending}
-                  reduce={reduce}
-                  connectWallet={connectWallet}
-                  hint={hint}
-                  statusLine={statusLine}
-                  lastError={lastError}
-                />
-              </GlassPanel>
-            ) : (
+            <GlassPanel crystal className="w-full !rounded-2xl p-8 sm:p-9">
               <LoginPlaqueBody
                 theme={theme}
                 titleId={titleId}
@@ -672,7 +584,7 @@ export function LoginModal({ open, onClose }: Props) {
                 statusLine={statusLine}
                 lastError={lastError}
               />
-            )}
+            </GlassPanel>
             <button
               type="button"
               onClick={onClose}
@@ -681,18 +593,6 @@ export function LoginModal({ open, onClose }: Props) {
             >
               <CloseIcon />
             </button>
-          </motion.div>
-
-          <motion.div
-            className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4 sm:bottom-6"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: reduce ? 0.12 : 0.22, ease: plaqueEase }}
-          >
-            <div className="pointer-events-auto">
-              <SkinPicker skin={skin} onChange={onPickSkin} />
-            </div>
           </motion.div>
         </div>
       ) : null}
