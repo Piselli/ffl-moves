@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import {
@@ -571,10 +572,40 @@ export function ResultsTablet({
                 >
                   Claim prize
                 </p>
-                <p className="mt-2 text-sm text-white/55">
-                  Rank #{s.you.rank} · {s.you.prizeAmount} {s.data.prizeSymbol}.
-                  Sign with your wallet to claim on-chain.
-                </p>
+                <div className="mt-4 flex items-end gap-6">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">
+                      Rank
+                    </p>
+                    <p
+                      className="mt-1 font-display text-3xl font-black tabular-nums leading-none text-white"
+                      style={DISPLAY}
+                    >
+                      #{s.you.rank}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">
+                      Prize
+                    </p>
+                    <p
+                      className="mt-1 flex items-center gap-2 font-display text-3xl font-black tabular-nums leading-none text-white"
+                      style={DISPLAY}
+                    >
+                      <Image
+                        src="/usdc-logo.png"
+                        alt=""
+                        width={24}
+                        height={24}
+                        className="size-6 shrink-0"
+                      />
+                      <span className="truncate">{s.you.prizeAmount}</span>
+                      <span className="shrink-0 text-sm font-bold tracking-wide text-white/45">
+                        {s.data.prizeSymbol}
+                      </span>
+                    </p>
+                  </div>
+                </div>
                 <div className="mt-5 flex gap-2">
                   <button
                     type="button"
