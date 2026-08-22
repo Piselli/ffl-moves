@@ -48,6 +48,14 @@ function useIsPhone(): boolean | null {
   return phone;
 }
 
+type SiteLayoutMode = "pending" | "flat" | "scene";
+
+function siteLayoutMode(isSite: boolean, isPhone: boolean | null): SiteLayoutMode {
+  if (!isSite) return "scene";
+  if (isPhone === null) return "pending";
+  return isPhone ? "flat" : "scene";
+}
+
 const TabletScene = dynamic(
   () => import("./TabletScene").then((module) => module.TabletScene),
   { ssr: false },
@@ -99,7 +107,18 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const [tabletReady, setTabletReady] = useState(!isSite);
   const [bootVisible, setBootVisible] = useState(isSite);
   const [bootMounted, setBootMounted] = useState(isSite);
-  const sceneReady = roomImageReady && tabletReady && squad.hydrateSettled;
+  const isPhone = useIsPhone();
+  const layoutMode = siteLayoutMode(isSite, isPhone);
+  /** Only true on confirmed phone — never assume flat while `isPhone` is still null. */
+  const flatPicker = layoutMode === "flat";
+  const useTabletScene = layoutMode === "scene";
+  const sceneReady =
+    layoutMode !== "pending" &&
+    roomImageReady &&
+    tabletReady &&
+    squad.hydrateSettled &&
+    !data.playersLoading &&
+    !data.fixturesLoading;
 
   const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
   const onRoomImageError = useCallback(() => setRoomImageReady(true), []);
@@ -112,9 +131,6 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
   const [homeLookId, setHomeLookId] =
     useState<TabletVariantId>(SHIPPING_TABLET_VARIANT);
-  const isPhone = useIsPhone();
-  const flatPicker = isSite && isPhone !== false;
-  const useTabletScene = !isSite || isPhone === false;
 
   useEffect(() => {
     if (!isSite) return;
@@ -186,8 +202,9 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   }, [data.players, data.playersLoading, squad.filledCount, squad.randomize]);
 
   useEffect(() => {
-    if (flatPicker) setTabletReady(true);
-  }, [flatPicker]);
+    if (layoutMode !== "flat") return;
+    setTabletReady(true);
+  }, [layoutMode]);
 
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {

@@ -1,12 +1,20 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { PageRouteLoading } from "@/components/PageRouteLoading";
 
 const LockerHero = dynamic(
   () =>
     import("@/components/design-lab/locker-hero/LockerHero").then((m) => m.LockerHero),
-  { ssr: false, loading: () => <PageRouteLoading /> },
+  {
+    ssr: false,
+    // Match LockerHeroBoot so chunk load → hero never flashes a different shell size.
+    loading: () => (
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[45] bg-[#1a1816]"
+      />
+    ),
+  },
 );
 
 /**

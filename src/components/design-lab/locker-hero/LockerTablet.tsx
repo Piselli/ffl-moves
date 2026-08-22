@@ -802,26 +802,29 @@ function MatchRow({
       <ClubSide side={match.teamH} align="start" />
       <div className="flex w-[52px] shrink-0 flex-col items-center justify-center">
         {hasScore ? (
-          <>
-            <span className="text-[13px] font-black tabular-nums tracking-tight text-[color:var(--lt-ink)]">
-              {match.scoreH}
-              <span className="px-0.5 text-[color:var(--lt-ink)]/35">–</span>
-              {match.scoreA}
-            </span>
-            <span
-              className={cn(
-                "mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em]",
-                live ? "text-[color:var(--lt-accent)]" : "text-[color:var(--lt-muted)]",
-              )}
-            >
-              {live ? "Live" : "FT"}
-            </span>
-          </>
+          <span className="text-[13px] font-black tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+            {match.scoreH}
+            <span className="px-0.5 text-[color:var(--lt-ink)]/35">–</span>
+            {match.scoreA}
+          </span>
         ) : (
           <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {formatKickoffTime(match.kickoffTime, locale)}
           </span>
         )}
+        {/* Always reserve status-line height so Live/FT doesn't reflow the list. */}
+        <span
+          className={cn(
+            "mt-0.5 h-[10px] text-[8px] font-bold uppercase leading-none tracking-[0.12em]",
+            hasScore
+              ? live
+                ? "text-[color:var(--lt-accent)]"
+                : "text-[color:var(--lt-muted)]"
+              : "text-transparent",
+          )}
+        >
+          {hasScore ? (live ? "Live" : "FT") : "·"}
+        </span>
       </div>
       <ClubSide side={match.teamA} align="end" />
     </div>
@@ -1247,10 +1250,26 @@ export function LockerTablet({
             className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-0.5 py-0.5"
             style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
           >
-            {dayGroups.length === 0 ? (
-              <p className="px-1 py-3 text-[12px] text-[color:var(--lt-muted)]">
-                Loading fixtures…
-              </p>
+            {fixturesLoading || dayGroups.length === 0 ? (
+              <div className="flex flex-col gap-2 px-0.5" aria-hidden>
+                {Array.from({ length: 3 }).map((_, gi) => (
+                  <div key={gi} className="flex flex-col gap-1">
+                    <div className="mb-0.5 h-2.5 w-24 animate-pulse rounded bg-[color:var(--lt-ink)]/15" />
+                    {Array.from({ length: gi === 0 ? 2 : 3 }).map((__, mi) => (
+                      <div
+                        key={mi}
+                        className="flex min-h-[32px] items-center gap-1.5 px-1 py-0.5"
+                      >
+                        <div className="h-7 w-7 animate-pulse rounded-full bg-[color:var(--lt-ink)]/12" />
+                        <div className="h-3 flex-1 animate-pulse rounded bg-[color:var(--lt-ink)]/10" />
+                        <div className="h-3 w-10 animate-pulse rounded bg-[color:var(--lt-ink)]/15" />
+                        <div className="h-3 flex-1 animate-pulse rounded bg-[color:var(--lt-ink)]/10" />
+                        <div className="h-7 w-7 animate-pulse rounded-full bg-[color:var(--lt-ink)]/12" />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             ) : (
               dayGroups.map((group) => (
                 <div key={group.key} className="flex shrink-0 flex-col gap-1">
