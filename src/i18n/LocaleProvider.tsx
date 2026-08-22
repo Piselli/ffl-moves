@@ -79,6 +79,20 @@ export function useSiteLocale(): LocaleContextValue {
   return ctx;
 }
 
+/** Re-provide locale inside R3F Canvas / drei Html — parent context does not cross the portal. */
+export function LocaleBridge({
+  locale,
+  setLocale,
+  reloadLocale,
+  children,
+}: LocaleContextValue & { children: React.ReactNode }) {
+  const value = useMemo(
+    () => ({ locale, setLocale, reloadLocale }),
+    [locale, setLocale, reloadLocale],
+  );
+  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+}
+
 export function useSiteMessages() {
   const { locale } = useSiteLocale();
   return messages[locale];

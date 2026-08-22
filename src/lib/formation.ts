@@ -155,6 +155,32 @@ export const PITCH_SLOT_LAYOUTS: Record<
   ],
 };
 
+export type PitchSlotAnchor = {
+  formationIndex: number;
+  leftPct: number;
+  topPct: number;
+};
+
+/** Rotate portrait anchors into landscape: GK left, attack right. */
+export function portraitToHorizontalPitchSlots(
+  portrait: readonly PitchSlotAnchor[],
+): readonly PitchSlotAnchor[] {
+  return portrait.map(({ formationIndex, leftPct, topPct }) => ({
+    formationIndex,
+    leftPct: 100 - topPct,
+    topPct: leftPct,
+  }));
+}
+
+/** Landscape pitch chip anchors (105×68 box). Attack on the right. */
+export const HORIZONTAL_PITCH_SLOT_LAYOUTS: Record<
+  FormationId,
+  readonly PitchSlotAnchor[]
+> = {
+  "4-3-3": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["4-3-3"]),
+  "3-4-3": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["3-4-3"]),
+};
+
 /** Remap filled starters into a new formation, keeping as many as fit by position. */
 export function remapStartersToFormation<T extends { position: PositionKey }>(
   starters: (T | null)[],

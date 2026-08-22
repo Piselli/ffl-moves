@@ -1,3 +1,5 @@
+import { catalogHitFromName } from "@/lib/fpl-photo-from-name";
+
 export type LabSquadPlayer = {
   name: string;
   pts: number;
@@ -10,6 +12,15 @@ export type LabSquadPlayer = {
   /** For pitch cutout candidates (same path as homepage) */
   fplPhotoCode?: number;
   apiId?: number;
+  /** 0 GK · 1 DEF · 2 MID · 3 FWD */
+  positionId?: number;
+  position?: "GK" | "DEF" | "MID" | "FWD";
+  slotIndex?: number;
+  isStarter?: boolean;
+  /** Auto-sub / effective scorer note */
+  subNote?: string | null;
+  /** GW stat blob for points breakdown */
+  stats?: Record<string, unknown>;
 };
 
 export type SeasonHighlightRow = {
@@ -37,6 +48,7 @@ export type LabLeaderboardRow = {
   squad?: readonly string[];
   /** Formation order: GK → DEF → MID → FWD — used by team-sheet pitch */
   xi?: readonly LabSquadPlayer[];
+  bench?: readonly LabSquadPlayer[];
   /** Inferred from on-chain starter positions when available */
   formationId?: "4-3-3" | "3-4-3";
 };
@@ -65,6 +77,7 @@ const MOCK_TEAM_ID: Record<string, number> = {
   Virgil: 14,
   "Van Dijk": 14,
   Salah: 14,
+  Gakpo: 14,
   Robertson: 14,
   Konate: 14,
   Gravenberch: 14,
@@ -92,30 +105,39 @@ const MOCK_TEAM_ID: Record<string, number> = {
   Mainoo: 16,
   Shaw: 16,
   Watkins: 2,
-  Mbeumo: 4,
+  Mbeumo: 16,
   Son: 19,
-  Isak: 17,
-  "João Pedro": 5,
-  Eze: 8,
-  Guehi: 8,
+  Isak: 14,
+  "João Pedro": 6,
+  Eze: 1,
+  Guehi: 15,
   Sarr: 8,
   Trippier: 17,
   Romero: 19,
   Porro: 19,
   Maddison: 19,
   Bellingham: 16,
-  Wissa: 4,
+  Wissa: 17,
 };
 
 function xi(
-  players: Array<[string, number, string?]>,
+  players: Array<[string, number, string?, Partial<LabSquadPlayer>?]>,
+  startIndex = 0,
 ): LabSquadPlayer[] {
-  return players.map(([name, pts, cast]) => ({
-    name,
-    pts,
-    teamId: MOCK_TEAM_ID[name],
-    cast: cast ? `${CAST}/${cast}.png` : undefined,
-  }));
+  return players.map(([name, pts, cast, extra], i) => {
+    const preferredTeam = extra?.teamId ?? MOCK_TEAM_ID[name];
+    const hit = catalogHitFromName(name, preferredTeam);
+    return {
+      ...extra,
+      name,
+      pts,
+      teamId: extra?.teamId ?? hit?.teamId ?? preferredTeam,
+      fplPhotoCode: extra?.fplPhotoCode ?? hit?.code,
+      cast: cast ? `${CAST}/${cast}.png` : extra?.cast,
+      slotIndex: startIndex + i,
+      isStarter: startIndex + i < 11,
+    };
+  });
 }
 
 /** Static preview data — visual only, no chain. */
@@ -246,25 +268,99 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
       rank: 87,
       owner: "0xyou4",
       nickname: "YOU",
-      finalPoints: 71,
+      finalPoints: 79,
       prizeAmount: 124,
       claimed: false,
       isYou: true,
       gwDelta: 14,
-      squad: ["Raya", "Shaw", "Van Dijk", "Colwill", "Salah", "Saka", "Palmer", "Mbeumo", "Haaland", "Watkins", "Bruno"],
+      formationId: "4-3-3",
+      squad: ["Raya", "Shaw", "Van Dijk", "Colwill", "Saliba", "Saka", "Palmer", "Bruno", "Gakpo", "Haaland", "Watkins"],
       xi: xi([
-        ["Raya", 5],
-        ["Shaw", 6],
-        ["Van Dijk", 6],
-        ["Colwill", 2],
-        ["Salah", 10],
-        ["Saka", 7],
-        ["Palmer", 6, "palmer"],
-        ["Mbeumo", 5],
-        ["Haaland", 12, "haaland"],
-        ["Watkins", 9, "watkins"],
-        ["Bruno", 8, "bruno"],
+        ["Raya", 5, undefined, {
+          positionId: 0,
+          position: "GK",
+          stats: { minutes_played: 90, clean_sheet: true, saves: 4 },
+        }],
+        ["Shaw", 14, undefined, {
+          positionId: 1,
+          position: "DEF",
+          // Dense GW line: 60' + G + A + CS + YC — stress-tests why strip wrap.
+          stats: {
+            minutes_played: 90,
+            goals: 1,
+            assists: 1,
+            clean_sheet: true,
+            yellow_cards: 1,
+          },
+        }],
+        ["Van Dijk", 6, undefined, {
+          positionId: 1,
+          position: "DEF",
+          stats: { minutes_played: 90, clean_sheet: true },
+        }],
+        ["Colwill", 2, undefined, {
+          positionId: 1,
+          position: "DEF",
+          stats: { minutes_played: 90, goals_conceded: 2 },
+        }],
+        ["Saliba", 6, "gabriel", {
+          positionId: 1,
+          position: "DEF",
+          stats: { minutes_played: 90, clean_sheet: true },
+        }],
+        ["Saka", 7, undefined, {
+          positionId: 2,
+          position: "MID",
+          stats: { minutes_played: 78, goals: 1, bonus: 1 },
+        }],
+        ["Palmer", 6, "palmer", {
+          positionId: 2,
+          position: "MID",
+          stats: { minutes_played: 90, assists: 1, bonus: 1 },
+        }],
+        ["Bruno", 8, "bruno", {
+          positionId: 2,
+          position: "MID",
+          stats: { minutes_played: 90, goals: 1, bonus: 1 },
+        }],
+        // Gakpo (not Salah) — in PL 26/27 FPL catalog with a real cutout code.
+        ["Gakpo", 10, undefined, {
+          positionId: 3,
+          position: "FWD",
+          stats: { minutes_played: 90, goals: 1, assists: 1, bonus: 2 },
+        }],
+        ["Haaland", 12, "haaland", {
+          positionId: 3,
+          position: "FWD",
+          stats: { minutes_played: 90, goals: 2, bonus: 2 },
+        }],
+        ["Watkins", 9, "watkins", {
+          positionId: 3,
+          position: "FWD",
+          stats: { minutes_played: 88, goals: 1, assists: 1 },
+        }],
       ]),
+      bench: xi(
+        [
+          ["Mbeumo", 5, undefined, {
+            positionId: 2,
+            position: "MID",
+            stats: { minutes_played: 0 },
+          }],
+          ["White", 1, undefined, {
+            positionId: 1,
+            position: "DEF",
+            stats: { minutes_played: 12 },
+            subNote: "Subbed on · 12′",
+          }],
+          ["Rice", 2, undefined, {
+            positionId: 2,
+            position: "MID",
+            stats: { minutes_played: 0 },
+          }],
+        ],
+        11,
+      ),
     },
     {
       rank: 88,

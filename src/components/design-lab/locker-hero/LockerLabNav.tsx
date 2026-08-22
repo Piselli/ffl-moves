@@ -100,49 +100,51 @@ function Right({ compact = false }: { compact?: boolean }) {
   const chip = compact ? MOBILE_CHIP : CHIP;
 
   return (
-    <div className="relative z-10 flex min-w-0 items-center gap-1 sm:gap-1.5 md:gap-2">
+    <div className="relative z-10 flex min-w-0 items-center gap-1.5 sm:gap-2">
       {connected ? (
         <>
-          <NavUsdcBalance
-            className={cn(
-              compact &&
-                "h-7 max-w-[4.75rem] px-1.5 text-[10px] normal-case tracking-tight",
-            )}
-          />
-          <button
-            type="button"
-            onClick={openDeposit}
-            className={cn(
-              chip,
-              "hidden bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98] md:inline-flex",
-            )}
-          >
-            {m.deposit.open}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (address) setShowNicknameModal(true);
-            }}
-            disabled={!address}
-            title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
-            className={cn(
-              chip,
-              "hidden max-w-[7.5rem] truncate border border-white/20 bg-black/40 text-white/85 backdrop-blur-sm transition hover:border-white/35 active:scale-[0.98] disabled:opacity-50 md:inline-flex",
-            )}
-          >
-            {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
-          </button>
+          <div className="hidden items-center gap-1.5 rounded-xl border border-white/12 bg-black/45 p-1 backdrop-blur-md md:flex">
+            <NavUsdcBalance
+              className={cn(
+                "!h-8 !rounded-lg !border-0 !bg-transparent !px-2.5 !text-[11px] !font-semibold !normal-case !tracking-tight text-white/90 hover:!bg-white/[0.06]",
+                compact && "max-w-[4.75rem] !text-[10px]",
+              )}
+            />
+            <button
+              type="button"
+              onClick={openDeposit}
+              className="inline-flex h-8 items-center rounded-lg bg-[#00f948] px-3.5 text-[11px] font-black uppercase tracking-[0.06em] text-black transition hover:brightness-110 active:scale-[0.98]"
+            >
+              {m.deposit.open}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (address) setShowNicknameModal(true);
+              }}
+              disabled={!address}
+              title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
+              className="inline-flex h-8 max-w-[8rem] items-center truncate rounded-lg px-2.5 text-[11px] font-semibold tracking-tight text-white/80 transition hover:bg-white/[0.06] hover:text-white active:scale-[0.98] disabled:opacity-50"
+            >
+              {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => disconnect()}
             title={m.nav.disconnect}
-            className={cn(
-              chip,
-              "hidden text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98] md:inline-flex",
-            )}
+            aria-label={m.nav.disconnect}
+            className="hidden h-9 w-9 place-items-center rounded-xl border border-white/12 bg-black/40 text-white/45 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97] md:grid"
           >
-            {m.nav.disconnectShort}
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1M3 12h11M10 8l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
           {address ? (
             <NicknameModal
@@ -240,8 +242,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
               "hover:text-[#00f948]",
             )}
           />
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 md:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3">
             <Right compact />
+            <div className="hidden h-5 w-px bg-white/15 md:block" aria-hidden />
             <LanguageSwitcher embedded />
             <button
               type="button"

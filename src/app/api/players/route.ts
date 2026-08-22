@@ -5,6 +5,10 @@ import { CLEAN_SHEET_POINTS, GOAL_POINTS } from "@/lib/scoring-rules";
 import { playerPhotoSrc } from "@/lib/playerPhoto";
 import type { Player } from "@/lib/types";
 
+type FplApiIdMapFile = {
+  byCode?: Record<string, number>;
+};
+
 const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const PHOTO_BASE =
   "https://resources.premierleague.com/premierleague/photos/players/250x250/p";
@@ -84,7 +88,7 @@ function buildApiIdIndex(catalog: ApiSportsCatalogRow[]): Map<string, number> {
 
   for (const row of catalog) {
     if (row.apiId == null || row.apiId <= 0 || !row.name) continue;
-    const parts = row.name.trim().split(/\s+/);
+    const parts = row.name.trim().split(/[\s.]+/).filter(Boolean);
     const last = normName(parts[parts.length - 1] || "");
     if (last.length < 3) continue;
     const pos = (row.position || "").toUpperCase();
@@ -100,19 +104,24 @@ function buildApiIdIndex(catalog: ApiSportsCatalogRow[]): Map<string, number> {
   return index;
 }
 
+function loadJsonSafe<T>(relPath: string, fallback: T): T {
+  try {
+    const raw = readFileSync(join(process.cwd(), relPath), "utf8");
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    console.warn(`players: failed to read ${relPath}`, err);
+    return fallback;
+  }
+}
+
+/** Built by `npm run build:atlas` — FPL element.code → API-Sports id. */
+const API_ID_BY_FPL_CODE: Record<string, number> = (() => {
+  const file = loadJsonSafe<FplApiIdMapFile>("src/data/fpl-apiid-map.json", {});
+  return file.byCode ?? {};
+})();
+
 const API_ID_BY_NAME_POS = buildApiIdIndex(
-  (() => {
-    try {
-      const raw = readFileSync(
-        join(process.cwd(), "public/data/players.json"),
-        "utf8",
-      );
-      return JSON.parse(raw) as ApiSportsCatalogRow[];
-    } catch (err) {
-      console.warn("players: api-sports catalog unavailable", err);
-      return [];
-    }
-  })(),
+  loadJsonSafe<ApiSportsCatalogRow[]>("public/data/players.json", []),
 );
 
 /** No `revalidate` / Data Cache: FPL bootstrap JSON exceeds Next’s ~2MB fetch cache limit — we use `cache: "no-store"` below. */
@@ -154,8 +163,13 @@ export async function GET() {
         const elementType = Number(el.element_type);
         const pos = POSITION_MAP[elementType] || "MID";
         const webName = el.web_name as string;
+        const secondName = String(el.second_name || "");
+        const code = el.code as number;
         const apiId =
-          API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ?? undefined;
+          API_ID_BY_FPL_CODE[String(code)] ??
+          API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ??
+          API_ID_BY_NAME_POS.get(`${normName(secondName)}|${pos}`) ??
+          undefined;
         return {
           id: el.id as number,
           fplId: el.id as number,
@@ -170,7 +184,7 @@ export async function GET() {
               ? null
               : Number(el.squad_number),
           photo: `${PHOTO_BASE}${el.code}.png`,
-          fplPhotoCode: el.code as number,
+          fplPhotoCode: code,
           apiId,
           status: el.status as string, // a, d, i, s (FPL)
           chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,

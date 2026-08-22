@@ -127,12 +127,11 @@ export function Navbar() {
             <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
             <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
           </div>
-          <div className="hidden lg:flex flex-1 justify-end items-center gap-3">
+          <div className="hidden lg:flex flex-1 justify-end items-center gap-2">
             <NavUtilityCluster>
-              <LanguageSwitcher embedded />
-              <NavUtilityDivider />
               <span className="px-2 py-1.5 text-[10px] font-semibold text-white/30">{m.nav.loading}</span>
             </NavUtilityCluster>
+            <LanguageSwitcher embedded />
           </div>
         </nav>
       </div>
@@ -223,11 +222,9 @@ export function Navbar() {
           />
         ) : null}
 
-        {/* ── Right: utility cluster + mobile menu + wallet ─────────── */}
-        <div className="relative flex items-center gap-1.5 shrink-0 min-w-0">
+        {/* ── Right: account cluster, then EN/UA in the far corner ─────────── */}
+        <div className="relative flex min-w-0 shrink-0 items-center gap-2">
           <NavUtilityCluster>
-            <LanguageSwitcher embedded />
-            <NavUtilityDivider />
             <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
             {connected ? (
               <>
@@ -236,7 +233,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={openDeposit}
-                  className="rounded-lg px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-[#00f948] transition-[background-color,transform] duration-150 hover:bg-[#00f948]/15 active:scale-[0.97] whitespace-nowrap"
+                  className="rounded-lg bg-[#00f948]/15 px-2.5 py-1.5 text-[10px] font-display font-black uppercase tracking-wide text-[#00f948] transition-[background-color,transform] duration-150 hover:bg-[#00f948]/25 active:scale-[0.97] whitespace-nowrap min-[400px]:text-[11px]"
                 >
                   {m.deposit.open}
                 </button>
@@ -246,11 +243,11 @@ export function Navbar() {
                     if (address) setShowNicknameModal(true);
                   }}
                   disabled={!address}
-                  className="inline-flex items-center gap-1.5 max-w-[7.5rem] min-[400px]:max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none min-w-0 rounded-lg px-2 py-1.5 transition-[background-color,transform] duration-150 hover:bg-white/[0.06] active:scale-[0.97] group disabled:opacity-50"
+                  className="group inline-flex min-w-0 max-w-[7.5rem] items-center gap-1.5 rounded-lg px-2 py-1.5 transition-[background-color,transform] duration-150 hover:bg-white/[0.06] active:scale-[0.97] disabled:opacity-50 min-[400px]:max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none"
                   title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse shadow-[0_0_6px_rgba(0,249,72,0.8)] shrink-0" />
-                  <span className="text-[10px] xl:text-[11px] text-[#00f948] font-black font-display uppercase tracking-wider truncate">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
+                  <span className="truncate font-display text-[10px] font-black uppercase tracking-wider text-white/85 xl:text-[11px]">
                     {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
                   </span>
                 </button>
@@ -258,11 +255,17 @@ export function Navbar() {
                   onClick={disconnect}
                   aria-label={m.nav.disconnect}
                   title={m.nav.disconnect}
-                  className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-red-400/75 transition-[background-color,color,transform] duration-150 hover:bg-red-500/10 hover:text-red-400 active:scale-[0.97] shrink-0"
+                  className="inline-flex shrink-0 items-center justify-center rounded-lg px-2 py-1.5 text-white/40 transition-[background-color,color,transform] duration-150 hover:bg-white/[0.06] hover:text-white/75 active:scale-[0.97]"
                 >
-                  <span className="text-[10px] font-display font-bold uppercase tracking-wider">
-                    {m.nav.disconnectShort}
-                  </span>
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1M3 12h11M10 8l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </button>
               </>
             ) : (
@@ -274,7 +277,7 @@ export function Navbar() {
                     setMobileMenuOpen(false);
                     openLogin();
                   }}
-                  className="rounded-lg bg-white px-2.5 py-1.5 text-[10px] min-[400px]:text-[11px] font-display font-black uppercase tracking-wide text-black transition-[background-color,transform] duration-150 hover:bg-white/90 active:scale-[0.97] whitespace-nowrap"
+                  className="whitespace-nowrap rounded-lg bg-white px-2.5 py-1.5 font-display text-[10px] font-black uppercase tracking-wide text-black transition-[background-color,transform] duration-150 hover:bg-white/90 active:scale-[0.97] min-[400px]:text-[11px]"
                 >
                   <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
                   <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
@@ -282,6 +285,7 @@ export function Navbar() {
               </>
             )}
           </NavUtilityCluster>
+          <LanguageSwitcher embedded />
           <button
             type="button"
             aria-expanded={mobileMenuOpen}
@@ -289,7 +293,7 @@ export function Navbar() {
             onClick={() => {
               setMobileMenuOpen((o) => !o);
             }}
-            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-[background-color,transform] duration-150 active:scale-[0.96]"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white transition-[background-color,transform] duration-150 hover:bg-white/[0.08] active:scale-[0.96] lg:hidden"
           >
             {mobileMenuOpen ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

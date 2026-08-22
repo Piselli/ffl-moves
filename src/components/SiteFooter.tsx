@@ -7,7 +7,7 @@ import { SocialLinkX } from "@/components/SocialLinkX";
 import { Form8Lockup } from "@/components/Form8Mark";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
-const HIDE_FOOTER_PATHS = new Set([
+const HIDE_FOOTER_EXACT = new Set([
   "/",
   "/leaderboard",
   "/season-leaderboard",
@@ -19,8 +19,22 @@ const HIDE_FOOTER_PATHS = new Set([
   "/design-lab/locker-hero",
   "/design-lab/locker-leaderboard",
   "/design-lab/leaderboard-concepts",
+  "/design-lab/desk-results",
   "/design-preview/homepage",
 ]);
+
+const HIDE_FOOTER_PREFIXES = [
+  "/leaderboard/",
+  "/season-leaderboard/",
+  "/design-lab/desk-results/",
+  "/design-lab/locker-leaderboard/",
+] as const;
+
+function shouldHideFooter(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (HIDE_FOOTER_EXACT.has(pathname)) return true;
+  return HIDE_FOOTER_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 export function SiteFooter() {
   const m = useSiteMessages();
@@ -38,10 +52,10 @@ export function SiteFooter() {
     }
   }, []);
 
-  if (HIDE_FOOTER_PATHS.has(pathname)) return null;
+  if (shouldHideFooter(pathname)) return null;
 
   return (
-    <footer className="relative z-10 border-t border-white/[0.06] bg-[#0A0C0F]/80">
+    <footer className="relative z-0 border-t border-white/[0.06] bg-[#0A0C0F]/80">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 sm:py-10 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 space-y-1">
           <Link href="/" aria-label="FORM8" className="inline-flex items-center text-white/80 transition-colors hover:text-white">

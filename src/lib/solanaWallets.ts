@@ -9,7 +9,6 @@ export type SolanaWalletDef = {
   chromeExtensionUrl: string;
   downloadUrl: string;
   fallbackIcon?: string;
-  buyGuideUrl: string;
 };
 
 export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
@@ -20,7 +19,6 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     chromeExtensionUrl: "https://phantom.com/download",
     downloadUrl: "https://phantom.com/download",
     fallbackIcon: "/wallets/phantom.svg",
-    buyGuideUrl: "https://help.phantom.com/hc/en-us/articles/4406388623251-How-do-I-buy-crypto",
   },
   {
     id: "solflare",
@@ -29,7 +27,6 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     chromeExtensionUrl: "https://solflare.com/download",
     downloadUrl: "https://solflare.com/download",
     fallbackIcon: "/wallets/solflare.svg",
-    buyGuideUrl: "https://solflare.com/buy",
   },
   {
     id: "jupiter",
@@ -38,7 +35,6 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     chromeExtensionUrl: "https://jup.ag/download",
     downloadUrl: "https://jup.ag/download",
     fallbackIcon: "/wallets/jupiter.png",
-    buyGuideUrl: "https://jup.ag",
   },
 ];
 

@@ -43,6 +43,12 @@ import {
   TeamSheetTable,
   useTeamSheetSelection,
 } from "./TeamSheetPieces";
+import { YouResultHero, YouXiPanel } from "./YouXiPanel";
+import {
+  DEFAULT_YOU_XI_VARIANT,
+  isYouResultPlate,
+  type YouXiVariantId,
+} from "./youXiVariants";
 import type { useResultsRoomData } from "./useResultsRoomData";
 
 type RoomData = ReturnType<typeof useResultsRoomData>;
@@ -154,6 +160,8 @@ type Props = {
   room: RoomData;
   /** Visual chrome only — layout stays board left · pitch right */
   chromeId?: ResultsChromeId;
+  /** YOU tab XI layout (no pitch) */
+  youXiVariantId?: YouXiVariantId;
 };
 
 /**
@@ -163,6 +171,7 @@ type Props = {
 export function ResultsTablet({
   room,
   chromeId = DEFAULT_RESULTS_CHROME,
+  youXiVariantId = DEFAULT_YOU_XI_VARIANT,
 }: Props) {
   const chrome = getResultsChrome(chromeId);
   const palette = getLockerPalette(chrome.paletteId);
@@ -389,67 +398,32 @@ export function ResultsTablet({
               />
             </div>
           ) : (
-            <div
-              className={cn(
-                "relative flex h-full min-h-0 flex-col overflow-hidden",
-                plateRadius,
-              )}
-              style={namingSheetStyle}
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-[inherit]"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 16%)",
-                }}
-              />
-              <div
-                className="relative z-10 flex h-full min-h-0 flex-col overflow-y-auto rt-scroll"
-                data-lt-scroll
-              >
-                {s.you ? (
-                  <>
-                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.12] px-4 py-3">
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">
-                          Your result
-                        </p>
-                        <p
-                          className="mt-1 text-3xl font-black tabular-nums text-[color:var(--lt-accent)]"
-                          style={DISPLAY}
-                        >
-                          #{s.you.rank}
-                          <span className="ml-3 text-white">
-                            {s.you.finalPoints}
-                          </span>
-                          <span className="ml-1 text-sm text-white/45">
-                            pts
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <TeamSheetPitch
-                      manager={
-                        s.open?.owner === s.you.owner ? s.open : s.you
-                      }
-                      landKey={s.landKey}
-                      loadingXi={s.loadingXi}
-                      label="Your XI"
-                      pitchStyleId={pitchStyleId}
-                      onPitchStyleChange={onPitchStyleChange}
-                      className="min-h-0 flex-1 pt-2"
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+              {s.you ? (
+                <>
+                  {!isYouResultPlate(youXiVariantId) ? (
+                    <YouResultHero
+                      manager={s.you}
+                      gameweek={s.data.gameweek}
                     />
-                  </>
-                ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                    <p className="text-sm text-white/55">
-                      Connect a wallet that entered this gameweek to see your
-                      result.
-                    </p>
-                  </div>
-                )}
-              </div>
+                  ) : null}
+                  <YouXiPanel
+                    manager={s.open?.owner === s.you.owner ? s.open : s.you}
+                    landKey={s.landKey}
+                    loadingXi={s.loadingXi}
+                    variantId={youXiVariantId}
+                    gameweek={s.data.gameweek}
+                    className="min-h-0 flex-1"
+                  />
+                </>
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+                  <p className="text-[15px] text-white/45">
+                    Connect a wallet that entered this gameweek to see your
+                    result.
+                  </p>
+                </div>
+              )}
             </div>
           )
         ) : tab === "board" ? (
@@ -491,60 +465,35 @@ export function ResultsTablet({
             </SpotlightShell>
           </div>
         ) : (
-          <SpotlightShell enabled={d.spotlight}>
-            <GlassPanel
-              interactive={d.interactivePanels}
-              crystal={d.crystalGlass}
-              className={cn("h-full min-h-0", plateRadius)}
-            >
-              <div
-                className="flex h-full min-h-0 flex-col overflow-y-auto rt-scroll"
-                data-lt-scroll
-              >
-                {s.you ? (
-                  <>
-                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 px-4 py-3">
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">
-                          Your result
-                        </p>
-                        <p
-                          className="mt-1 text-3xl font-black tabular-nums text-[color:var(--lt-accent)]"
-                          style={DISPLAY}
-                        >
-                          #{s.you.rank}
-                          <span className="ml-3 text-white">
-                            {d.counterPts ? (
-                              <CounterUp value={s.you.finalPoints} />
-                            ) : (
-                              s.you.finalPoints
-                            )}
-                          </span>
-                          <span className="ml-1 text-sm text-white/45">pts</span>
-                        </p>
-                      </div>
-                    </div>
-                    <TeamSheetPitch
-                      manager={s.open?.owner === s.you.owner ? s.open : s.you}
-                      landKey={s.landKey}
-                      loadingXi={s.loadingXi}
-                      label="Your XI"
-                      pitchStyleId={pitchStyleId}
-                      onPitchStyleChange={onPitchStyleChange}
-                      className="min-h-0 flex-1 pt-2"
-                    />
-                  </>
-                ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                    <p className="text-sm text-white/55">
-                      Connect a wallet that entered this gameweek to see your
-                      result.
-                    </p>
-                  </div>
-                )}
+          <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            {s.you ? (
+              <>
+                {!isYouResultPlate(youXiVariantId) ? (
+                  <YouResultHero
+                    manager={s.you}
+                    gameweek={s.data.gameweek}
+                    counter={d.counterPts}
+                    Counter={CounterUp}
+                  />
+                ) : null}
+                <YouXiPanel
+                  manager={s.open?.owner === s.you.owner ? s.open : s.you}
+                  landKey={s.landKey}
+                  loadingXi={s.loadingXi}
+                  variantId={youXiVariantId}
+                  gameweek={s.data.gameweek}
+                  className="min-h-0 flex-1"
+                />
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+                <p className="text-[15px] text-white/45">
+                  Connect a wallet that entered this gameweek to see your
+                  result.
+                </p>
               </div>
-            </GlassPanel>
-          </SpotlightShell>
+            )}
+          </div>
         )}
       </div>
 

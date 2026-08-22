@@ -74,15 +74,15 @@ export function playerPhotoCandidates(
 
   if (direct?.startsWith("/api/player-photo")) addPath(direct);
 
+  // EPL: official PL kit headshots first (consistent FPL look). API-Sports
+  // white cutouts only when PL CDN 403s / has no asset yet.
   if (hasFpl) {
     add(fplPlayerPhotoUrl(player.fplPhotoCode!));
-    // Smaller PL cut often works when 250×250 is 403 for new signings.
     add(
       `https://${PL_PHOTO_HOST}/premierleague/photos/players/110x140/p${player.fplPhotoCode}.png`,
     );
   }
 
-  // EPL fallback when PL CDN has no asset yet (summer arrivals, etc.).
   if (hasApi && hasFpl) {
     addPath(apiSportsPhotoProxyPath(player.apiId!));
     add(apiSportsPlayerPhotoUrl(player.apiId!));

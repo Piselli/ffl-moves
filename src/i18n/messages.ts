@@ -75,12 +75,25 @@ export type SiteMessages = {
     tabCrypto: string;
     cashHint: string;
     cryptoHint: string;
-    buyGuideCta: (wallet: string) => string;
+    cryptoTransferHint: string;
+    methodCard: string;
+    methodApplePay: string;
+    methodGooglePay: string;
+    instant: string;
+    amountCustom: string;
+    amountInvalid: string;
+    buyCardCta: string;
+    buyCardLoading: string;
+    buyCardPending: string;
+    buyCardConfirmed: string;
+    buyCardExternalOpened: string;
+    buyCardFailed: string;
+    buyCardNeedLogin: string;
+    buyCardMainnetOnly: string;
     copyAddress: string;
     copied: string;
     copyFailed: string;
     needWallet: string;
-    cashSoon: string;
     solanaAddress: string;
   };
   footer: {
@@ -337,12 +350,25 @@ const uk: SiteMessages = {
     tabCrypto: "Крипта",
     cashHint: "Купи USDC карткою або Apple Pay.",
     cryptoHint: "Надішли USDC у Solana.",
-    buyGuideCta: (wallet) => `Купити в ${wallet}`,
+    cryptoTransferHint: "Скопіюй адресу й надішли USDC у мережі Solana.",
+    methodCard: "Картка",
+    methodApplePay: "Apple Pay",
+    methodGooglePay: "Google Pay",
+    instant: "Миттєво",
+    amountCustom: "Своя сума",
+    amountInvalid: "Вкажи суму від $5 до $5000.",
+    buyCardCta: "Купити USDC",
+    buyCardLoading: "Відкриваємо…",
+    buyCardPending: "Платіж прийнято — USDC з’явиться за хвилину.",
+    buyCardConfirmed: "Готово — баланс оновлено.",
+    buyCardExternalOpened: "Відкрито оплату в новій вкладці. Після оплати повернись сюди.",
+    buyCardFailed: "Не вдалося відкрити оплату. Спробуй ще раз або Crypto-вкладку.",
+    buyCardNeedLogin: "Увійди через Google або email, щоб купити карткою.",
+    buyCardMainnetOnly: "Картка доступна лише на Solana mainnet.",
     copyAddress: "Копіювати",
     copied: "Скопійовано",
     copyFailed: "Не вдалося скопіювати.",
     needWallet: "Підключи гаманець.",
-    cashSoon: "Картка ще підключається — незабаром.",
     solanaAddress: "Адреса",
   },
   footer: {
@@ -618,12 +644,25 @@ const en: SiteMessages = {
     tabCrypto: "Crypto",
     cashHint: "Buy USDC with a card or Apple Pay.",
     cryptoHint: "Send USDC on Solana.",
-    buyGuideCta: (wallet) => `Buy in ${wallet}`,
+    cryptoTransferHint: "Copy your address and send USDC on Solana.",
+    methodCard: "Card",
+    methodApplePay: "Apple Pay",
+    methodGooglePay: "Google Pay",
+    instant: "Instant",
+    amountCustom: "Custom amount",
+    amountInvalid: "Enter an amount between $5 and $5000.",
+    buyCardCta: "Buy USDC",
+    buyCardLoading: "Opening…",
+    buyCardPending: "Payment submitted — USDC usually arrives within a minute.",
+    buyCardConfirmed: "Done — balance refreshed.",
+    buyCardExternalOpened: "Checkout opened in a new tab. Come back here after paying.",
+    buyCardFailed: "Could not open checkout. Try again or use the Crypto tab.",
+    buyCardNeedLogin: "Sign in with Google or email to buy with a card.",
+    buyCardMainnetOnly: "Card funding is available on Solana mainnet only.",
     copyAddress: "Copy",
     copied: "Copied",
     copyFailed: "Could not copy.",
     needWallet: "Connect a wallet.",
-    cashSoon: "Card is still being connected — coming soon.",
     solanaAddress: "Address",
   },
   footer: {

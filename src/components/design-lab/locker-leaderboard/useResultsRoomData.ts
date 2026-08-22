@@ -40,7 +40,11 @@ import {
   type FormationId,
 } from "@/lib/formation";
 
-type XiPayload = { xi: LabSquadPlayer[]; formationId: FormationId };
+type XiPayload = {
+  xi: LabSquadPlayer[];
+  bench: LabSquadPlayer[];
+  formationId: FormationId;
+};
 
 let playerCatalogPromise: Promise<Player[]> | null = null;
 
@@ -393,6 +397,7 @@ export function useResultsRoomData(): ResultsRoomData {
         if (!row?.xi?.length) return null;
         const payload: XiPayload = {
           xi: [...row.xi],
+          bench: [...(row.bench ?? [])],
           formationId: row.formationId ?? DEFAULT_FORMATION,
         };
         xiCache.current.set(cacheKey, payload);
@@ -415,12 +420,13 @@ export function useResultsRoomData(): ResultsRoomData {
           catalog,
         );
         const starters = squad.slice(0, 11);
+        const benchPlayers = squad.slice(11, 14);
         const stats = await getGameweekStats(gwId, chainTeam.playerIds);
 
-        const xi: LabSquadPlayer[] = starters.map((p) => {
-          const st = stats[p.id];
+        const toLab = (p: (typeof squad)[number], slotIndex: number): LabSquadPlayer => {
+          const st = stats[p.id] as Record<string, unknown> | undefined;
           const pts = st
-            ? calculateFantasyPointsWithRating(p, st as unknown as Record<string, unknown>)
+            ? calculateFantasyPointsWithRating(p, st)
             : 0;
           return {
             name: p.webName || p.name.split(" ").pop() || p.name,
@@ -429,10 +435,19 @@ export function useResultsRoomData(): ResultsRoomData {
             photo: p.photo || p.imageUrl,
             fplPhotoCode: p.fplPhotoCode,
             apiId: p.apiId,
+            positionId: p.positionId,
+            position: p.position,
+            slotIndex,
+            isStarter: slotIndex < 11,
+            stats: st,
           };
-        });
+        };
+
+        const xi: LabSquadPlayer[] = starters.map((p, i) => toLab(p, i));
+        const bench: LabSquadPlayer[] = benchPlayers.map((p, i) => toLab(p, 11 + i));
         const payload: XiPayload = {
           xi,
+          bench,
           formationId: inferFormationFromPositions(chainTeam.playerPositions),
         };
         xiCache.current.set(cacheKey, payload);

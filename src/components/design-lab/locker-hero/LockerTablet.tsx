@@ -470,10 +470,10 @@ function PitchPlayerChip({
   const plateW = compact ? 46 : PLATE_CHIP_W;
   const textW = compact ? 40 : PLATE_TEXT_W;
   const fontSize = compact ? 8.5 : PLATE_FONT_SIZE;
-  const cutoutSize = compact ? 30 : 48;
+  const cutoutSize = compact ? 36 : 56;
 
   return (
-    <span className="flex flex-col items-center gap-0.5">
+    <span className="flex flex-col items-center">
       <ChipCutout player={player} name={name} size={cutoutSize} />
       <span
         className="flex flex-col overflow-hidden rounded-[3px]"
@@ -533,7 +533,7 @@ function PitchEmptyChip({
 
   return (
     <span
-      className="flex flex-col items-center gap-0.5"
+      className="flex flex-col items-center"
       style={{ width: plateW }}
     >
       <span

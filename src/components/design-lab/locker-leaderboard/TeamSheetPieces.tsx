@@ -23,6 +23,8 @@ import { PitchChipCutout } from "@/components/design-lab/locker-hero/PitchChipCu
 import {
   DEFAULT_FORMATION,
   formationLanes,
+  HORIZONTAL_PITCH_SLOT_LAYOUTS,
+  PITCH_SLOT_LAYOUTS,
   type FormationId,
 } from "@/lib/formation";
 import { cn } from "@/lib/utils";
@@ -41,6 +43,7 @@ type SelectionOpts = {
     owner: string,
   ) => Promise<{
     xi: LabSquadPlayer[];
+    bench?: LabSquadPlayer[];
     formationId?: FormationId;
   } | null>;
   claiming?: boolean;
@@ -60,6 +63,9 @@ export function useTeamSheetSelection(
   const [xiByOwner, setXiByOwner] = useState<Record<string, LabSquadPlayer[]>>(
     {},
   );
+  const [benchByOwner, setBenchByOwner] = useState<Record<string, LabSquadPlayer[]>>(
+    {},
+  );
   const [formationByOwner, setFormationByOwner] = useState<
     Record<string, FormationId>
   >({});
@@ -75,6 +81,7 @@ export function useTeamSheetSelection(
     setOpenOwner(next);
     setLandKey((k) => k + 1);
     setXiByOwner({});
+    setBenchByOwner({});
     setFormationByOwner({});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: GW identity only
   }, [data.gameweek]);
@@ -85,6 +92,7 @@ export function useTeamSheetSelection(
     ? {
         ...baseOpen,
         xi: xiByOwner[baseOpen.owner] ?? baseOpen.xi,
+        bench: benchByOwner[baseOpen.owner] ?? baseOpen.bench,
         formationId:
           formationByOwner[baseOpen.owner] ??
           baseOpen.formationId ??
@@ -94,9 +102,16 @@ export function useTeamSheetSelection(
 
   const applyXi = (
     owner: string,
-    payload: { xi: LabSquadPlayer[]; formationId?: FormationId },
+    payload: {
+      xi: LabSquadPlayer[];
+      bench?: LabSquadPlayer[];
+      formationId?: FormationId;
+    },
   ) => {
     setXiByOwner((prev) => ({ ...prev, [owner]: payload.xi }));
+    if (payload.bench) {
+      setBenchByOwner((prev) => ({ ...prev, [owner]: payload.bench! }));
+    }
     if (payload.formationId) {
       setFormationByOwner((prev) => ({
         ...prev,
@@ -444,6 +459,118 @@ function condensedRows(
   return out;
 }
 
+function PitchChalkMarkings({
+  chalk,
+  fullMarkings,
+  orientation,
+}: {
+  chalk: string;
+  fullMarkings?: boolean;
+  orientation: "portrait" | "horizontal";
+}) {
+  const border = { borderColor: chalk };
+  const line = { background: chalk };
+  const dot = { background: chalk };
+
+  if (orientation === "horizontal") {
+    return (
+      <div
+        className="pointer-events-none absolute inset-[5%] rounded-[2px] border-2"
+        style={border}
+      >
+        <div
+          className="absolute inset-y-0 left-1/2 w-[1.5px] -translate-x-1/2"
+          style={line}
+        />
+        <div
+          className="absolute left-1/2 top-1/2 aspect-square w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+          style={border}
+        />
+        <div
+          className="absolute left-0 top-1/2 h-[48%] w-[11%] -translate-y-1/2 border-y-2 border-r-2"
+          style={border}
+        />
+        <div
+          className="absolute right-0 top-1/2 h-[48%] w-[11%] -translate-y-1/2 border-y-2 border-l-2"
+          style={border}
+        />
+        {fullMarkings ? (
+          <>
+            <div
+              className="absolute left-0 top-1/2 h-[22%] w-[6%] -translate-y-1/2 border-y-2 border-r-2"
+              style={border}
+            />
+            <div
+              className="absolute right-0 top-1/2 h-[22%] w-[6%] -translate-y-1/2 border-y-2 border-l-2"
+              style={border}
+            />
+            <div
+              className="absolute left-[14%] top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={dot}
+            />
+            <div
+              className="absolute right-[14%] top-1/2 h-1.5 w-1.5 translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={dot}
+            />
+            <div
+              className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={dot}
+            />
+          </>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-[5%] rounded-[2px] border-2"
+      style={border}
+    >
+      <div
+        className="absolute inset-x-0 top-1/2 h-[1.5px] -translate-y-1/2"
+        style={line}
+      />
+      <div
+        className="absolute left-1/2 top-1/2 aspect-square w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+        style={border}
+      />
+      <div
+        className="absolute left-1/2 top-0 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-b-2"
+        style={border}
+      />
+      <div
+        className="absolute bottom-0 left-1/2 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-t-2"
+        style={border}
+      />
+      {fullMarkings ? (
+        <>
+          <div
+            className="absolute left-1/2 top-0 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-b-2"
+            style={border}
+          />
+          <div
+            className="absolute bottom-0 left-1/2 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-t-2"
+            style={border}
+          />
+          <div
+            className="absolute left-1/2 top-[14%] h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+            style={dot}
+          />
+          <div
+            className="absolute bottom-[14%] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+            style={dot}
+          />
+          <div
+            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={dot}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function TeamSheetPitch({
   manager,
   landKey,
@@ -462,6 +589,7 @@ export function TeamSheetPitch({
   title,
   pts,
   formationId = DEFAULT_FORMATION,
+  orientation = "portrait",
   className,
 }: {
   manager?: LabLeaderboardRow;
@@ -477,6 +605,8 @@ export function TeamSheetPitch({
   title?: ReactNode;
   pts?: ReactNode;
   formationId?: FormationId;
+  /** Landscape pitch: GK left, attack right — fits wide tablet panels. */
+  orientation?: "portrait" | "horizontal";
   className?: string;
 }) {
   const reduceMotion = useReducedMotion();
@@ -484,6 +614,11 @@ export function TeamSheetPitch({
   const pitch = getPitchStyle(pitchStyleId);
   const scheme = manager?.formationId ?? formationId;
   const lanes = formationLanes(scheme);
+  const isHorizontal = orientation === "horizontal";
+  const pitchSlots = isHorizontal
+    ? (HORIZONTAL_PITCH_SLOT_LAYOUTS[scheme] ?? HORIZONTAL_PITCH_SLOT_LAYOUTS[DEFAULT_FORMATION])
+    : (PITCH_SLOT_LAYOUTS[scheme] ?? PITCH_SLOT_LAYOUTS[DEFAULT_FORMATION]);
+  const chipCompact = compact || isHorizontal;
   const titleNode =
     title ??
     label ??
@@ -522,10 +657,13 @@ export function TeamSheetPitch({
           fillPlate
             ? cn("h-full", plateClassName ?? "rounded-[22px]")
             : cn(
-                "mx-3 mb-3 flex-1 rounded-2xl ring-1 sm:mx-4 sm:mb-4",
+                "mx-3 mb-3 rounded-2xl ring-1 sm:mx-4 sm:mb-4",
                 pitch.ring,
+                isHorizontal
+                  ? "aspect-[105/68] w-full max-h-full shrink-0"
+                  : "flex-1",
               ),
-          compact ? "min-h-[12rem]" : !fillPlate && "min-h-[18rem]",
+          compact && !isHorizontal ? "min-h-[12rem]" : !fillPlate && !isHorizontal && "min-h-[18rem]",
         )}
         style={{
           background: pitch.base,
@@ -596,51 +734,11 @@ export function TeamSheetPitch({
           </div>
         ) : null}
 
-        <div
-          className="pointer-events-none absolute inset-[5%] rounded-[2px] border-2"
-          style={{ borderColor: pitch.chalk }}
-        >
-          <div
-            className="absolute inset-x-0 top-1/2 h-[1.5px] -translate-y-1/2"
-            style={{ background: pitch.chalk }}
-          />
-          <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
-            style={{ borderColor: pitch.chalk }}
-          />
-          <div
-            className="absolute left-1/2 top-0 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-b-2"
-            style={{ borderColor: pitch.chalk }}
-          />
-          <div
-            className="absolute bottom-0 left-1/2 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-t-2"
-            style={{ borderColor: pitch.chalk }}
-          />
-          {pitch.fullMarkings ? (
-            <>
-              <div
-                className="absolute left-1/2 top-0 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-b-2"
-                style={{ borderColor: pitch.chalk }}
-              />
-              <div
-                className="absolute bottom-0 left-1/2 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-t-2"
-                style={{ borderColor: pitch.chalk }}
-              />
-              <div
-                className="absolute left-1/2 top-[14%] h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                style={{ background: pitch.chalk }}
-              />
-              <div
-                className="absolute bottom-[14%] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                style={{ background: pitch.chalk }}
-              />
-              <div
-                className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                style={{ background: pitch.chalk }}
-              />
-            </>
-          ) : null}
-        </div>
+        <PitchChalkMarkings
+          chalk={pitch.chalk}
+          fullMarkings={pitch.fullMarkings}
+          orientation={orientation}
+        />
 
         {loadingXi && players.length === 0 ? (
           <div className="relative z-10 flex h-full items-center justify-center">
@@ -651,6 +749,27 @@ export function TeamSheetPitch({
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/30">
               Select a manager to see XI
             </p>
+          </div>
+        ) : isHorizontal ? (
+          <div className="relative z-10 h-full w-full">
+            {pitchSlots.map(({ formationIndex, leftPct, topPct }, i) => {
+              const player = players[formationIndex];
+              if (!player) return null;
+              return (
+                <div
+                  key={`${landKey}-${formationIndex}-${player.name}`}
+                  className="absolute z-[2] -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${leftPct}%`, top: `${topPct}%` }}
+                >
+                  <ResultsPitchChip
+                    player={player}
+                    delay={reduceMotion ? 0 : i * 35}
+                    reduceMotion={!!reduceMotion}
+                    compact={chipCompact}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div
@@ -671,7 +790,7 @@ export function TeamSheetPitch({
                       player={p}
                       delay={reduceMotion ? 0 : lane.slice[0] * 30 + i * 40}
                       reduceMotion={!!reduceMotion}
-                      compact={compact}
+                      compact={chipCompact}
                     />
                   ))}
                 </div>
@@ -828,7 +947,7 @@ function ResultsPitchChip({
   return (
     <span
       className={cn(
-        "flex flex-col items-center gap-0.5 transition duration-300 ease-out",
+        "flex flex-col items-center transition duration-300 ease-out",
         show ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}
     >

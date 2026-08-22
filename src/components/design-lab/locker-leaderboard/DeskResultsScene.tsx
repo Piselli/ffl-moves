@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
+import { LocaleBridge, useSiteLocale } from "@/i18n/LocaleProvider";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { LockerRoomBackground } from "@/components/design-lab/locker-hero/LockerRoomBackground";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
@@ -18,6 +19,14 @@ import {
   SHIPPING_RESULTS_CHROME,
   type ResultsChromeId,
 } from "./resultsChromeVariants";
+import {
+  DEFAULT_YOU_XI_VARIANT,
+  loadYouXiVariantId,
+  saveYouXiVariantId,
+  SHIPPING_YOU_XI_VARIANT,
+  YOU_XI_VARIANTS,
+  type YouXiVariantId,
+} from "./youXiVariants";
 import { SCROLLBAR_DEMOS } from "./resultsScrollbars";
 import { useWallCycle } from "./WallBroadcast";
 import { useResultsRoomData } from "./useResultsRoomData";
@@ -47,6 +56,7 @@ type Props = {
 };
 
 export function DeskResultsScene({ lab = false }: Props) {
+  const siteLocale = useSiteLocale();
   const room = useResultsRoomData();
   const reduceMotion = useReducedMotion();
   const [tabletRaised, setTabletRaised] = useState(true);
@@ -57,14 +67,19 @@ export function DeskResultsScene({ lab = false }: Props) {
   const [chromeId, setChromeId] = useState<ResultsChromeId>(
     lab ? DEFAULT_RESULTS_CHROME : SHIPPING_RESULTS_CHROME,
   );
+  const [youXiVariantId, setYouXiVariantId] = useState<YouXiVariantId>(
+    lab ? DEFAULT_YOU_XI_VARIANT : SHIPPING_YOU_XI_VARIANT,
+  );
   const { mode } = useWallCycle(tabletRaised);
 
   useEffect(() => {
     if (!lab) {
       setChromeId(SHIPPING_RESULTS_CHROME);
+      setYouXiVariantId(SHIPPING_YOU_XI_VARIANT);
       return;
     }
     setChromeId(loadResultsChromeId());
+    setYouXiVariantId(loadYouXiVariantId());
   }, [lab]);
 
   const onRoomLoad = useCallback(() => setRoomReady(true), []);
@@ -91,6 +106,14 @@ export function DeskResultsScene({ lab = false }: Props) {
   }, []);
 
   useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (pointerInTablet) return;
       if (Math.abs(e.deltaY) < 6) return;
@@ -104,7 +127,13 @@ export function DeskResultsScene({ lab = false }: Props) {
   void roomReady;
 
   const tabletScreen = (
-    <ResultsTablet room={room} chromeId={chromeId} />
+    <LocaleBridge {...siteLocale}>
+      <ResultsTablet
+        room={room}
+        chromeId={chromeId}
+        youXiVariantId={youXiVariantId}
+      />
+    </LocaleBridge>
   );
 
   return (
@@ -140,7 +169,7 @@ export function DeskResultsScene({ lab = false }: Props) {
       <LockerLabNav liveLinks={!lab} />
 
       {lab ? (
-        <aside className="pointer-events-none absolute bottom-4 right-3 top-20 z-[75] flex w-[9.5rem] flex-col sm:right-5 sm:w-[11.5rem]">
+        <aside className="pointer-events-none absolute bottom-4 right-3 top-20 z-[75] flex w-[9.5rem] flex-col gap-2 sm:right-5 sm:w-[11.5rem]">
           <div className="pointer-events-auto flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/12 bg-black/55 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl">
             <div className="mb-1.5 flex items-center justify-between gap-1 px-1.5">
               <p className="font-display text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">
@@ -202,6 +231,53 @@ export function DeskResultsScene({ lab = false }: Props) {
               })}
             </div>
           </div>
+
+          {YOU_XI_VARIANTS.length > 1 ? (
+          <div className="pointer-events-auto shrink-0 overflow-hidden rounded-2xl border border-white/12 bg-black/55 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+            <p className="mb-1.5 px-1.5 font-display text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">
+              Your XI
+            </p>
+            <div className="max-h-[14rem] space-y-1 overflow-y-auto pr-0.5">
+              {YOU_XI_VARIANTS.map((v) => {
+                const on = youXiVariantId === v.id;
+                const shipping = v.id === SHIPPING_YOU_XI_VARIANT;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      setYouXiVariantId(v.id);
+                      saveYouXiVariantId(v.id);
+                    }}
+                    className={cn(
+                      "w-full rounded-xl px-2 py-2 text-left transition active:scale-[0.98]",
+                      on
+                        ? "bg-white/15 ring-1 ring-white/35"
+                        : "bg-white/[0.03] hover:bg-white/[0.07]",
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "font-display text-[10px] font-black uppercase tracking-wide",
+                        on ? "text-white" : "text-white/75",
+                      )}
+                    >
+                      {v.label}
+                      {shipping ? (
+                        <span className="ml-1 text-[8px] font-bold text-[#00f948]/80">
+                          LIVE
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-[9px] leading-snug text-white/40">
+                      {v.blurb}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          ) : null}
         </aside>
       ) : null}
 

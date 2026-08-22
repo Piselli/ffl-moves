@@ -64,7 +64,7 @@ export default function RootLayout({
               <ReferralCapture />
               <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
-              <main className="relative z-10">{children}</main>
+              <main className="relative z-10 min-h-0">{children}</main>
               <SiteFooter />
               </div>
               </LoginProvider>
