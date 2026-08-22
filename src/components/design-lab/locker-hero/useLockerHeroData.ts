@@ -11,6 +11,10 @@ export type LockerFixture = {
   kickoffTime: string | null;
   teamH: { id: number; name: string; shortName: string; badge: string };
   teamA: { id: number; name: string; shortName: string; badge: string };
+  finished?: boolean;
+  started?: boolean;
+  scoreH?: number | null;
+  scoreA?: number | null;
 };
 
 export type LockerFixturesPayload = {
@@ -23,12 +27,21 @@ export type LockerFixturesPayload = {
   fixtures: LockerFixture[];
 };
 
+const FIXTURES_POLL_MS = 45_000;
+
+function fixturesNeedLivePoll(payload: LockerFixturesPayload | null): boolean {
+  const list = payload?.fixtures;
+  if (!list?.length) return false;
+  return list.some((f) => f.started && !f.finished);
+}
+
 export function useLockerHeroData() {
   const [prizePoolRaw, setPrizePoolRaw] = useState<bigint | null>(null);
   const [entries, setEntries] = useState<number | null>(null);
   const [openGwId, setOpenGwId] = useState<number | null>(null);
   const [chainLoading, setChainLoading] = useState(true);
   const [fixtures, setFixtures] = useState<LockerFixturesPayload | null>(null);
+  const [fixturesLoading, setFixturesLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>(playersCache);
   const [playersLoading, setPlayersLoading] = useState(playersCache.length === 0);
 
@@ -36,7 +49,7 @@ export function useLockerHeroData() {
     let cancelled = false;
     (async () => {
       try {
-        const cfg = await getConfig();
+        await getConfig();
         const gw = await findOpenGameweek();
         if (cancelled) return;
         if (!gw) {
@@ -65,15 +78,38 @@ export function useLockerHeroData() {
         ? `?registrationGw=${openGwId}`
         : "";
     let cancelled = false;
-    fetch(`/api/fixtures${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: LockerFixturesPayload & { error?: string }) => {
-        if (cancelled || d.error) return;
-        setFixtures(d);
-      })
-      .catch(() => {});
+    let pollId: ReturnType<typeof setInterval> | null = null;
+
+    const load = (isPoll: boolean) => {
+      if (!isPoll) setFixturesLoading(true);
+      return fetch(`/api/fixtures${qs}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: LockerFixturesPayload & { error?: string }) => {
+          if (cancelled || d.error) return null;
+          setFixtures(d);
+          return d;
+        })
+        .catch(() => null)
+        .finally(() => {
+          if (!cancelled && !isPoll) setFixturesLoading(false);
+        });
+    };
+
+    void load(false).then((first) => {
+      if (cancelled || !fixturesNeedLivePoll(first)) return;
+      pollId = setInterval(() => {
+        void load(true).then((next) => {
+          if (!fixturesNeedLivePoll(next) && pollId) {
+            clearInterval(pollId);
+            pollId = null;
+          }
+        });
+      }, FIXTURES_POLL_MS);
+    });
+
     return () => {
       cancelled = true;
+      if (pollId) clearInterval(pollId);
     };
   }, [openGwId]);
 
@@ -111,6 +147,7 @@ export function useLockerHeroData() {
     openGwId,
     chainLoading,
     fixtures,
+    fixturesLoading,
     players,
     playersLoading,
   };

@@ -85,6 +85,10 @@ type Props = {
   fixtures: LockerFixturesPayload | null;
   prizePoolRaw: bigint | null;
   entries: number | null;
+  /** True while on-chain prize/entries are still resolving. */
+  chainLoading?: boolean;
+  /** True until first fixtures payload arrives. */
+  fixturesLoading?: boolean;
   prize: PrizeAssetContextValue;
   locale: SiteLocale;
   messages: SiteMessages;
@@ -706,6 +710,14 @@ function MatchRow({
 }) {
   const badge =
     "h-7 w-7 shrink-0 object-contain";
+  const live = Boolean(match.started && !match.finished);
+  const finished = Boolean(match.finished);
+  const hasScore =
+    (live || finished) &&
+    match.scoreH != null &&
+    match.scoreA != null &&
+    Number.isFinite(match.scoreH) &&
+    Number.isFinite(match.scoreA);
 
   const ClubSide = ({
     side,
@@ -784,12 +796,33 @@ function MatchRow({
       className={cn(
         "flex min-h-[32px] items-center gap-1.5 px-1 py-0.5",
         interactive && !onClubSelect && "rounded-lg hover:bg-white/[0.04]",
+        live && "rounded-lg bg-[#00f948]/[0.06]",
       )}
     >
       <ClubSide side={match.teamH} align="start" />
-      <span className="shrink-0 text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
-        {formatKickoffTime(match.kickoffTime, locale)}
-      </span>
+      <div className="flex w-[52px] shrink-0 flex-col items-center justify-center">
+        {hasScore ? (
+          <>
+            <span className="text-[13px] font-black tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+              {match.scoreH}
+              <span className="px-0.5 text-[color:var(--lt-ink)]/35">–</span>
+              {match.scoreA}
+            </span>
+            <span
+              className={cn(
+                "mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em]",
+                live ? "text-[color:var(--lt-accent)]" : "text-[color:var(--lt-muted)]",
+              )}
+            >
+              {live ? "Live" : "FT"}
+            </span>
+          </>
+        ) : (
+          <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+            {formatKickoffTime(match.kickoffTime, locale)}
+          </span>
+        )}
+      </div>
       <ClubSide side={match.teamA} align="end" />
     </div>
   );
@@ -799,6 +832,8 @@ export function LockerTablet({
   fixtures,
   prizePoolRaw,
   entries,
+  chainLoading = false,
+  fixturesLoading = false,
   prize,
   locale,
   messages: m,
@@ -1025,16 +1060,21 @@ export function LockerTablet({
   const slotPos = (i: number) => slotPosition(i, formationId);
   const chipCompact = isNarrow;
   const prizeLabel =
-    prizePoolRaw == null
+    chainLoading || prizePoolRaw == null
       ? "—"
       : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en");
+  const deadlineExpired = Boolean(deadlineParts?.expired);
   const deadlineLabel =
-    !deadline || !deadlineParts
+    fixturesLoading || !deadline
       ? "—"
-      : deadlineParts.expired
-        ? m.home.deadlinePassed
-        : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`;
-  const managersLabel = entries == null ? "—" : String(entries);
+      : !deadlineParts
+        ? "…"
+        : deadlineParts.expired
+          ? m.home.deadlinePassed
+          : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`;
+  const managersLabel =
+    chainLoading || entries == null ? "—" : String(entries);
+  const metaPending = chainLoading || fixturesLoading;
 
   return (
     <div
@@ -1136,10 +1176,13 @@ export function LockerTablet({
             Pool
           </p>
           <p
-            className="mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]"
+            className={cn(
+              "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]",
+              metaPending && "animate-pulse text-[color:var(--lt-muted)]",
+            )}
             style={DISPLAY}
           >
-            {prizeLabel}
+            {chainLoading ? "…" : prizeLabel}
           </p>
         </div>
         <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
@@ -1150,6 +1193,7 @@ export function LockerTablet({
             className={cn(
               "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none",
               isGlass ? "text-white" : "text-[color:var(--lt-accent)]",
+              fixturesLoading && "animate-pulse",
             )}
             style={isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }}
           >
@@ -1161,7 +1205,10 @@ export function LockerTablet({
             Managers
           </p>
           <p
-            className="mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]"
+            className={cn(
+              "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]",
+              chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+            )}
             style={DISPLAY}
           >
             {managersLabel}
@@ -1646,17 +1693,25 @@ export function LockerTablet({
             Prize pool
           </p>
           <p
-            className="mt-1 text-[20px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]"
+            className={cn(
+              "mt-1 text-[20px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+              chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+            )}
             style={DISPLAY}
           >
-            {prizePoolRaw == null
-              ? "—"
-              : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
+            {chainLoading
+              ? "…"
+              : prizePoolRaw == null
+                ? "—"
+                : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
           </p>
           <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
-            1st {firstRaw == null ? "—" : prize.formatCompact(firstRaw)}
+            1st{" "}
+            {chainLoading || firstRaw == null
+              ? "—"
+              : prize.formatCompact(firstRaw)}
             <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
-            {entries == null ? "—" : entries} managers
+            {chainLoading || entries == null ? "—" : entries} managers
           </p>
         </Panel>
 
@@ -1676,21 +1731,26 @@ export function LockerTablet({
               className={cn(
                 "mt-1 text-[19px] font-black leading-none tabular-nums",
                 isGlass && "text-white",
+                fixturesLoading && "animate-pulse",
               )}
               style={
                 isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }
               }
             >
-              {!deadline
-                ? "—"
+              {fixturesLoading || !deadline
+                ? "…"
                 : !deadlineParts
-                  ? "..."
+                  ? "…"
                   : deadlineParts.expired
                     ? m.home.deadlinePassed
                     : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`}
             </p>
             <p className="mt-1 text-[11px] font-semibold text-[color:var(--lt-soft)]">
-              until lock
+              {deadlineExpired
+                ? locale === "uk"
+                  ? "реєстрація закрита"
+                  : "registration closed"
+                : "until lock"}
             </p>
           </Panel>
 

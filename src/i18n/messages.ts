@@ -758,7 +758,7 @@ const en: SiteMessages = {
     rarityRare: "Rare",
     rarityEpic: "Epic",
     untilDeadline: "Until deadline",
-    deadlinePassed: "Deadline end",
+    deadlinePassed: "Closed",
     daySuffix: "d",
     hourSuffix: "h",
     minSuffix: "m",

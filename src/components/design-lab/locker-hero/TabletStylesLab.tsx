@@ -118,6 +118,8 @@ export function TabletStylesLab() {
               fixtures={data.fixtures}
               prizePoolRaw={data.prizePoolRaw}
               entries={data.entries}
+              chainLoading={data.chainLoading}
+              fixturesLoading={data.fixturesLoading}
               prize={prize}
               locale={locale}
               messages={messages}
