@@ -413,9 +413,13 @@ export function TabletScene(props: Props) {
   const waitForWebgl = !fastPreview && props.skipDomFallback !== false;
 
   const [modelReady, setModelReady] = useState(false);
+  /** Mesh + camera settled; Html may mount under opacity 0. */
   const [webglSettled, setWebglSettled] = useState(false);
+  /** Crossfade Dom → WebGL (primary visible). */
+  const [webglLive, setWebglLive] = useState(false);
   const [domRetired, setDomRetired] = useState(false);
   const settleStarted = useRef(false);
+  const uiSettleStarted = useRef(false);
   const readyNotified = useRef(false);
   const invalidateRef = useRef<(() => void) | null>(null);
   const onReadyProp = props.onModelReady;
@@ -432,6 +436,7 @@ export function TabletScene(props: Props) {
     notifyReady();
   }, [fastPreview, notifyReady]);
 
+  // Phase 1: mesh loaded → settle camera/pose under the boot / Dom.
   useEffect(() => {
     if (!modelReady || settleStarted.current) return;
     settleStarted.current = true;
@@ -453,17 +458,52 @@ export function TabletScene(props: Props) {
     return () => cancelAnimationFrame(raf);
   }, [modelReady, fastPreview, notifyReady]);
 
-  // After crossfade, drop Dom so we don't keep two full UIs.
+  // Phase 2: Html UI mounted under opacity 0 → settle matrix, then crossfade.
+  // Dom keeps its own UI instance until after the fade (no empty-frame blink).
   useEffect(() => {
-    if (!fastPreview || !webglSettled) return;
-    const id = window.setTimeout(() => setDomRetired(true), CROSSFADE_MS + 40);
-    return () => window.clearTimeout(id);
-  }, [fastPreview, webglSettled]);
+    if (!webglSettled || uiSettleStarted.current) return;
+    uiSettleStarted.current = true;
+    let frames = 0;
+    let raf = 0;
+    const tick = () => {
+      invalidateRef.current?.();
+      frames += 1;
+      if (frames >= SETTLE_FRAMES) {
+        setWebglLive(true);
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [webglSettled]);
 
-  const showDom =
-    fastPreview ? !domRetired : waitForWebgl ? !webglSettled : !webglSettled;
-  const showWebglUi = webglSettled;
-  const canvasVisible = webglSettled;
+  // Phase 3: after crossfade, drop Dom so we don't keep two full UIs.
+  useEffect(() => {
+    if (!webglLive) return;
+    const id = window.setTimeout(() => setDomRetired(true), CROSSFADE_MS + 80);
+    return () => window.clearTimeout(id);
+  }, [webglLive]);
+
+  // Ignore squad hydrate contentEpoch until after upgrade — first epoch change
+  // was rewriting drei Html’s CSS matrix and flashing the settled iPad.
+  const [epochArmed, setEpochArmed] = useState(false);
+  useEffect(() => {
+    if (!webglLive) return;
+    const id = window.setTimeout(() => setEpochArmed(true), 600);
+    return () => window.clearTimeout(id);
+  }, [webglLive]);
+
+  const showDom = fastPreview
+    ? !domRetired
+    : waitForWebgl
+      ? !webglLive
+      : !webglLive;
+  /** Mount WebGL UI as soon as mesh settled (still invisible) so Html can warm up. */
+  const webglHasUi = webglSettled;
+  const canvasVisible = webglLive;
 
   const fallback = (
     <StaticFallback
@@ -483,12 +523,15 @@ export function TabletScene(props: Props) {
         <div
           className="absolute inset-0"
           style={{
-            opacity: fastPreview && webglSettled ? 0 : 1,
+            opacity: webglLive ? 0 : 1,
             transition: props.reduceMotion
               ? "none"
               : `opacity ${CROSSFADE_MS}ms ease-out`,
-            pointerEvents:
-              fastPreview && webglSettled ? "none" : props.raised ? "auto" : "none",
+            pointerEvents: webglLive
+              ? "none"
+              : props.raised
+                ? "auto"
+                : "none",
             zIndex: canvasVisible ? 1 : 2,
           }}
         >
@@ -496,12 +539,13 @@ export function TabletScene(props: Props) {
             raised={props.raised}
             reduceMotion={props.reduceMotion}
             onPointerInsideChange={
-              showWebglUi ? undefined : props.onPointerInsideChange
+              webglLive ? undefined : props.onPointerInsideChange
             }
             placement={placement}
             matchWebglScale={fastPreview}
           >
-            {showWebglUi ? null : props.children}
+            {/* Keep Dom UI through the fade — retiring only after opacity hits 0. */}
+            {domRetired ? null : props.children}
           </TabletDomFrame>
         </div>
       ) : null}
@@ -526,6 +570,7 @@ export function TabletScene(props: Props) {
           style={{
             transform: canvasTabletTransform(placement, props.raised),
             transformOrigin: placement === "desk" ? "50% 85%" : "50% 50%",
+            // Never animate transform on first reveal — only on raise/lower after live.
             transition:
               props.reduceMotion || !canvasVisible
                 ? "none"
@@ -557,13 +602,13 @@ export function TabletScene(props: Props) {
                 raised={props.raised}
                 reduceMotion={props.reduceMotion}
                 placement={placement}
-                contentEpoch={props.contentEpoch}
+                contentEpoch={epochArmed ? props.contentEpoch : undefined}
                 onPointerInsideChange={
-                  showWebglUi ? props.onPointerInsideChange : undefined
+                  webglLive ? props.onPointerInsideChange : undefined
                 }
                 onModelReady={() => setModelReady(true)}
               >
-                {modelReady ? (showWebglUi ? props.children : null) : null}
+                {webglHasUi ? props.children : null}
               </IpadScene>
             </Suspense>
           </Canvas>
