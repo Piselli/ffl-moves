@@ -54,6 +54,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          rel="preload"
+          as="image"
+          href="/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp"
+          type="image/webp"
+        />
+        <link
+          rel="preload"
+          as="fetch"
+          href="/design-lab/locker-hero/models/ipad-pro13-m4-slim.glb"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <LocaleProvider>
           <PrizeAssetProvider>

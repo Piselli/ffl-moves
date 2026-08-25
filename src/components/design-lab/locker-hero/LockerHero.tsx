@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Player } from "@/lib/types";
@@ -34,6 +34,7 @@ import {
   SHIPPING_TABLET_VARIANT,
   type TabletVariantId,
 } from "./tabletVariants";
+import { HERO_EASE_OUT, HERO_REVEAL } from "./heroReveal";
 
 /** `null` until mounted so SSR/hydration never loads the 3D iPad on a phone. */
 function useIsPhone(): boolean | null {
@@ -92,7 +93,8 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   const squad = useSquadPick({
     players: data.players,
     gameweekId: data.openGwId,
-    ready: !data.chainLoading && !data.playersLoading && data.players.length > 0,
+    // Don't wait on Solana — restore draft as soon as the catalog arrives.
+    ready: !data.playersLoading && data.players.length > 0,
   });
   const register = useLockerRegister({
     starters: squad.starters,
@@ -112,13 +114,13 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
   /** Only true on confirmed phone — never assume flat while `isPhone` is still null. */
   const flatPicker = layoutMode === "flat";
   const useTabletScene = layoutMode === "scene";
+  // Boot lifts once the room is paintable. Dom tablet is instant; WebGL upgrades quietly.
   const sceneReady =
     layoutMode !== "pending" &&
     roomImageReady &&
-    tabletReady &&
-    squad.hydrateSettled &&
-    !data.playersLoading &&
-    !data.fixturesLoading;
+    (flatPicker || tabletReady);
+
+  const [introReveal, setIntroReveal] = useState(!isSite);
 
   const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
   const onRoomImageError = useCallback(() => setRoomImageReady(true), []);
@@ -138,16 +140,27 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     img.src = ROOM_BACKGROUND.src;
     img.onload = () => setRoomImageReady(true);
     img.onerror = () => setRoomImageReady(true);
-    const preload = document.createElement("link");
-    preload.rel = "preload";
-    preload.as = "image";
-    preload.href = FPL_SPRITE_URL;
-    document.head.appendChild(preload);
-    return () => preload.remove();
+    const spritePreload = document.createElement("link");
+    spritePreload.rel = "preload";
+    spritePreload.as = "image";
+    spritePreload.href = FPL_SPRITE_URL;
+    document.head.appendChild(spritePreload);
+    const glbPreload = document.createElement("link");
+    glbPreload.rel = "preload";
+    glbPreload.as = "fetch";
+    glbPreload.href =
+      "/design-lab/locker-hero/models/ipad-pro13-m4-slim.glb";
+    glbPreload.crossOrigin = "anonymous";
+    document.head.appendChild(glbPreload);
+    return () => {
+      spritePreload.remove();
+      glbPreload.remove();
+    };
   }, [isSite]);
 
   useEffect(() => {
     if (!isSite || !sceneReady) return;
+    setIntroReveal(true);
     if (reduceMotion) {
       setBootVisible(false);
       setBootMounted(false);
@@ -161,7 +174,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     const id = window.setTimeout(() => {
       setRoomImageReady(true);
       setTabletReady(true);
-    }, 12_000);
+    }, 6_000);
     return () => window.clearTimeout(id);
   }, [isSite]);
 
@@ -247,6 +260,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       entries={data.entries}
       chainLoading={data.chainLoading}
       fixturesLoading={data.fixturesLoading}
+      introReveal={introReveal}
       prize={prize}
       locale={locale}
       messages={messages}
@@ -287,11 +301,30 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     >
       {!flatPicker ? (
         <>
-          <LockerRoomBackground
-            src={ROOM_BACKGROUND.src}
-            onImageLoad={onRoomImageLoad}
-            onImageError={onRoomImageError}
-          />
+          <motion.div
+            className="absolute inset-0"
+            initial={
+              reduceMotion || !isSite
+                ? false
+                : { opacity: 0.55, scale: 1.035 }
+            }
+            animate={
+              introReveal
+                ? { opacity: 1, scale: 1 }
+                : { opacity: 0.55, scale: 1.035 }
+            }
+            transition={{
+              duration: reduceMotion ? 0 : 0.55,
+              delay: reduceMotion ? 0 : HERO_REVEAL.delays.room,
+              ease: HERO_EASE_OUT,
+            }}
+          >
+            <LockerRoomBackground
+              src={ROOM_BACKGROUND.src}
+              onImageLoad={onRoomImageLoad}
+              onImageError={onRoomImageError}
+            />
+          </motion.div>
 
           {useTabletScene ? (
             <LockerKits
@@ -443,6 +476,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
             onPointerInsideChange={setPointerInTablet}
             onModelReady={onTabletReady}
             contentEpoch={squadEpoch}
+            fastDomPreview={isSite}
           >
             {picker}
           </TabletScene>

@@ -96,7 +96,7 @@ export function IpadMesh({
   onPointerInsideChange,
   onModelReady,
 }: Props) {
-  const { scene } = useGLTF(IPAD_GLB_URL);
+  const { scene } = useGLTF(IPAD_GLB_URL, false, true);
   const object = useMemo(() => buildIpad(scene), [scene]);
   const { invalidate } = useThree();
 
@@ -185,4 +185,4 @@ export function IpadMesh({
   );
 }
 
-useGLTF.preload(IPAD_GLB_URL);
+useGLTF.preload(IPAD_GLB_URL, false, true);

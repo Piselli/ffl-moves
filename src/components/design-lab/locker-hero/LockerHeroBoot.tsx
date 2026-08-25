@@ -20,7 +20,7 @@ export function LockerHeroBoot({
       aria-hidden
       className={cn(
         "absolute inset-0 z-[100] bg-[#1a1816]",
-        !reduceMotion && "transition-opacity duration-[650ms] ease-out",
+        !reduceMotion && "transition-opacity duration-[420ms] ease-out",
         visible ? "opacity-100" : "opacity-0",
       )}
       style={{ pointerEvents: visible ? "auto" : "none" }}

@@ -3,22 +3,22 @@
 import {
   Component,
   Suspense,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ErrorInfo,
   type ReactNode,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import {
-  Environment,
-  PerspectiveCamera,
-} from "@react-three/drei";
+import { PerspectiveCamera } from "@react-three/drei";
 import {
   ACESFilmicToneMapping,
   Group,
   MathUtils,
   PCFSoftShadowMap,
+  PerspectiveCamera as ThreePerspectiveCamera,
 } from "three";
 import { IPAD_BODY_H, IPAD_BODY_W, IpadMesh } from "./IpadMesh";
 import {
@@ -38,23 +38,30 @@ type Props = {
   onPointerInsideChange?: (inside: boolean) => void;
   onModelReady?: () => void;
   placement?: Placement;
-  /** Parent already shows TabletDomFrame — don't double-mount screen content. */
+  /**
+   * Site homepage: Dom tablet immediately (boot can lift), WebGL upgrades
+   * underneath with an opacity crossfade — avoids waiting on the GLB.
+   * Lab/desk can pass false to keep Dom-only until WebGL if preferred.
+   */
+  fastDomPreview?: boolean;
+  /**
+   * @deprecated Prefer fastDomPreview. When true (default), skip Dom until
+   * WebGL settles (old path). Ignored when fastDomPreview is true.
+   */
   skipDomFallback?: boolean;
-  /** Change when screen contents swap (picks) so Html can rewrite its CSS matrix. */
   contentEpoch?: string;
 };
 
-/**
- * Translate/scale on the CSS wrapper. Tip lives in Three.js on mesh+Html
- * together (coplanar). Canvas uses frameloop="demand" so drei Html stops
- * rewriting its CSS matrix once the tip settles — that was the flicker.
- */
 const TABLET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const CROSSFADE_MS = 180;
 
 const CANVAS_LOCKER_RAISED = "translate3d(0, 3vh, 0) scale(1)";
 const CANVAS_LOCKER_LOWERED = "translate3d(0, 46vh, 0) scale(0.9)";
 const CANVAS_DESK_RAISED = "translate3d(0, 4vh, 0) scale(1)";
 const CANVAS_DESK_LOWERED = "translate3d(0, 24vh, 0) scale(0.9)";
+
+const SETTLE_FRAMES = 6;
+const CAMERA_Z_EPS = 0.0008;
 
 function canvasTabletTransform(placement: Placement, raised: boolean): string {
   if (placement === "desk") {
@@ -77,28 +84,51 @@ function threeTilt(
     : { x: MathUtils.degToRad(-28), z: MathUtils.degToRad(-1.4) };
 }
 
-const TILT_SNAP_EPS = 0.00035;
-
-function ResponsiveCamera() {
-  const { size } = useThree();
-  const w = Math.max(size.width, 2);
-  const h = Math.max(size.height, 2);
+function cameraZForSize(width: number, height: number): number {
+  const w = Math.max(width, 2);
+  const h = Math.max(height, 2);
   const aspect = w / h;
   const fov = 30;
   const halfFovTangent = Math.tan(MathUtils.degToRad(fov / 2));
   const targetHeightFill = w < 720 ? 0.7 : 0.82;
   const targetWidthFill = 0.78;
-  const zForHeight =
-    IPAD_BODY_H / (2 * halfFovTangent * targetHeightFill);
+  const zForHeight = IPAD_BODY_H / (2 * halfFovTangent * targetHeightFill);
   const zForWidth =
     IPAD_BODY_W / (2 * halfFovTangent * aspect * targetWidthFill);
-  const z = Math.max(zForHeight, zForWidth, 0.15);
+  return Math.max(zForHeight, zForWidth, 0.15);
+}
+
+const TILT_SNAP_EPS = 0.00035;
+
+function ResponsiveCamera() {
+  const size = useThree((s) => s.size);
+  const camera = useThree((s) => s.camera);
+  const zRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!(camera instanceof ThreePerspectiveCamera)) return;
+    const next = cameraZForSize(size.width, size.height);
+    if (zRef.current != null && Math.abs(zRef.current - next) < CAMERA_Z_EPS) {
+      return;
+    }
+    zRef.current = next;
+    camera.position.set(0, 0, next);
+    camera.fov = 30;
+    camera.near = 0.01;
+    camera.far = 4;
+    camera.updateProjectionMatrix();
+  }, [camera, size.height, size.width]);
+
+  const initialZ = cameraZForSize(
+    typeof window !== "undefined" ? window.innerWidth : 1200,
+    typeof window !== "undefined" ? window.innerHeight : 800,
+  );
 
   return (
     <PerspectiveCamera
       makeDefault
-      position={[0, 0, z]}
-      fov={fov}
+      position={[0, 0, initialZ]}
+      fov={30}
       near={0.01}
       far={4}
     />
@@ -108,13 +138,13 @@ function ResponsiveCamera() {
 function IpadLights() {
   return (
     <>
-      <ambientLight intensity={0.55} color="#e6ebf2" />
+      <ambientLight intensity={0.62} color="#e6ebf2" />
       <directionalLight
         position={[0, 0.2, 1]}
         color="#ffffff"
-        intensity={0.48}
+        intensity={0.55}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[512, 512]}
         shadow-bias={-0.00015}
         shadow-camera-near={0.05}
         shadow-camera-far={2}
@@ -126,17 +156,17 @@ function IpadLights() {
       <directionalLight
         position={[-0.55, 0.15, 0.35]}
         color="#c8d2e0"
-        intensity={0.28}
+        intensity={0.32}
       />
       <directionalLight
         position={[0.5, 0.05, 0.35]}
         color="#b8c4d4"
-        intensity={0.18}
+        intensity={0.2}
       />
       <directionalLight
         position={[0, -0.45, 0.25]}
         color="#d8dde6"
-        intensity={0.16}
+        intensity={0.18}
       />
     </>
   );
@@ -161,49 +191,48 @@ function TiltedIpad({
 }) {
   const group = useRef<Group>(null);
   const target = threeTilt(placement, raised);
-  const booted = useRef(false);
+  const snappedPose = useRef(false);
   const settleFrames = useRef(0);
   const { invalidate } = useThree();
 
-  // Kick a redraw whenever pose target changes (demand frameloop).
-  useEffect(() => {
-    booted.current = false;
+  useLayoutEffect(() => {
+    const g = group.current;
+    if (!g) return;
+    g.rotation.x = target.x;
+    g.rotation.z = target.z;
+    snappedPose.current = true;
     settleFrames.current = 0;
     invalidate();
+  }, [raised, placement, target.x, target.z, invalidate]);
+
+  useEffect(() => {
     const id = window.setTimeout(() => invalidate(), TABLET_MOTION_MS + 48);
     return () => window.clearTimeout(id);
   }, [raised, placement, invalidate]);
 
-  // Html freezes its CSS matrix on demand-loop idle. A pick/randomize
-  // re-render would otherwise flash the 2D identity pose for a beat.
   useEffect(() => {
     if (contentEpoch == null) return;
     settleFrames.current = 0;
     invalidate();
   }, [contentEpoch, invalidate]);
 
-  // Priority -1: apply tip BEFORE drei Html samples matrixWorld this frame.
   useFrame((_, dt) => {
     const g = group.current;
     if (!g) return;
 
-    if (reduceMotion) {
+    if (reduceMotion || !snappedPose.current) {
       g.rotation.x = target.x;
       g.rotation.z = target.z;
-      booted.current = true;
       settleFrames.current = 0;
       invalidate();
       return;
     }
-
-    booted.current = true;
 
     const dx = Math.abs(g.rotation.x - target.x);
     const dz = Math.abs(g.rotation.z - target.z);
     if (dx < TILT_SNAP_EPS && dz < TILT_SNAP_EPS) {
       g.rotation.x = target.x;
       g.rotation.z = target.z;
-      // A few settle frames so Html writes the final tipped matrix, then stop.
       if (settleFrames.current < 4) {
         settleFrames.current += 1;
         invalidate();
@@ -243,13 +272,6 @@ function IpadScene({
     <>
       <ResponsiveCamera />
       <IpadLights />
-      <Suspense fallback={null}>
-        <Environment
-          preset="studio"
-          background={false}
-          environmentIntensity={0.22}
-        />
-      </Suspense>
       <Suspense fallback={null}>
         <TiltedIpad
           placement={placement}
@@ -386,14 +408,62 @@ function TabletAtmosphere({
 
 export function TabletScene(props: Props) {
   const placement = props.placement ?? "locker";
-  const [webglReady, setWebglReady] = useState(false);
-  const skipDom = props.skipDomFallback === true;
-  const showDom = !skipDom && !webglReady;
+  const fastPreview = props.fastDomPreview === true;
+  /** Legacy: hide Dom until WebGL — only when not using fast preview. */
+  const waitForWebgl = !fastPreview && props.skipDomFallback !== false;
 
-  const onReady = () => {
-    setWebglReady(true);
-    props.onModelReady?.();
-  };
+  const [modelReady, setModelReady] = useState(false);
+  const [webglSettled, setWebglSettled] = useState(false);
+  const [domRetired, setDomRetired] = useState(false);
+  const settleStarted = useRef(false);
+  const readyNotified = useRef(false);
+  const invalidateRef = useRef<(() => void) | null>(null);
+  const onReadyProp = props.onModelReady;
+
+  const notifyReady = useCallback(() => {
+    if (readyNotified.current) return;
+    readyNotified.current = true;
+    onReadyProp?.();
+  }, [onReadyProp]);
+
+  // Fast path: Dom is interactive immediately — don't block homepage boot on GLB.
+  useEffect(() => {
+    if (!fastPreview) return;
+    notifyReady();
+  }, [fastPreview, notifyReady]);
+
+  useEffect(() => {
+    if (!modelReady || settleStarted.current) return;
+    settleStarted.current = true;
+    let frames = 0;
+    let raf = 0;
+    const tick = () => {
+      invalidateRef.current?.();
+      frames += 1;
+      if (frames >= SETTLE_FRAMES) {
+        setWebglSettled(true);
+        if (!fastPreview) notifyReady();
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [modelReady, fastPreview, notifyReady]);
+
+  // After crossfade, drop Dom so we don't keep two full UIs.
+  useEffect(() => {
+    if (!fastPreview || !webglSettled) return;
+    const id = window.setTimeout(() => setDomRetired(true), CROSSFADE_MS + 40);
+    return () => window.clearTimeout(id);
+  }, [fastPreview, webglSettled]);
+
+  const showDom =
+    fastPreview ? !domRetired : waitForWebgl ? !webglSettled : !webglSettled;
+  const showWebglUi = webglSettled;
+  const canvasVisible = webglSettled;
 
   const fallback = (
     <StaticFallback
@@ -410,44 +480,65 @@ export function TabletScene(props: Props) {
   return (
     <SceneErrorBoundary fallback={fallback}>
       {showDom ? (
-        <TabletDomFrame
-          raised={props.raised}
-          reduceMotion={props.reduceMotion}
-          onPointerInsideChange={props.onPointerInsideChange}
-          placement={placement}
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity: fastPreview && webglSettled ? 0 : 1,
+            transition: props.reduceMotion
+              ? "none"
+              : `opacity ${CROSSFADE_MS}ms ease-out`,
+            pointerEvents:
+              fastPreview && webglSettled ? "none" : props.raised ? "auto" : "none",
+            zIndex: canvasVisible ? 1 : 2,
+          }}
         >
-          {props.children}
-        </TabletDomFrame>
+          <TabletDomFrame
+            raised={props.raised}
+            reduceMotion={props.reduceMotion}
+            onPointerInsideChange={
+              showWebglUi ? undefined : props.onPointerInsideChange
+            }
+            placement={placement}
+          >
+            {showWebglUi ? null : props.children}
+          </TabletDomFrame>
+        </div>
       ) : null}
+
       <div
         className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
         style={{
-          pointerEvents: showDom || !props.raised ? "none" : "auto",
+          opacity: canvasVisible ? 1 : 0,
+          transition: props.reduceMotion
+            ? "none"
+            : `opacity ${CROSSFADE_MS}ms ease-out`,
+          pointerEvents:
+            !canvasVisible || !props.raised ? "none" : "auto",
           perspective: "1400px",
           perspectiveOrigin: placement === "desk" ? "50% 58%" : "50% 38%",
+          zIndex: 2,
         }}
-        aria-hidden={showDom || undefined}
+        aria-hidden={!canvasVisible ? true : undefined}
       >
         <div
           className={`relative ${IPAD_FRAME_SIZE}`}
           style={{
             transform: canvasTabletTransform(placement, props.raised),
             transformOrigin: placement === "desk" ? "50% 85%" : "50% 50%",
-            transition: props.reduceMotion
-              ? "none"
-              : `transform ${TABLET_MOTION_MS}ms ${TABLET_EASE}`,
+            transition:
+              props.reduceMotion || !canvasVisible
+                ? "none"
+                : `transform ${TABLET_MOTION_MS}ms ${TABLET_EASE}`,
           }}
         >
           <TabletAtmosphere raised={props.raised} placement={placement} />
           <Canvas
             className="!absolute inset-0 h-full w-full"
             shadows
-            dpr={[1, 1.75]}
+            dpr={[1, 1.5]}
             fallback={null}
-            // Demand: once tip settles we stop the loop so drei Html stops
-            // thrashing its CSS matrix (settled flicker on homepage lower).
             frameloop="demand"
-            resize={{ debounce: { scroll: 50, resize: 50 } }}
+            resize={{ debounce: { scroll: 0, resize: 0 } }}
             gl={{
               alpha: true,
               antialias: true,
@@ -455,6 +546,7 @@ export function TabletScene(props: Props) {
             }}
             onCreated={({ gl, invalidate }) => {
               configureGl(gl);
+              invalidateRef.current = invalidate;
               invalidate();
             }}
             style={{ background: "transparent" }}
@@ -466,11 +558,11 @@ export function TabletScene(props: Props) {
                 placement={placement}
                 contentEpoch={props.contentEpoch}
                 onPointerInsideChange={
-                  showDom ? undefined : props.onPointerInsideChange
+                  showWebglUi ? props.onPointerInsideChange : undefined
                 }
-                onModelReady={onReady}
+                onModelReady={() => setModelReady(true)}
               >
-                {skipDom || webglReady ? props.children : null}
+                {modelReady ? (showWebglUi ? props.children : null) : null}
               </IpadScene>
             </Suspense>
           </Canvas>

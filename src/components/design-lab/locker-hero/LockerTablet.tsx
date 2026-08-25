@@ -49,6 +49,7 @@ import {
   slotPosition,
   type FormationId,
 } from "@/lib/formation";
+import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
 import { FormationPicker } from "@/components/FormationPicker";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
@@ -89,6 +90,11 @@ type Props = {
   chainLoading?: boolean;
   /** True until first fixtures payload arrives. */
   fixturesLoading?: boolean;
+  /**
+   * Homepage first-paint choreography — panels stagger in after boot lifts.
+   * Lab / already-visible surfaces pass true immediately.
+   */
+  introReveal?: boolean;
   prize: PrizeAssetContextValue;
   locale: SiteLocale;
   messages: SiteMessages;
@@ -837,6 +843,7 @@ export function LockerTablet({
   entries,
   chainLoading = false,
   fixturesLoading = false,
+  introReveal = true,
   prize,
   locale,
   messages: m,
@@ -1078,6 +1085,14 @@ export function LockerTablet({
   const managersLabel =
     chainLoading || entries == null ? "—" : String(entries);
   const metaPending = chainLoading || fixturesLoading;
+  const panelMotion = (delay: number) => {
+    const base = heroPanelReveal(delay, reduceMotion);
+    return {
+      initial: base.initial,
+      animate: introReveal ? base.animate : base.initial,
+      transition: base.transition,
+    };
+  };
 
   return (
     <div
@@ -1102,7 +1117,8 @@ export function LockerTablet({
         <span className="tracking-[0.08em]">Wi-Fi&nbsp;&nbsp;100%</span>
       </div>
 
-      <header
+      <motion.header
+        {...panelMotion(HERO_REVEAL.delays.header)}
         className={cn(
           "relative flex shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
           isGlass && chrome === "current" && "border-white/60 bg-black",
@@ -1171,9 +1187,12 @@ export function LockerTablet({
           </p>
         </div>
         <div className="w-14 shrink-0 md:hidden" aria-hidden />
-      </header>
+      </motion.header>
 
-      <div className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[var(--lt-hairline)] px-3 py-2 md:hidden">
+      <motion.div
+        {...panelMotion(HERO_REVEAL.delays.meta)}
+        className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[var(--lt-hairline)] px-3 py-2 md:hidden"
+      >
         <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
           <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
             Pool
@@ -1217,16 +1236,20 @@ export function LockerTablet({
             {managersLabel}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2.5 md:p-3 md:pt-2.5 md:grid md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.fixtures)}
+          className="order-2 flex min-h-0 flex-col max-md:hidden md:order-none md:col-start-1 md:row-start-1"
+        >
         <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "order-2 flex min-h-0 flex-col p-3 max-md:hidden md:order-none md:col-start-1 md:row-start-1",
+            "flex h-full min-h-0 flex-col p-3",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1297,9 +1320,11 @@ export function LockerTablet({
             )}
           </div>
         </Panel>
+        </motion.div>
 
         {/* Pitch — flat top-down; scheme / turf chrome in bottom fringe */}
-        <section
+        <motion.section
+          {...panelMotion(HERO_REVEAL.delays.pitch)}
           className={cn(
             "relative order-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 md:order-none md:col-start-2 md:row-start-1 md:min-h-0 md:flex-none",
             mobileTab !== "pitch" && "max-md:hidden",
@@ -1498,7 +1523,7 @@ export function LockerTablet({
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
         {mobileTab === "pitch" ? (
           <MobileBenchBar
@@ -1509,15 +1534,21 @@ export function LockerTablet({
           />
         ) : null}
 
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.players)}
+          className={cn(
+            "order-3 flex min-h-0 flex-col overflow-hidden md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
+            mobileTab !== "players" && "max-md:hidden",
+            "max-md:flex-1",
+          )}
+        >
         <Panel
           {...(useMaterialShell
             ? { as: "section" as const, ...glassProps }
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "order-3 flex min-h-0 flex-col overflow-hidden p-3 md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
-            mobileTab !== "players" && "max-md:hidden",
-            "max-md:flex-1",
+            "flex h-full min-h-0 flex-col overflow-hidden p-3",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1608,7 +1639,7 @@ export function LockerTablet({
                   !taken && (clubCounts[p.teamId] ?? 0) >= MAX_PER_CLUB;
                 const flash = flashPickId === p.id;
                 return (
-                  <motion.button
+                  <button
                     key={p.id}
                     type="button"
                     disabled={taken || clubCapped}
@@ -1619,7 +1650,7 @@ export function LockerTablet({
                       setFlashPickId(p.id);
                     }}
                     className={cn(
-                      "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                      "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [content-visibility:auto] [contain-intrinsic-size:auto_62px]",
                       taken && "cursor-default opacity-40",
                       clubCapped &&
                         "cursor-default opacity-[0.48] saturate-[0.4]",
@@ -1693,48 +1724,57 @@ export function LockerTablet({
                         {taken ? "·" : "+"}
                       </motion.span>
                     )}
-                  </motion.button>
+                  </button>
                 );
               })
             )}
           </div>
         </Panel>
+        </motion.div>
 
-        <Panel
-          {...(useMaterialShell ? glassProps : {})}
-          className={cn(
-            !useMaterialShell && PANEL,
-            "order-4 px-3.5 py-2.5 max-md:hidden md:order-none md:col-start-1 md:row-start-2",
-            isPlatesChrome && "rounded-[22px]",
-          )}
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.footer)}
+          className="order-4 max-md:hidden md:order-none md:col-start-1 md:row-start-2"
         >
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
-            Prize pool
-          </p>
-          <p
+          <Panel
+            {...(useMaterialShell ? glassProps : {})}
             className={cn(
-              "mt-1 text-[20px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
-              chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+              !useMaterialShell && PANEL,
+              "h-full px-3.5 py-2.5",
+              isPlatesChrome && "rounded-[22px]",
             )}
-            style={DISPLAY}
           >
-            {chainLoading
-              ? "…"
-              : prizePoolRaw == null
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
+              Prize pool
+            </p>
+            <p
+              className={cn(
+                "mt-1 text-[20px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+              )}
+              style={DISPLAY}
+            >
+              {chainLoading
+                ? "…"
+                : prizePoolRaw == null
+                  ? "—"
+                  : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
+            </p>
+            <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
+              1st{" "}
+              {chainLoading || firstRaw == null
                 ? "—"
-                : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
-          </p>
-          <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
-            1st{" "}
-            {chainLoading || firstRaw == null
-              ? "—"
-              : prize.formatCompact(firstRaw)}
-            <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
-            {chainLoading || entries == null ? "—" : entries} managers
-          </p>
-        </Panel>
+                : prize.formatCompact(firstRaw)}
+              <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
+              {chainLoading || entries == null ? "—" : entries} managers
+            </p>
+          </Panel>
+        </motion.div>
 
-        <div className="order-5 grid grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2">
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.footer)}
+          className="order-5 grid grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2"
+        >
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
@@ -1816,10 +1856,12 @@ export function LockerTablet({
               })}
             </div>
           </Panel>
-        </div>
+        </motion.div>
 
-        <div className="relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2">
-          {registerHint ? (
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.footer)}
+          className="relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2"
+        >          {registerHint ? (
             <p className="pointer-events-none absolute inset-x-0 -top-5 truncate text-[10px] font-semibold leading-none text-amber-100/90">
               {registerHint}
             </p>
@@ -1918,7 +1960,7 @@ export function LockerTablet({
               </span>
             ) : null}
           </button>
-        </div>
+        </motion.div>
       </main>
 
       <div className="shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">

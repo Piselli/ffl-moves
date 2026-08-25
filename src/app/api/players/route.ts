@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 import { CLEAN_SHEET_POINTS, GOAL_POINTS } from "@/lib/scoring-rules";
 import { playerPhotoSrc } from "@/lib/playerPhoto";
 import type { Player } from "@/lib/types";
+import {
+  getCachedPlayers,
+  peekPlayersMemory,
+  runPlayersRefresh,
+} from "@/lib/playersCatalogCache";
 
 type FplApiIdMapFile = {
   byCode?: Record<string, number>;
@@ -12,6 +17,8 @@ type FplApiIdMapFile = {
 const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const PHOTO_BASE =
   "https://resources.premierleague.com/premierleague/photos/players/250x250/p";
+/** Age hint when serving emergency fallback so clients/CDN don't treat it as brand-new. */
+const PLAYERS_STALE_HINT_MS = 10 * 60 * 1000;
 
 const POSITION_MAP: Record<number, "GK" | "DEF" | "MID" | "FWD"> = {
   1: "GK",
@@ -57,15 +64,15 @@ function calcOurForm(el: FplElementSeasonTotals, position: "GK" | "DEF" | "MID" 
   if (starts === 0) return 0;
 
   let pts = 0;
-  pts += (el.goals_scored      || 0) * goalPointsForPosition(position);
-  pts += (el.assists            || 0) * 3;
-  pts += (el.clean_sheets       || 0) * cleanSheetPointsForPosition(position);
-  pts += (el.saves              || 0) * 1;   // GK +1 per save
-  pts += (el.yellow_cards       || 0) * -1;
-  pts += (el.red_cards          || 0) * -3;
-  pts += (el.own_goals          || 0) * -2;
-  pts += (el.penalties_missed   || 0) * -2;
-  pts += starts * 2;                          // 90+ min full game = +2
+  pts += (el.goals_scored || 0) * goalPointsForPosition(position);
+  pts += (el.assists || 0) * 3;
+  pts += (el.clean_sheets || 0) * cleanSheetPointsForPosition(position);
+  pts += (el.saves || 0) * 1;
+  pts += (el.yellow_cards || 0) * -1;
+  pts += (el.red_cards || 0) * -3;
+  pts += (el.own_goals || 0) * -2;
+  pts += (el.penalties_missed || 0) * -2;
+  pts += starts * 2;
 
   return parseFloat((pts / starts).toFixed(2));
 }
@@ -124,87 +131,132 @@ const API_ID_BY_NAME_POS = buildApiIdIndex(
   loadJsonSafe<ApiSportsCatalogRow[]>("public/data/players.json", []),
 );
 
-/** No `revalidate` / Data Cache: FPL bootstrap JSON exceeds Next’s ~2MB fetch cache limit — we use `cache: "no-store"` below. */
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  Referer: "https://fantasy.premierleague.com/",
+  Origin: "https://fantasy.premierleague.com",
+};
 
+function mapBootstrapToPlayers(data: {
+  teams: { id: number; name: string }[];
+  elements: Record<string, unknown>[];
+}): Player[] {
+  const teamMap: Record<number, string> = {};
+  for (const t of data.teams) {
+    teamMap[t.id] = t.name;
+  }
+
+  // Do not filter on can_select — FPL sets can_select=false for every player after the
+  // season closes, which would return an empty catalog and break squad/result views.
+  const players = data.elements
+    .filter((el: { status?: string }) => el.status !== "u")
+    .map((el: Record<string, unknown>) => {
+      const elementType = Number(el.element_type);
+      const pos = POSITION_MAP[elementType] || "MID";
+      const webName = el.web_name as string;
+      const secondName = String(el.second_name || "");
+      const code = el.code as number;
+      const apiId =
+        API_ID_BY_FPL_CODE[String(code)] ??
+        API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ??
+        API_ID_BY_NAME_POS.get(`${normName(secondName)}|${pos}`) ??
+        undefined;
+      return {
+        id: el.id as number,
+        fplId: el.id as number,
+        name: (el.known_name as string) || `${el.first_name} ${el.second_name}`,
+        webName,
+        team: teamMap[el.team as number] || "Unknown",
+        teamId: el.team as number,
+        position: pos,
+        positionId: elementType - 1,
+        squadNumber:
+          el.squad_number == null || el.squad_number === ""
+            ? null
+            : Number(el.squad_number),
+        photo: `${PHOTO_BASE}${el.code}.png`,
+        fplPhotoCode: code,
+        apiId,
+        status: el.status as string,
+        chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,
+        news: (el.news as string) || "",
+        totalPoints: el.total_points as number,
+        form: calcOurForm(el as FplElementSeasonTotals, pos),
+        selectedByPercent: parseFloat(String(el.selected_by_percent)),
+      } satisfies Player;
+    });
+
+  return players.map((p) => {
+    const proxied = playerPhotoSrc(p);
+    return proxied ? { ...p, photo: proxied } : p;
+  });
+}
+
+async function fetchPlayersFromFpl(): Promise<Player[]> {
+  const res = await fetch(FPL_URL, {
+    headers: BROWSER_HEADERS,
+    // Upstream is ~2.6MB — over Next Data Cache limit; we cache the slim map ourselves.
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`FPL API returned ${res.status}`);
+  const data = await res.json();
+  return mapBootstrapToPlayers(data);
+}
+
+function fallbackBundledPlayers(): Player[] | null {
+  const bundled = loadJsonSafe<Player[]>("src/data/players.json", []);
+  return Array.isArray(bundled) && bundled.length > 0 ? bundled : null;
+}
+
+function catalogResponse(players: Player[], ageMs: number) {
+  const fresh = ageMs < 60_000;
+  return NextResponse.json(players, {
+    headers: {
+      // CDN + browser: slim catalog is safe to cache; form ticks slowly.
+      "Cache-Control": fresh
+        ? "public, s-maxage=120, stale-while-revalidate=3600"
+        : "public, s-maxage=60, stale-while-revalidate=3600",
+      "X-Players-Cache-Age-Ms": String(Math.round(ageMs)),
+    },
+  });
+}
+
+/**
+ * Prefer warm slim cache (memory → Redis). Refresh FPL only on miss / stale.
+ * Never blocks a warm hit on the 2.6MB bootstrap pull.
+ */
 export async function GET() {
   try {
-    const res = await fetch(FPL_URL, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        Referer: "https://fantasy.premierleague.com/",
-        Origin: "https://fantasy.premierleague.com",
-      },
-      cache: "no-store", // FPL response is 2.6MB, over Next.js 2MB cache limit
-    });
+    const cached = await getCachedPlayers();
 
-    if (!res.ok) {
-      throw new Error(`FPL API returned ${res.status}`);
+    if (cached.players?.length) {
+      if (cached.shouldRefresh) {
+        void runPlayersRefresh(fetchPlayersFromFpl).catch((e) =>
+          console.warn("players: background refresh failed", e),
+        );
+      }
+      return catalogResponse(cached.players, cached.ageMs);
     }
 
-    const data = await res.json();
-
-    // Build team id → name map
-    const teamMap: Record<number, string> = {};
-    for (const t of data.teams) {
-      teamMap[t.id] = t.name;
-    }
-
-    // Do not filter on can_select — FPL sets can_select=false for every player after the
-    // season closes, which would return an empty catalog and break squad/result views.
-    const players = data.elements
-      .filter(
-        (el: { status?: string }) => el.status !== "u",
-      )
-      .map((el: Record<string, unknown>) => {
-        const elementType = Number(el.element_type);
-        const pos = POSITION_MAP[elementType] || "MID";
-        const webName = el.web_name as string;
-        const secondName = String(el.second_name || "");
-        const code = el.code as number;
-        const apiId =
-          API_ID_BY_FPL_CODE[String(code)] ??
-          API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ??
-          API_ID_BY_NAME_POS.get(`${normName(secondName)}|${pos}`) ??
-          undefined;
-        return {
-          id: el.id as number,
-          fplId: el.id as number,
-          name: (el.known_name as string) || `${el.first_name} ${el.second_name}`,
-          webName,
-          team: teamMap[el.team as number] || "Unknown",
-          teamId: el.team as number,
-          position: pos,
-          positionId: elementType - 1,
-          squadNumber:
-            el.squad_number == null || el.squad_number === ""
-              ? null
-              : Number(el.squad_number),
-          photo: `${PHOTO_BASE}${el.code}.png`,
-          fplPhotoCode: code,
-          apiId,
-          status: el.status as string, // a, d, i, s (FPL)
-          chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,
-          news: (el.news as string) || "",
-          totalPoints: el.total_points as number,
-          form: calcOurForm(el as FplElementSeasonTotals, pos),
-          selectedByPercent: parseFloat(String(el.selected_by_percent)),
-        };
-      });
-
-    const withProxiedPhotos = (players as Player[]).map((p) => {
-      const proxied = playerPhotoSrc(p);
-      return proxied ? { ...p, photo: proxied } : p;
-    });
-    return NextResponse.json(withProxiedPhotos);
+    const players = await runPlayersRefresh(fetchPlayersFromFpl);
+    return catalogResponse(players, 0);
   } catch (err) {
     console.error("Failed to fetch FPL players:", err);
+    const stale = peekPlayersMemory()?.players;
+    if (stale?.length) {
+      return catalogResponse(stale, PLAYERS_STALE_HINT_MS);
+    }
+    const bundled = fallbackBundledPlayers();
+    if (bundled) {
+      return catalogResponse(bundled, PLAYERS_STALE_HINT_MS);
+    }
     return NextResponse.json(
       { error: "Failed to fetch player data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
