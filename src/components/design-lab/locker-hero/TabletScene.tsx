@@ -499,6 +499,7 @@ export function TabletScene(props: Props) {
               showWebglUi ? undefined : props.onPointerInsideChange
             }
             placement={placement}
+            matchWebglScale={fastPreview}
           >
             {showWebglUi ? null : props.children}
           </TabletDomFrame>
