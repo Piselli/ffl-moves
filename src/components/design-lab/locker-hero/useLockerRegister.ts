@@ -130,6 +130,7 @@ export function useLockerRegister(opts: {
     }
 
     setSubmitting(true);
+    let registeredOk = false;
     try {
       const allPlayers = [...starters, ...bench] as Player[];
       await signAndSubmit(
@@ -140,8 +141,8 @@ export function useLockerRegister(opts: {
           clubs: allPlayers.map((p) => p.teamId),
         }),
       );
+      registeredOk = true;
       setAlreadyRegistered(true);
-      setShareOpen(true);
       trackReferralConversion(account.address.toString());
       refreshBalance();
     } catch (error: unknown) {
@@ -152,6 +153,10 @@ export function useLockerRegister(opts: {
       }
     } finally {
       setSubmitting(false);
+      if (registeredOk) {
+        // Wait for wallet UI to dismiss, then open the same share modal as the CTA.
+        window.setTimeout(() => setShareOpen(true), 400);
+      }
     }
   }, [
     account,
