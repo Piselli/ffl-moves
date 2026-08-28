@@ -41,6 +41,7 @@ import {
   resolveTabletTheme,
   type TabletVariantId,
 } from "./tabletVariants";
+import { SHARE_SQUAD_CTA_STYLE } from "./ctaStyles";
 import { pl2627HomeKit } from "./pl2627HomeKits";
 import { clubKitFor } from "./clubKitColors";
 import {
@@ -127,6 +128,11 @@ type Props = {
   registerHint?: string | null;
   /** Logged-out with a complete squad: lime CTA opens login instead of filling slots. */
   registerEntry?: boolean;
+  /** Squad already on-chain — primary CTA opens share poster. */
+  registeredShare?: boolean;
+  onShareClick?: () => void;
+  shareLabel?: string;
+  shareSubline?: string;
 };
 
 function useDeadlineParts(target: string | null) {
@@ -872,6 +878,10 @@ export function LockerTablet({
   registerLocked = false,
   registerHint = null,
   registerEntry = false,
+  registeredShare = false,
+  onShareClick,
+  shareLabel,
+  shareSubline,
 }: Props) {
   const reduceMotion = useReducedMotion() ?? false;
   const { variant: tabletVariant, palette, cta } =
@@ -971,6 +981,38 @@ export function LockerTablet({
     registerEntry,
     starters,
   ]);
+
+  const shareCtaActive = registeredShare && Boolean(onShareClick);
+  const primaryCtaOnClick = shareCtaActive ? onShareClick! : onRegisterClick;
+  const primaryCtaDisabled = shareCtaActive
+    ? registerBusy
+    : registerBusy || registerLocked || !onRegister;
+  const primaryCtaLabel = shareCtaActive
+    ? (shareLabel ?? "Share")
+    : (registerLabel ?? cta.label);
+  const primaryCtaStyle = shareCtaActive
+    ? SHARE_SQUAD_CTA_STYLE
+    : cta.style;
+
+  const primaryCtaContent = shareCtaActive ? (
+    <>
+      <span>{primaryCtaLabel}</span>
+      {shareSubline ? (
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-black/45">
+          {shareSubline}
+        </span>
+      ) : null}
+    </>
+  ) : (
+    <>
+      <span>{primaryCtaLabel}</span>
+      {registerProgress ? (
+        <span className="text-[13px] font-bold tracking-[0.14em] opacity-90">
+          {registerProgress}
+        </span>
+      ) : null}
+    </>
+  );
 
   /** Selecting an empty pitch slot scopes the list to that position. */
   useEffect(() => {
@@ -1942,23 +1984,18 @@ export function LockerTablet({
           </div>
           <button
             type="button"
-            onClick={onRegisterClick}
-            disabled={registerBusy || registerLocked || !onRegister}
+            onClick={primaryCtaOnClick}
+            disabled={primaryCtaDisabled}
             className={cn(
               "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
               isMotionChrome &&
                 "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-              (registerBusy || registerLocked || !onRegister) &&
+              primaryCtaDisabled &&
                 "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
             )}
-            style={cta.style}
+            style={primaryCtaStyle}
           >
-            <span>{registerLabel ?? cta.label}</span>
-            {registerProgress ? (
-              <span className="text-[13px] font-bold tracking-[0.14em] opacity-90">
-                {registerProgress}
-              </span>
-            ) : null}
+            {primaryCtaContent}
           </button>
         </motion.div>
       </main>
@@ -1972,23 +2009,18 @@ export function LockerTablet({
         {filledCount >= FORMATION.TOTAL ? (
           <button
             type="button"
-            onClick={onRegisterClick}
-            disabled={registerBusy || registerLocked || !onRegister}
+            onClick={primaryCtaOnClick}
+            disabled={primaryCtaDisabled}
             className={cn(
               "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3.5 text-[16px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
               isMotionChrome &&
                 "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-              (registerBusy || registerLocked || !onRegister) &&
+              primaryCtaDisabled &&
                 "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
             )}
-            style={cta.style}
+            style={primaryCtaStyle}
           >
-            <span>{registerLabel ?? cta.label}</span>
-            {registerProgress ? (
-              <span className="text-[12px] font-bold tracking-[0.14em] opacity-90">
-                {registerProgress}
-              </span>
-            ) : null}
+            {primaryCtaContent}
           </button>
         ) : (
           <div className="flex items-center gap-2">

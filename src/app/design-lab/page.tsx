@@ -42,6 +42,30 @@ export default function DesignLabPage() {
               NP styles →
             </Link>
             <Link
+              href="/design-lab/share-modal-layouts"
+              className="rounded-sm border border-violet-400/35 bg-violet-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-violet-300 transition-colors hover:bg-violet-400/20"
+            >
+              Modal layouts →
+            </Link>
+            <Link
+              href="/design-lab/locker-hero?preview=registered"
+              className="rounded-sm border border-sky-400/35 bg-sky-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-sky-300 transition-colors hover:bg-sky-400/20"
+            >
+              Share CTA →
+            </Link>
+            <Link
+              href="/design-lab/share-modal"
+              className="rounded-sm border border-white/20 bg-white/[0.04] px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              Share modal →
+            </Link>
+            <Link
+              href="/design-lab/squad-lock-card"
+              className="rounded-sm border border-[#00f948]/35 bg-[#00f948]/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-[#00f948] transition-colors hover:bg-[#00f948]/20"
+            >
+              Share card →
+            </Link>
+            <Link
               href="/design-lab/locker-tablet"
               className="rounded-sm border border-violet-400/35 bg-violet-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-violet-300 transition-colors hover:bg-violet-400/20"
             >

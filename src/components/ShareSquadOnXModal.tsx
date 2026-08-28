@@ -1,18 +1,107 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { SquadSharePoster } from "@/components/SquadSharePoster";
-import { modalOverlayMotion, modalPanelMotion } from "@/lib/uiMotion";
+import { SquadLockShareCard } from "@/components/SquadLockShareCard";
 import {
-  buildSquadShareTweetText,
-  shareSquadImageOnX,
-  type ShareSquadResult,
+  SharePosterExportRoot,
+  SharePosterTiltStage,
+} from "@/components/share/SharePosterTiltStage";
+import { useNickname } from "@/hooks/useNickname";
+import { useWallet } from "@/hooks/useSolanaWallet";
+import { modalOverlayMotion } from "@/lib/uiMotion";
+import {
+  copySquadImage,
+  downloadSquadImage,
   type SquadShareContext,
 } from "@/lib/shareSquadOnX";
 import type { Player } from "@/lib/types";
+import type { FormationId } from "@/lib/formation";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { cn } from "@/lib/utils";
+
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
+
+function ActionButton({
+  variant,
+  busy,
+  done,
+  label,
+  doneLabel,
+  onClick,
+  disabled,
+}: {
+  variant: "primary" | "secondary";
+  busy: boolean;
+  done: boolean;
+  label: string;
+  doneLabel: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const reduce = Boolean(useReducedMotion());
+  const text = done ? doneLabel : label;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || busy}
+      aria-busy={busy}
+      className={cn(
+        "relative flex h-12 min-h-12 w-full flex-1 items-center justify-center overflow-hidden rounded-xl px-5 font-display text-sm font-black uppercase tracking-wider transition-[filter,opacity,transform,background-color,color] duration-200 active:scale-[0.98] disabled:cursor-default",
+        variant === "primary"
+          ? "bg-white text-black hover:brightness-95 disabled:opacity-75"
+          : "border border-white/14 bg-white/[0.04] text-white/80 hover:border-white/22 hover:bg-white/[0.07] hover:text-white disabled:opacity-65",
+      )}
+    >
+      {busy ? (
+        <motion.span
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-left bg-current opacity-25"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: [0, 0.45, 0.85, 1] }}
+          transition={{
+            duration: reduce ? 0.3 : 1.1,
+            ease: EASE_OUT,
+            repeat: reduce ? 0 : Infinity,
+            repeatType: "loop",
+          }}
+          aria-hidden
+        />
+      ) : null}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={text}
+          className="relative z-[1] flex items-center justify-center gap-2"
+          initial={reduce ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -4 }}
+          transition={{ duration: reduce ? 0 : 0.16, ease: EASE_OUT }}
+        >
+          {done ? (
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.75}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          ) : null}
+          {text}
+        </motion.span>
+      </AnimatePresence>
+    </button>
+  );
+}
+
+/** @deprecated Lab-only — production modal is the 3D hero layout. */
+export type ShareModalLayout = "classic" | "single" | "sheet";
 
 export function ShareSquadOnXModal({
   open,
@@ -21,7 +110,8 @@ export function ShareSquadOnXModal({
   bench,
   context,
   tourLabel,
-  sitePath,
+  formationId,
+  managerLabelOverride,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,15 +119,45 @@ export function ShareSquadOnXModal({
   bench: Player[];
   context: SquadShareContext;
   tourLabel: string;
-  sitePath: string;
+  sitePath?: string;
+  formationId?: FormationId;
+  managerLabelOverride?: string;
+  /** @deprecated ignored — hero 3D layout is always used */
+  layout?: ShareModalLayout;
 }) {
   const ss = useSiteMessages().pages.squadShare;
-  const g = useSiteMessages().pages.gameweek;
+  const { account } = useWallet();
+  const { getNickname } = useNickname();
   const reduce = Boolean(useReducedMotion());
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [sharing, setSharing] = useState(false);
-  const [resultHint, setResultHint] = useState<ShareSquadResult | null>(null);
-  const posterRef = useRef<HTMLDivElement>(null);
+  const [copying, setCopying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const copiedTimerRef = useRef<number | null>(null);
+  const downloadedTimerRef = useRef<number | null>(null);
+
+  const managerLabel = useMemo(() => {
+    if (managerLabelOverride) return managerLabelOverride;
+    const addr = account?.address?.toString();
+    if (!addr) return "—";
+    return getNickname(addr);
+  }, [account?.address, getNickname, managerLabelOverride]);
+
+  const cardProps = {
+    starters,
+    bench,
+    tourLabel,
+    managerLabel,
+    headline: ss.cardHeadline,
+    lockedLabel: ss.cardLocked,
+    siteUrl: "form8.app",
+    formationId,
+  };
+
+  const fileName = `form8-squad-${context}.png`;
+  const busy = copying || downloading;
 
   useEffect(() => {
     setPortalRoot(document.body);
@@ -45,13 +165,28 @@ export function ShareSquadOnXModal({
 
   useEffect(() => {
     if (!open) return;
-    setResultHint(null);
+    setCopied(false);
+    setDownloaded(false);
+    for (const ref of [copiedTimerRef, downloadedTimerRef]) {
+      if (ref.current != null) {
+        window.clearTimeout(ref.current);
+        ref.current = null;
+      }
+    }
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      for (const ref of [copiedTimerRef, downloadedTimerRef]) {
+        if (ref.current != null) window.clearTimeout(ref.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !sharing) onClose();
+      if (e.key === "Escape" && !busy) onClose();
     };
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -60,166 +195,138 @@ export function ShareSquadOnXModal({
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", handler);
     };
-  }, [open, onClose, sharing]);
+  }, [open, onClose, busy]);
 
   if (!portalRoot) return null;
 
-  const handleShare = async () => {
-    if (!posterRef.current || sharing) return;
-    setSharing(true);
-    setResultHint(null);
+  const getExportEl = () => exportRef.current;
+
+  const flashDone = (
+    setter: (v: boolean) => void,
+    timerRef: React.MutableRefObject<number | null>,
+  ) => {
+    setter(true);
+    if (timerRef.current != null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      setter(false);
+      timerRef.current = null;
+    }, 2200);
+  };
+
+  const handleCopy = async () => {
+    const exportEl = getExportEl();
+    if (!exportEl || busy) return;
+    setCopying(true);
     try {
-      const tweetText = buildSquadShareTweetText({
-        context,
-        tourLabel,
-        starters,
-        bench,
-        sitePath,
-        copy: ss,
-      });
-      const method = await shareSquadImageOnX({
-        element: posterRef.current,
-        tweetText,
-        fileName: `movematch-squad-${context}.png`,
-      });
-      setResultHint(method);
+      await copySquadImage({ element: exportEl, fileName });
+      flashDone(setCopied, copiedTimerRef);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message.toLowerCase() : "";
-      if (!msg.includes("abort") && !msg.includes("cancel")) {
-        console.error("Share on X failed:", err);
-      }
+      console.error("Copy squad image failed:", err);
     } finally {
-      setSharing(false);
+      setCopying(false);
     }
   };
 
-  const hintText =
-    resultHint === "clipboard"
-      ? ss.clipboardHint
-      : resultHint === "download"
-        ? ss.desktopHint
-        : null;
+  const handleDownload = async () => {
+    const exportEl = getExportEl();
+    if (!exportEl || busy) return;
+    setDownloading(true);
+    try {
+      await downloadSquadImage({ element: exportEl, fileName });
+      flashDone(setDownloaded, downloadedTimerRef);
+    } catch (err: unknown) {
+      console.error("Download squad image failed:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const overlay = modalOverlayMotion(reduce);
-  const panel = modalPanelMotion(reduce);
 
   return createPortal(
     <AnimatePresence>
       {open ? (
-    <div
-      className="fixed inset-0 z-[210] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="share-squad-modal-title"
-    >
-      <motion.button
-        type="button"
-        aria-label={ss.closeAria}
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-        initial={overlay.initial}
-        animate={overlay.animate}
-        exit={overlay.exit}
-        transition={overlay.transition}
-        onClick={() => {
-          if (!sharing) onClose();
-        }}
-      />
+        <div
+          className={cn(
+            "fixed inset-0 z-[210] flex min-h-[100dvh] items-center justify-center p-4 sm:p-8",
+            busy && "cursor-default",
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-label={ss.modalTitle}
+        >
+          <motion.button
+            type="button"
+            aria-label={ss.closeAria}
+            className="absolute inset-0 bg-black/86 backdrop-blur-xl"
+            initial={overlay.initial}
+            animate={overlay.animate}
+            exit={overlay.exit}
+            transition={overlay.transition}
+            onClick={() => {
+              if (!busy) onClose();
+            }}
+          />
 
-      <motion.div
-        className="relative w-full max-w-md max-h-[min(92dvh,calc(100dvh-2rem))] overflow-y-auto rounded-2xl border border-white/[0.10] bg-[#111214] shadow-2xl overscroll-contain"
-        initial={panel.initial}
-        animate={panel.animate}
-        exit={panel.exit}
-        transition={panel.transition}
-      >
-        <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00f948]/60 to-transparent" />
-
-        <div className="p-6">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <h2
-                id="share-squad-modal-title"
-                className="text-lg font-display font-black uppercase tracking-tight leading-none text-white"
-              >
-                {ss.modalTitle}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-white/35">{ss.modalDesc}</p>
-            </div>
+          <motion.div
+            className="relative w-full max-w-[min(100%,920px)]"
+            initial={reduce ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: 12 }}
+            transition={{ duration: reduce ? 0.12 : 0.34, ease: EASE_OUT }}
+          >
             <button
               type="button"
               onClick={onClose}
-              disabled={sharing}
-              className="-mr-1 -mt-1 p-1 text-white/20 transition-[color,transform] duration-150 hover:text-white/60 active:scale-[0.96] disabled:opacity-40"
+              disabled={busy}
+              className="absolute -top-1 right-0 z-20 grid h-10 w-10 place-items-center rounded-full text-white/40 transition hover:bg-white/[0.06] hover:text-white/85 active:scale-[0.96] disabled:cursor-default disabled:opacity-40 sm:-right-2 sm:-top-2"
               aria-label={ss.closeAria}
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="mb-4 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0D0F12]">
-            <div className="pointer-events-none max-h-[220px] overflow-hidden">
-              <div className="origin-top-left scale-[0.28]">
-                <SquadSharePoster
-                  starters={starters}
-                  bench={bench}
-                  tourLabel={tourLabel}
-                  brandLabel="FORM8"
-                  startersLabel={g.startersSection}
-                  benchLabel={g.benchSection}
-                  ctaLine={ss.posterCta}
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
                 />
-              </div>
-            </div>
-          </div>
-
-          <div
-            ref={posterRef}
-            className="pointer-events-none fixed left-[-9999px] top-0 z-[-1] opacity-0"
-            aria-hidden
-          >
-            <SquadSharePoster
-              starters={starters}
-              bench={bench}
-              tourLabel={tourLabel}
-              brandLabel="FORM8"
-              startersLabel={g.startersSection}
-              benchLabel={g.benchSection}
-              ctaLine={ss.posterCta}
-            />
-          </div>
-
-          {hintText ? (
-            <p className="mb-3 rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-2.5 text-xs leading-relaxed text-sky-100/90">
-              {hintText}
-            </p>
-          ) : null}
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={sharing}
-              className="flex-1 rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/40 transition-[border-color,color,transform] duration-150 hover:border-white/[0.15] hover:text-white/70 active:scale-[0.98] disabled:opacity-40"
-            >
-              {ss.laterButton}
-            </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={sharing}
-              className="flex flex-grow items-center justify-center gap-2 rounded-xl bg-white py-2.5 px-5 text-sm font-display font-black uppercase tracking-wider text-black transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.98] disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
-              {sharing ? ss.generating : ss.shareButton}
             </button>
-          </div>
+
+            <SharePosterExportRoot exportRef={exportRef}>
+              <SquadLockShareCard {...cardProps} />
+            </SharePosterExportRoot>
+
+            <SharePosterTiltStage className="mb-5 sm:mb-6">
+              <SquadLockShareCard {...cardProps} />
+            </SharePosterTiltStage>
+
+            <div className="mx-auto flex w-full max-w-md flex-col gap-2 sm:flex-row sm:gap-3">
+              <ActionButton
+                variant="secondary"
+                busy={downloading}
+                done={downloaded}
+                label={ss.downloadButton}
+                doneLabel={ss.downloadButtonDone}
+                onClick={handleDownload}
+                disabled={busy}
+              />
+              <ActionButton
+                variant="primary"
+                busy={copying}
+                done={copied}
+                label={ss.copyButton}
+                doneLabel={ss.copyButtonCopied}
+                onClick={handleCopy}
+                disabled={busy}
+              />
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
       ) : null}
     </AnimatePresence>,
     portalRoot,

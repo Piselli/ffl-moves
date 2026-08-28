@@ -101,6 +101,21 @@ export const SIGNAL_GREEN_CTA: CtaStyle = {
   },
 };
 
+/** Post-lock share — white convex + FORM8 green halo (pairs with convex-green register). */
+export const SHARE_SQUAD_CTA_STYLE: CSSProperties = {
+  background:
+    "linear-gradient(180deg, #ffffff 0%, #f3f3f4 52%, #e9e9eb 100%)",
+  color: "#08090a",
+  textShadow: "none",
+  boxShadow: [
+    "inset 0 1.5px 0 rgba(255,255,255,0.95)",
+    "inset 0 -1px 0 rgba(0,0,0,0.05)",
+    "0 0 0 1px rgba(0,249,72,0.42)",
+    "0 0 36px rgba(0,249,72,0.32)",
+    "0 10px 28px rgba(0,0,0,0.42)",
+  ].join(", "),
+};
+
 const CTAS: Record<CtaStyleId, CtaStyle> = {
   "convex-green": LOCKER_CTA,
   "tripled-white": TRIPLED_WHITE_CTA,

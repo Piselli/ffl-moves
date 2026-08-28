@@ -6,6 +6,15 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .safe-area-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+
+  /* PNG export — html2canvas/html-to-image break on letter-spacing */
+  .share-export-capture,
+  .share-export-capture * {
+    letter-spacing: 0 !important;
+    word-spacing: normal !important;
+    font-kerning: auto !important;
+    text-rendering: geometricPrecision !important;
+  }
 }
 
 @layer base {

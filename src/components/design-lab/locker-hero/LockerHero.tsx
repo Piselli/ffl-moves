@@ -34,6 +34,7 @@ import {
   SHIPPING_TABLET_VARIANT,
   type TabletVariantId,
 } from "./tabletVariants";
+import { FORMATION } from "@/lib/constants";
 import { HERO_EASE_OUT, HERO_REVEAL } from "./heroReveal";
 
 /** `null` until mounted so SSR/hydration never loads the 3D iPad on a phone. */
@@ -79,13 +80,18 @@ type LockerHeroProps = {
    * `site` — production homepage (locked nameplates + no lab chrome).
    */
   variant?: LockerHeroVariant;
+  /** Design-lab only — mock post-registration without on-chain register. */
+  previewRegistered?: boolean;
 };
 
 /**
  * Close-cropped iPad: the live screen fills most of the viewport.
  * Scroll outside the tablet lowers it so the room becomes interactive.
  */
-export function LockerHero({ variant = "lab" }: LockerHeroProps) {
+export function LockerHero({
+  variant = "lab",
+  previewRegistered = false,
+}: LockerHeroProps) {
   const isSite = variant === "site";
   const isLab = !isSite;
   const reduceMotion = useReducedMotion();
@@ -101,6 +107,23 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
     bench: squad.bench,
     gameweekId: data.openGwId,
   });
+  const showRegisteredShare =
+    register.alreadyRegistered || (previewRegistered && isLab);
+
+  useEffect(() => {
+    if (!previewRegistered || !isLab) return;
+    if (data.playersLoading || data.players.length === 0) return;
+    if (squad.filledCount < FORMATION.TOTAL) {
+      squad.randomize(data.players);
+    }
+  }, [
+    data.players,
+    data.playersLoading,
+    isLab,
+    previewRegistered,
+    squad.filledCount,
+    squad.randomize,
+  ]);
   const prize = usePrizeAsset();
   const { locale } = useSiteLocale();
   const messages = useSiteMessages();
@@ -286,9 +309,13 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
       registerLabel={register.ctaLabel}
       registerProgress={register.ctaProgress}
       registerBusy={register.submitting}
-      registerLocked={register.alreadyRegistered || data.openGwId == null}
+      registerLocked={data.openGwId == null && !register.alreadyRegistered}
       registerHint={register.hint}
       registerEntry={register.needsLogin}
+      registeredShare={showRegisteredShare}
+      onShareClick={() => register.setShareOpen(true)}
+      shareLabel={messages.pages.squadShare.registeredShareButton}
+      shareSubline={messages.pages.squadShare.registeredShareSubline}
     />
   );
 
@@ -500,6 +527,7 @@ export function LockerHero({ variant = "lab" }: LockerHeroProps) {
         context="gameweek"
         tourLabel={`${messages.pages.gameweek.gwWord} ${register.gameweekId ?? ""}`}
         sitePath="/"
+        formationId={squad.formationId}
       />
 
       {bootMounted ? (
