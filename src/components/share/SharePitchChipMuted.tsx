@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 import { PitchChipCutout } from "@/components/design-lab/locker-hero/PitchChipCutout";
-import { getPitchChipFont } from "@/components/design-lab/locker-hero/pitchChipFonts";
+import { getSharePitchChipFont } from "@/components/design-lab/locker-hero/pitchChipFonts";
 import { fitPitchName } from "@/components/design-lab/locker-hero/pitchChipName";
 import type { SharePitchChipSize } from "@/components/share/SharePitchChip";
 import {
@@ -46,12 +46,12 @@ const SIZE: Record<
   },
   lg: {
     cutout: 84,
-    maxTextW: 68,
-    maxNameSize: 14.5,
-    preferMin: 12.5,
+    maxTextW: 84,
+    maxNameSize: 18.5,
+    preferMin: 15,
     plateH: 26,
-    platePadX: 7,
-    maxPlateW: 88,
+    platePadX: 5,
+    maxPlateW: 104,
   },
 };
 
@@ -83,7 +83,7 @@ export function SharePitchChipMuted({
   const nameColor =
     plateStyle === "white" ? "text-[#0a0a0a]" : "text-white/90";
   const surname = sharePlayerSurname(player);
-  const font = getPitchChipFont();
+  const font = getSharePitchChipFont();
 
   const plateW = uniform?.plateW ?? s.maxPlateW;
   const plateH = uniform?.plateH ?? s.plateH;
@@ -93,7 +93,8 @@ export function SharePitchChipMuted({
   const { label, fontSize } = uniform
     ? {
         label: uniform.labels[player.id] ?? surname,
-        fontSize: uniform.fontSize,
+        fontSize:
+          uniform.fontSizes[player.id] ?? uniform.fontSize,
       }
     : fitPitchName(surname, {
         widthPx: textW,
@@ -128,7 +129,7 @@ export function SharePitchChipMuted({
         />
       </div>
       <div
-        className="-mt-1 relative flex items-center justify-center overflow-hidden rounded-[6px]"
+        className="-mt-1 relative flex items-center justify-center overflow-hidden rounded-[7px]"
         style={{
           width: plateW,
           height: plateH,
@@ -147,7 +148,7 @@ export function SharePitchChipMuted({
           />
         ) : null}
         <span
-          className={`relative z-[1] block whitespace-nowrap text-center font-semibold leading-none ${nameColor}`}
+          className={`relative z-[1] block whitespace-nowrap text-center font-bold leading-none ${nameColor}`}
           style={{
             fontSize,
             fontFamily: font.family,

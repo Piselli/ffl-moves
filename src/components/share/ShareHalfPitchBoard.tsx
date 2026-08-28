@@ -21,18 +21,23 @@ import {
   type FormationId,
 } from "@/lib/formation";
 import type { Player } from "@/lib/types";
+import { shareHalfPitchLeftPct } from "@/components/share/shareHalfPitchSlots";
 import { cn } from "@/lib/utils";
 
 /** Half pitch plate — FIFA half (52.5m) × width (68m). */
 export const HALF_PITCH_ASPECT = 68 / 52.5;
 
 /** Spread XI across half-pitch; keep GK above the bottom edge. */
-function halfSlot(leftPct: number, topPct: number) {
-  const left = 4 + (leftPct / 100) * 92;
+function halfSlot(
+  leftPct: number,
+  topPct: number,
+  formationId: FormationId,
+) {
+  const left = shareHalfPitchLeftPct(leftPct, topPct, formationId);
   const t = Math.min(1, Math.max(0, (topPct - 18) / (90 - 18)));
   const top = 7 + t * 73;
   return {
-    leftPct: Math.min(93, Math.max(7, left)),
+    leftPct: left,
     topPct: Math.min(80, Math.max(7, top)),
   };
 }
@@ -130,7 +135,7 @@ export function ShareHalfPitchBoard({
         {slots.map(({ formationIndex, leftPct, topPct }) => {
           const player = starters[formationIndex];
           if (!player) return null;
-          const pos = halfSlot(leftPct, topPct);
+          const pos = halfSlot(leftPct, topPct, formationId);
           const slotTop =
             chipMode === "chips-muted"
               ? Math.min(86, pos.topPct + 4)

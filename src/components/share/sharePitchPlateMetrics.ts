@@ -1,9 +1,10 @@
-import { getPitchChipFont } from "@/components/design-lab/locker-hero/pitchChipFonts";
+import { getSharePitchChipFont } from "@/components/design-lab/locker-hero/pitchChipFonts";
 import {
   fitPitchName,
   textWidthPx,
 } from "@/components/design-lab/locker-hero/pitchChipName";
 import type { SharePitchChipSize } from "@/components/share/SharePitchChip";
+import { shareHalfPitchLeftPct } from "@/components/share/shareHalfPitchSlots";
 import { sharePlayerSurname } from "@/components/share/sharePitchKit";
 import {
   DEFAULT_FORMATION,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/formation";
 import type { Player } from "@/lib/types";
 
-const PLATE_GAP_PX = 10;
+const PLATE_GAP_PX = 6;
 
 const SIZE: Record<
   SharePitchChipSize,
@@ -40,11 +41,11 @@ const SIZE: Record<
     absMaxPlateW: 72,
   },
   lg: {
-    maxNameSize: 14.5,
-    preferMin: 12.5,
+    maxNameSize: 18.5,
+    preferMin: 15,
     plateH: 26,
-    platePadX: 7,
-    absMaxPlateW: 88,
+    platePadX: 5,
+    absMaxPlateW: 104,
   },
 };
 
@@ -53,12 +54,6 @@ function trackingEm(tracking: string): number {
   if (!t || t === "0" || t === "normal") return 0;
   if (t.endsWith("em")) return Number.parseFloat(t) || 0;
   return 0;
-}
-
-/** Same remap as ShareHalfPitchBoard.halfSlot — left edge %. */
-function halfSlotLeftPct(leftPct: number): number {
-  const left = 4 + (leftPct / 100) * 92;
-  return Math.min(93, Math.max(7, left));
 }
 
 function minRowSpacingPct(formationId: FormationId): number {
@@ -71,7 +66,8 @@ function minRowSpacingPct(formationId: FormationId): number {
       const b = slots[j]!;
       if (Math.abs(a.topPct - b.topPct) > 6) continue;
       const gap = Math.abs(
-        halfSlotLeftPct(a.leftPct) - halfSlotLeftPct(b.leftPct),
+        shareHalfPitchLeftPct(a.leftPct, a.topPct, formationId) -
+          shareHalfPitchLeftPct(b.leftPct, b.topPct, formationId),
       );
       if (gap > 0) minSpacing = Math.min(minSpacing, gap);
     }
@@ -83,8 +79,10 @@ export type UniformMutedPlateMetrics = {
   plateW: number;
   plateH: number;
   platePadX: number;
+  /** @deprecated use fontSizes — kept for callers without per-player sizes */
   fontSize: number;
   labels: Record<number, string>;
+  fontSizes: Record<number, number>;
 };
 
 export function computeUniformMutedPlateMetrics(
@@ -93,8 +91,9 @@ export function computeUniformMutedPlateMetrics(
   opts?: { pitchWidthPx?: number; formationId?: FormationId },
 ): UniformMutedPlateMetrics {
   const s = SIZE[chipSize];
-  const font = getPitchChipFont();
+  const font = getSharePitchChipFont();
   const track = trackingEm(font.tracking);
+  const fontWeight = font.weight;
   const formationId =
     opts?.formationId ??
     inferFormationFromPositions(starters.map((p) => p.positionId));
@@ -115,14 +114,14 @@ export function computeUniformMutedPlateMetrics(
     const { label } = fitPitchName(surname, {
       widthPx: maxTextW,
       fontFamily: font.family,
-      weight: font.weight,
+      weight: fontWeight,
       letterSpacing: font.tracking,
       fixedSize: s.maxNameSize,
       allowAbbreviate: false,
     });
     const widthAtMax = textWidthPx(
       label,
-      `${font.weight} ${s.maxNameSize}px ${font.family}`,
+      `${fontWeight} ${s.maxNameSize}px ${font.family}`,
       track,
       s.maxNameSize,
     );
@@ -136,18 +135,20 @@ export function computeUniformMutedPlateMetrics(
 
   let uniformFontSize = s.maxNameSize;
   const labels: Record<number, string> = {};
+  const fontSizes: Record<number, number> = {};
 
   for (const entry of entries) {
     const { label, fontSize } = fitPitchName(entry.surname, {
       widthPx: textInnerW,
       fontFamily: font.family,
-      weight: font.weight,
+      weight: fontWeight,
       letterSpacing: font.tracking,
       maxSize: s.maxNameSize,
       preferMin: s.preferMin,
       allowAbbreviate: false,
     });
     labels[entry.id] = label;
+    fontSizes[entry.id] = fontSize;
     uniformFontSize = Math.min(uniformFontSize, fontSize);
   }
 
@@ -157,5 +158,6 @@ export function computeUniformMutedPlateMetrics(
     platePadX: s.platePadX,
     fontSize: uniformFontSize,
     labels,
+    fontSizes,
   };
 }

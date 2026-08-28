@@ -104,6 +104,7 @@ const MOCK_TEAM_ID: Record<string, number> = {
   Bruno: 16,
   Mainoo: 16,
   Shaw: 16,
+  "Dewsbury-Hall": 9,
   Watkins: 2,
   Mbeumo: 16,
   Son: 19,
@@ -274,7 +275,7 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
       isYou: true,
       gwDelta: 14,
       formationId: "4-3-3",
-      squad: ["Raya", "Shaw", "Van Dijk", "Colwill", "Saliba", "Saka", "Palmer", "Bruno", "Gakpo", "Haaland", "Watkins"],
+      squad: ["Raya", "Shaw", "Van Dijk", "Colwill", "Saliba", "Saka", "Dewsbury-Hall", "Bruno", "Gakpo", "Haaland", "Watkins"],
       xi: xi([
         ["Raya", 5, undefined, {
           positionId: 0,
@@ -313,7 +314,7 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
           position: "MID",
           stats: { minutes_played: 78, goals: 1, bonus: 1 },
         }],
-        ["Palmer", 6, "palmer", {
+        ["Dewsbury-Hall", 9, undefined, {
           positionId: 2,
           position: "MID",
           stats: { minutes_played: 90, assists: 1, bonus: 1 },
