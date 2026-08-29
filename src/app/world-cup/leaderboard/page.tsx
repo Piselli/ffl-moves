@@ -24,6 +24,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, formatTxError } from "@/lib/utils";
 import { TeamResult } from "@/lib/types";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import {
   fetchTourClaimHistoryFromApi,
   mergePriorClaimsIntoResults,
@@ -203,7 +204,7 @@ export default function WorldCupLeaderboardPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+      <div className={cn("max-w-6xl mx-auto px-4 pb-12 flex items-center justify-center", PRODUCT_PAGE_TOP)}>
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-3xl p-14 text-center">
           <div className="w-8 h-8 border-2 border-[#00f948]/60 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/40 text-sm">{lb.loading}</p>
@@ -213,7 +214,7 @@ export default function WorldCupLeaderboardPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-28 pb-12">
+    <div className={cn("max-w-6xl mx-auto px-4 pb-12", PRODUCT_PAGE_TOP)}>
       <div className="mb-4">
         <Link href="/world-cup" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
           {wc.backToHub}

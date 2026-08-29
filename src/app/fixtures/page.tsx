@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { SeasonPageWash } from "@/components/season/seasonPageChrome";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
+import { cn } from "@/lib/utils";
 import {
   FplFixturesBoard,
   type FplFixturesPayload,
@@ -63,7 +65,7 @@ export default function FixturesPage() {
       <SeasonPageWash warm={false} />
       <LockerLabNav liveLinks />
 
-      <main className="relative mx-auto max-w-4xl px-5 pb-16 pt-20 sm:px-8 md:pt-24">
+      <main className={cn("relative mx-auto max-w-4xl px-5 pb-16 sm:px-8", PRODUCT_PAGE_TOP)}>
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4 sm:mb-10">
           <div className="min-w-0">
             {data?.gameweek.name ? (

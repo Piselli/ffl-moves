@@ -7,6 +7,7 @@ import { WC_ROUNDS, type WorldCupRound } from "@/lib/worldcup";
 import { useSiteMessages, useSiteLocale } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
@@ -237,7 +238,7 @@ export function WcFixturesBoard({ initialRoundKey }: { initialRoundKey?: string 
   const deadline = formatKickoff(payload?.deadlineTime ?? null, locale);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-20 pt-28 sm:px-6">
+    <div className={cn("mx-auto max-w-4xl px-4 pb-20 sm:px-6", PRODUCT_PAGE_TOP)}>
       <div className="mb-5">
         <Link
           href="/world-cup"

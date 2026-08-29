@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_TG_HANDLE } from "@/lib/constants";
@@ -9,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { SeasonPageWash } from "@/components/season/seasonPageChrome";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
@@ -196,7 +196,7 @@ export default function FaqPage() {
       <SeasonPageWash warm={false} />
       <LockerLabNav liveLinks />
 
-      <main className="relative mx-auto max-w-4xl px-5 pb-20 pt-20 sm:px-8 md:pt-24">
+      <main className={cn("relative mx-auto max-w-4xl px-5 pb-20 sm:px-8", PRODUCT_PAGE_TOP)}>
         <header className="mb-5 sm:mb-6">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{faq.eyebrow}</p>
           <h1 className="mt-0.5 font-display text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
@@ -354,17 +354,6 @@ export default function FaqPage() {
           </GlassPanel>
         </div>
 
-        <div className="mt-10 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            FORM8
-          </Link>
-        </div>
       </main>
 
       <AnimatePresence>

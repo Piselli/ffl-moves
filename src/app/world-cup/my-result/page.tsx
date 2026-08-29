@@ -25,6 +25,7 @@ import { FORMATION } from "@/lib/constants";
 import { Player, TeamResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 
 type TourOption = {
   tourId: number;
@@ -194,7 +195,7 @@ function WorldCupMyResultContent() {
 
   if (!connected) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+      <div className={cn("max-w-4xl mx-auto px-4 pb-12 flex items-center justify-center", PRODUCT_PAGE_TOP)}>
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-3xl p-14 text-center max-w-md w-full">
           <h1 className="text-2xl font-display font-black text-white mb-3 uppercase tracking-tight">{mr.connectTitle}</h1>
           <p className="text-white/40 text-sm">{mr.connectHint}</p>
@@ -205,7 +206,7 @@ function WorldCupMyResultContent() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+      <div className={cn("max-w-4xl mx-auto px-4 pb-12 flex items-center justify-center", PRODUCT_PAGE_TOP)}>
         <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#00f948] animate-spin" />
       </div>
     );
@@ -213,7 +214,7 @@ function WorldCupMyResultContent() {
 
   if (tourOptions.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
+      <div className={cn("max-w-4xl mx-auto px-4 pb-12", PRODUCT_PAGE_TOP)}>
         <Link href="/world-cup/leaderboard" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
           {wc.myResultBackLeaderboard}
         </Link>
@@ -239,7 +240,7 @@ function WorldCupMyResultContent() {
   const roundLabel = wc.roundName(getWorldCupRound(selectedTourId)?.key ?? "");
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-28 pb-12">
+      <div className={cn("max-w-4xl mx-auto px-4 pb-12", PRODUCT_PAGE_TOP)}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link href="/world-cup/leaderboard" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
           {wc.myResultBackLeaderboard}
@@ -335,7 +336,7 @@ export default function WorldCupMyResultPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 flex items-center justify-center">
+        <div className={cn("max-w-4xl mx-auto px-4 pb-12 flex items-center justify-center", PRODUCT_PAGE_TOP)}>
           <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#00f948] animate-spin" />
         </div>
       }

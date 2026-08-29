@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BrandLockup, BRAND_LOCKUP_NAV_INNER } from "@/components/BrandLockup";
+import { SiteBackHomeFloat } from "@/components/SiteBackHome";
 import { useDeposit } from "@/components/DepositProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
@@ -270,6 +271,8 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         </div>
       </div>
 
+      {liveLinks ? <SiteBackHomeFloat /> : null}
+
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
@@ -283,6 +286,18 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
             }
           >
+            {liveLinks && pathname !== "/" ? (
+              <Link
+                href="/"
+                onClick={() => setMobileOpen(false)}
+                className="mb-1 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                {m.nav.backHome}
+              </Link>
+            ) : null}
             {beforeTalents.map((link) => {
               const active =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);

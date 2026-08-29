@@ -10,6 +10,8 @@ import { useSeasonStandingsData } from "./useSeasonStandingsData";
 import { type SeasonStandingsContext } from "./seasonStandingsShared";
 import { resolveDemoWallet, resolveSeasonPayload } from "./seasonStandingsMockData";
 import { SeasonPageWash } from "./seasonPageChrome";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
+import { cn } from "@/lib/utils";
 import { SeasonVariantRail } from "./variants/SeasonVariantRail";
 
 export function SeasonStandingsShell() {
@@ -64,7 +66,7 @@ export function SeasonStandingsShell() {
           <SeasonVariantRail ctx={ctx} connected={!!account} />
         </div>
       ) : (
-        <main className="relative mx-auto max-w-4xl px-5 pb-28 pt-24 sm:px-6">
+        <main className={cn("relative mx-auto max-w-4xl px-5 pb-28 sm:px-6", PRODUCT_PAGE_TOP)}>
           {isLoading ? (
             <p className="py-12 text-sm text-white/35">{m.loading}</p>
           ) : null}

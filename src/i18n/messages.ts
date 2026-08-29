@@ -15,6 +15,7 @@ export type SiteMessages = {
     loading: string;
     menuOpen: string;
     menuClose: string;
+    backHome: string;
     changeNickname: string;
     setNickname: string;
     disconnect: string;
@@ -279,6 +280,7 @@ const uk: SiteMessages = {
     loading: "Завантаження…",
     menuOpen: "Відкрити меню",
     menuClose: "Закрити меню",
+    backHome: "На головну",
     changeNickname: "Змінити нік",
     setNickname: "Вказати нік",
     disconnect: "Вийти",
@@ -573,6 +575,7 @@ const en: SiteMessages = {
     loading: "Loading…",
     menuOpen: "Open menu",
     menuClose: "Close menu",
+    backHome: "Home",
     changeNickname: "Change nickname",
     setNickname: "Set nickname",
     disconnect: "Log out",

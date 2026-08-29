@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -38,7 +39,8 @@ export function SitePageShell({
       <LockerLabNav liveLinks />
       <div
         className={cn(
-          "relative mx-auto px-5 sm:px-8 lg:px-10 pt-20 pb-16 md:pt-24",
+          "relative mx-auto px-5 sm:px-8 lg:px-10 pb-16",
+          PRODUCT_PAGE_TOP,
           WIDTH[width],
           centered && "flex min-h-screen items-center justify-center py-24",
           className,

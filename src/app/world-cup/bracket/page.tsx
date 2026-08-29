@@ -13,6 +13,7 @@ import { WcBracketResultsPanel } from "@/components/wc/WcBracketResultsPanel";
 import { ConnectWalletCTA } from "@/components/ConnectWalletCTA";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import { useWcBracketState } from "@/hooks/useWcBracketState";
 import {
   hasBracketPrediction,
@@ -304,7 +305,7 @@ export default function WorldCupBracketPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6">
+    <div className={cn("mx-auto max-w-7xl px-4 pb-16 sm:px-6", PRODUCT_PAGE_TOP)}>
       <Link href="/world-cup" className="text-xs font-bold uppercase tracking-widest text-[#00f948]/70 hover:text-[#00f948]">
         {m.pages.worldCup.backToHub}
       </Link>

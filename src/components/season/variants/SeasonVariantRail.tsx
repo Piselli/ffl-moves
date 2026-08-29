@@ -11,6 +11,8 @@ import { SeasonActionPanel } from "@/components/season/SeasonActionPanel";
 import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { FaqIconLink, type SeasonStandingsContext } from "../seasonStandingsShared";
+import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
+import { cn } from "@/lib/utils";
 
 const RAIL_PAGE_SIZE = 15;
 
@@ -42,7 +44,7 @@ export function SeasonVariantRail({
   };
 
   return (
-    <div className="pb-10 pt-[4.25rem]">
+    <div className={cn("pb-10", PRODUCT_PAGE_TOP)}>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
