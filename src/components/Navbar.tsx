@@ -285,7 +285,6 @@ export function Navbar() {
               </>
             )}
           </NavUtilityCluster>
-          <LanguageSwitcher embedded />
           <button
             type="button"
             aria-expanded={mobileMenuOpen}
@@ -305,6 +304,7 @@ export function Navbar() {
               </svg>
             )}
           </button>
+          <LanguageSwitcher embedded />
         </div>
       </nav>
 

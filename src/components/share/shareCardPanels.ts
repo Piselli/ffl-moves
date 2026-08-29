@@ -8,7 +8,7 @@ export const SHARE_TABLET_PANEL = {
 /** Soft list panels — lighter share cards. */
 export const SHARE_SOFT_PANEL = {
   background: "rgba(255,255,255,0.04)",
-  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)",
+  boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.16)",
 } as const;
 
 /** Soft pitch frame — matches list panels on classic cards. */

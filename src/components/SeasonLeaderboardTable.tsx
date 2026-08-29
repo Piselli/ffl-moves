@@ -1,18 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { formatSeasonEventLabel } from "@/lib/season-points-rules";
 import type { SeasonLeaderboardEntry } from "@/lib/seasonPoints";
-
-const rankMedal: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
-const rankColor: Record<number, string> = {
-  1: "text-[#FFD700] drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]",
-  2: "text-[#E2E8F0] drop-shadow-[0_0_4px_rgba(226,232,240,0.4)]",
-  3: "text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.4)]",
-};
 
 type Entry = Omit<SeasonLeaderboardEntry, "breakdown"> & {
   breakdown?: SeasonLeaderboardEntry["breakdown"];
@@ -20,8 +13,45 @@ type Entry = Omit<SeasonLeaderboardEntry, "breakdown"> & {
 
 interface SeasonLeaderboardTableProps {
   entries: Entry[];
-  currentUser?: string;
+  currentUser?: string | null;
   showBreakdown?: boolean;
+  focusOwner?: string | null;
+  pulseYou?: boolean;
+  /** Tighter rows for single-screen rail layout */
+  dense?: boolean;
+  /** Hyperliquid-style terminal board — larger type, hover rows */
+  variant?: "default" | "board";
+  /** Pin pagination to panel bottom when paired with fill-height sidebar */
+  fillHeight?: boolean;
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+}
+
+function pageCount(total: number, pageSize: number) {
+  return Math.max(1, Math.ceil(total / pageSize));
+}
+
+function pageForRank(rank: number, pageSize: number) {
+  return Math.floor((rank - 1) / pageSize);
+}
+
+const BOARD_ROW = "h-10 shrink-0";
+/** Board grid — equal GWS / Top / Best columns. */
+const BOARD_GRID =
+  "grid grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_2.75rem_2.75rem_4rem] items-center gap-x-2 px-3";
+const BOARD_STAT = "text-[15px]";
+const BOARD_PLAYER = "text-[15px]";
+const BOARD_XP = "text-xl";
+const BOARD_HEAD =
+  "text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 whitespace-nowrap";
+const BOARD_FOOTER =
+  "flex shrink-0 items-center justify-between gap-3 px-3 py-2.5";
+
+function padBoardRows<T>(rows: T[], pageSize: number): (T | null)[] {
+  const out: (T | null)[] = [...rows];
+  while (out.length < pageSize) out.push(null);
+  return out;
 }
 
 function BreakdownRow({
@@ -36,13 +66,12 @@ function BreakdownRow({
     streak: string;
     claim: string;
     first: string;
-    total: string;
     noParticipation: string;
   };
 }) {
   if (!slice.registered) {
     return (
-      <div className="text-xs text-white/30 py-1">
+      <div className="py-0.5 text-[11px] text-white/25">
         {labels.gw(slice.gameweekId)} — {labels.noParticipation}
       </div>
     );
@@ -55,10 +84,10 @@ function BreakdownRow({
   if (slice.claim) parts.push(`${labels.claim} +${slice.claim}`);
 
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs font-semibold text-white/50">{labels.gw(slice.gameweekId)}</span>
-      <span className="text-xs text-white/40">{parts.join(" · ")}</span>
-      <span className="text-xs font-bold text-[#00f948]/80 tabular-nums">+{slice.total}</span>
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-0.5 text-[11px]">
+      <span className="text-white/40">{labels.gw(slice.gameweekId)}</span>
+      <span className="min-w-0 flex-1 truncate text-white/25">{parts.join(" · ")}</span>
+      <span className="tabular-nums text-white/55">+{slice.total}</span>
     </div>
   );
 }
@@ -67,10 +96,36 @@ export function SeasonLeaderboardTable({
   entries,
   currentUser,
   showBreakdown = false,
+  focusOwner = null,
+  pulseYou = false,
+  dense = false,
+  variant = "default",
+  fillHeight = false,
+  page = 0,
+  pageSize,
+  onPageChange,
 }: SeasonLeaderboardTableProps) {
   const m = useSiteMessages().pages.seasonLeaderboard;
   const { getNickname } = useNickname();
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const paginated = pageSize != null && pageSize > 0;
+  const totalPages = paginated ? pageCount(entries.length, pageSize) : 1;
+  const safePage = paginated ? Math.min(Math.max(0, page), totalPages - 1) : 0;
+  const visibleEntries = paginated
+    ? entries.slice(safePage * pageSize!, safePage * pageSize! + pageSize!)
+    : entries;
+  const rangeFrom = paginated ? safePage * pageSize! + 1 : 1;
+  const rangeTo = paginated
+    ? Math.min(entries.length, (safePage + 1) * pageSize!)
+    : entries.length;
+
+  const board = variant === "board";
+  const compact = dense && !board;
+
+  useEffect(() => {
+    if (focusOwner) setExpanded(focusOwner);
+  }, [focusOwner]);
 
   const breakdownLabels = {
     gw: (id: number) => formatSeasonEventLabel(id),
@@ -79,104 +134,362 @@ export function SeasonLeaderboardTable({
     streak: m.breakdownStreak,
     claim: m.breakdownClaim,
     first: m.breakdownFirst,
-    total: m.colPoints,
     noParticipation: m.breakdownSkipped,
   };
 
   if (entries.length === 0) {
+    return <p className="py-10 text-sm text-white/35">{m.emptyHint}</p>;
+  }
+
+  if (board) {
+    const slots = paginated ? padBoardRows(visibleEntries, pageSize!) : visibleEntries.map((e) => e);
+    let lastRowIndex = slots.length - 1;
+    while (lastRowIndex > 0 && !slots[lastRowIndex]) lastRowIndex -= 1;
+
     return (
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-3xl p-12 text-center">
-        <p className="text-white/50 text-sm">{m.emptyTitle}</p>
-        <p className="text-white/30 text-xs mt-2 max-w-md mx-auto">{m.emptyHint}</p>
+      <div className="flex min-h-0 flex-col">
+        <div className={cn(BOARD_GRID, "shrink-0 border-b border-white/[0.08] py-2.5", BOARD_HEAD)}>
+          <span>{m.colRank}</span>
+          <span>{m.colPlayer}</span>
+          <span className="text-right">{m.colRegistrations}</span>
+          <span className="text-right">{m.colTop10}</span>
+          <span className="text-right">{m.colBestRank}</span>
+          <span className="text-right">{m.colPoints}</span>
+        </div>
+
+        <div className="flex min-h-0 flex-col">
+          {slots.map((entry, i) => {
+            const isLastRow = i === lastRowIndex;
+            const rowBorder = !isLastRow && "border-b border-white/[0.06]";
+
+            if (!entry) return null;
+
+            const isMe =
+              !!currentUser && currentUser.toLowerCase() === entry.owner.toLowerCase();
+            const isOpen = expanded === entry.owner;
+            const canExpand =
+              showBreakdown && !!entry.breakdown && entry.breakdown.length > 0;
+
+            return (
+              <Fragment key={entry.owner}>
+                <div
+                  id={isMe ? "season-you" : undefined}
+                  role={canExpand ? "button" : undefined}
+                  tabIndex={canExpand ? 0 : undefined}
+                  onClick={() => canExpand && setExpanded(isOpen ? null : entry.owner)}
+                  onKeyDown={(e) => {
+                    if (!canExpand) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpanded(isOpen ? null : entry.owner);
+                    }
+                  }}
+                  className={cn(
+                    BOARD_GRID,
+                    BOARD_ROW,
+                    rowBorder,
+                    "transition-colors",
+                    isMe && "bg-white/[0.04]",
+                    pulseYou && isMe && "outline outline-1 -outline-offset-1 outline-[#00f948]/40",
+                    canExpand && "cursor-pointer hover:bg-white/[0.03]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      BOARD_STAT,
+                      "font-medium tabular-nums text-white/50",
+                      entry.rank <= 3 && "font-display text-xl font-black text-white/90",
+                    )}
+                  >
+                    {entry.rank}
+                  </span>
+                  <span
+                    className={cn(
+                      "min-w-0 truncate font-medium text-white/90",
+                      BOARD_PLAYER,
+                      isMe && "font-semibold text-white",
+                    )}
+                  >
+                    {getNickname(entry.owner)}
+                    {isMe ? (
+                      <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                        {m.youBadge}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className={cn("text-right tabular-nums text-white/50", BOARD_STAT)}>
+                    {entry.registrations}
+                  </span>
+                  <span className={cn("text-right tabular-nums text-white/50", BOARD_STAT)}>
+                    {entry.top10Finishes}
+                  </span>
+                  <span className={cn("text-right tabular-nums text-white/50", BOARD_STAT)}>
+                    {entry.bestRank > 0 ? entry.bestRank : "—"}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-right font-display font-black tabular-nums text-white",
+                      BOARD_XP,
+                    )}
+                  >
+                    {entry.totalPoints}
+                  </span>
+                </div>
+                {isOpen && entry.breakdown ? (
+                  <div className="border-b border-white/[0.06] bg-white/[0.015] px-3 py-2 pl-14">
+                    <div className="space-y-0.5">
+                      {entry.breakdown.map((slice) => (
+                        <BreakdownRow
+                          key={slice.gameweekId}
+                          slice={slice}
+                          labels={breakdownLabels}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </Fragment>
+            );
+          })}
+        </div>
+
+        {paginated && onPageChange ? (
+          <div className={BOARD_FOOTER}>
+            <p className="text-xs tabular-nums text-white/40">
+              {m.pageRange(rangeFrom, rangeTo, entries.length)}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={safePage <= 0}
+                onClick={() => onPageChange(safePage - 1)}
+                className="rounded-lg border border-white/12 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/55 transition enabled:hover:border-white/25 enabled:hover:bg-white/[0.04] enabled:hover:text-white/85 disabled:opacity-30"
+              >
+                {m.pagePrev}
+              </button>
+              <span className="min-w-[5rem] text-center text-xs tabular-nums text-white/45">
+                {m.pageOf(safePage + 1, totalPages)}
+              </span>
+              <button
+                type="button"
+                disabled={safePage >= totalPages - 1}
+                onClick={() => onPageChange(safePage + 1)}
+                className="rounded-lg border border-white/12 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/55 transition enabled:hover:border-white/25 enabled:hover:bg-white/[0.04] enabled:hover:text-white/85 disabled:opacity-30"
+              >
+                {m.pageNext}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="bg-white/[0.03] border border-white/[0.08] rounded-3xl overflow-hidden">
-      <div className="hidden sm:grid grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem] gap-3 px-5 py-3 border-b border-white/[0.06] text-[10px] font-bold uppercase tracking-widest text-white/30">
+    <div className={cn("flex min-h-0 flex-col", compact && fillHeight && "h-full flex-1")}>
+      <div
+        className={cn(
+          "mb-0 hidden gap-4 px-2 sm:grid",
+          board
+            ? cn(
+                "sticky top-0 z-[1] shrink-0 border-b border-white/[0.08] bg-[#0a0a0a]/95 md:grid grid-cols-[2.75rem_minmax(0,1fr)_4.5rem_3.25rem_3.25rem_3rem]",
+                "py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/40",
+              )
+            : cn(
+                "mb-1 gap-3 px-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/25",
+                compact
+                  ? "shrink-0 grid-cols-[2rem_minmax(0,1fr)_3.5rem_2.5rem_2.5rem_2.25rem]"
+                  : "grid-cols-[2.5rem_minmax(0,1fr)_4rem_3rem_3rem_2.75rem]",
+              ),
+        )}
+      >
         <span>{m.colRank}</span>
         <span>{m.colPlayer}</span>
         <span className="text-right">{m.colPoints}</span>
-        <span className="text-right">{m.colRegistrations}</span>
-        <span className="text-right">{m.colTop10}</span>
-        <span className="text-right">{m.colBestRank}</span>
+        <span className={board ? "hidden text-right md:block" : "text-right"}>{m.colRegistrations}</span>
+        <span className={board ? "hidden text-right md:block" : "text-right"}>{m.colTop10}</span>
+        <span className={board ? "hidden text-right md:block" : "text-right"}>{m.colBestRank}</span>
       </div>
 
-      <ul>
-        {entries.map((entry) => {
-          const isMe = currentUser?.toLowerCase() === entry.owner.toLowerCase();
+      <ul
+        className={cn(
+          board ? "divide-y divide-white/[0.06]" : "divide-y divide-white/[0.06] border-y border-white/[0.08]",
+          compact && "min-h-0 flex-1 overflow-y-auto",
+        )}
+      >
+        {visibleEntries.map((entry) => {
+          const isMe =
+            !!currentUser &&
+            currentUser.toLowerCase() === entry.owner.toLowerCase();
           const isOpen = expanded === entry.owner;
-          const canExpand = showBreakdown && entry.breakdown && entry.breakdown.length > 0;
+          const canExpand =
+            showBreakdown && !!entry.breakdown && entry.breakdown.length > 0;
 
           return (
-            <li key={entry.owner}>
+            <li key={entry.owner} id={isMe ? "season-you" : undefined}>
               <button
                 type="button"
                 disabled={!canExpand}
-                onClick={() => canExpand && setExpanded(isOpen ? null : entry.owner)}
+                onClick={() =>
+                  canExpand && setExpanded(isOpen ? null : entry.owner)
+                }
                 className={cn(
-                  "w-full text-left px-5 py-3.5 border-b border-white/[0.04] transition-colors",
-                  isMe && "bg-[#00f948]/[0.06]",
-                  canExpand && "hover:bg-white/[0.03] cursor-pointer",
+                  "w-full text-left transition-colors",
+                  board && "flex h-11 items-center px-2",
+                  !board && "px-1",
+                  compact ? "py-2" : !board && "py-2.5",
+                  isMe && (board ? "bg-white/[0.04]" : "bg-[#00f948]/[0.04]"),
+                  pulseYou && isMe && "outline outline-1 outline-[#00f948]/40",
+                  board && "hover:bg-white/[0.03]",
+                  canExpand && "cursor-pointer",
                   !canExpand && "cursor-default",
                 )}
               >
-                <div className="grid grid-cols-[3rem_1fr_auto] sm:grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem] gap-3 items-center">
+                <div
+                  className={cn(
+                    "grid items-center gap-4",
+                    board
+                      ? "grid-cols-[2.75rem_minmax(0,1fr)_4.5rem] md:grid-cols-[2.75rem_minmax(0,1fr)_4.5rem_3.25rem_3.25rem_3rem]"
+                      : cn(
+                          "items-baseline gap-3",
+                          compact
+                            ? "grid-cols-[2rem_minmax(0,1fr)_auto] sm:grid-cols-[2rem_minmax(0,1fr)_3.5rem_2.5rem_2.5rem_2.25rem]"
+                            : "grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_3rem_3rem_2.75rem]",
+                        ),
+                  )}
+                >
                   <span
                     className={cn(
-                      "text-sm font-black tabular-nums",
-                      rankColor[entry.rank] ?? "text-white/60",
+                      "font-medium tabular-nums",
+                      board ? "text-sm text-white/50" : compact ? "text-[12px]" : "text-[13px]",
+                      !board && entry.rank <= 3 ? "text-white/80" : !board && "text-white/35",
+                      board && entry.rank <= 3 && "font-display text-base font-black text-white/90",
                     )}
                   >
-                    {rankMedal[entry.rank] ?? entry.rank}
+                    {entry.rank}
                   </span>
 
-                  <div className="min-w-0">
-                    <p className={cn("text-sm font-bold truncate", isMe ? "text-[#00f948]" : "text-white")}>
-                      {getNickname(entry.owner)}
-                      {isMe && (
-                        <span className="ml-2 text-[10px] uppercase tracking-wider text-[#00f948]/60">
-                          {m.youBadge}
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                  <span
+                    className={cn(
+                      "truncate",
+                      board ? "text-sm font-medium text-white/90" : compact ? "text-[12px]" : "text-[13px]",
+                      isMe && (board ? "font-semibold text-white" : "font-semibold text-[#00f948]"),
+                    )}
+                  >
+                    {getNickname(entry.owner)}
+                    {isMe ? (
+                      <span
+                        className={cn(
+                          "ml-2 text-[10px] font-bold uppercase tracking-wider",
+                          board ? "text-white/40" : "text-[#00f948]/50",
+                        )}
+                      >
+                        {m.youBadge}
+                      </span>
+                    ) : null}
+                  </span>
 
-                  <span className="text-right text-base font-black text-[#00f948] tabular-nums sm:col-auto">
+                  <span
+                    className={cn(
+                      "text-right tabular-nums",
+                      board
+                        ? "font-display text-base font-black text-white"
+                        : cn("font-semibold", compact ? "text-[12px]" : "text-[13px]"),
+                      !board && isMe && "text-[#00f948]",
+                      !board && !isMe && "text-white/90",
+                    )}
+                  >
                     {entry.totalPoints}
-                    <span className="text-[10px] font-bold text-[#00f948]/50 ml-0.5">SP</span>
                   </span>
 
-                  <span className="hidden sm:block text-right text-sm text-white/50 tabular-nums">
+                  <span
+                    className={cn(
+                      "text-right tabular-nums text-white/45",
+                      board ? "hidden text-sm md:block" : cn("hidden sm:block", compact ? "text-[12px]" : "text-[13px]"),
+                    )}
+                  >
                     {entry.registrations}
                   </span>
-                  <span className="hidden sm:block text-right text-sm text-white/50 tabular-nums">
+                  <span
+                    className={cn(
+                      "text-right tabular-nums text-white/45",
+                      board ? "hidden text-sm md:block" : cn("hidden sm:block", compact ? "text-[12px]" : "text-[13px]"),
+                    )}
+                  >
                     {entry.top10Finishes}
                   </span>
-                  <span className="hidden sm:block text-right text-sm text-white/50 tabular-nums">
+                  <span
+                    className={cn(
+                      "text-right tabular-nums text-white/45",
+                      board ? "hidden text-sm md:block" : cn("hidden sm:block", compact ? "text-[12px]" : "text-[13px]"),
+                    )}
+                  >
                     {entry.bestRank > 0 ? entry.bestRank : "—"}
                   </span>
                 </div>
-
-                <div className="sm:hidden flex gap-4 mt-1 text-[10px] text-white/35">
-                  <span>{m.colRegistrations}: {entry.registrations}</span>
-                  <span>{m.colTop10}: {entry.top10Finishes}</span>
-                  <span>{m.colBestRank}: {entry.bestRank > 0 ? entry.bestRank : "—"}</span>
-                </div>
               </button>
 
-              {isOpen && entry.breakdown && (
-                <div className="px-5 pb-4 pt-1 bg-black/20 border-b border-white/[0.04]">
+              {isOpen && entry.breakdown ? (
+                <div className="space-y-0.5 border-t border-white/[0.04] bg-white/[0.015] px-1 py-2 pl-11">
                   {entry.breakdown.map((slice) => (
-                    <BreakdownRow key={slice.gameweekId} slice={slice} labels={breakdownLabels} />
+                    <BreakdownRow
+                      key={slice.gameweekId}
+                      slice={slice}
+                      labels={breakdownLabels}
+                    />
                   ))}
                 </div>
-              )}
+              ) : null}
             </li>
           );
         })}
       </ul>
+
+      {paginated && onPageChange ? (
+        <div
+          className={cn(
+            "flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.08] px-2 py-2.5",
+          )}
+        >
+          <p className={cn("tabular-nums text-white/40", board ? "text-xs" : "text-[10px]")}>
+            {m.pageRange(rangeFrom, rangeTo, entries.length)}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={safePage <= 0}
+              onClick={() => onPageChange(safePage - 1)}
+              className={cn(
+                "rounded-lg border border-white/12 font-bold uppercase tracking-wider text-white/55 transition enabled:hover:border-white/25 enabled:hover:bg-white/[0.04] enabled:hover:text-white/85 disabled:opacity-30",
+                board ? "px-3 py-1.5 text-[11px]" : "px-2.5 py-1 text-[10px]",
+              )}
+            >
+              {m.pagePrev}
+            </button>
+            <span
+              className={cn(
+                "min-w-[5rem] text-center tabular-nums text-white/45",
+                board ? "text-xs" : "text-[10px]",
+              )}
+            >
+              {m.pageOf(safePage + 1, totalPages)}
+            </span>
+            <button
+              type="button"
+              disabled={safePage >= totalPages - 1}
+              onClick={() => onPageChange(safePage + 1)}
+              className={cn(
+                "rounded-lg border border-white/12 font-bold uppercase tracking-wider text-white/55 transition enabled:hover:border-white/25 enabled:hover:bg-white/[0.04] enabled:hover:text-white/85 disabled:opacity-30",
+                board ? "px-3 py-1.5 text-[11px]" : "px-2.5 py-1 text-[10px]",
+              )}
+            >
+              {m.pageNext}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
+
+export { pageForRank };

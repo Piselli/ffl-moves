@@ -4,8 +4,8 @@ import type { Player } from "@/lib/types";
 import {
   SQUAD_SHARE_CARD_HEIGHT,
   SQUAD_SHARE_CARD_WIDTH,
+  SHARE_CARD_BORDER,
   SHARE_CARD_CORNER_RADIUS_PX,
-  SHARE_CARD_HAIRLINE_SHADOW,
 } from "@/components/share/shareCardTypes";
 
 export type SquadShareContext = "gameweek" | "world-cup";
@@ -183,7 +183,9 @@ function prepareNodeForCapture(root: HTMLElement) {
     root.style.background = "#000000";
     root.style.backgroundColor = "#000000";
     root.style.borderRadius = `${SHARE_CARD_CORNER_RADIUS_PX}px`;
-    root.style.boxShadow = SHARE_CARD_HAIRLINE_SHADOW;
+    root.style.boxSizing = "border-box";
+    root.style.border = SHARE_CARD_BORDER;
+    root.style.boxShadow = "none";
   } else {
     root.style.boxShadow = "none";
   }
@@ -236,8 +238,11 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
   await nextPaint();
   void cardEl.offsetHeight;
 
+  const prevBorder = cardEl.style.border;
   const prevBoxShadow = cardEl.style.boxShadow;
-  cardEl.style.boxShadow = SHARE_CARD_HAIRLINE_SHADOW;
+  cardEl.style.boxSizing = "border-box";
+  cardEl.style.border = SHARE_CARD_BORDER;
+  cardEl.style.boxShadow = "none";
 
   const filter = (node: HTMLElement) => {
     if (node.dataset?.shareOverlay != null) return false;
@@ -284,6 +289,7 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
     if (!blob) throw new Error("Could not render squad image");
     return blob;
   } finally {
+    cardEl.style.border = prevBorder;
     cardEl.style.boxShadow = prevBoxShadow;
   }
 }

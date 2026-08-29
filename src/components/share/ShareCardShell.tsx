@@ -5,8 +5,8 @@ import { getTypeface } from "@/components/design-lab/locker-hero/lockerTypefaces
 import {
   SQUAD_SHARE_CARD_HEIGHT,
   SQUAD_SHARE_CARD_WIDTH,
+  SHARE_CARD_BORDER,
   SHARE_CARD_CORNER_RADIUS_PX,
-  SHARE_CARD_HAIRLINE_SHADOW,
 } from "@/components/share/shareCardTypes";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -125,23 +125,20 @@ export function ShareCardShell({
         width: SQUAD_SHARE_CARD_WIDTH,
         height: SQUAD_SHARE_CARD_HEIGHT,
         borderRadius: SHARE_CARD_CORNER_RADIUS_PX,
+        boxSizing: "border-box",
+        border: SHARE_CARD_BORDER,
         fontFamily: typeface.ui,
         background: tablet ? "#000000" : charcoal ? "#161618" : "#08090b",
         boxShadow: tablet
-          ? `${SHARE_CARD_HAIRLINE_SHADOW}, 0 28px 72px rgba(0,0,0,0.85)`
+          ? "0 28px 72px rgba(0,0,0,0.85)"
           : charcoal
-            ? `${SHARE_CARD_HAIRLINE_SHADOW}, 0 32px 64px rgba(0,0,0,0.78)`
-            : `${SHARE_CARD_HAIRLINE_SHADOW}, 0 28px 72px rgba(0,0,0,0.72)`,
+            ? "0 32px 64px rgba(0,0,0,0.78)"
+            : "0 28px 72px rgba(0,0,0,0.72)",
       }}
     >
       <ShareCardAtmosphere surface={surface} />
       {children}
       {footer}
-      <div
-        data-share-card-ring
-        className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/[0.14]"
-        aria-hidden
-      />
     </div>
   );
 }

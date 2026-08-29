@@ -319,6 +319,8 @@ export type PagesMessages = {
   seasonLeaderboard: {
     loading: string;
     seasonTag: (label: string) => string;
+    seasonDisplayLabel: string;
+    seasonLeague: string;
     pageTitle: string;
     subtitleLead: string;
     subtitleBenefits: string;
@@ -333,17 +335,59 @@ export type PagesMessages = {
     ruleRank: (n: number) => string;
     ruleRank4to10: string;
     ruleStreakHeader: string;
+    ruleStreakHeaderEpl: string;
     ruleStreak: (n: number) => string;
     ruleClaim: string;
     rulesFootnote: string;
+    rulesFootnoteEpl: string;
+    campaignEarnHint: string;
+    expandRules: string;
+    collapseRules: string;
     faqLink: string;
     colRank: string;
     colPlayer: string;
     colPoints: string;
+    colDelta: string;
     colRegistrations: string;
     colTop10: string;
     colBestRank: string;
     youBadge: string;
+    findMe: string;
+    connectHint: string;
+    heroTotalSp: string;
+    xpUnit: string;
+    heroRank: string;
+    leaguePodium: string;
+    leagueEarn: string;
+    leagueChase: string;
+    leagueField: string;
+    chipRegistration: string;
+    chipFirstReg: string;
+    chipTop10: string;
+    chipClaim: string;
+    gapToRankAbove: (sp: number) => string;
+    variantPickerLabel: string;
+    variantStack: string;
+    variantRail: string;
+    variantStackHook: string;
+    variantRailHook: string;
+    spZoneLabel: string;
+    spZoneBelow: string;
+    spToTop10Hint: (sp: number) => string;
+    gapToLeader: (sp: number) => string;
+    segmentLeader: string;
+    awardsTab: string;
+    standingsTab: string;
+    allStandings: string;
+    neighborhoodView: string;
+    campaignTag: string;
+    milestonesEarned: (earned: number, total: number) => string;
+    milestoneFirstReg: string;
+    milestoneStreak4: string;
+    milestoneTop10: string;
+    milestoneGw10: string;
+    milestonePodium: string;
+    demoBanner: string;
     emptyTitle: string;
     emptyHint: string;
     breakdownGw: (gw: number) => string;
@@ -366,6 +410,51 @@ export type PagesMessages = {
     progressEpl: (from: number, through: number) => string;
     awaitingFirstEvent: string;
     awaitingEpl: (startGw: number) => string;
+    seasonEndedHint: string;
+    actionThisGw: (gw: number) => string;
+    actionRegisterHook: string;
+    actionConnectHook: string;
+    actionUpsideRange: (min: number, max: number) => string;
+    actionRegisterCta: string;
+    actionUpsideReg: string;
+    actionUpsideStreak: (n: number) => string;
+    actionUpsideStreakOff: string;
+    actionUpsideTop10: string;
+    actionUpsideClaim: string;
+    actionChaseEarnZone: (sp: number) => string;
+    actionChaseRankAbove: (sp: number, rank: number) => string;
+    actionChaseStreakAlive: (streak: number, bonus: number) => string;
+    actionChaseStreakStart: string;
+    actionChaseSection: string;
+    actionUpsideSection: string;
+    chaseToTop10: string;
+    chaseToPass: (rank: number) => string;
+    chaseStreakBonus: (streak: number) => string;
+    railChaseHeader: string;
+    railChaseTop10: string;
+    railChasePass: (rank: number) => string;
+    railChaseStreak: (streak: number) => string;
+    railInEarnZone: string;
+    railGwUpside: (min: number, max: number) => string;
+    railAroundYou: string;
+    railSpAhead: (sp: number) => string;
+    railSpBehind: (sp: number) => string;
+    railParticipation: (played: number, total: number) => string;
+    railBestFinish: (rank: number) => string;
+    railLastGw: (label: string) => string;
+    railLastGwLine: (sp: number, rank: number) => string;
+    railNotOnBoard: string;
+    railTop10Finishes: (n: number) => string;
+    railEarnTitle: string;
+    railStreakTitle: string;
+    railStreakOneGw: string;
+    railStreakNone: string;
+    railStreakPerGw: string;
+    actionRulesToggle: string;
+    pagePrev: string;
+    pageNext: string;
+    pageOf: (page: number, total: number) => string;
+    pageRange: (from: number, to: number, total: number) => string;
   };
   myResult: {
     errConfig: string;
@@ -606,6 +695,14 @@ export type PagesMessages = {
     howToPlaySubtitle: string;
     howToPlaySteps: string[];
     close: string;
+    managersLockedIn: (n: number) => string;
+    /** Short mobile subtitle under the managers count. */
+    managersInHint: string;
+    managersLabel: string;
+    deadlineLabel: string;
+    untilLock: string;
+    closingSoon: string;
+    registrationClosed: string;
   };
 };
 
@@ -939,7 +1036,9 @@ export const pagesEn: PagesMessages = {
   seasonLeaderboard: {
     loading: "Loading season standings…",
     seasonTag: (label) => `Season ${label}`,
-    pageTitle: "Season Points",
+    seasonDisplayLabel: "2026/27",
+    seasonLeague: "EPL",
+    pageTitle: "Season XP",
     subtitleLead:
       "Season Points (SP) are our way of measuring your contribution throughout the season. They reflect your activity, participation, and consistency across FORM8.",
     subtitleBenefits:
@@ -953,20 +1052,64 @@ export const pagesEn: PagesMessages = {
     ruleFirstReg: "First registration (once)",
     ruleTop10Header: "Top 10 only",
     ruleRank: (n) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"} place`,
-    ruleRank4to10: "4th–10th: 100 → 25 SP (see FAQ)",
+    ruleRank4to10: "4th–10th: 100 down to 25",
     ruleStreakHeader: "Registration streak (WC + EPL, per event)",
+    ruleStreakHeaderEpl: "Registration streak (per GW)",
     ruleStreak: (n) => `${n}+ GWs in a row`,
     ruleClaim: "Prize claimed",
     rulesFootnote:
       "One season: WC tours then EPL gameweeks. Streak continues across the handoff. Only resolved events count. Ranks 11+ earn no SP.",
+    rulesFootnoteEpl:
+      "Only resolved EPL gameweeks count. Ranks 11+ earn no placement SP.",
+    campaignEarnHint:
+      "Earn SP by registering each GW, finishing top 10, keeping a streak, and claiming prizes.",
+    expandRules: "Show rules",
+    collapseRules: "Hide rules",
     faqLink: "Full rules in FAQ",
     colRank: "Rank",
     colPlayer: "Player",
-    colPoints: "SP",
+    colPoints: "XP",
+    colDelta: "Gap",
     colRegistrations: "GWs",
-    colTop10: "Top 10",
+    colTop10: "Top",
     colBestRank: "Best",
     youBadge: "you",
+    findMe: "Find me",
+    connectHint: "Connect wallet to see your season rank and SP.",
+    heroTotalSp: "Total XP",
+    xpUnit: "XP",
+    heroRank: "Rank",
+    leaguePodium: "Podium",
+    leagueEarn: "Earn zone",
+    leagueChase: "Chase pack",
+    leagueField: "Field",
+    chipRegistration: "Per GW reg",
+    chipFirstReg: "First reg",
+    chipTop10: "Top 10 finish",
+    chipClaim: "Prize claim",
+    gapToRankAbove: (sp) => `${sp} SP to rank above`,
+    variantPickerLabel: "Season UI · 2 layouts",
+    variantStack: "Stack",
+    variantRail: "Rail",
+    variantStackHook: "Glass table · earn below",
+    variantRailHook: "One screen · paged table",
+    spZoneLabel: "SP earning zone · top 10",
+    spZoneBelow: "Below top 10 — no placement SP",
+    spToTop10Hint: (sp) => `${sp} SP to reach the earning zone (top 10)`,
+    gapToLeader: (sp) => `${sp} SP behind #1`,
+    segmentLeader: "Season leader",
+    awardsTab: "Awards",
+    standingsTab: "Standings",
+    allStandings: "All standings",
+    neighborhoodView: "Around you",
+    campaignTag: "Season campaign",
+    milestonesEarned: (earned, total) => `${earned} of ${total} milestones`,
+    milestoneFirstReg: "First reg",
+    milestoneStreak4: "4+ streak",
+    milestoneTop10: "Top 10",
+    milestoneGw10: "10+ GWs",
+    milestonePodium: "1st place",
+    demoBanner: "Preview — sample season data for layout review",
     emptyTitle: "No season data yet",
     emptyHint: "Season Points appear after the first gameweek in the season window is resolved on-chain.",
     breakdownGw: (gw) => `GW ${gw}`,
@@ -989,9 +1132,55 @@ export const pagesEn: PagesMessages = {
     seasonWindowClosed: (startGw, endGw) => `GW ${startGw}–${endGw}`,
     progressWc: (resolved, total) => `WC phase · ${resolved}/${total} tours resolved`,
     progressEpl: (from, through) => `EPL · GW ${from}–${through}`,
-    awaitingFirstEvent: "Season is live — points appear after the first WC or EPL event resolves on-chain.",
+    awaitingFirstEvent: "Season is live — points appear after the first EPL gameweek resolves on-chain.",
     awaitingEpl: (startGw) =>
       `WC phase complete in SP terms — EPL continues the same season from GW ${startGw}.`,
+    seasonEndedHint: "This season window is closed. Final standings below.",
+    actionThisGw: (gw) => `Next · GW ${gw}`,
+    actionRegisterHook: "Register to earn SP this gameweek",
+    actionConnectHook: "Connect wallet & register to start earning SP",
+    actionUpsideRange: (min, max) => `+${min} SP minimum · up to +${max} SP if you win the GW`,
+    actionRegisterCta: "Register squad",
+    actionUpsideReg: "Register",
+    actionUpsideStreak: (n) => `${n}-GW streak`,
+    actionUpsideStreakOff: "Streak bonus",
+    actionUpsideTop10: "1st place",
+    actionUpsideClaim: "Claim prize",
+    actionChaseEarnZone: (sp) => `${sp} SP to enter the top-10 earn zone`,
+    actionChaseRankAbove: (sp, rank) => `${sp} SP to pass #${rank}`,
+    actionChaseStreakAlive: (streak, bonus) =>
+      `${streak}-GW streak active — +${bonus} SP if you register next GW`,
+    actionChaseStreakStart: "Register again to start a streak bonus",
+    actionChaseSection: "Next targets",
+    actionUpsideSection: "If you register",
+    chaseToTop10: "to enter the top-10 earn zone",
+    chaseToPass: (rank) => `to pass #${rank}`,
+    chaseStreakBonus: (streak) => `${streak}-GW streak · register next GW`,
+    railChaseHeader: "Chasing",
+    railChaseTop10: "Top-10 earn zone",
+    railChasePass: (rank) => `Pass #${rank}`,
+    railChaseStreak: (streak) => `${streak}-GW streak bonus`,
+    railInEarnZone: "In top-10 earn zone",
+    railGwUpside: (min, max) => `+${min}–${max} SP this GW`,
+    railAroundYou: "Around you",
+    railSpAhead: (sp) => `${sp} SP ahead of you`,
+    railSpBehind: (sp) => `${sp} SP behind you`,
+    railParticipation: (played, total) => `${played} of ${total} GWs played`,
+    railBestFinish: (rank) => `best finish #${rank}`,
+    railLastGw: (label) => `Last · ${label}`,
+    railLastGwLine: (sp, rank) => `+${sp} SP · finished #${rank}`,
+    railNotOnBoard: "Register to appear on the season board",
+    railTop10Finishes: (n) => (n === 1 ? "1 top-10 finish" : `${n} top-10 finishes`),
+    railEarnTitle: "How XP is earned",
+    railStreakTitle: "Your streak",
+    railStreakOneGw: "Register next GW",
+    railStreakNone: "No streak",
+    railStreakPerGw: "/ GW",
+    actionRulesToggle: "Full XP rules",
+    pagePrev: "Prev",
+    pageNext: "Next",
+    pageOf: (page, total) => `${page} / ${total}`,
+    pageRange: (from, to, total) => `${from}–${to} of ${total}`,
   },
   myResult: {
     errConfig: "Could not load config",
@@ -1462,6 +1651,13 @@ export const pagesEn: PagesMessages = {
       "Top 10 split the prize pool",
     ],
     close: "Close",
+    managersLockedIn: (n) => `${n} already locked in`,
+    managersInHint: "locked in",
+    managersLabel: "Managers",
+    deadlineLabel: "Deadline",
+    untilLock: "until lock",
+    closingSoon: "closing soon",
+    registrationClosed: "registration closed",
   },
 };
 
@@ -1784,7 +1980,9 @@ export const pagesUk: PagesMessages = {
   seasonLeaderboard: {
     loading: "Завантаження сезонного рейтингу…",
     seasonTag: (label) => `Сезон ${label}`,
-    pageTitle: "Season Points",
+    seasonDisplayLabel: "2026/27",
+    seasonLeague: "EPL",
+    pageTitle: "Season XP",
     subtitleLead:
       "Season Points (SP) — це наш спосіб виміряти твій внесок протягом сезону. Вони відображають активність, участь і стабільність у FORM8.",
     subtitleBenefits:
@@ -1798,20 +1996,64 @@ export const pagesUk: PagesMessages = {
     ruleFirstReg: "Перша реєстрація (одноразово)",
     ruleTop10Header: "Лише топ-10",
     ruleRank: (n) => `${n}-е місце`,
-    ruleRank4to10: "4–10 місце: від 100 до 25 SP (деталі в FAQ)",
+    ruleRank4to10: "4–10 місце: від 100 до 25",
     ruleStreakHeader: "Стрік реєстрацій (ЧС + EPL, за подію)",
+    ruleStreakHeaderEpl: "Стрік реєстрацій (за тур)",
     ruleStreak: (n) => `${n}+ тури поспіль`,
     ruleClaim: "Клейм призу",
     rulesFootnote:
       "Один сезон: тури ЧС, потім EPL. Стрік триває через перехід. Рахуються лише завершені події. 11-е місце і нижче — 0 SP.",
+    rulesFootnoteEpl:
+      "Рахуються лише завершені тури EPL. З 11-го місця — 0 SP за позицію.",
+    campaignEarnHint:
+      "SP за реєстрацію кожного туру, топ-10, стрік і клейм призів.",
+    expandRules: "Показати правила",
+    collapseRules: "Сховати правила",
     faqLink: "Повні правила в FAQ",
     colRank: "Місце",
     colPlayer: "Гравець",
-    colPoints: "SP",
+    colPoints: "XP",
+    colDelta: "Відстав.",
     colRegistrations: "Тури",
-    colTop10: "Топ-10",
+    colTop10: "Топ",
     colBestRank: "Кращ.",
     youBadge: "ти",
+    findMe: "Знайти мене",
+    connectHint: "Підключи гаманець, щоб бачити свій rank і SP.",
+    heroTotalSp: "Усього XP",
+    xpUnit: "XP",
+    heroRank: "Місце",
+    leaguePodium: "Podium",
+    leagueEarn: "Earn zone",
+    leagueChase: "Chase pack",
+    leagueField: "Field",
+    chipRegistration: "Реєстр. / тур",
+    chipFirstReg: "Перша реєстр.",
+    chipTop10: "Топ-10",
+    chipClaim: "Клейм",
+    gapToRankAbove: (sp) => `${sp} SP до місця вище`,
+    variantPickerLabel: "Season UI · 2 layouts",
+    variantStack: "Stack",
+    variantRail: "Rail",
+    variantStackHook: "Glass table · earn below",
+    variantRailHook: "Один екран · сторінки",
+    spZoneLabel: "Зона SP · топ-10",
+    spZoneBelow: "Нижче топ-10 — без SP за місце",
+    spToTop10Hint: (sp) => `${sp} SP до зони нарахування (топ-10)`,
+    gapToLeader: (sp) => `${sp} SP до #1`,
+    segmentLeader: "Лідер сезону",
+    awardsTab: "Нагороди",
+    standingsTab: "Рейтинг",
+    allStandings: "Весь рейтинг",
+    neighborhoodView: "Поруч із тобою",
+    campaignTag: "Сезонна кампанія",
+    milestonesEarned: (earned, total) => `${earned} з ${total} milestone`,
+    milestoneFirstReg: "Перша реєстр.",
+    milestoneStreak4: "Стрік 4+",
+    milestoneTop10: "Топ-10",
+    milestoneGw10: "10+ турів",
+    milestonePodium: "1-е місце",
+    demoBanner: "Прев’ю — умовні дані сезону для макету",
     emptyTitle: "Сезонних даних поки немає",
     emptyHint: "Season Points з’являться після першого завершеного туру в межах сезону on-chain.",
     breakdownGw: (gw) => `Тур ${gw}`,
@@ -1834,9 +2076,55 @@ export const pagesUk: PagesMessages = {
     seasonWindowClosed: (startGw, endGw) => `GW ${startGw}–${endGw}`,
     progressWc: (resolved, total) => `Фаза ЧС · ${resolved}/${total} турів завершено`,
     progressEpl: (from, through) => `EPL · GW ${from}–${through}`,
-    awaitingFirstEvent: "Сезон увімкнено — очки з’являться після першої завершеної події ЧС або EPL on-chain.",
+    awaitingFirstEvent: "Сезон увімкнено — очки з’являться після першого завершеного туру EPL on-chain.",
     awaitingEpl: (startGw) =>
       `Фаза ЧС у SP завершена — той самий сезон продовжується з EPL, GW ${startGw}.`,
+    seasonEndedHint: "Сезонне вікно закрито. Фінальний рейтинг нижче.",
+    actionThisGw: (gw) => `Наступний · GW ${gw}`,
+    actionRegisterHook: "Зареєструй склад — зароби SP цього туру",
+    actionConnectHook: "Підключи гаманець і зареєструй склад",
+    actionUpsideRange: (min, max) => `мін. +${min} SP · до +${max} SP якщо виграєш тур`,
+    actionRegisterCta: "Зареєструвати склад",
+    actionUpsideReg: "Реєстрація",
+    actionUpsideStreak: (n) => `Стрік ${n} турів`,
+    actionUpsideStreakOff: "Бонус стріку",
+    actionUpsideTop10: "1-е місце",
+    actionUpsideClaim: "Клейм призу",
+    actionChaseEarnZone: (sp) => `${sp} SP до зони нарахування (топ-10)`,
+    actionChaseRankAbove: (sp, rank) => `${sp} SP щоб обійти #${rank}`,
+    actionChaseStreakAlive: (streak, bonus) =>
+      `Стрік ${streak} турів — +${bonus} SP якщо зареєструєшся наступного туру`,
+    actionChaseStreakStart: "Зареєструйся знову, щоб запустити бонус стріку",
+    actionChaseSection: "Наступні цілі",
+    actionUpsideSection: "Якщо зареєструєшся",
+    chaseToTop10: "до зони нарахування (топ-10)",
+    chaseToPass: (rank) => `щоб обійти #${rank}`,
+    chaseStreakBonus: (streak) => `стрік ${streak} турів · зареєструйся наступного туру`,
+    railChaseHeader: "Переслідую",
+    railChaseTop10: "Зона топ-10",
+    railChasePass: (rank) => `Обійти #${rank}`,
+    railChaseStreak: (streak) => `Бонус стріку ${streak} турів`,
+    railInEarnZone: "У зоні нарахування (топ-10)",
+    railGwUpside: (min, max) => `+${min}–${max} SP цього туру`,
+    railAroundYou: "Поруч із тобою",
+    railSpAhead: (sp) => `${sp} SP попереду`,
+    railSpBehind: (sp) => `${sp} SP позаду`,
+    railParticipation: (played, total) => `${played} з ${total} турів зіграно`,
+    railBestFinish: (rank) => `найкраще #${rank}`,
+    railLastGw: (label) => `Останній · ${label}`,
+    railLastGwLine: (sp, rank) => `+${sp} SP · фініш #${rank}`,
+    railNotOnBoard: "Зареєструй склад, щоб з’явитись у таблиці",
+    railTop10Finishes: (n) => (n === 1 ? "1 фініш у топ-10" : `${n} фінішів у топ-10`),
+    railEarnTitle: "Як заробити XP",
+    railStreakTitle: "Твій стрік",
+    railStreakOneGw: "Зареєструй наступний тур",
+    railStreakNone: "Без стріку",
+    railStreakPerGw: "/ тур",
+    actionRulesToggle: "Повні правила XP",
+    pagePrev: "Назад",
+    pageNext: "Далі",
+    pageOf: (page, total) => `${page} / ${total}`,
+    pageRange: (from, to, total) => `${from}–${to} з ${total}`,
   },
   myResult: {
     errConfig: "Не вдалось завантажити конфіг",
@@ -2307,5 +2595,12 @@ export const pagesUk: PagesMessages = {
       "Топ-10 ділять призовий фонд",
     ],
     close: "Закрити",
+    managersLockedIn: (n) => `${n} уже в грі`,
+    managersInHint: "уже в грі",
+    managersLabel: "Менеджери",
+    deadlineLabel: "Дедлайн",
+    untilLock: "до блокування",
+    closingSoon: "скоро закриється",
+    registrationClosed: "реєстрація закрита",
   },
 };

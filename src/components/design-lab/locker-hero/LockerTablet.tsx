@@ -135,12 +135,20 @@ type Props = {
   shareSubline?: string;
 };
 
+type DeadlineParts = {
+  h: number;
+  m: number;
+  s: number;
+  /** Remaining milliseconds (0 when expired). */
+  remainingMs: number;
+  expired: boolean;
+};
+
+const URGENT_DEADLINE_MS = 2 * 60 * 60 * 1000;
+const SHOW_SECONDS_MS = 24 * 60 * 60 * 1000;
+
 function useDeadlineParts(target: string | null) {
-  const [parts, setParts] = useState<{
-    h: number;
-    m: number;
-    expired: boolean;
-  } | null>(null);
+  const [parts, setParts] = useState<DeadlineParts | null>(null);
   useEffect(() => {
     if (!target) {
       setParts(null);
@@ -149,12 +157,14 @@ function useDeadlineParts(target: string | null) {
     const tick = () => {
       const diff = new Date(target).getTime() - Date.now();
       if (diff <= 0) {
-        setParts({ h: 0, m: 0, expired: true });
+        setParts({ h: 0, m: 0, s: 0, remainingMs: 0, expired: true });
         return;
       }
       setParts({
         h: Math.floor(diff / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+        remainingMs: diff,
         expired: false,
       });
     };
@@ -163,6 +173,16 @@ function useDeadlineParts(target: string | null) {
     return () => clearInterval(id);
   }, [target]);
   return parts;
+}
+
+function formatDeadlineClock(parts: DeadlineParts): string {
+  const hh = String(parts.h).padStart(2, "0");
+  const mm = String(parts.m).padStart(2, "0");
+  if (parts.remainingMs < SHOW_SECONDS_MS) {
+    const ss = String(parts.s).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }
+  return `${hh}h ${mm}m`;
 }
 
 function dayKey(iso: string | null): string {
@@ -1116,6 +1136,11 @@ export function LockerTablet({
       ? "—"
       : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en");
   const deadlineExpired = Boolean(deadlineParts?.expired);
+  const deadlineUrgent = Boolean(
+    deadlineParts &&
+      !deadlineParts.expired &&
+      deadlineParts.remainingMs < URGENT_DEADLINE_MS,
+  );
   const deadlineLabel =
     fixturesLoading || !deadline
       ? "—"
@@ -1123,9 +1148,18 @@ export function LockerTablet({
         ? "…"
         : deadlineParts.expired
           ? m.home.deadlinePassed
-          : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`;
+          : formatDeadlineClock(deadlineParts);
   const managersLabel =
     chainLoading || entries == null ? "—" : String(entries);
+  const managersLockedLabel =
+    chainLoading || entries == null
+      ? "—"
+      : pickCopy.managersLockedIn(entries);
+  const deadlineSubline = deadlineExpired
+    ? pickCopy.registrationClosed
+    : deadlineUrgent
+      ? pickCopy.closingSoon
+      : pickCopy.untilLock;
   const metaPending = chainLoading || fixturesLoading;
   const panelMotion = (delay: number) => {
     const base = heroPanelReveal(delay, reduceMotion);
@@ -1249,15 +1283,23 @@ export function LockerTablet({
             {chainLoading ? "…" : prizeLabel}
           </p>
         </div>
-        <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
+        <div
+          className={cn(
+            "min-w-0 rounded-lg px-2 py-1.5",
+            deadlineUrgent
+              ? "bg-[color:var(--lt-accent-soft)] ring-1 ring-[color:var(--lt-accent)]/35"
+              : "bg-[color:var(--lt-ink)]/[0.05]",
+          )}
+        >
           <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
-            Deadline
+            {pickCopy.deadlineLabel}
           </p>
           <p
             className={cn(
-              "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none",
+              "mt-0.5 truncate text-[12px] font-black tabular-nums leading-none",
               isGlass ? "text-white" : "text-[color:var(--lt-accent)]",
               fixturesLoading && "animate-pulse",
+              deadlineUrgent && !reduceMotion && "animate-pulse",
             )}
             style={isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }}
           >
@@ -1266,7 +1308,7 @@ export function LockerTablet({
         </div>
         <div className="min-w-0 rounded-lg bg-[color:var(--lt-ink)]/[0.05] px-2 py-1.5">
           <p className="truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[color:var(--lt-muted)]">
-            Managers
+            {pickCopy.managersLabel}
           </p>
           <p
             className={cn(
@@ -1274,9 +1316,17 @@ export function LockerTablet({
               chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
             )}
             style={DISPLAY}
+            title={
+              entries != null && !chainLoading ? managersLockedLabel : undefined
+            }
           >
             {managersLabel}
           </p>
+          {entries != null && !chainLoading ? (
+            <p className="mt-0.5 truncate text-[8px] font-semibold leading-none text-[color:var(--lt-soft)]">
+              {pickCopy.managersInHint}
+            </p>
+          ) : null}
         </div>
       </motion.div>
 
@@ -1782,7 +1832,7 @@ export function LockerTablet({
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "h-full px-3.5 py-2.5",
+              "flex h-full flex-col justify-between px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
             )}
           >
@@ -1791,7 +1841,7 @@ export function LockerTablet({
             </p>
             <p
               className={cn(
-                "mt-1 text-[20px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                "text-[22px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
                 chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
               )}
               style={DISPLAY}
@@ -1802,13 +1852,13 @@ export function LockerTablet({
                   ? "—"
                   : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
             </p>
-            <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
+            <p className="text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
               1st{" "}
               {chainLoading || firstRaw == null
                 ? "—"
                 : prize.formatCompact(firstRaw)}
               <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
-              {chainLoading || entries == null ? "—" : entries} managers
+              {managersLockedLabel}
             </p>
           </Panel>
         </motion.div>
@@ -1821,18 +1871,21 @@ export function LockerTablet({
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "px-3.5 py-2.5",
+              "flex h-full flex-col justify-between px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
+              deadlineUrgent &&
+                "ring-1 ring-[color:var(--lt-accent)]/40 shadow-[0_0_18px_rgba(0,249,72,0.12)]",
             )}
           >
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
-              Deadline
+              {pickCopy.deadlineLabel}
             </p>
             <p
               className={cn(
-                "mt-1 text-[19px] font-black leading-none tabular-nums",
+                "text-[22px] font-black leading-none tabular-nums",
                 isGlass && "text-white",
                 fixturesLoading && "animate-pulse",
+                deadlineUrgent && !reduceMotion && "animate-pulse",
               )}
               style={
                 isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }
@@ -1844,14 +1897,10 @@ export function LockerTablet({
                   ? "…"
                   : deadlineParts.expired
                     ? m.home.deadlinePassed
-                    : `${String(deadlineParts.h).padStart(2, "0")}h ${String(deadlineParts.m).padStart(2, "0")}m`}
+                    : formatDeadlineClock(deadlineParts)}
             </p>
-            <p className="mt-1 text-[11px] font-semibold text-[color:var(--lt-soft)]">
-              {deadlineExpired
-                ? locale === "uk"
-                  ? "реєстрація закрита"
-                  : "registration closed"
-                : "until lock"}
+            <p className="text-[11px] font-semibold text-[color:var(--lt-soft)]">
+              {deadlineSubline}
             </p>
           </Panel>
 
@@ -1859,14 +1908,14 @@ export function LockerTablet({
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "px-3.5 py-2.5",
+              "flex h-full flex-col justify-between px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
             )}
           >
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               3 substitutes
             </p>
-            <div className="mt-1.5 flex min-w-0 items-end justify-evenly gap-1.5">
+            <div className="flex min-w-0 flex-1 items-end justify-evenly gap-1.5">
               {bench.slice(0, 3).map((p, i) => {
                 const slotIndex = 11 + i;
                 const active = activeSlot === slotIndex;

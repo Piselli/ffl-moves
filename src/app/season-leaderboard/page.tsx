@@ -3,12 +3,15 @@
 import dynamic from "next/dynamic";
 import { PageRouteLoading } from "@/components/PageRouteLoading";
 
-const LadderWallShell = dynamic(
-  () => import("@/components/season/LadderWallShell").then((m) => m.LadderWallShell),
+const SeasonStandingsShell = dynamic(
+  () =>
+    import("@/components/season/SeasonStandingsShell").then(
+      (m) => m.SeasonStandingsShell,
+    ),
   { ssr: false, loading: () => <PageRouteLoading /> },
 );
 
-/** Shipping season standings — Ladder Wall (classic table at /season-leaderboard/classic). */
+/** Shipping season standings — dense table. */
 export default function SeasonLeaderboardPage() {
-  return <LadderWallShell />;
+  return <SeasonStandingsShell />;
 }

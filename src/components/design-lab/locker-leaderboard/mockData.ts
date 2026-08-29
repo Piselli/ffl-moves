@@ -68,6 +68,7 @@ const CAST = "/design-lab/locker-hero/cast";
 /** Rough FPL teamId for mock XI club footers (26/27 catalog). */
 const MOCK_TEAM_ID: Record<string, number> = {
   Raya: 1,
+  Verbruggen: 5,
   Saliba: 1,
   Saka: 1,
   Rice: 1,
@@ -105,6 +106,9 @@ const MOCK_TEAM_ID: Record<string, number> = {
   Mainoo: 16,
   Shaw: 16,
   "Dewsbury-Hall": 9,
+  Thiago: 4,
+  Rúben: 15,
+  "Calvert-Lewin": 13,
   Watkins: 2,
   Mbeumo: 16,
   Son: 19,
@@ -275,11 +279,12 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
       isYou: true,
       gwDelta: 14,
       formationId: "4-3-3",
-      squad: ["Raya", "Shaw", "Van Dijk", "Colwill", "Saliba", "Saka", "Dewsbury-Hall", "Bruno", "Gakpo", "Haaland", "Watkins"],
+      squad: ["Verbruggen", "Shaw", "Van Dijk", "Rúben", "Saliba", "Saka", "Ødegaard", "Palmer", "Thiago", "Haaland", "Watkins"],
       xi: xi([
-        ["Raya", 5, undefined, {
+        ["Verbruggen", 5, undefined, {
           positionId: 0,
           position: "GK",
+          teamId: 5,
           stats: { minutes_played: 90, clean_sheet: true, saves: 4 },
         }],
         ["Shaw", 14, undefined, {
@@ -299,10 +304,11 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
           position: "DEF",
           stats: { minutes_played: 90, clean_sheet: true },
         }],
-        ["Colwill", 2, undefined, {
+        ["Rúben", 15, undefined, {
           positionId: 1,
           position: "DEF",
-          stats: { minutes_played: 90, goals_conceded: 2 },
+          teamId: 15,
+          stats: { minutes_played: 90, clean_sheet: true },
         }],
         ["Saliba", 6, "gabriel", {
           positionId: 1,
@@ -314,20 +320,20 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
           position: "MID",
           stats: { minutes_played: 78, goals: 1, bonus: 1 },
         }],
-        ["Dewsbury-Hall", 9, undefined, {
+        ["Ødegaard", 1, undefined, {
           positionId: 2,
           position: "MID",
           stats: { minutes_played: 90, assists: 1, bonus: 1 },
         }],
-        ["Bruno", 8, "bruno", {
+        ["Palmer", 6, "palmer", {
           positionId: 2,
           position: "MID",
           stats: { minutes_played: 90, goals: 1, bonus: 1 },
         }],
-        // Gakpo (not Salah) — in PL 26/27 FPL catalog with a real cutout code.
-        ["Gakpo", 10, undefined, {
+        ["Thiago", 4, undefined, {
           positionId: 3,
           position: "FWD",
+          teamId: 4,
           stats: { minutes_played: 90, goals: 1, assists: 1, bonus: 2 },
         }],
         ["Haaland", 12, "haaland", {
@@ -343,20 +349,21 @@ export const LAB_LEADERBOARD: LabLeaderboardSnapshot = {
       ]),
       bench: xi(
         [
+          ["João Pedro", 6, "joaopedro", {
+            positionId: 3,
+            position: "FWD",
+            stats: { minutes_played: 0 },
+          }],
+          ["Calvert-Lewin", 8, undefined, {
+            positionId: 3,
+            position: "FWD",
+            teamId: 13,
+            stats: { minutes_played: 0 },
+          }],
           ["Mbeumo", 5, undefined, {
             positionId: 2,
             position: "MID",
-            stats: { minutes_played: 0 },
-          }],
-          ["White", 1, undefined, {
-            positionId: 1,
-            position: "DEF",
-            stats: { minutes_played: 12 },
-            subNote: "Subbed on · 12′",
-          }],
-          ["Rice", 2, undefined, {
-            positionId: 2,
-            position: "MID",
+            teamId: 16,
             stats: { minutes_played: 0 },
           }],
         ],

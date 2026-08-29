@@ -15,7 +15,11 @@ export const SQUAD_SHARE_CARD_HEIGHT = 630;
 /** Share card corner radius — modal + export. */
 export const SHARE_CARD_CORNER_RADIUS_PX = 40;
 
-/** 1px hairline on card edge (export strips drop shadow, keeps this). */
+/** Single hairline border — even weight on straights and corners (no double ring). */
+export const SHARE_CARD_BORDER_WIDTH_PX = 1.5;
+export const SHARE_CARD_BORDER = `${SHARE_CARD_BORDER_WIDTH_PX}px solid rgba(255,255,255,0.26)`;
+
+/** @deprecated use SHARE_CARD_BORDER — export fallback only */
 export const SHARE_CARD_HAIRLINE_SHADOW = "0 0 0 1px rgba(255,255,255,0.24)";
 
 /** Portrait pitch plate — width : height = 68 : 105. */

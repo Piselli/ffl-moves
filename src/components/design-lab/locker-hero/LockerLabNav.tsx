@@ -179,7 +179,7 @@ function Right({ compact = false }: { compact?: boolean }) {
 
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
- * form8 left, actions right, links centered; locale sits in the top-right corner.
+ * form8 left, actions right, links centered; locale pinned to the viewport corner.
  */
 export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
@@ -220,11 +220,13 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
           className="pointer-events-none absolute inset-x-0 top-0 hidden h-24 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)] md:block"
         />
       ) : null}
-      <div className="pointer-events-auto w-full">
+      <div className="pointer-events-auto relative w-full">
         <div
           className={cn(
             BRAND_LOCKUP_NAV_INNER,
-            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:px-3 max-md:backdrop-blur-xl sm:max-md:px-4",
+            /* Clear absolute EN/UA pinned to the viewport corner */
+            "pr-[5.25rem] sm:pr-24 md:pr-[6.5rem] lg:pr-28",
+            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[5.25rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
             tabletShell && "max-md:bg-black",
           )}
         >
@@ -244,8 +246,6 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
           />
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3">
             <Right compact />
-            <div className="hidden h-5 w-px bg-white/15 md:block" aria-hidden />
-            <LanguageSwitcher embedded />
             <button
               type="button"
               aria-expanded={mobileOpen}
@@ -264,6 +264,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
               )}
             </button>
           </div>
+        </div>
+        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 -translate-y-1/2 sm:right-4 lg:right-5">
+          <LanguageSwitcher embedded />
         </div>
       </div>
 
