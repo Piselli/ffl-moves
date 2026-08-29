@@ -277,6 +277,8 @@ export type PagesMessages = {
     errorTitle: string;
     errorHint: string;
     finished: string;
+    statusLive: string;
+    liveMatches: (count: number) => string;
     progressDone: (finished: number, total: number) => string;
     buildSquad: string;
     dateTbc: string;
@@ -660,7 +662,6 @@ export type PagesMessages = {
     pageTitle: string;
     eyebrow: string;
     title: string;
-    subtitle: string;
     searchPlaceholder: string;
     searchAriaLabel: string;
     expandAll: string;
@@ -991,6 +992,8 @@ export const pagesEn: PagesMessages = {
     errorTitle: "Could not load fixtures",
     errorHint: "Try refreshing the page",
     finished: "FT",
+    statusLive: "Live",
+    liveMatches: (n) => (n === 1 ? "1 match live" : `${n} matches live`),
     progressDone: (f, t) => `${f}/${t} finished`,
     buildSquad: "Build squad",
     dateTbc: "Date TBC",
@@ -1421,8 +1424,6 @@ export const pagesEn: PagesMessages = {
     pageTitle: "FAQ",
     eyebrow: "Help center",
     title: "Frequently asked questions",
-    subtitle:
-      "Short answers for what you need while you play — squad rules, scoring, wallet, and trust. Deep scoring details also live in the pick sheet on the home screen.",
     searchPlaceholder: "Search a question…",
     searchAriaLabel: "Search FAQ",
     expandAll: "Expand all",
@@ -1433,8 +1434,7 @@ export const pagesEn: PagesMessages = {
     clearSearch: "Clear search",
     backToTop: "Back to top",
     contactTitle: "Still have a question?",
-    contactBody:
-      "If something is unclear or you found a bug — message us on Telegram @movematch. We answer fast. Announcements and news — on X too.",
+    contactBody: "Support on Telegram @movematch · updates on X.",
     contactCta: "Message us on",
     contactHref: "https://t.me/movematch",
     categories: [
@@ -1935,6 +1935,18 @@ export const pagesUk: PagesMessages = {
     errorTitle: "Не вдалось завантажити матчі",
     errorHint: "Спробуй оновити сторінку",
     finished: "Завершено",
+    statusLive: "Наживо",
+    liveMatches: (n) => {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      const word =
+        mod10 === 1 && mod100 !== 11
+          ? "матч"
+          : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+            ? "матчі"
+            : "матчів";
+      return `${n} ${word} наживо`;
+    },
     progressDone: (f, t) => `${f}/${t} завершено`,
     buildSquad: "Зібрати склад",
     dateTbc: "Дата уточнюється",
@@ -2365,8 +2377,6 @@ export const pagesUk: PagesMessages = {
     pageTitle: "Часті питання",
     eyebrow: "Довідка",
     title: "Часті питання",
-    subtitle:
-      "Короткі відповіді для гри — склад, очки, гаманець і довіра. Детальна таблиця очок також у аркуші Scoring на головному екрані піку.",
     searchPlaceholder: "Знайти питання...",
     searchAriaLabel: "Пошук по FAQ",
     expandAll: "Розгорнути все",
@@ -2377,8 +2387,7 @@ export const pagesUk: PagesMessages = {
     clearSearch: "Очистити пошук",
     backToTop: "Нагору",
     contactTitle: "Залишилось питання?",
-    contactBody:
-      "Якщо щось незрозуміло або знайшов баг — пиши в Telegram @movematch. Відповідаємо швидко. Анонси також у X.",
+    contactBody: "Підтримка в Telegram @movematch · новини в X.",
     contactCta: "Написати в",
     contactHref: "https://t.me/movematch",
     categories: [

@@ -2,64 +2,32 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_TG_HANDLE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { usePrizeAsset } from "@/components/PrizeAssetProvider";
-import { SitePageShell } from "@/components/SitePageShell";
-import { SitePageHeader } from "@/components/SitePageHeader";
+import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
+import { SeasonPageWash } from "@/components/season/seasonPageChrome";
+import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
-// ─── Category icons (small inline SVGs — match the site’s look) ──────────────
-function CategoryIcon({ id, className }: { id: FaqCategoryId; className?: string }) {
-  const cls = `w-5 h-5 ${className ?? ""}`;
-  switch (id) {
-    case "how-to-play":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M9 5l9 7-9 7V5Z" strokeLinejoin="round" />
-        </svg>
-      );
-    case "scoring-and-rewards":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-          <path d="M12 3l2.6 5.5 6 .9-4.4 4.2 1 6L12 16.8 6.8 19.6l1-6L3.4 9.4l6-.9L12 3Z" strokeLinejoin="round" />
-        </svg>
-      );
-    case "web3-101":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <rect x="3" y="6" width="18" height="13" rx="2.5" />
-          <path d="M3 10h18" />
-          <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
-        </svg>
-      );
-    case "trust-and-safety":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M12 3l8 3v6c0 4.5-3.4 8.4-8 9-4.6-.6-8-4.5-8-9V6l8-3Z" strokeLinejoin="round" />
-          <path d="M9.5 12l2 2 3.5-4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-  }
+const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+function categoryIndex(categories: FaqCategory[], id: FaqCategoryId): number {
+  const i = categories.findIndex((c) => c.id === id);
+  return i >= 0 ? i + 1 : 0;
 }
 
-// ─── Single answer block (paragraph or bullet list) ──────────────────────────
-function AnswerBlock({
-  block,
-}: {
-  block: FaqAnswerBlock;
-}) {
+function AnswerBlock({ block }: { block: FaqAnswerBlock }) {
   if (block.type === "p") {
-    return <p className="text-white/65 leading-relaxed text-[15px]">{block.text}</p>;
+    return <p className="text-[14px] leading-relaxed text-white/55">{block.text}</p>;
   }
   return (
     <ul className="space-y-2">
       {block.items.map((it, i) => (
-        <li key={i} className="flex items-start gap-3 text-white/65 leading-relaxed text-[15px]">
-          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#00f948] shrink-0 shadow-[0_0_6px_rgba(0,249,72,0.7)]" />
+        <li key={i} className="flex items-start gap-2.5 text-[14px] leading-relaxed text-white/55">
+          <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-white/30" aria-hidden />
           <span>{it}</span>
         </li>
       ))}
@@ -67,7 +35,6 @@ function AnswerBlock({
   );
 }
 
-// ─── One Q&A row (collapsible) ───────────────────────────────────────────────
 function FaqRow({
   item,
   catId,
@@ -79,35 +46,30 @@ function FaqRow({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  const reduce = useReducedMotion();
   const anchorId = `${catId}--${item.id}`;
+
   return (
-    <div
-      id={anchorId}
-      className="scroll-mt-28"
-      style={{ scrollMarginTop: "7rem" }}
-    >
-      <GlassPanel
-        matte
-        className={cn(
-          "transition-[box-shadow] duration-200",
-          isOpen && "ring-1 ring-[#00f948]/30",
-        )}
-      >
+    <div id={anchorId} className="scroll-mt-28" style={{ scrollMarginTop: "7rem" }}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+        className={cn(
+          "flex w-full items-start justify-between gap-4 px-4 py-4 text-left transition-colors sm:px-5",
+          isOpen ? "bg-white/[0.02]" : "hover:bg-white/[0.015]",
+        )}
       >
-        <span className="text-[15px] font-semibold leading-snug text-white/90 sm:text-base">{item.q}</span>
+        <span className="text-[14px] font-semibold leading-snug text-white/85 sm:text-[15px]">
+          {item.q}
+        </span>
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
-            isOpen
-              ? "rotate-180 border-[#00f948]/40 bg-[#00f948]/15 text-[#00f948]"
-              : "border-white/10 bg-white/[0.04] text-white/50 group-hover:text-white/80"
-          }`}
+          className={cn(
+            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-white/35 transition-transform duration-200",
+            isOpen && "rotate-180 text-white/55",
+          )}
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </span>
@@ -117,13 +79,13 @@ function FaqRow({
         {isOpen ? (
           <motion.div
             key="content"
-            initial={{ height: 0, opacity: 0 }}
+            initial={reduce ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            exit={reduce ? undefined : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: EASE_OUT }}
             className="overflow-hidden"
           >
-            <div className="space-y-3 border-t border-white/[0.06] px-5 pb-5 pt-1">
+            <div className="space-y-3 border-t border-white/[0.05] px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
               {item.a.map((block, i) => (
                 <AnswerBlock key={i} block={block} />
               ))}
@@ -131,12 +93,10 @@ function FaqRow({
           </motion.div>
         ) : null}
       </AnimatePresence>
-      </GlassPanel>
     </div>
   );
 }
 
-// ─── Helper: search match on q + flattened answer text ───────────────────────
 function flattenAnswerText(blocks: FaqAnswerBlock[]): string {
   return blocks
     .map((b) => (b.type === "p" ? b.text : b.items.join(" ")))
@@ -147,13 +107,12 @@ function flattenAnswerText(blocks: FaqAnswerBlock[]): string {
 export default function FaqPage() {
   const m = useSiteMessages();
   const faq = m.pages.faq;
-  const prize = usePrizeAsset();
+  const reduce = useReducedMotion();
 
   const [query, setQuery] = useState("");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // ── Build lowercased search index once per locale ────────────────────────
   const searchIndex = useMemo(() => {
     const map = new Map<string, string>();
     for (const cat of faq.categories) {
@@ -164,7 +123,6 @@ export default function FaqPage() {
     return map;
   }, [faq]);
 
-  // ── Filter by search ─────────────────────────────────────────────────────
   const filteredCategories = useMemo<FaqCategory[]>(() => {
     const q = query.trim().toLowerCase();
     if (!q) return faq.categories;
@@ -210,7 +168,6 @@ export default function FaqPage() {
   const expandAll = useCallback(() => setOpenIds(new Set(visibleItemKeys)), [visibleItemKeys]);
   const collapseAll = useCallback(() => setOpenIds(new Set()), []);
 
-  // ── On load: open the first item of the first category, plus deep-linked one ─
   useEffect(() => {
     if (allItemKeys.length === 0) return;
     const initial = new Set<string>();
@@ -220,7 +177,6 @@ export default function FaqPage() {
       const hashKey = window.location.hash.replace(/^#/, "");
       if (allItemKeys.includes(hashKey)) {
         initial.add(hashKey);
-        // Defer scroll so the accordion has time to mount
         setTimeout(() => {
           document.getElementById(hashKey)?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 80);
@@ -229,7 +185,6 @@ export default function FaqPage() {
     setOpenIds(initial);
   }, [allItemKeys]);
 
-  // ── Floating "back to top" button visibility ─────────────────────────────
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -237,20 +192,23 @@ export default function FaqPage() {
   }, []);
 
   return (
-    <SitePageShell width="lg" className="pb-20">
-        <SitePageHeader eyebrow={faq.eyebrow} title={faq.title} subtitle={faq.subtitle} />
+    <div className="relative min-h-screen bg-[#0D0F12] text-white">
+      <SeasonPageWash warm={false} />
+      <LockerLabNav liveLinks />
 
-        {/* ─── Search + bulk toggle ───────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <GlassPanel matte className="relative min-h-0 flex-1 max-w-xl px-1 py-0.5">
-          <div className="relative flex-1">
+      <main className="relative mx-auto max-w-4xl px-5 pb-20 pt-20 sm:px-8 md:pt-24">
+        <header className="mb-5 sm:mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{faq.eyebrow}</p>
+          <h1 className="mt-0.5 font-display text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
+            {faq.title}
+          </h1>
+        </header>
+
+        {/* Search + bulk toggle */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative min-h-0 flex-1 max-w-xl">
             <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -265,188 +223,169 @@ export default function FaqPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={faq.searchPlaceholder}
               aria-label={faq.searchAriaLabel}
-              className="w-full rounded-xl bg-transparent py-3 pl-11 pr-10 text-sm text-white placeholder-white/30 transition-colors focus:outline-none focus:ring-0"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-10 text-sm text-white placeholder-white/30 transition-colors focus:border-white/20 focus:outline-none"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label={faq.clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             ) : null}
           </div>
-          </GlassPanel>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => (allVisibleOpen ? collapseAll() : expandAll())}
-              disabled={visibleItemKeys.length === 0}
-              className="px-3 py-2 rounded-lg text-[11px] font-display font-bold uppercase tracking-wider border border-white/10 text-white/60 hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-colors disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {allVisibleOpen ? faq.collapseAll : faq.expandAll}
-            </button>
-          </div>
-        </motion.div>
+          <button
+            type="button"
+            onClick={() => (allVisibleOpen ? collapseAll() : expandAll())}
+            disabled={visibleItemKeys.length === 0}
+            className="shrink-0 whitespace-nowrap rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            {allVisibleOpen ? faq.collapseAll : faq.expandAll}
+          </button>
+        </div>
 
-        {/* ─── Search summary ────────────────────────────────────────── */}
         {query.trim() ? (
-          <p className="text-xs text-white/40 mb-6">{faq.foundCount(totalMatches)}</p>
+          <p className="mb-6 text-[11px] text-white/35">{faq.foundCount(totalMatches)}</p>
         ) : null}
 
-        {/* ─── Category navigation pills (anchor jumps) ───────────────── */}
+        {/* Category navigation */}
         {!query.trim() ? (
-          <motion.nav
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            aria-label="FAQ categories"
-            className="mb-10 flex flex-wrap gap-2"
-          >
+          <nav aria-label="FAQ categories" className="mb-8 flex flex-wrap gap-2">
             {faq.categories.map((cat) => (
               <a
                 key={cat.id}
                 href={`#cat-${cat.id}`}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] text-[11px] font-bold uppercase tracking-widest text-white/55 hover:text-white hover:border-[#00f948]/40 hover:bg-[#00f948]/[0.05] transition-colors"
+                className="rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/55 transition hover:border-white/30 hover:text-white/85"
               >
-                <CategoryIcon id={cat.id} className="text-white/45" />
-                <span>{cat.title}</span>
+                {cat.title}
               </a>
             ))}
-          </motion.nav>
+          </nav>
         ) : null}
 
-        {/* ─── Categories ─────────────────────────────────────────────── */}
-        <div className="space-y-12">
+        {/* Categories */}
+        <div className="space-y-5">
           {filteredCategories.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-10 text-center"
-            >
-              <div className="mx-auto w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4">
-                <svg className="w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
-                </svg>
-              </div>
-              <p className="text-base font-display font-bold text-white/80 mb-1">{faq.noResultsTitle}</p>
-              <p className="text-sm text-white/45 max-w-md mx-auto mb-4">{faq.noResultsHint}</p>
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center">
+              <p className="mb-1 font-display text-lg font-black uppercase tracking-tight text-white/75">
+                {faq.noResultsTitle}
+              </p>
+              <p className="mx-auto mb-5 max-w-md text-sm text-white/40">{faq.noResultsHint}</p>
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-display font-bold uppercase tracking-wider border border-[#00f948]/30 text-[#00f948] bg-[#00f948]/10 hover:bg-[#00f948]/20 transition-colors"
+                className="rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/65 transition hover:border-white/30 hover:text-white"
               >
                 {faq.clearSearch}
               </button>
-            </motion.div>
+            </div>
           ) : (
             filteredCategories.map((cat, ci) => (
               <motion.section
                 key={cat.id}
                 id={`cat-${cat.id}`}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.55, delay: Math.min(ci * 0.04, 0.16), ease: [0.22, 1, 0.36, 1] }}
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: Math.min(ci * 0.04, 0.12), ease: EASE_OUT }}
                 style={{ scrollMarginTop: "100px" }}
               >
-                <header className="mb-5 flex items-start gap-3">
-                  <div className="shrink-0 w-10 h-10 rounded-xl border border-[#00f948]/25 bg-[#00f948]/[0.06] text-[#00f948] flex items-center justify-center mt-0.5">
-                    <CategoryIcon id={cat.id} />
+                <GlassPanel matte>
+                  <div className="border-b border-white/[0.06] px-4 py-3.5 sm:px-5">
+                    <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1">
+                      <span
+                        className="row-span-2 self-center font-mono text-[2rem] font-medium leading-none tabular-nums tracking-tight text-white/22 sm:text-[2.25rem]"
+                        aria-hidden
+                      >
+                        {String(categoryIndex(faq.categories, cat.id)).padStart(2, "0")}
+                      </span>
+                      <h2 className="font-display text-[13px] font-black uppercase tracking-[0.08em] text-white/80 sm:text-sm">
+                        {cat.title}
+                      </h2>
+                      <p className="text-[11px] leading-snug text-white/35">{cat.blurb}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-2xl sm:text-3xl font-display font-black uppercase tracking-tight text-white leading-tight">
-                      {cat.title}
-                    </h2>
-                    <p className="text-sm text-white/40 mt-1">{cat.blurb}</p>
-                  </div>
-                </header>
 
-                <div className="space-y-2.5">
-                  {cat.items.map((item) => {
-                    const key = `${cat.id}--${item.id}`;
-                    return (
-                      <FaqRow
-                        key={key}
-                        item={item}
-                        catId={cat.id}
-                        isOpen={openIds.has(key)}
-                        onToggle={() => toggleItem(key)}
-                      />
-                    );
-                  })}
-                </div>
+                  <div className="divide-y divide-white/[0.05]">
+                    {cat.items.map((item) => {
+                      const key = `${cat.id}--${item.id}`;
+                      return (
+                        <FaqRow
+                          key={key}
+                          item={item}
+                          catId={cat.id}
+                          isOpen={openIds.has(key)}
+                          onToggle={() => toggleItem(key)}
+                        />
+                      );
+                    })}
+                  </div>
+                </GlassPanel>
               </motion.section>
             ))
           )}
         </div>
 
-        {/* ─── Contact CTA ──────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="mt-16"
-        >
-          <GlassPanel matte className="flex flex-col gap-5 p-7 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-xl sm:text-2xl font-display font-black text-white uppercase tracking-tight mb-2">
-              {faq.contactTitle}
-            </h3>
-            <p className="text-sm text-white/50 leading-relaxed max-w-xl">{faq.contactBody}</p>
-          </div>
-          <a
-            href={faq.contactHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-display font-black uppercase tracking-widest text-sm bg-[#00f948] text-black hover:brightness-110 transition-all shadow-[0_0_24px_rgba(0,249,72,0.25)] shrink-0"
-          >
-            {faq.contactCta}
-            <span className="normal-case tracking-normal font-bold">{SOCIAL_TG_HANDLE}</span>
-          </a>
+        {/* Contact CTA */}
+        <div className="mt-12">
+          <GlassPanel matte className="px-4 py-4 sm:px-5 sm:py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <p className="min-w-0 text-[13px] leading-snug text-white/45 sm:truncate">
+                <span className="font-display font-black uppercase tracking-tight text-white/75">
+                  {faq.contactTitle}
+                </span>
+                <span className="text-white/30"> · </span>
+                {faq.contactBody}
+              </p>
+              <a
+                href={faq.contactHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(REGISTER_CTA_CLASS, "shrink-0 self-start sm:self-center")}
+              >
+                {faq.contactCta}
+                <span className="normal-case tracking-normal">{SOCIAL_TG_HANDLE}</span>
+              </a>
+            </div>
           </GlassPanel>
-        </motion.div>
+        </div>
 
-        {/* Quick link back home */}
         <div className="mt-10 text-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/70 transition-colors uppercase tracking-widest font-bold"
+            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             FORM8
           </Link>
         </div>
+      </main>
 
-      {/* ─── Floating "back to top" button ──────────────────────────── */}
       <AnimatePresence>
         {showBackToTop ? (
           <motion.button
             key="back-to-top"
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.2 }}
             aria-label={faq.backToTop}
-            className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full bg-[#0D0F12]/90 backdrop-blur-xl border border-white/15 text-white/70 hover:text-[#00f948] hover:border-[#00f948]/40 shadow-[0_8px_24px_rgba(0,0,0,0.6)] flex items-center justify-center transition-colors"
+            className="fixed bottom-6 right-6 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#121110]/90 text-white/55 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
           </motion.button>
         ) : null}
       </AnimatePresence>
-    </SitePageShell>
+    </div>
   );
 }

@@ -1,61 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import Link from "next/link";
 import { resolveFplDeadlineRaw, formatFplDeadlineLocale } from "@/lib/fpl-deadline";
-import { SitePageShell } from "@/components/SitePageShell";
-import { SitePageHeader } from "@/components/SitePageHeader";
-import { SiteSectionLabel } from "@/components/SiteSectionLabel";
-import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
+import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { SeasonPageWash } from "@/components/season/seasonPageChrome";
+import {
+  FplFixturesBoard,
+  type FplFixturesPayload,
+} from "@/components/FplFixturesBoard";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { getConfig, findOpenGameweek } from "@/lib/chainClient";
-
-type Fixture = {
-  id: number;
-  kickoffTime: string | null;
-  finished: boolean;
-  started: boolean;
-  scoreH: number | null;
-  scoreA: number | null;
-  teamH: { id: number; name: string; shortName: string; badge: string };
-  teamA: { id: number; name: string; shortName: string; badge: string };
-};
-
-type FixturesData = {
-  gameweek: {
-    id: number;
-    name: string;
-    deadlineTime: string | null;
-    deadlineEpochMs?: number | null;
-    isCurrent: boolean;
-    isNext: boolean;
-  };
-  fixtures: Fixture[];
-};
-
-function groupByDate(fixtures: Fixture[], localeTag: string, dateTbcLabel: string): Record<string, Fixture[]> {
-  const groups: Record<string, Fixture[]> = {};
-  for (const fx of fixtures) {
-    if (!fx.kickoffTime) {
-      if (!groups[dateTbcLabel]) groups[dateTbcLabel] = [];
-      groups[dateTbcLabel].push(fx);
-      continue;
-    }
-    const key = new Date(fx.kickoffTime).toLocaleDateString(localeTag, {
-      weekday: "long", day: "numeric", month: "long",
-    });
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(fx);
-  }
-  return groups;
-}
 
 export default function FixturesPage() {
   const { locale } = useSiteLocale();
   const fx = useSiteMessages().pages.fixtures;
-  const localeTag = locale === "uk" ? "uk-UA" : "en-GB";
-  const [data, setData] = useState<FixturesData | null>(null);
+  const [data, setData] = useState<FplFixturesPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [registrationGwId, setRegistrationGwId] = useState<number | null>(null);
@@ -90,186 +49,56 @@ export default function FixturesPage() {
       .finally(() => setLoading(false));
   }, [registrationGwId]);
 
-  const groups = data ? groupByDate(data.fixtures, localeTag, fx.dateTbc) : {};
   const totalMatches = data?.fixtures.length ?? 0;
   const finishedCount = data?.fixtures.filter((f) => f.finished).length ?? 0;
-
+  const liveCount = data?.fixtures.filter((f) => f.started && !f.finished).length ?? 0;
   const deadlineRaw = data ? resolveFplDeadlineRaw(data.gameweek) : null;
 
+  const metaBits: string[] = [];
+  if (data && totalMatches > 0) metaBits.push(fx.progressDone(finishedCount, totalMatches));
+  if (liveCount > 0) metaBits.push(fx.liveMatches(liveCount));
+
   return (
-    <SitePageShell width="xl">
-      <SitePageHeader
-        eyebrow={data?.gameweek.name}
-        title={fx.title}
-        trailing={
-          deadlineRaw != null && deadlineRaw !== "" ? (
-            <GlassPanel matte className="px-5 py-3.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">
+    <div className="relative min-h-screen bg-[#0D0F12] text-white">
+      <SeasonPageWash warm={false} />
+      <LockerLabNav liveLinks />
+
+      <main className="relative mx-auto max-w-4xl px-5 pb-16 pt-20 sm:px-8 md:pt-24">
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4 sm:mb-10">
+          <div className="min-w-0">
+            {data?.gameweek.name ? (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                {data.gameweek.name}
+              </p>
+            ) : null}
+            <h1 className="mt-0.5 font-display text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
+              {fx.title}
+            </h1>
+            {metaBits.length > 0 ? (
+              <p className="mt-1.5 text-[11px] text-white/35">{metaBits.join(" · ")}</p>
+            ) : null}
+          </div>
+
+          {deadlineRaw != null && deadlineRaw !== "" ? (
+            <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/35">
                 {fx.deadlineLabel}
               </p>
-              <p className="mt-1 font-display text-lg font-black tabular-nums text-white">
+              <p className="mt-1 font-display text-base font-black tabular-nums text-white sm:text-lg">
                 {formatFplDeadlineLocale(deadlineRaw, locale === "uk" ? "uk" : "en")}
               </p>
-            </GlassPanel>
-          ) : undefined
-        }
-      />
+            </div>
+          ) : null}
+        </header>
 
-      {data && totalMatches > 0 ? (
-        <div className="mb-8 flex items-center gap-3">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-            <div
-              className="h-full rounded-full bg-[#00f948] transition-all duration-700"
-              style={{ width: `${(finishedCount / totalMatches) * 100}%` }}
-            />
-          </div>
-          <span className="shrink-0 text-xs font-medium tabular-nums text-white/35">
-            {fx.progressDone(finishedCount, totalMatches)}
-          </span>
-        </div>
-      ) : null}
-
-      <div className="pb-4">
-
-        {/* Loading */}
-        {loading && (
-          <div className="space-y-6">
-            <p className="text-white/30 text-xs font-bold uppercase tracking-widest animate-pulse">{fx.loading}</p>
-            {[1, 2].map((g) => (
-              <div key={g}>
-                <div className="h-3 w-32 bg-white/[0.06] rounded animate-pulse mb-3" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-14 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {error && !loading && (
-          <div className="text-center py-20 text-white/30">
-            <p className="text-lg font-semibold">{fx.errorTitle}</p>
-            <p className="text-sm mt-1">{fx.errorHint}</p>
-          </div>
-        )}
-
-        {/* Fixtures grouped by date */}
-        {!loading && !error && data && (
-          <div className="space-y-8">
-            {data.fixtures.length === 0 && (
-              <p className="text-white/45 text-sm leading-relaxed max-w-xl">{fx.emptyScheduleHint}</p>
-            )}
-            {Object.entries(groups).map(([date, matches], gi) => (
-              <motion.div
-                key={date}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: gi * 0.07 }}
-              >
-                {/* Date label */}
-                <SiteSectionLabel>{date}</SiteSectionLabel>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {matches.map((match) => {
-                    const time =
-                      match.kickoffTime != null
-                        ? new Date(match.kickoffTime).toLocaleTimeString(localeTag, {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : fx.timeTbc;
-
-                    const statusBadge = match.finished
-                      ? <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">{fx.finished}</span>
-                      : match.started
-                      ? <span className="flex items-center gap-1 text-[9px] font-bold text-[#00f948] uppercase tracking-wider"><span className="w-1.5 h-1.5 rounded-full bg-[#00f948] animate-pulse" />Live</span>
-                      : null;
-
-                    return (
-                      <GlassPanel
-                        key={match.id}
-                        matte
-                        interactive
-                        className="px-4 py-3.5 sm:px-5 sm:py-4"
-                      >
-                        <div className="flex items-center gap-3 sm:gap-4">
-                        {/* Home team */}
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                          <img
-                            src={match.teamH.badge}
-                            alt={match.teamH.shortName}
-                            className="w-7 h-7 object-contain shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-white truncate leading-none">{match.teamH.shortName}</p>
-                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{match.teamH.name}</p>
-                          </div>
-                        </div>
-
-                        {/* Center: score or time */}
-                        <div className="shrink-0 flex flex-col items-center gap-0.5 px-1">
-                          {match.finished ? (
-                            <span className="text-lg font-display font-black text-white tabular-nums leading-none">
-                              {match.scoreH} – {match.scoreA}
-                            </span>
-                          ) : match.started ? (
-                            <span className="text-lg font-display font-black text-[#00f948] tabular-nums leading-none animate-pulse">
-                              {match.scoreH ?? 0} – {match.scoreA ?? 0}
-                            </span>
-                          ) : (
-                            <span className="text-sm font-display font-black text-white/50 tabular-nums leading-none">
-                              {time}
-                            </span>
-                          )}
-                          {statusBadge}
-                        </div>
-
-                        {/* Away team */}
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
-                          <div className="min-w-0 text-right">
-                            <p className="text-sm font-bold text-white truncate leading-none">{match.teamA.shortName}</p>
-                            <p className="text-[10px] text-white/30 truncate mt-0.5 hidden sm:block">{match.teamA.name}</p>
-                          </div>
-                          <img
-                            src={match.teamA.badge}
-                            alt={match.teamA.shortName}
-                            className="w-7 h-7 object-contain shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-                          />
-                        </div>
-                        </div>
-                      </GlassPanel>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ))}
-
-            {/* CTA */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="pt-4 text-center"
-            >
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#00f948] text-black font-display font-black uppercase tracking-widest text-sm hover:brightness-110 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_20px_rgba(0,249,72,0.25)]"
-              >
-                {fx.buildSquad}
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Link>
-            </motion.div>
-          </div>
-        )}
-
-      </div>
-    </SitePageShell>
+        <FplFixturesBoard
+          data={data}
+          locale={locale}
+          fx={fx}
+          loading={loading}
+          error={error}
+        />
+      </main>
+    </div>
   );
 }
