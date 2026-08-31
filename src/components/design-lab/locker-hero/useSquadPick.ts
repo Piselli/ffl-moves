@@ -14,9 +14,11 @@ import {
 import { buildRandomPopularSquad } from "@/lib/randomSquad";
 import {
   homeTeamDraftKey,
+  normalizeCaptainIndex,
   persistTeamDraftFromLineup,
   readRestoredTeamDraft,
   readTeamDraftHasPlayers,
+  remapCaptainIndex,
 } from "@/lib/teamDraftStorage";
 
 function firstEmptyStarter(
@@ -45,6 +47,14 @@ function emptyBench(): (Player | null)[] {
   return Array(FORMATION.BENCH).fill(null);
 }
 
+function randomCaptainIndex(starters: (Player | null)[]): number | null {
+  const filled = starters
+    .map((p, index) => (p ? index : -1))
+    .filter((index) => index >= 0);
+  if (filled.length === 0) return null;
+  return filled[Math.floor(Math.random() * filled.length)] ?? null;
+}
+
 export function useSquadPick(opts?: {
   players?: Player[];
   gameweekId?: number | null;
@@ -69,6 +79,12 @@ export function useSquadPick(opts?: {
       emptyBench()
     );
   });
+  const [captainIndex, setCaptainIndexState] = useState<number | null>(() => {
+    return (
+      readRestoredTeamDraft(homeTeamDraftKey(), players, gameweekId)
+        ?.captainIndex ?? null
+    );
+  });
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [hydrateSettled, setHydrateSettled] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -81,6 +97,11 @@ export function useSquadPick(opts?: {
   const skipEmptyPersistRef = useRef(false);
   const lineupTouchedNonEmptySessionRef = useRef(
     starters.some(Boolean) || bench.some(Boolean),
+  );
+
+  const captainIndexValid = useMemo(
+    () => normalizeCaptainIndex(starters, captainIndex),
+    [captainIndex, starters],
   );
 
   useEffect(() => {
@@ -107,6 +128,7 @@ export function useSquadPick(opts?: {
       skipEmptyPersistRef.current = true;
       setStarters(restored.starters);
       setBench(restored.bench);
+      setCaptainIndexState(restored.captainIndex);
       lineupTouchedNonEmptySessionRef.current = true;
     }
     draftHydrateAttemptedRef.current = true;
@@ -127,13 +149,18 @@ export function useSquadPick(opts?: {
         draftHydrateAttemptedRef.current &&
         lineupTouchedNonEmptySessionRef.current,
       gwId: gameweekId,
+      captainIndex: captainIndexValid,
     });
-  }, [starters, bench, gameweekId]);
+  }, [starters, bench, gameweekId, captainIndexValid]);
 
   const setFormationId = useCallback((id: FormationId) => {
     setFormationIdState(id);
     saveFormationId(id);
-    setStarters((prev) => remapStartersToFormation(prev, id));
+    setStarters((prev) => {
+      const next = remapStartersToFormation(prev, id);
+      setCaptainIndexState((captain) => remapCaptainIndex(prev, next, captain));
+      return next;
+    });
     setActiveSlot(null);
   }, []);
 
@@ -155,6 +182,12 @@ export function useSquadPick(opts?: {
 
   const filledCount = selectedIds.size;
   const squadTotal = FORMATION.TOTAL;
+  const hasCaptain = captainIndexValid != null;
+
+  const setCaptain = useCallback((index: number) => {
+    if (index < 0 || index > 10) return;
+    setCaptainIndexState((prev) => (prev === index ? prev : index));
+  }, []);
 
   const clearSlot = useCallback((index: number) => {
     if (index < 11) {
@@ -163,6 +196,7 @@ export function useSquadPick(opts?: {
         next[index] = null;
         return next;
       });
+      setCaptainIndexState((prev) => (prev === index ? null : prev));
     } else {
       const bi = index - 11;
       setBench((prev) => {
@@ -250,6 +284,7 @@ export function useSquadPick(opts?: {
   const reset = useCallback(() => {
     setStarters(Array(11).fill(null));
     setBench(Array(FORMATION.BENCH).fill(null));
+    setCaptainIndexState(null);
     setActiveSlot(null);
   }, []);
 
@@ -259,6 +294,7 @@ export function useSquadPick(opts?: {
       if (!squad) return false;
       setStarters(squad.starters);
       setBench(squad.bench);
+      setCaptainIndexState(randomCaptainIndex(squad.starters));
       setActiveSlot(null);
       return true;
     },
@@ -270,6 +306,9 @@ export function useSquadPick(opts?: {
     setFormationId,
     starters,
     bench,
+    captainIndex: captainIndexValid,
+    hasCaptain,
+    setCaptain,
     activeSlot,
     setActiveSlot,
     selectedIds,

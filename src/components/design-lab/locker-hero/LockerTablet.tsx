@@ -54,6 +54,7 @@ import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
 import { FormationPicker } from "@/components/FormationPicker";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
+import { PitchFilledSlot } from "./PitchFilledSlot";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type MobileTab = "pitch" | "players";
@@ -108,6 +109,8 @@ type Props = {
   /** Players already picked per club `teamId` — drives club-limit UI. */
   clubCounts: Record<number, number>;
   filledCount: number;
+  captainIndex?: number | null;
+  onSetCaptain?: (index: number) => void;
   onSlotClick: (index: number) => void;
   onClearSlot: (index: number) => void;
   onPick: (player: Player) => void;
@@ -553,6 +556,7 @@ function PitchPlayerChip({
   );
 }
 
+/** Shown when the squad is full but captain is not picked yet. */
 function PitchEmptyChip({
   pos,
   active,
@@ -881,6 +885,8 @@ export function LockerTablet({
   selectedIds,
   clubCounts,
   filledCount,
+  captainIndex = null,
+  onSetCaptain,
   onSlotClick,
   onClearSlot,
   onPick,
@@ -959,9 +965,33 @@ export function LockerTablet({
   const [scoringOpen, setScoringOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
   const pickCopy = m.pages.lockerPick;
+  const needsCaptain =
+    filledCount === FORMATION.TOTAL && captainIndex == null && Boolean(onSetCaptain);
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
   const tabletRootRef = useLocalWheelScroll();
+
+  const renderStarterChip = useCallback(
+    (player: Player, slotIndex: number, compact?: boolean) => {
+      const isCaptain = captainIndex === slotIndex;
+      const chip = <PitchPlayerChip player={player} compact={compact} />;
+      if (!onSetCaptain) return chip;
+      return (
+        <PitchFilledSlot
+          isStarter
+          isCaptain={isCaptain}
+          onSetCaptain={() => onSetCaptain(slotIndex)}
+          onRemove={() => onClearSlot(slotIndex)}
+          captainLabel={pickCopy.setCaptainLabel}
+          removeLabel={pickCopy.removePlayerLabel}
+          compact={compact}
+        >
+          {chip}
+        </PitchFilledSlot>
+      );
+    },
+    [captainIndex, onClearSlot, onSetCaptain, pickCopy.removePlayerLabel, pickCopy.setCaptainLabel],
+  );
 
   const handleSlotClick = useCallback(
     (idx: number) => {
@@ -992,10 +1022,15 @@ export function LockerTablet({
       }
       return;
     }
+    if (needsCaptain) {
+      setMobileTab("pitch");
+      return;
+    }
     onRegister?.();
   }, [
     bench,
     filledCount,
+    needsCaptain,
     onRegister,
     onSlotClick,
     registerEntry,
@@ -1605,7 +1640,7 @@ export function LockerTablet({
                       aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
                     >
                       {p ? (
-                        <PitchPlayerChip player={p} compact={chipCompact} />
+                        renderStarterChip(p, idx, chipCompact)
                       ) : (
                         <PitchEmptyChip pos={pos} active={active} compact={chipCompact} />
                       )}

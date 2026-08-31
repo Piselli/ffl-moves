@@ -142,7 +142,7 @@ describe("movematch", () => {
     team: { playerIds: number[]; positions: number[]; clubs: number[] }
   ) {
     return program.methods
-      .registerTeam(gameweek, team.playerIds, team.positions, team.clubs)
+      .registerTeam(gameweek, team.playerIds, team.positions, team.clubs, 8)
       .accountsPartial({
         config,
         gameweek: gameweekPda(gameweek),

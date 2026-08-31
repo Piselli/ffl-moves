@@ -574,7 +574,7 @@ export default function WorldCupSquadPage() {
       await signAndSubmit(await buildRegisterTeam(
         account.address,
         currentTour.id,
-        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs },
+        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs, captainIndex: 8 },
       ));
 
       const teamSnapshot = {

@@ -106,6 +106,7 @@ export function LockerHero({
     starters: squad.starters,
     bench: squad.bench,
     gameweekId: data.openGwId,
+    captainIndex: squad.captainIndex,
   });
   const showRegisteredShare =
     register.alreadyRegistered || (previewRegistered && isLab);
@@ -295,6 +296,8 @@ export function LockerHero({
       selectedIds={squad.selectedIds}
       clubCounts={squad.clubCounts}
       filledCount={squad.filledCount}
+      captainIndex={squad.captainIndex}
+      onSetCaptain={squad.setCaptain}
       onSlotClick={squad.setActiveSlot}
       onClearSlot={squad.clearSlot}
       onPick={onPick}

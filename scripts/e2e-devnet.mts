@@ -166,6 +166,7 @@ function pickSquad(pool: PoolPlayer[], offset: number) {
     playerIds: chosen.map((player) => player.id),
     positions: chosen.map((player) => player.positionId),
     clubs: chosen.map((player) => player.teamId),
+    captainIndex: 8,
   };
 }
 

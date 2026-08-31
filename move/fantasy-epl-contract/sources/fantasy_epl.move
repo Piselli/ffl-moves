@@ -51,6 +51,7 @@ module fantasy_epl_addr::fantasy_epl {
     const EINVALID_USDC_METADATA: u64 = 29;
     /// admin_reset_gameweek_registrations: gameweek already RESOLVED
     const EGAMEWEEK_RESET_NOT_ALLOWED: u64 = 30;
+    const EINVALID_CAPTAIN: u64 = 31;
     /// Bracket challenge: registration closed or not initialised
     const EBRACKET_NOT_OPEN: u64 = 31;
     /// Bracket challenge: wallet already submitted a prediction
@@ -163,6 +164,8 @@ module fantasy_epl_addr::fantasy_epl {
         player_positions: vector<u8>,
         // Club ID for each player (for max 3 per club check)
         player_clubs: vector<u64>,
+        // Starter index 0–10 whose points are doubled when they play
+        captain_index: u8,
         created_at: u64,
     }
 
@@ -820,6 +823,7 @@ module fantasy_epl_addr::fantasy_epl {
         player_ids: vector<u64>,
         player_positions: vector<u8>,
         player_clubs: vector<u64>,
+        captain_index: u8,
     ) acquires Config, GameweekRegistry, UserTeams, TreasuryAuth, EntryFeeAssetConfig {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@fantasy_epl_addr);
@@ -840,6 +844,9 @@ module fantasy_epl_addr::fantasy_epl {
 
         // Validate max 3 per club
         validate_club_limit(&player_clubs);
+
+        // Captain must be a starter slot
+        assert!((captain_index as u64) < STARTING_XI_SIZE, EINVALID_CAPTAIN);
 
         // Pay entry fee: prize leg -> prize vault (when registered), house leg -> module publisher.
         let fee = config.entry_fee;
@@ -869,6 +876,7 @@ module fantasy_epl_addr::fantasy_epl {
             player_ids,
             player_positions,
             player_clubs,
+            captain_index,
             created_at: timestamp::now_seconds(),
         };
 
@@ -1685,6 +1693,10 @@ module fantasy_epl_addr::fantasy_epl {
         while (i < STARTING_XI_SIZE) {
             let player_id = *vector::borrow(&team.player_ids, i);
             let position = *vector::borrow(&team.player_positions, i);
+            let slot_base: u64 = 0;
+            let slot_rating_add: u64 = 0;
+            let slot_rating_sub: u64 = 0;
+            let captain_played = false;
 
             if (simple_map::contains_key(stats, &player_id)) {
                 let player_stats = simple_map::borrow(stats, &player_id);
@@ -1698,17 +1710,29 @@ module fantasy_epl_addr::fantasy_epl {
                         if (simple_map::contains_key(stats, &sub_id)) {
                             let sub_stats = simple_map::borrow(stats, &sub_id);
                             let (base, rating_add, rating_sub) = calculate_player_points(sub_stats, position);
-                            total_base = total_base + base;
-                            total_rating_add = total_rating_add + rating_add;
-                            total_rating_sub = total_rating_sub + rating_sub;
+                            slot_base = base;
+                            slot_rating_add = rating_add;
+                            slot_rating_sub = rating_sub;
                         };
                     };
                 } else {
                     let (base, rating_add, rating_sub) = calculate_player_points(player_stats, position);
-                    total_base = total_base + base;
-                    total_rating_add = total_rating_add + rating_add;
-                    total_rating_sub = total_rating_sub + rating_sub;
+                    slot_base = base;
+                    slot_rating_add = rating_add;
+                    slot_rating_sub = rating_sub;
+                    if (i == (team.captain_index as u64)) {
+                        captain_played = true;
+                    };
                 };
+            };
+
+            total_base = total_base + slot_base;
+            total_rating_add = total_rating_add + slot_rating_add;
+            total_rating_sub = total_rating_sub + slot_rating_sub;
+            if (captain_played) {
+                total_base = total_base + slot_base;
+                total_rating_add = total_rating_add + slot_rating_add;
+                total_rating_sub = total_rating_sub + slot_rating_sub;
             };
 
             i = i + 1;
@@ -2460,7 +2484,7 @@ module fantasy_epl_addr::fantasy_epl {
         let (player_ids, positions, clubs) = create_test_team_data();
 
         // Register team
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
 
         // Verify team was registered
         assert!(has_registered_team(@0x123, 1), 1);
@@ -2487,7 +2511,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         // Try to register - should fail
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -2502,7 +2526,7 @@ module fantasy_epl_addr::fantasy_epl {
         let positions = vector[0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 2, 3];
         let clubs = vector[1, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]; // 4 from club 1 - invalid!
 
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -2517,7 +2541,7 @@ module fantasy_epl_addr::fantasy_epl {
         let positions = vector[0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 1, 2, 3]; // 5 DEF - invalid!
         let clubs = vector[1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7];
 
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
     }
 
     #[test(aptos_framework = @0x1, admin = @fantasy_epl_addr, user1 = @0x123, user2 = @0x456)]
@@ -2598,7 +2622,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
         close_gameweek(admin, 1);
 
         submit_player_stats(
@@ -2727,11 +2751,11 @@ module fantasy_epl_addr::fantasy_epl {
 
         // 2. Users register teams
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
 
         // User2 registers with slightly different team
         let player_ids2 = vector[1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 9, 12, 13, 14];
-        register_team(user2, 1, player_ids2, positions, clubs);
+        register_team(user2, 1, player_ids2, positions, clubs, 8);
 
         // 3. Users buy titles
         buy_title(user1, 1);
@@ -2777,7 +2801,7 @@ module fantasy_epl_addr::fantasy_epl {
             vector[false, false, false, false, false, false, false, false, false, false, false, false, false, false],
         );
 
-        // 6. Calculate results (no captain — XI points summed equally)
+        // 6. Calculate results (captain doubles starter points when they play)
         calculate_results(
             admin, 1,
             vector[], // No title triggers for simplicity
@@ -2811,8 +2835,8 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
-        register_team(user2, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
+        register_team(user2, 1, player_ids, positions, clubs, 8);
         close_gameweek(admin, 1);
 
         let (_, _, prize_pool, _) = get_gameweek(1);
@@ -2876,7 +2900,7 @@ module fantasy_epl_addr::fantasy_epl {
         // Setup a complete gameweek
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
         close_gameweek(admin, 1);
 
         // Submit minimal stats
@@ -2933,7 +2957,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
         close_gameweek(admin, 1);
 
         submit_player_stats(
@@ -2965,7 +2989,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
         close_gameweek(admin, 1);
 
         submit_player_stats(
@@ -2996,7 +3020,7 @@ module fantasy_epl_addr::fantasy_epl {
 
         create_gameweek(admin, 1);
         let (player_ids, positions, clubs) = create_test_team_data();
-        register_team(user1, 1, player_ids, positions, clubs);
+        register_team(user1, 1, player_ids, positions, clubs, 8);
 
         let bal_before = coin::balance<AptosCoin>(@0x123);
         set_entry_fee_asset(admin, ENTRY_FEE_ASSET_USDCX, USDCX_METADATA_MAINNET, DEFAULT_ENTRY_FEE_USDCX);

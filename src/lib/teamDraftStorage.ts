@@ -5,8 +5,31 @@ import { MAX_PER_CLUB, FORMATION } from "@/lib/constants";
 export type TeamDraftPayload = {
   starterIds: (number | null)[];
   benchIds: (number | null)[];
+  /** Starter index 0–10; optional for older drafts. */
+  captainIndex?: number | null;
   gwId?: number | null;
 };
+
+export function normalizeCaptainIndex(
+  starters: (Player | null)[],
+  captainIndex: number | null | undefined,
+): number | null {
+  if (captainIndex == null || !Number.isInteger(captainIndex)) return null;
+  if (captainIndex < 0 || captainIndex > 10) return null;
+  return starters[captainIndex] ? captainIndex : null;
+}
+
+export function remapCaptainIndex(
+  oldStarters: (Player | null)[],
+  newStarters: (Player | null)[],
+  captainIndex: number | null,
+): number | null {
+  if (captainIndex == null) return null;
+  const captain = oldStarters[captainIndex];
+  if (!captain) return null;
+  const nextIndex = newStarters.findIndex((p) => p?.id === captain.id);
+  return nextIndex >= 0 ? nextIndex : null;
+}
 
 export function fflTeamDraftKey(gwId: number, addr: string) {
   return `ffl_team_draft_v1_gw${gwId}_${addr}`;
@@ -24,10 +47,13 @@ export function homeTeamDraftKey() {
 export function lineupIdsDraftPayload(
   starters: (Player | null)[],
   bench: (Player | null)[],
+  captainIndex?: number | null,
 ): TeamDraftPayload {
+  const normalized = normalizeCaptainIndex(starters, captainIndex);
   return {
     starterIds: starters.map((p) => (p ? p.id : null)),
     benchIds: bench.map((p) => (p ? p.id : null)),
+    ...(normalized != null ? { captainIndex: normalized } : {}),
   };
 }
 
@@ -89,7 +115,11 @@ export function readRestoredTeamDraft(
   storageKey: string,
   playersCatalog: Player[],
   expectedGwId?: number | null,
-): { starters: (Player | null)[]; bench: (Player | null)[] } | null {
+): {
+  starters: (Player | null)[];
+  bench: (Player | null)[];
+  captainIndex: number | null;
+} | null {
   if (typeof window === "undefined" || playersCatalog.length === 0) return null;
 
   try {
@@ -106,7 +136,10 @@ export function readRestoredTeamDraft(
     const catalog = new Map(playersCatalog.map((p) => [p.id, p]));
     const restored = lineupIdsFromDraft(parsed, catalog);
     if (!restored || !validateRestoredLineup(restored, catalog)) return null;
-    return restored;
+    return {
+      ...restored,
+      captainIndex: normalizeCaptainIndex(restored.starters, parsed.captainIndex),
+    };
   } catch {
     return null;
   }
@@ -132,12 +165,16 @@ export function persistTeamDraftFromLineup(
   storageKey: string,
   starters: (Player | null)[],
   bench: (Player | null)[],
-  options?: { removeIfEmptyAndTouched?: boolean; gwId?: number | null },
+  options?: {
+    removeIfEmptyAndTouched?: boolean;
+    gwId?: number | null;
+    captainIndex?: number | null;
+  },
 ): void {
   if (typeof window === "undefined") return;
 
   const draft: TeamDraftPayload = {
-    ...lineupIdsDraftPayload(starters, bench),
+    ...lineupIdsDraftPayload(starters, bench, options?.captainIndex),
     ...(options?.gwId != null ? { gwId: options.gwId } : {}),
   };
   const isEmpty = lineupIsEmpty(starters, bench);

@@ -42,6 +42,7 @@ interface LeaderboardTableProps {
 type LoadedSquad = {
   starters: Player[];
   bench: Player[];
+  captainIndex: number;
   chainResult: TeamResult | null;
   stats: Record<string, Record<string, unknown>>;
 };
@@ -200,6 +201,7 @@ export function LeaderboardTable({
         squadCacheRef.current.set(owner, {
           starters: squad.slice(0, 11),
           bench: squad.slice(11),
+          captainIndex: chainTeam.captainIndex,
           chainResult,
           stats,
         });
@@ -471,6 +473,7 @@ export function LeaderboardTable({
                                       cached.starters,
                                       cached.bench,
                                       cached.stats,
+                                      cached.captainIndex,
                                     ),
                                   }
                                 : null;
@@ -480,6 +483,7 @@ export function LeaderboardTable({
                                     cached.starters,
                                     cached.bench,
                                     cached.stats,
+                                    cached.captainIndex,
                                   )
                                 : null;
                             const hasStats = Object.keys(cached.stats).length > 0;

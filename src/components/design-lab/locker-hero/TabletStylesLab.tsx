@@ -131,6 +131,8 @@ export function TabletStylesLab() {
               selectedIds={squad.selectedIds}
               clubCounts={squad.clubCounts}
               filledCount={squad.filledCount}
+              captainIndex={squad.captainIndex}
+              onSetCaptain={squad.setCaptain}
               onSlotClick={squad.setActiveSlot}
               onClearSlot={squad.clearSlot}
               onPick={(p) => squad.pickPlayer(p)}

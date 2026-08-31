@@ -63,6 +63,8 @@ export type UserTeam = {
   positions: number[];
   playerPositions: number[];
   clubs: number[];
+  /** Starter index 0–10. */
+  captainIndex: number;
 };
 
 export type TeamResult = {
@@ -257,7 +259,8 @@ function decodeEntry(data: Uint8Array): UserTeam {
   const playerIds = Array.from({ length: TEAM_SIZE }, () => readU32(reader));
   const positions = Array.from({ length: TEAM_SIZE }, () => readU8(reader));
   const clubs = Array.from({ length: TEAM_SIZE }, () => readU16(reader));
-  return { playerIds, positions, playerPositions: positions, clubs };
+  const captainIndex = readU8(reader);
+  return { playerIds, positions, playerPositions: positions, clubs, captainIndex };
 }
 
 function decodeStatsCommit(data: Uint8Array): StatsCommit {
@@ -533,6 +536,13 @@ export async function buildRegisterTeam(
   if (!isValidStarterFormation(squad.positions)) {
     throw new Error("Starting XI must be 4-3-3 or 3-4-3.");
   }
+  if (
+    !Number.isInteger(squad.captainIndex) ||
+    squad.captainIndex < 0 ||
+    squad.captainIndex > 10
+  ) {
+    throw new Error("Captain must be a starter slot index between 0 and 10.");
+  }
   const ownerKey = key(owner);
   const config = await getConfig();
   if (!config) throw new Error("FORM8 has not been initialized on this network.");
@@ -552,7 +562,7 @@ export async function buildRegisterTeam(
       meta(treasury), meta(treasuryAta, false, true), meta(houseWallet), meta(houseAta, false, true),
       meta(SystemProgram.programId), meta(TOKEN_PROGRAM_ID),
     ],
-    u32le(gameweekId), playerIds, positions, clubs,
+    u32le(gameweekId), playerIds, positions, clubs, u8(squad.captainIndex),
   );
   return [
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_000 }),

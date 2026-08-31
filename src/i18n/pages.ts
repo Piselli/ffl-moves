@@ -226,6 +226,7 @@ export type PagesMessages = {
     submitRegister: string;
     submitConfirm: (feeMove: string) => string;
     submitNeedPlayers: (picked: number, max: number) => string;
+    submitNeedCaptain: string;
     submitNeedProgress: (picked: number, max: number) => string;
     submitRegistered: string;
     headerTitle: (gw: number) => string;
@@ -695,6 +696,10 @@ export type PagesMessages = {
     howToPlayTitle: string;
     howToPlaySubtitle: string;
     howToPlaySteps: string[];
+    chooseCaptainHint: string;
+    chooseCaptainBanner: string;
+    setCaptainLabel: string;
+    removePlayerLabel: string;
     close: string;
     managersLockedIn: (n: number) => string;
     /** Short mobile subtitle under the managers count. */
@@ -945,6 +950,7 @@ export const pagesEn: PagesMessages = {
     submitRegister: "Register",
     submitConfirm: (feeLabel) => `Confirm squad · ${feeLabel}`,
     submitNeedPlayers: (_picked: number, max: number) => `Pick ${max} players`,
+    submitNeedCaptain: "Pick your captain",
     submitNeedProgress: (picked: number, max: number) => `${picked}/${max}`,
     submitRegistered: "Registered",
     headerTitle: (gw) => `GW ${gw} · Squad selection`,
@@ -1645,11 +1651,16 @@ export const pagesEn: PagesMessages = {
     howToPlaySubtitle: "",
     howToPlaySteps: [
       "Pick 11 starters and 3 on the bench",
+      "Tap C on a starter to pick your captain (double points)",
       "No more than 3 players from one club",
       "Confirm with the entry fee in USDC",
       "Squad locks at the deadline",
       "Top 10 split the prize pool",
     ],
+    chooseCaptainHint: "Hover a starter · tap C for captain",
+    chooseCaptainBanner: "Squad complete — pick your captain for double points",
+    setCaptainLabel: "Set as captain",
+    removePlayerLabel: "Remove player",
     close: "Close",
     managersLockedIn: (n) => `${n} already locked in`,
     managersInHint: "locked in",
@@ -1887,6 +1898,7 @@ export const pagesUk: PagesMessages = {
     submitRegister: "Зареєструвати",
     submitConfirm: (feeLabel) => `Підтвердити склад · ${feeLabel}`,
     submitNeedPlayers: (_picked: number, max: number) => `Обери ${max} гравців`,
+    submitNeedCaptain: "Обери капітана",
     submitNeedProgress: (picked: number, max: number) => `${picked}/${max}`,
     submitRegistered: "Зареєстровано",
     headerTitle: (gw) => `Тур ${gw} · Вибір складу`,
@@ -2598,11 +2610,16 @@ export const pagesUk: PagesMessages = {
     howToPlaySubtitle: "",
     howToPlaySteps: [
       "Обери 11 в основі і 3 запасних",
+      "Наведи на гравця в основі і натисни C — він стане капітаном (подвійні очки)",
       "Не більше 3 гравців з одного клубу",
       "Підтверди склад — внесок у USDC",
       "Після дедлайну склад блокується",
       "Топ-10 ділять призовий фонд",
     ],
+    chooseCaptainHint: "Наведи на гравця в основі · C — капітан",
+    chooseCaptainBanner: "Склад готовий — обери капітана (подвійні очки)",
+    setCaptainLabel: "Зробити капітаном",
+    removePlayerLabel: "Прибрати гравця",
     close: "Закрити",
     managersLockedIn: (n) => `${n} уже в грі`,
     managersInHint: "уже в грі",

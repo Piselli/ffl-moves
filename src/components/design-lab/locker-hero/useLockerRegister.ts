@@ -25,8 +25,9 @@ export function useLockerRegister(opts: {
   starters: (Player | null)[];
   bench: (Player | null)[];
   gameweekId: number | null;
+  captainIndex: number | null;
 }) {
-  const { starters, bench, gameweekId } = opts;
+  const { starters, bench, gameweekId, captainIndex } = opts;
   const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
   const { openDeposit, refreshBalance } = useDeposit();
   const { openLogin } = useLogin();
@@ -44,6 +45,8 @@ export function useLockerRegister(opts: {
     [starters, bench],
   );
   const isComplete = filledCount === FORMATION.TOTAL;
+  const hasCaptain = captainIndex != null && starters[captainIndex] != null;
+  const isReadyToRegister = isComplete && hasCaptain;
   const feeLabel = formatFeeLabel(entryFeeRaw);
 
   const registeredStarters = useMemo(
@@ -100,11 +103,13 @@ export function useLockerRegister(opts: {
       ? g.submitRegistering
       : !isComplete
         ? g.submitNeedPlayers(filledCount, FORMATION.TOTAL)
-        : !connected
-          ? g.submitRegister
-          : g.submitConfirm(feeLabel);
+        : !hasCaptain
+          ? g.submitNeedCaptain
+          : !connected
+            ? g.submitRegister
+            : g.submitConfirm(feeLabel);
   const ctaProgress =
-    alreadyRegistered || submitting || isComplete
+    alreadyRegistered || submitting || isReadyToRegister
       ? null
       : g.submitNeedProgress(filledCount, FORMATION.TOTAL);
 
@@ -116,7 +121,7 @@ export function useLockerRegister(opts: {
       return;
     }
     if (alreadyRegistered || submitting || gameweekId == null) return;
-    if (!isComplete) return;
+    if (!isReadyToRegister) return;
 
     if (
       await shouldOpenDepositBeforeRegister(
@@ -139,6 +144,7 @@ export function useLockerRegister(opts: {
           positions: allPlayers.map((p) => p.positionId),
           playerPositions: allPlayers.map((p) => p.positionId),
           clubs: allPlayers.map((p) => p.teamId),
+          captainIndex: captainIndex!,
         }),
       );
       registeredOk = true;
@@ -165,10 +171,11 @@ export function useLockerRegister(opts: {
     connected,
     entryFeeRaw,
     filledCount,
+    captainIndex,
     g,
     hasExternalWallet,
     gameweekId,
-    isComplete,
+    isReadyToRegister,
     openLogin,
     refreshBalance,
     signAndSubmit,
@@ -179,7 +186,7 @@ export function useLockerRegister(opts: {
   return {
     ctaLabel,
     ctaProgress,
-    needsLogin: !connected && isComplete,
+    needsLogin: !connected && isReadyToRegister,
     register,
     submitting,
     alreadyRegistered,

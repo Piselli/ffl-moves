@@ -625,7 +625,7 @@ export default function GameweekPage() {
       const signature = await signAndSubmit(await buildRegisterTeam(
         account.address,
         currentGameweek.id,
-        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs },
+        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs, captainIndex: 8 },
       ));
       console.log("Solana transaction submitted:", signature);
 

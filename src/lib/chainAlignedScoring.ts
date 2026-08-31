@@ -88,7 +88,7 @@ export function applyChainMultipliers(
 
 /** Preview / interim leaderboard row — same squad math as the contract before title/guild multipliers. */
 export function previewTourPointsFromRegisteredTeam(
-  team: { playerIds: number[]; playerPositions: number[] },
+  team: { playerIds: number[]; playerPositions: number[]; captainIndex?: number },
   stats: Record<string, Record<string, unknown>>,
 ): number {
   const { playerIds, playerPositions } = team;
@@ -110,13 +110,19 @@ export function previewTourPointsFromRegisteredTeam(
     const posId = Number.isFinite(raw) ? Math.max(0, Math.min(3, Number(raw))) : 2;
     bench.push(placeholderPlayerFromChain(id, posId));
   }
-  return computeChainAlignedXiBreakdown(starters, bench, stats).preMultiplier;
+  return computeChainAlignedXiBreakdown(
+    starters,
+    bench,
+    stats,
+    team.captainIndex ?? 0,
+  ).preMultiplier;
 }
 
 export function computeChainAlignedXiBreakdown(
   starters: Player[],
   bench: Player[],
   gameweekStats: Record<string, Record<string, unknown>>,
+  captainIndex = 0,
 ): ChainAlignedXiBreakdown {
   const slots: ChainAlignedXiSlot[] = [];
   let totalBase = 0;
@@ -198,6 +204,16 @@ export function computeChainAlignedXiBreakdown(
       ratingAdd: add,
       ratingSub: rs,
     });
+  }
+
+  const captainSlot = slots.find((slot) => slot.slotIndex === captainIndex);
+  if (captainSlot) {
+    const captainStats = pickStats(gameweekStats, captainSlot.registeredStarter.id);
+    if (captainStats && minutesPlayed(captainStats) > 0) {
+      totalBase += captainSlot.basePoints;
+      totalRatingAdd += captainSlot.ratingAdd;
+      totalRatingSub += captainSlot.ratingSub;
+    }
   }
 
   let ratingBonus: number;

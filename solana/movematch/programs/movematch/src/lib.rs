@@ -183,12 +183,17 @@ pub mod movematch {
         player_ids: [u32; TEAM_SIZE],
         positions: [u8; TEAM_SIZE],
         clubs: [u16; TEAM_SIZE],
+        captain_index: u8,
     ) -> Result<()> {
         let config = &ctx.accounts.config;
         let gameweek = &ctx.accounts.gameweek;
         require!(!config.paused, ErrorCode::ProgramPaused);
         require!(gameweek.status == OPEN, ErrorCode::GameweekNotOpen);
         validate_team(&player_ids, &positions, &clubs)?;
+        require!(
+            (captain_index as usize) < STARTERS,
+            ErrorCode::InvalidCaptain
+        );
 
         let prize_leg = config
             .entry_fee
@@ -223,6 +228,7 @@ pub mod movematch {
         entry.player_ids = player_ids;
         entry.positions = positions;
         entry.clubs = clubs;
+        entry.captain_index = captain_index;
         entry.fee_paid = config.entry_fee;
         // Persisted because `set_prize_pool_bps` may move before this entry is refunded.
         entry.prize_contribution = prize_leg;
@@ -1006,6 +1012,7 @@ pub struct Entry {
     pub player_ids: [u32; TEAM_SIZE],
     pub positions: [u8; TEAM_SIZE],
     pub clubs: [u16; TEAM_SIZE],
+    pub captain_index: u8,
     pub fee_paid: u64,
     /// The prize leg actually routed to treasury at registration time.
     pub prize_contribution: u64,
@@ -1014,7 +1021,7 @@ pub struct Entry {
 }
 impl Entry {
     pub const SPACE: usize =
-        8 + 32 + 4 + (4 * TEAM_SIZE) + TEAM_SIZE + (2 * TEAM_SIZE) + 8 + 8 + 8 + 1;
+        8 + 32 + 4 + (4 * TEAM_SIZE) + TEAM_SIZE + (2 * TEAM_SIZE) + 1 + 8 + 8 + 8 + 1;
 }
 
 #[account]
@@ -1300,6 +1307,8 @@ pub enum ErrorCode {
     InvalidPosition,
     #[msg("The starting eleven has an invalid formation.")]
     InvalidFormation,
+    #[msg("Captain must be a starter slot index 0-10.")]
+    InvalidCaptain,
     #[msg("The URI is too long.")]
     UriTooLong,
     #[msg("Stats must be committed before results can be published.")]
