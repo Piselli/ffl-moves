@@ -33,6 +33,7 @@ export function ShareHalfPitchUnifiedPanel({
   chipMode = "chips-muted",
   mutedPlateStyle = "site",
   pitchStyleId = "night-turf",
+  captainIndex,
 }: {
   starters: Player[];
   bench: Player[];
@@ -45,6 +46,7 @@ export function ShareHalfPitchUnifiedPanel({
   chipMode?: "chips" | "chips-muted" | "glass";
   mutedPlateStyle?: ShareMutedChipPlateStyle;
   pitchStyleId?: PitchStyleId;
+  captainIndex?: number;
 }) {
   const innerH = colH - PANEL_PAD * 2;
   const innerW = colW - PANEL_PAD * 2;
@@ -67,6 +69,7 @@ export function ShareHalfPitchUnifiedPanel({
           chipSize="lg"
           pitchStyleId={pitchStyleId}
           mutedPlateStyle={mutedPlateStyle}
+          captainIndex={captainIndex}
           className="h-full w-full"
           style={{ boxShadow: "none", borderRadius: 12 }}
         />
@@ -83,6 +86,7 @@ export function ShareHalfPitchUnifiedPanel({
       height={innerH}
       width={listW}
       rowStyle={rowStyle}
+      captainIndex={captainIndex}
       embedded
     />
   );

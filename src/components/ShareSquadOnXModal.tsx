@@ -112,6 +112,7 @@ export function ShareSquadOnXModal({
   tourLabel,
   formationId,
   managerLabelOverride,
+  captainIndex,
 }: {
   open: boolean;
   onClose: () => void;
@@ -122,6 +123,7 @@ export function ShareSquadOnXModal({
   sitePath?: string;
   formationId?: FormationId;
   managerLabelOverride?: string;
+  captainIndex?: number;
   /** @deprecated ignored — hero 3D layout is always used */
   layout?: ShareModalLayout;
 }) {
@@ -150,10 +152,11 @@ export function ShareSquadOnXModal({
     bench,
     tourLabel,
     managerLabel,
-    headline: ss.cardHeadline,
+    headline: ss.cardFantasyLineup,
     lockedLabel: ss.cardLocked,
     siteUrl: "form8.app",
     formationId,
+    captainIndex,
   };
 
   const fileName = `form8-squad-${context}.png`;

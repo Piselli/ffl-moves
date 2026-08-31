@@ -1,7 +1,7 @@
 /**
  * Lab tablet directions from Refero research (iPad polish only).
  * Shipping homepage defaults to `current` = Obsidian Glass.
- * `crystal` is an A/B compare look on the homepage (heavy frost + green CTA).
+ * `crystal` is the optional heavy-frost look (user-selectable on `/`).
  *
  * A Obsidian Glass — shipping lock
  * B Active Theory — 3D scene rules: chrome whispers, ghost / hairline
@@ -100,15 +100,41 @@ export const TABLET_VARIANTS: TabletVariant[] = [
   },
 ];
 
-/** Homepage A/B archive — shipping locks Crystal; Obsidian lives in design lab. */
+/** User-selectable tablet looks on `/` (saved in localStorage). */
 export const HOMEPAGE_COMPARE_VARIANTS: readonly TabletVariantId[] = [
-  "crystal",
   "current",
+  "crystal",
 ] as const;
 
-export const DEFAULT_TABLET_VARIANT: TabletVariantId = "crystal";
-/** Locked look on `/` — other directions live in design lab. */
-export const SHIPPING_TABLET_VARIANT: TabletVariantId = "crystal";
+export type UserTabletLook = {
+  id: TabletVariantId;
+  name: string;
+  /** Mini swatch in the pitch fringe picker */
+  swatch: string;
+  swatchBase?: string;
+};
+
+/** Swatches for the in-pitch look picker — Obsidian vs Crystal only. */
+export const USER_TABLET_LOOKS: readonly UserTabletLook[] = [
+  {
+    id: "current",
+    name: "Obsidian",
+    swatchBase: "#0a0a0a",
+    swatch:
+      "linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)",
+  },
+  {
+    id: "crystal",
+    name: "Crystal",
+    swatchBase: "#101010",
+    swatch:
+      "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(200,220,255,0.14) 50%, rgba(255,255,255,0.06) 100%)",
+  },
+];
+
+export const DEFAULT_TABLET_VARIANT: TabletVariantId = "current";
+/** Default look on `/` when no saved preference — user can switch to Crystal. */
+export const SHIPPING_TABLET_VARIANT: TabletVariantId = "current";
 
 export const TABLET_VARIANT_STORAGE_KEY = "ffl:locker-hero:tablet-variant";
 export const HOMEPAGE_LOOK_STORAGE_KEY = "ffl:homepage:tablet-look";

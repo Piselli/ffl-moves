@@ -143,6 +143,11 @@ export function PickHelpOverlay({ kind, open, onClose, messages: m }: Props) {
                 >
                   {title}
                 </h2>
+                {kind === "howto" && pick.howToPlaySubtitle ? (
+                  <p className="mt-1.5 pr-9 text-[13px] font-medium leading-snug text-white/55">
+                    {pick.howToPlaySubtitle}
+                  </p>
+                ) : null}
 
                 <ul className="mt-4 max-h-[min(52vh,420px)] space-y-0 overflow-y-auto overscroll-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin]">
                   {rows.map((row, i) => (

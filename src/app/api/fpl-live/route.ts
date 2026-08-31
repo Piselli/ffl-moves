@@ -70,7 +70,8 @@ interface FplLiveMappedPlayer {
 }
 
 /**
- * GET /api/fpl-live?gw=N
+ * GET /api/fpl-live?gw=N   — specific FPL event
+ * GET /api/fpl-live?gw=last — latest finished FPL event (falls back to current)
  *
  * Fetches FPL Live gameweek data and returns it in the same
  * OraclePlayerStats format that the admin page expects.
@@ -81,36 +82,57 @@ interface FplLiveMappedPlayer {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const gw = searchParams.get("gw");
-  const gwNum = gw != null ? parseInt(gw, 10) : NaN;
+  const wantLast = gw === "last";
+  let gwNum = gw != null && !wantLast ? parseInt(gw, 10) : NaN;
 
-  if (!gw || !Number.isFinite(gwNum) || gwNum < 1) {
+  if (!wantLast && (!gw || !Number.isFinite(gwNum) || gwNum < 1)) {
     return NextResponse.json(
-      { gameweekId: 0, players: [], fixtures: [], errors: ["Valid ?gw= parameter required (integer ≥ 1)"] },
+      { gameweekId: 0, players: [], fixtures: [], errors: ["Valid ?gw= parameter required (integer ≥ 1 or last)"] },
       { status: 400 },
     );
   }
   const errors: string[] = [];
 
   try {
-    const [bootstrapRes, liveRes, fixturesRes] = await Promise.all([
-      fetch(`${FPL_BASE}/bootstrap-static/`, { headers: BROWSER_HEADERS, cache: "no-store" }),
+    const bootstrapRes = await fetch(`${FPL_BASE}/bootstrap-static/`, {
+      headers: BROWSER_HEADERS,
+      cache: "no-store",
+    });
+    if (!bootstrapRes.ok) throw new Error(`FPL bootstrap API returned ${bootstrapRes.status}`);
+
+    const bootstrap = (await bootstrapRes.json()) as {
+      elements: FplBootstrapSelectable[];
+      teams: { id: number; name: string }[];
+      events?: { id: number; finished?: boolean; is_current?: boolean }[];
+    };
+
+    if (wantLast) {
+      const events = bootstrap.events ?? [];
+      const finishedIds = events.filter((e) => e.finished).map((e) => e.id);
+      const currentId = events.find((e) => e.is_current)?.id;
+      gwNum = finishedIds.length > 0 ? Math.max(...finishedIds) : (currentId ?? NaN);
+      if (!Number.isFinite(gwNum) || gwNum < 1) {
+        return NextResponse.json({
+          gameweekId: 0,
+          players: [],
+          fixtures: [],
+          errors: ["No FPL gameweek with live data yet"],
+        });
+      }
+    }
+
+    const [liveRes, fixturesRes] = await Promise.all([
       fetch(`${FPL_BASE}/event/${gwNum}/live/`, { headers: BROWSER_HEADERS, cache: "no-store" }),
       fetch(`${FPL_BASE}/fixtures/?event=${gwNum}`, { headers: BROWSER_HEADERS, cache: "no-store" }),
     ]);
 
-    if (!bootstrapRes.ok) throw new Error(`FPL bootstrap API returned ${bootstrapRes.status}`);
     if (!liveRes.ok) throw new Error(`FPL live API returned ${liveRes.status} — gameweek ${gwNum} may not exist yet`);
     if (!fixturesRes.ok) throw new Error(`FPL fixtures API returned ${fixturesRes.status}`);
 
-    const [bootstrap, live, fixtures] = (await Promise.all([
-      bootstrapRes.json(),
+    const [live, fixtures] = (await Promise.all([
       liveRes.json(),
       fixturesRes.json(),
-    ])) as [
-      { elements: FplBootstrapSelectable[]; teams: { id: number; name: string }[] },
-      { elements: FplLiveElementRow[] },
-      FplFixtureRow[],
-    ];
+    ])) as [{ elements: FplLiveElementRow[] }, FplFixtureRow[]];
 
     // Do not filter on can_select — FPL sets can_select=false for every player
     // after the season closes, which would yield zero mapped players for the final GW.

@@ -11,6 +11,7 @@
 
 import {
   getTabletVariant,
+  loadHomepageLookId,
   type TabletVariantId,
 } from "@/components/design-lab/locker-hero/tabletVariants";
 import type { LockerPaletteId } from "@/components/design-lab/locker-hero/lockerPalettes";
@@ -262,6 +263,18 @@ export function saveResultsChromeId(id: ResultsChromeId): void {
   } catch {
     /* ignore */
   }
+}
+
+/** Homepage Obsidian/Crystal pick → matching results tablet chrome. */
+export function resultsChromeFromHomepageLook(
+  look: TabletVariantId,
+): ResultsChromeId {
+  return look === "crystal" ? "crystal" : "home";
+}
+
+/** Shipping `/leaderboard` — follows `ffl:homepage:tablet-look`. */
+export function loadSharedResultsChromeId(): ResultsChromeId {
+  return resultsChromeFromHomepageLook(loadHomepageLookId());
 }
 
 export function resolveResultsChrome(id: ResultsChromeId) {

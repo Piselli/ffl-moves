@@ -18,10 +18,30 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { LabSquadPlayer } from "@/components/design-lab/locker-leaderboard/mockData";
 
 const FORMATION: FormationId = "4-3-3";
-const MOCK_ROW =
-  LAB_LEADERBOARD.rows.find((r) => r.bench && r.bench.length >= 3) ??
-  LAB_LEADERBOARD.rows.find((r) => r.isYou) ??
-  LAB_LEADERBOARD.rows[0]!;
+
+/** Fixed lab XI — v13 preview squad (Piselli · GW 8). */
+const SHARE_LAB_XI: readonly LabSquadPlayer[] = [
+  { name: "Raya", teamId: 1, pts: 0 },
+  { name: "Shaw", teamId: 16, pts: 0 },
+  { name: "Virgil", teamId: 14, pts: 0 },
+  { name: "Colwill", teamId: 6, pts: 0 },
+  { name: "Saliba", teamId: 1, pts: 0 },
+  { name: "Bruno Fernandes", teamId: 16, pts: 0 },
+  { name: "Dewsbury-Hall", teamId: 9, pts: 0 },
+  { name: "Bruno G.", teamId: 17, pts: 0 },
+  { name: "Gakpo", teamId: 14, pts: 0 },
+  { name: "Haaland", teamId: 15, pts: 0 },
+  { name: "Richarlison", teamId: 19, pts: 0 },
+];
+
+const SHARE_LAB_BENCH: readonly LabSquadPlayer[] = [
+  { name: "Mbeumo", teamId: 16, pts: 0 },
+  { name: "White", teamId: 1, pts: 0 },
+  { name: "Rice", teamId: 1, pts: 0 },
+];
+
+/** Left mid in 4-3-3 — Bruno Fernandes. */
+const SHARE_LAB_CAPTAIN_INDEX = 5;
 
 function labPlayerToPlayer(
   lab: LabSquadPlayer,
@@ -62,13 +82,17 @@ function resolveFromCatalog(
   catalog: Player[],
 ): Player {
   const hit = catalogHitFromName(lab.name, lab.teamId);
+  const labKey = lab.name.trim().toLowerCase();
   const fromCatalog =
+    (hit
+      ? catalog.find((p) => p.fplPhotoCode === hit.code)
+      : null) ??
     catalog.find(
       (p) =>
-        p.fplPhotoCode === hit?.code ||
-        p.webName?.toLowerCase() === lab.name.toLowerCase() ||
-        p.name.toLowerCase().includes(lab.name.toLowerCase()),
-    ) ?? null;
+        p.webName?.trim().toLowerCase() === labKey ||
+        p.name.trim().toLowerCase() === labKey,
+    ) ??
+    null;
   if (!fromCatalog) return base;
   return {
     ...fromCatalog,
@@ -135,17 +159,15 @@ export default function SquadLockCardPreviewPage() {
   }, []);
 
   const starters = useMemo(() => {
-    const xi = MOCK_ROW.xi;
-    if (!xi?.length || xi.length < 11) return null;
-    return xi.slice(0, 11).map((lab, i) => {
+    if (!SHARE_LAB_XI.length) return null;
+    return SHARE_LAB_XI.map((lab, i) => {
       const base = labPlayerToPlayer(lab, i, true);
       return resolveFromCatalog(lab, base, catalog);
     });
   }, [catalog]);
 
   const bench = useMemo(() => {
-    const rows = MOCK_ROW.bench ?? [];
-    return rows.slice(0, 3).map((lab, i) => {
+    return SHARE_LAB_BENCH.map((lab, i) => {
       const base = labPlayerToPlayer(lab, i, false);
       return resolveFromCatalog(lab, base, catalog);
     });
@@ -155,11 +177,12 @@ export default function SquadLockCardPreviewPage() {
     starters: starters ?? [],
     bench,
     tourLabel: `${g.gwWord} ${LAB_LEADERBOARD.gameweek}`,
-    managerLabel: "Andriy",
-    headline: ss.cardHeadline,
+    managerLabel: "Piselli",
+    headline: ss.cardFantasyLineup,
     lockedLabel: ss.cardLocked,
     siteUrl: "form8.app",
     formationId: FORMATION,
+    captainIndex: SHARE_LAB_CAPTAIN_INDEX,
   };
 
   const variants = SQUAD_SHARE_MARKET_VARIANTS.map((v) => ({
@@ -289,7 +312,8 @@ export default function SquadLockCardPreviewPage() {
           context="gameweek"
           tourLabel={cardProps.tourLabel}
           formationId={FORMATION}
-          managerLabelOverride="Andriy"
+          managerLabelOverride="Piselli"
+          captainIndex={SHARE_LAB_CAPTAIN_INDEX}
         />
       ) : null}
     </div>

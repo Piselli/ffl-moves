@@ -25,6 +25,7 @@ export function ShareHalfPitchBezel({
   align = "center",
   frameStyle = "bezel",
   mutedPlateStyle = "site",
+  captainIndex,
 }: {
   starters: Player[];
   formationId?: FormationId;
@@ -36,6 +37,7 @@ export function ShareHalfPitchBezel({
   /** none = pitch only · glow = site ring · soft = glass panel · bezel = locker tablet frame */
   frameStyle?: SharePitchFrameStyle;
   mutedPlateStyle?: ShareMutedChipPlateStyle;
+  captainIndex?: number;
 }) {
   const pitchH = colH;
   const pitchW = Math.min(Math.round(pitchH * HALF_PITCH_ASPECT), maxOuterW);
@@ -63,6 +65,7 @@ export function ShareHalfPitchBezel({
             chipSize="lg"
             pitchStyleId={pitchStyleId}
             mutedPlateStyle={mutedPlateStyle}
+            captainIndex={captainIndex}
             className="h-full w-full"
             style={{ boxShadow: "none", borderRadius: 16 }}
           />
@@ -127,6 +130,7 @@ export function ShareHalfPitchBezel({
               borderRadius: frame.innerRadius,
             }}
             mutedPlateStyle={mutedPlateStyle}
+            captainIndex={captainIndex}
           />
         </div>
       </div>

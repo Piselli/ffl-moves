@@ -90,6 +90,7 @@ export function ShareHalfPitchBoard({
   pitchStyleId = "night-turf",
   chipMode = "chips",
   mutedPlateStyle = "site",
+  captainIndex,
 }: {
   starters: Player[];
   formationId?: FormationId;
@@ -100,6 +101,7 @@ export function ShareHalfPitchBoard({
   /** chips = site cutouts · chips-muted = softer share cutouts · glass = frosted plaques */
   chipMode?: "chips" | "chips-muted" | "glass";
   mutedPlateStyle?: ShareMutedChipPlateStyle;
+  captainIndex?: number;
 }) {
   const pitch = getPitchStyle(pitchStyleId);
   const formationId =
@@ -160,6 +162,7 @@ export function ShareHalfPitchBoard({
                   player={player}
                   size={chipSize}
                   plateStyle={mutedPlateStyle}
+                  captain={captainIndex === formationIndex}
                 />
               ) : (
                 <SharePitchChip player={player} size={chipSize} />

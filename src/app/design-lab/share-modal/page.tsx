@@ -155,7 +155,7 @@ function ShareModalLabInner() {
           context="gameweek"
           tourLabel={`${g.gwWord} ${LAB_LEADERBOARD.gameweek}`}
           formationId={FORMATION}
-          managerLabelOverride="Andriy"
+          managerLabelOverride="Piselli"
         />
       ) : (
         <p className="px-4 text-center text-sm text-rose-300/90">

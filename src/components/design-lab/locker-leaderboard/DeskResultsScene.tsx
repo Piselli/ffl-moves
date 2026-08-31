@@ -6,6 +6,12 @@ import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { LocaleBridge, useSiteLocale } from "@/i18n/LocaleProvider";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import {
+  loadHomepageLookId,
+  saveHomepageLookId,
+  SHIPPING_TABLET_VARIANT,
+  type TabletVariantId,
+} from "@/components/design-lab/locker-hero/tabletVariants";
 import { LockerRoomBackground } from "@/components/design-lab/locker-hero/LockerRoomBackground";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
 import { cn } from "@/lib/utils";
@@ -14,6 +20,7 @@ import { ResultsTablet } from "./ResultsTablet";
 import {
   DEFAULT_RESULTS_CHROME,
   loadResultsChromeId,
+  resultsChromeFromHomepageLook,
   RESULTS_CHROME_VARIANTS,
   saveResultsChromeId,
   SHIPPING_RESULTS_CHROME,
@@ -49,7 +56,7 @@ const SCENE = {
 
 type Props = {
   /**
-   * `false` (default) — shipping `/leaderboard`: Crystal Glass only.
+   * `false` (default) — shipping `/leaderboard`: follows homepage tablet look.
    * `true` — design lab: all chrome variants + Design rail.
    */
   lab?: boolean;
@@ -65,19 +72,34 @@ export function DeskResultsScene({ lab = false }: Props) {
   /** Fade in 3D iPad only after model + camera settle — skip oversized CSS fallback. */
   const [tabletShown, setTabletShown] = useState(false);
   const [chromeId, setChromeId] = useState<ResultsChromeId>(
-    lab ? DEFAULT_RESULTS_CHROME : SHIPPING_RESULTS_CHROME,
+    lab ? DEFAULT_RESULTS_CHROME : "home",
   );
   const [youXiVariantId, setYouXiVariantId] = useState<YouXiVariantId>(
     lab ? DEFAULT_YOU_XI_VARIANT : SHIPPING_YOU_XI_VARIANT,
   );
+  const [tabletLookId, setTabletLookId] = useState<TabletVariantId>(
+    SHIPPING_TABLET_VARIANT,
+  );
   const { mode } = useWallCycle(tabletRaised);
+
+  const onTabletLookChange = useCallback(
+    (id: TabletVariantId) => {
+      saveHomepageLookId(id);
+      setTabletLookId(id);
+      setChromeId(resultsChromeFromHomepageLook(id));
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!lab) {
-      setChromeId(SHIPPING_RESULTS_CHROME);
+      const look = loadHomepageLookId();
+      setTabletLookId(look);
+      setChromeId(resultsChromeFromHomepageLook(look));
       setYouXiVariantId(SHIPPING_YOU_XI_VARIANT);
       return;
     }
+    setTabletLookId(loadHomepageLookId());
     setChromeId(loadResultsChromeId());
     setYouXiVariantId(loadYouXiVariantId());
   }, [lab]);
@@ -132,6 +154,8 @@ export function DeskResultsScene({ lab = false }: Props) {
         room={room}
         chromeId={chromeId}
         youXiVariantId={youXiVariantId}
+        tabletLookId={tabletLookId}
+        onTabletLookChange={onTabletLookChange}
       />
     </LocaleBridge>
   );
@@ -183,7 +207,7 @@ export function DeskResultsScene({ lab = false }: Props) {
               </Link>
             </div>
             <p className="mb-1.5 px-1.5 text-[8px] leading-snug text-white/30">
-              Shipping = Crystal. Archive lives here.
+              Shipping follows homepage look (Obsidian / Crystal on /).
             </p>
             <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5">
               {[

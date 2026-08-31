@@ -31,7 +31,6 @@ import { paletteToCssVars } from "./lockerPalettes";
 import { GlassPanel } from "./GlassPanel";
 import {
   getPitchStyle,
-  PITCH_STYLES,
   type PitchStyleId,
 } from "./pitchStyles";
 import { fitPitchName } from "./pitchChipName";
@@ -51,10 +50,12 @@ import {
   type FormationId,
 } from "@/lib/formation";
 import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
-import { FormationPicker } from "@/components/FormationPicker";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
 import { PitchFilledSlot } from "./PitchFilledSlot";
+import { PitchFringeBar } from "./PitchFringeBar";
+import { TabletLookPicker } from "./TabletLookPicker";
+import { useLastGwPreview } from "./useLastGwPreview";
 
 type PositionFilter = "ALL" | "GK" | "DEF" | "MID" | "FWD";
 type MobileTab = "pitch" | "players";
@@ -118,8 +119,9 @@ type Props = {
   onRandom: () => void;
   pitchStyleId?: PitchStyleId;
   onPitchStyleChange?: (id: PitchStyleId) => void;
-  /** Lab-only tablet chrome direction. Shipping omits → current lock. */
+  /** Tablet chrome — Obsidian (default) or Crystal on `/`. */
   tabletVariantId?: TabletVariantId;
+  onTabletLookChange?: (id: TabletVariantId) => void;
   formationId?: FormationId;
   onFormationChange?: (id: FormationId) => void;
   /** When set, the lime CTA registers in-place instead of leaving the tablet. */
@@ -894,7 +896,8 @@ export function LockerTablet({
   onRandom,
   pitchStyleId = "night-turf",
   onPitchStyleChange,
-  tabletVariantId = "crystal",
+  tabletVariantId = "current",
+  onTabletLookChange,
   formationId = DEFAULT_FORMATION,
   onFormationChange,
   onRegister,
@@ -931,11 +934,11 @@ export function LockerTablet({
   const isMotionChrome = true;
   const isPlatesChrome = isAuthkit || isCrystal;
   const isTripledChrome = isGhost || isLinear || isCrystal;
-  const interactivePanels = isGhost || isAuthkit || isSignal || isCrystal;
+  const interactivePanels = isGlass;
   const PANEL = cn(
     "rounded-2xl bg-[var(--lt-panel)] ring-1 ring-[var(--lt-panel-ring)] shadow-[var(--lt-panel-shadow)]",
     interactivePanels &&
-      "transition-[transform,box-shadow,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:brightness-[1.03]",
+      "transition-[box-shadow,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-[1.03]",
   );
   const Panel = useMaterialShell ? GlassPanel : "div";
   const glassProps = useMaterialShell
@@ -967,6 +970,7 @@ export function LockerTablet({
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
     filledCount === FORMATION.TOTAL && captainIndex == null && Boolean(onSetCaptain);
+  const lastGw = useLastGwPreview(starters, bench, captainIndex ?? null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
   const tabletRootRef = useLocalWheelScroll();
@@ -1061,7 +1065,11 @@ export function LockerTablet({
   ) : (
     <>
       <span>{primaryCtaLabel}</span>
-      {registerProgress ? (
+      {registerLocked && registerHint ? (
+        <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
+          {registerHint}
+        </span>
+      ) : registerProgress ? (
         <span className="text-[13px] font-bold tracking-[0.14em] opacity-90">
           {registerProgress}
         </span>
@@ -1223,9 +1231,20 @@ export function LockerTablet({
         } as CSSProperties
       }
     >
-      <div className="relative hidden h-7 shrink-0 items-center justify-between px-5 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)] md:flex">
+      <div className="relative flex h-6 shrink-0 items-center justify-between px-3 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)] md:h-7 md:px-5">
         <span>{clock}</span>
-        <span className="tracking-[0.08em]">Wi-Fi&nbsp;&nbsp;100%</span>
+        <div className="flex items-center gap-2 md:gap-3">
+          {onTabletLookChange ? (
+            <TabletLookPicker
+              value={tabletVariantId}
+              onChange={onTabletLookChange}
+              compact
+            />
+          ) : null}
+          <span className="hidden tracking-[0.08em] md:inline">
+            Wi-Fi&nbsp;&nbsp;100%
+          </span>
+        </div>
       </div>
 
       <motion.header
@@ -1256,9 +1275,11 @@ export function LockerTablet({
             </p>
             <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
               <span className="md:hidden">
-                GW {gwId ?? "—"} · {filledCount}/{FORMATION.TOTAL}
+                {filledCount === 0
+                  ? pickCopy.emptyPitchHint
+                  : `GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
               </span>
-              <span className="hidden md:inline">FORM8 Fantasy EPL</span>
+              <span className="hidden md:inline">{pickCopy.headerJob}</span>
             </p>
           </div>
         </div>
@@ -1270,7 +1291,7 @@ export function LockerTablet({
           <button
             type="button"
             onClick={() => setHowtoOpen(true)}
-            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)] transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
           >
             {pickCopy.howToPlayBtn}
           </button>
@@ -1283,7 +1304,7 @@ export function LockerTablet({
           <button
             type="button"
             onClick={() => setScoringOpen(true)}
-            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)] transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
           >
             {pickCopy.scoringBtn}
           </button>
@@ -1299,6 +1320,15 @@ export function LockerTablet({
         </div>
         <div className="w-14 shrink-0 md:hidden" aria-hidden />
       </motion.header>
+
+      {filledCount === 0 ? (
+        <p
+          className="hidden shrink-0 border-b border-[var(--lt-hairline)] px-4 py-1.5 text-center text-[11px] font-medium leading-snug text-[color:var(--lt-ink)]/70 md:block"
+          style={{ fontFamily: "var(--lt-font-ui, inherit)" }}
+        >
+          {pickCopy.emptyPitchHint}
+        </p>
+      ) : null}
 
       <motion.div
         {...panelMotion(HERO_REVEAL.delays.meta)}
@@ -1365,10 +1395,10 @@ export function LockerTablet({
         </div>
       </motion.div>
 
-      <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2.5 md:p-3 md:pt-2.5 md:grid md:auto-rows-auto md:grid-cols-[minmax(230px,0.92fr)_minmax(0,1.28fr)_minmax(280px,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto] md:overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2 md:p-2.5 md:pt-2 md:grid md:auto-rows-auto md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.28fr)_minmax(0,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto]">
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.fixtures)}
-          className="order-2 flex min-h-0 flex-col max-md:hidden md:order-none md:col-start-1 md:row-start-1"
+          className="order-2 flex h-full min-h-0 min-w-0 flex-col max-md:hidden md:order-none md:col-start-1 md:row-start-1"
         >
         <Panel
           {...(useMaterialShell
@@ -1376,7 +1406,7 @@ export function LockerTablet({
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "flex h-full min-h-0 flex-col p-3",
+            "flex h-full max-h-full min-h-0 flex-col p-3",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1496,52 +1526,6 @@ export function LockerTablet({
             />
           ))}
 
-          {/*
-            Bottom fringe chrome — sits in green pockets beside GK,
-            below chalk goal line (chalk uses a deeper bottom inset).
-          */}
-          {onFormationChange ? (
-            <div className="absolute bottom-0.5 left-2 z-20">
-              <FormationPicker
-                value={formationId}
-                onChange={onFormationChange}
-                size="xs"
-              />
-            </div>
-          ) : null}
-          {onPitchStyleChange ? (
-            <div
-              className="absolute bottom-0.5 right-2 z-20 hidden items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/15 backdrop-blur-sm md:flex"
-              role="group"
-              aria-label="Pitch look"
-            >
-              {PITCH_STYLES.map((p) => {
-                const active = p.id === pitchStyleId;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => onPitchStyleChange?.(p.id)}
-                    aria-pressed={active}
-                    aria-label={p.name}
-                    title={p.name}
-                    className={cn(
-                      "h-3 w-3 rounded-full transition",
-                      active
-                        ? "ring-2 ring-white ring-offset-1 ring-offset-black/50"
-                        : "opacity-55 hover:opacity-90",
-                    )}
-                    style={{
-                      background: p.image
-                        ? `center / cover url(${p.image}), ${p.swatch}`
-                        : p.swatch,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          ) : null}
-
           {/* chalk markings — orthographic; center circle ~FIFA ratio vs pitch width */}
           <div
             className="pointer-events-none absolute inset-[5%] rounded-[2px] border-2"
@@ -1607,7 +1591,20 @@ export function LockerTablet({
             )}
           </div>
 
-          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 md:py-1">
+          {/*
+            Bottom fringe — formation · last-GW · pitch look (one toolbar).
+          */}
+          <PitchFringeBar
+            formationId={formationId}
+            onFormationChange={onFormationChange}
+            pitchStyleId={pitchStyleId}
+            onPitchStyleChange={onPitchStyleChange}
+            lastGw={lastGw}
+            copy={pickCopy}
+            needCaptain={needsCaptain}
+          />
+
+          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 pb-7 md:py-1 md:pb-8">
             {rows.map((row) => (
               <div key={row.join("-")} className="flex justify-evenly gap-0.5">
                 {row.map((idx) => {
@@ -1664,7 +1661,7 @@ export function LockerTablet({
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.players)}
           className={cn(
-            "order-3 flex min-h-0 flex-col overflow-hidden md:order-none md:col-start-3 md:row-start-1 md:min-h-0",
+            "order-3 flex h-full min-h-0 min-w-0 flex-col md:order-none md:col-start-3 md:row-start-1",
             mobileTab !== "players" && "max-md:hidden",
             "max-md:flex-1",
           )}
@@ -1675,7 +1672,7 @@ export function LockerTablet({
             : {})}
           className={cn(
             !useMaterialShell && PANEL,
-            "flex h-full min-h-0 flex-col overflow-hidden p-3",
+            "flex h-full max-h-full min-h-0 flex-col p-3",
             isPlatesChrome && "rounded-[22px]",
           )}
         >
@@ -1987,11 +1984,7 @@ export function LockerTablet({
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.footer)}
           className="relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2"
-        >          {registerHint ? (
-            <p className="pointer-events-none absolute inset-x-0 -top-5 truncate text-[10px] font-semibold leading-none text-amber-100/90">
-              {registerHint}
-            </p>
-          ) : null}
+        >
           <div className="flex shrink-0 flex-col gap-2">
             <button
               type="button"
@@ -2085,11 +2078,6 @@ export function LockerTablet({
       </main>
 
       <div className="shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-        {registerHint ? (
-          <p className="mb-2 truncate text-center text-[10px] font-semibold leading-none text-amber-100/90">
-            {registerHint}
-          </p>
-        ) : null}
         {filledCount >= FORMATION.TOTAL ? (
           <button
             type="button"

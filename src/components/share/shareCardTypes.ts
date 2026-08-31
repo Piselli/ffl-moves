@@ -39,6 +39,8 @@ export type SquadShareCardProps = {
   className?: string;
   /** Optional bench for plaque layouts (up to 3 shown). */
   bench?: Player[];
+  /** Starter index 0–10 — gold C badge on pitch + list. */
+  captainIndex?: number;
 };
 
 export type SquadShareCardVariantId =

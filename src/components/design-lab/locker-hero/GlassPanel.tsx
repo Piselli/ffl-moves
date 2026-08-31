@@ -56,10 +56,10 @@ export function GlassPanel({
       className={cn(
         "relative flex min-h-0 flex-col overflow-hidden rounded-2xl",
         interactive &&
-          "transition-[transform,box-shadow,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform hover:-translate-y-0.5 hover:brightness-[1.02]",
+          "transition-[box-shadow,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:brightness-[1.03]",
         crystal &&
           !matte &&
-          "hover:brightness-[1.06] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.45),0_20px_60px_rgba(0,0,0,0.55)]",
+          "hover:brightness-[1.05] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.32)]",
         className,
       )}
       style={{ ...baseStyle, ...style }}

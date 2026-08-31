@@ -203,9 +203,8 @@ export function LockerHero({
   }, [isSite]);
 
   useEffect(() => {
-    if (isSite) return;
     setHomeLookId(loadHomepageLookId());
-  }, [isSite]);
+  }, []);
 
   useEffect(() => {
     setPitchStyleId(loadPitchStyleId());
@@ -305,7 +304,8 @@ export function LockerHero({
       onRandom={() => squad.randomize(data.players)}
       pitchStyleId={pitchStyleId}
       onPitchStyleChange={onPitchStyleChange}
-      tabletVariantId={isSite ? SHIPPING_TABLET_VARIANT : homeLookId}
+      tabletVariantId={homeLookId}
+      onTabletLookChange={isSite ? onHomeLookChange : undefined}
       formationId={squad.formationId}
       onFormationChange={squad.setFormationId}
       onRegister={register.register}
@@ -440,7 +440,7 @@ export function LockerHero({
               Look archive
             </p>
             <p className="mb-1.5 px-1.5 text-[8px] leading-snug text-white/30">
-              Shipping = Crystal. Switch here to compare.
+              Shipping = Obsidian. Switch here to compare.
             </p>
             <div className="space-y-1">
               {HOMEPAGE_COMPARE_VARIANTS.map((id) => {
@@ -531,6 +531,7 @@ export function LockerHero({
         tourLabel={`${messages.pages.gameweek.gwWord} ${register.gameweekId ?? ""}`}
         sitePath="/"
         formationId={squad.formationId}
+        captainIndex={squad.captainIndex ?? undefined}
       />
 
       {bootMounted ? (

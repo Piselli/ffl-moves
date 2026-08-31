@@ -30,6 +30,7 @@ export function ShareHalfPitchListRail({
   panelStyle = "tablet",
   rowStyle = "kit",
   embedded = false,
+  captainIndex,
 }: {
   starters: Player[];
   bench: Player[];
@@ -42,6 +43,7 @@ export function ShareHalfPitchListRail({
   rowStyle?: ShareListRowStyle;
   /** Inside a parent soft plaque — no nested panel chrome */
   embedded?: boolean;
+  captainIndex?: number;
 }) {
   const benchThree = bench.slice(0, 3);
   const hasBench = benchThree.length > 0;
@@ -68,8 +70,9 @@ export function ShareHalfPitchListRail({
           </div>
           <div className="flex min-h-0 flex-1 flex-col justify-between px-0.5 pb-2">
             {xiOrdered.map((player, i) => {
+              const idx = starterIndexOf(starters, player);
               const pos = formationId
-                ? slotPosition(starterIndexOf(starters, player), formationId)
+                ? slotPosition(idx, formationId)
                 : player.position;
               return (
                 <KitRow
@@ -77,6 +80,7 @@ export function ShareHalfPitchListRail({
                   player={player}
                   pos={pos}
                   rowStyle={rowStyle}
+                  captain={captainIndex != null && idx === captainIndex}
                 />
               );
             })}
@@ -135,8 +139,9 @@ export function ShareHalfPitchListRail({
         </div>
         <div className="flex min-h-0 flex-1 flex-col justify-between px-2.5 py-2">
           {xiOrdered.map((player, i) => {
+            const idx = starterIndexOf(starters, player);
             const pos = formationId
-              ? slotPosition(starterIndexOf(starters, player), formationId)
+              ? slotPosition(idx, formationId)
               : player.position;
             return (
               <KitRow
@@ -144,6 +149,7 @@ export function ShareHalfPitchListRail({
                 player={player}
                 pos={pos}
                 rowStyle={rowStyle}
+                captain={captainIndex != null && idx === captainIndex}
               />
             );
           })}
@@ -185,10 +191,12 @@ function KitRow({
   player,
   pos,
   rowStyle,
+  captain = false,
 }: {
   player: Player;
   pos: string;
   rowStyle: ShareListRowStyle;
+  captain?: boolean;
 }) {
   const surname = sharePlayerSurname(player);
   const club = shareClubShort(player);
@@ -202,6 +210,14 @@ function KitRow({
         <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-[-0.01em] text-white">
           {surname}
         </span>
+        {captain ? (
+          <span
+            className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black leading-none text-black"
+            aria-hidden
+          >
+            C
+          </span>
+        ) : null}
         <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.12em] text-white/38">
           {club}
         </span>

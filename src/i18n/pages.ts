@@ -550,6 +550,8 @@ export type PagesMessages = {
     posterCta: string;
     cardHeadline: string;
     cardLocked: string;
+    /** v13 classic left rail — under manager nickname */
+    cardFantasyLineup: string;
     tweetXiLabel: string;
     tweetBenchLabel: string;
     tweetHeaderGw: (gwLabel: string) => string;
@@ -686,6 +688,12 @@ export type PagesMessages = {
     clubLimitBadge: string;
     clubLimitTip: string;
     scoringBtn: string;
+    /** Pitch ticker — last finished FPL GW under our scoring rules. */
+    lastGwTooltip: string;
+    lastGwLabel: (n: number) => string;
+    lastGwSampleLabel: string;
+    lastGwPartial: (picked: number) => string;
+    lastGwPickCaptain: string;
     howToPlayBtn: string;
     scoringTitle: string;
     scoringSubtitle: string;
@@ -709,6 +717,10 @@ export type PagesMessages = {
     untilLock: string;
     closingSoon: string;
     registrationClosed: string;
+    /** Always-on header job line (desktop). */
+    headerJob: string;
+    /** Empty pitch only — gone after the first pick. */
+    emptyPitchHint: string;
   };
 };
 
@@ -1283,6 +1295,7 @@ export const pagesEn: PagesMessages = {
     posterCta: "Build your squad on FORM8",
     cardHeadline: "Squad Locked",
     cardLocked: "Locked",
+    cardFantasyLineup: "my fantasy lineup",
     tweetXiLabel: "XI",
     tweetBenchLabel: "Bench",
     tweetHeaderGw: (gw) => `My ${gw} squad on @MoveMatchxyz ⚽`,
@@ -1640,6 +1653,11 @@ export const pagesEn: PagesMessages = {
     clubLimitBadge: "LIMIT",
     clubLimitTip: "Max 3 per club",
     scoringBtn: "Scoring",
+    lastGwTooltip: "What this squad scored last GW.",
+    lastGwLabel: (n) => `Last GW ${n}`,
+    lastGwSampleLabel: "Sample score",
+    lastGwPartial: (picked) => `${picked}/11`,
+    lastGwPickCaptain: "Pick C to double",
     howToPlayBtn: "How to play",
     scoringTitle: "Scoring",
     scoringSubtitle: "",
@@ -1648,14 +1666,12 @@ export const pagesEn: PagesMessages = {
     prizeSplitHint: "",
     scoringFaqLink: "FAQ",
     howToPlayTitle: "How to play",
-    howToPlaySubtitle: "",
+    howToPlaySubtitle: "A squad for this Premier League weekend. Points from real matches.",
     howToPlaySteps: [
       "Pick 11 starters and 3 on the bench",
-      "Tap C on a starter to pick your captain (double points)",
-      "No more than 3 players from one club",
-      "Confirm with the entry fee in USDC",
-      "Squad locks at the deadline",
-      "Top 10 split the prize pool",
+      "Tap C on a starter — captain scores double",
+      "Max 3 players from one club",
+      "After the matches, the top 10 split the prize pool",
     ],
     chooseCaptainHint: "Hover a starter · tap C for captain",
     chooseCaptainBanner: "Squad complete — pick your captain for double points",
@@ -1669,6 +1685,8 @@ export const pagesEn: PagesMessages = {
     untilLock: "until lock",
     closingSoon: "closing soon",
     registrationClosed: "registration closed",
+    headerJob: "11 + 3 bench. Points from this week’s matches.",
+    emptyPitchHint: "Tap a + on the pitch, then a player in the list.",
   },
 };
 
@@ -2242,6 +2260,7 @@ export const pagesUk: PagesMessages = {
     posterCta: "Збери свій склад на FORM8",
     cardHeadline: "Склад зареєстровано",
     cardLocked: "Зареєстровано",
+    cardFantasyLineup: "мій фентезі склад",
     tweetXiLabel: "Основа",
     tweetBenchLabel: "Запас",
     tweetHeaderGw: (gw) => `Мій склад ${gw} на @MoveMatchxyz ⚽`,
@@ -2599,6 +2618,11 @@ export const pagesUk: PagesMessages = {
     clubLimitBadge: "ЛІМІТ",
     clubLimitTip: "Макс. 3 з клубу",
     scoringBtn: "Очки",
+    lastGwTooltip: "Стільки б набрав цей склад минулого GW.",
+    lastGwLabel: (n) => `Минулий тур ${n}`,
+    lastGwSampleLabel: "Приклад рахунку",
+    lastGwPartial: (picked) => `${picked}/11`,
+    lastGwPickCaptain: "Обери C — подвоєння",
     howToPlayBtn: "Як грати",
     scoringTitle: "Очки",
     scoringSubtitle: "",
@@ -2607,14 +2631,12 @@ export const pagesUk: PagesMessages = {
     prizeSplitHint: "",
     scoringFaqLink: "FAQ",
     howToPlayTitle: "Як грати",
-    howToPlaySubtitle: "",
+    howToPlaySubtitle: "Склад на вікенд АПЛ. Очки — з реальних матчів.",
     howToPlaySteps: [
       "Обери 11 в основі і 3 запасних",
-      "Наведи на гравця в основі і натисни C — він стане капітаном (подвійні очки)",
-      "Не більше 3 гравців з одного клубу",
-      "Підтверди склад — внесок у USDC",
-      "Після дедлайну склад блокується",
-      "Топ-10 ділять призовий фонд",
+      "Натисни C на гравці в основі — капітан дає подвійні очки",
+      "Не більше 3 з одного клубу",
+      "Після матчів топ-10 ділять призовий фонд",
     ],
     chooseCaptainHint: "Наведи на гравця в основі · C — капітан",
     chooseCaptainBanner: "Склад готовий — обери капітана (подвійні очки)",
@@ -2628,5 +2650,7 @@ export const pagesUk: PagesMessages = {
     untilLock: "до блокування",
     closingSoon: "скоро закриється",
     registrationClosed: "реєстрація закрита",
+    headerJob: "11 + 3 у запасі. Очки з матчів цього тура.",
+    emptyPitchHint: "Натисни + на полі, потім гравця зі списку.",
   },
 };

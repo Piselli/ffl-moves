@@ -27,7 +27,8 @@ import {
   getTypeface,
   typefaceToCssVars,
 } from "@/components/design-lab/locker-hero/lockerTypefaces";
-import { Form8Mark } from "@/components/Form8Mark";
+import { TabletLookPicker } from "@/components/design-lab/locker-hero/TabletLookPicker";
+import type { TabletVariantId } from "@/components/design-lab/locker-hero/tabletVariants";
 import { cn } from "@/lib/utils";
 import { CounterUp } from "./concepts/vibeKit";
 import {
@@ -163,6 +164,9 @@ type Props = {
   chromeId?: ResultsChromeId;
   /** YOU tab XI layout (no pitch) */
   youXiVariantId?: YouXiVariantId;
+  /** Obsidian / Crystal — same key as homepage pick tablet */
+  tabletLookId?: TabletVariantId;
+  onTabletLookChange?: (id: TabletVariantId) => void;
 };
 
 /**
@@ -173,6 +177,8 @@ export function ResultsTablet({
   room,
   chromeId = DEFAULT_RESULTS_CHROME,
   youXiVariantId = DEFAULT_YOU_XI_VARIANT,
+  tabletLookId = "current",
+  onTabletLookChange,
 }: Props) {
   const chrome = getResultsChrome(chromeId);
   const palette = getLockerPalette(chrome.paletteId);
@@ -270,9 +276,20 @@ export function ResultsTablet({
     >
       <style>{resultsScrollbarCss()}</style>
 
-      <div className="relative flex h-6 shrink-0 items-center justify-between px-4 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)]/70">
+      <div className="relative flex h-6 shrink-0 items-center justify-between px-4 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)]/70 md:h-7">
         <span>{clock}</span>
-        <span className="tracking-[0.08em]">Wi-Fi&nbsp;&nbsp;100%</span>
+        <div className="flex items-center gap-2 md:gap-3">
+          {onTabletLookChange ? (
+            <TabletLookPicker
+              value={tabletLookId}
+              onChange={onTabletLookChange}
+              compact
+            />
+          ) : null}
+          <span className="hidden tracking-[0.08em] md:inline">
+            Wi-Fi&nbsp;&nbsp;100%
+          </span>
+        </div>
       </div>
 
       {/* py-2 matches tabs pt-2 so the hairline sits midway between GW plate and Board/You */}

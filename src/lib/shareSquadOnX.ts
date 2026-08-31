@@ -172,7 +172,11 @@ function resolveCaptureCard(element: HTMLElement): HTMLElement {
   throw new Error("No share card element found for capture");
 }
 
-/** html2canvas cannot paint backdrop-filter / blend modes — flatten for export. */
+/**
+ * Flatten capture-hostile styles.
+ * CSS `filter` on cutout wrappers (brightness / drop-shadow) makes html-to-image
+ * stamp one player bust onto every chip — strip all filters before export.
+ */
 function prepareNodeForCapture(root: HTMLElement) {
   root.style.transform = "none";
   root.style.opacity = "1";
@@ -217,7 +221,8 @@ function prepareNodeForCapture(root: HTMLElement) {
       node.style.mixBlendMode = "normal";
     }
 
-    if (cs.filter && cs.filter.includes("drop-shadow")) {
+    // Any non-none filter breaks cutout uniqueness in html-to-image.
+    if (cs.filter && cs.filter !== "none") {
       node.style.filter = "none";
     }
 
@@ -230,6 +235,28 @@ function prepareNodeForCapture(root: HTMLElement) {
   });
 }
 
+/** Offscreen clone so we can strip filters without flashing the live poster. */
+function mountExportClone(cardEl: HTMLElement): {
+  clone: HTMLElement;
+  host: HTMLElement;
+} {
+  const host = document.createElement("div");
+  host.setAttribute("data-share-export-host", "");
+  host.style.cssText =
+    "position:fixed;left:-10000px;top:0;width:0;height:0;overflow:hidden;pointer-events:none;opacity:0;";
+
+  const clone = cardEl.cloneNode(true) as HTMLElement;
+  clone.style.width = `${SQUAD_SHARE_CARD_WIDTH}px`;
+  clone.style.height = `${SQUAD_SHARE_CARD_HEIGHT}px`;
+  clone.style.transform = "none";
+  clone.style.opacity = "1";
+  clone.style.visibility = "visible";
+  host.appendChild(clone);
+  document.body.appendChild(host);
+  prepareNodeForCapture(clone);
+  return { clone, host };
+}
+
 async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
   if (typeof document !== "undefined" && document.fonts?.ready) {
     await document.fonts.ready;
@@ -238,11 +265,9 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
   await nextPaint();
   void cardEl.offsetHeight;
 
-  const prevBorder = cardEl.style.border;
-  const prevBoxShadow = cardEl.style.boxShadow;
-  cardEl.style.boxSizing = "border-box";
-  cardEl.style.border = SHARE_CARD_BORDER;
-  cardEl.style.boxShadow = "none";
+  const { clone, host } = mountExportClone(cardEl);
+  await waitForImages(clone);
+  await nextPaint();
 
   const filter = (node: HTMLElement) => {
     if (node.dataset?.shareOverlay != null) return false;
@@ -251,8 +276,8 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
 
   try {
     try {
-      const fontEmbedCSS = await getFontEmbedCSS(cardEl, { cacheBust: true });
-      const blob = await toBlob(cardEl, {
+      const fontEmbedCSS = await getFontEmbedCSS(clone, { cacheBust: true });
+      const blob = await toBlob(clone, {
         cacheBust: true,
         pixelRatio: EXPORT_PIXEL_RATIO,
         backgroundColor: "#000000",
@@ -266,7 +291,7 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
       console.warn("html-to-image capture failed, falling back to html2canvas", err);
     }
 
-    const canvas = await html2canvas(cardEl, {
+    const canvas = await html2canvas(clone, {
       backgroundColor: "#000000",
       scale: EXPORT_PIXEL_RATIO,
       width: SQUAD_SHARE_CARD_WIDTH,
@@ -289,8 +314,7 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
     if (!blob) throw new Error("Could not render squad image");
     return blob;
   } finally {
-    cardEl.style.border = prevBorder;
-    cardEl.style.boxShadow = prevBoxShadow;
+    host.remove();
   }
 }
 

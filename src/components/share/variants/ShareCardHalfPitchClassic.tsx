@@ -12,11 +12,14 @@ import {
   type UnifiedPitchOrder,
 } from "@/components/share/ShareHalfPitchUnifiedPanel";
 import { shareFormationLabel } from "@/components/share/ShareSquadListVariants";
-import { getTypeface } from "@/components/design-lab/locker-hero/lockerTypefaces";
 import {
   SQUAD_SHARE_CARD_HEIGHT,
   type SquadShareCardProps,
 } from "@/components/share/shareCardTypes";
+
+/** Site display + UI — Oswald hero · Inter supporting (layout.tsx vars). */
+const SHARE_DISPLAY = "var(--font-display), sans-serif";
+const SHARE_UI = "var(--font-inter), sans-serif";
 
 const INSET_X = 28;
 const INSET_Y = 22;
@@ -39,6 +42,7 @@ export function ShareCardHalfPitchClassic({
   siteUrl = "form8.app",
   formationId,
   className,
+  captainIndex,
   pitchPlacement = "right",
   listPanel = "soft",
   listRowStyle = "glass",
@@ -58,8 +62,8 @@ export function ShareCardHalfPitchClassic({
   mutedPlateStyle?: "site" | "dark" | "white";
   unifiedPanel?: boolean;
 }) {
-  const typeface = getTypeface();
   const formation = shareFormationLabel(formationId);
+  const lineupTag = headline.replace(/\.$/, "");
 
   const colH = SQUAD_SHARE_CARD_HEIGHT - INSET_Y * 2;
   const unifiedW = 1200 - INSET_X * 2 - LEFT_W - GAP;
@@ -81,6 +85,7 @@ export function ShareCardHalfPitchClassic({
       rowStyle={listRowStyle}
       chipMode={chipMode}
       mutedPlateStyle={mutedPlateStyle}
+      captainIndex={captainIndex}
     />
   );
 
@@ -94,6 +99,7 @@ export function ShareCardHalfPitchClassic({
       width={LIST_W}
       panelStyle={listPanel}
       rowStyle={listRowStyle}
+      captainIndex={captainIndex}
     />
   );
 
@@ -108,6 +114,7 @@ export function ShareCardHalfPitchClassic({
       align={pitchPlacement === "right" ? "end" : "center"}
       frameStyle={pitchFrameStyle}
       mutedPlateStyle={mutedPlateStyle}
+      captainIndex={captainIndex}
     />
   );
 
@@ -128,37 +135,38 @@ export function ShareCardHalfPitchClassic({
           style={{ width: LEFT_W, height: colH }}
         >
           <Form8Lockup
-            markClassName="h-[22px]"
-            wordmarkClassName="text-[13px] tracking-[0.1em] text-white/88"
+            markClassName="h-[26px]"
+            wordmarkClassName="text-[15px] tracking-[0.1em] text-white/88"
             priority
           />
 
-          <div>
+          <div className="min-w-0 pr-1">
             <p
-              className="text-[42px] font-extrabold leading-[0.95] tracking-[-0.03em] text-white"
-              style={{
-                fontFamily: typeface.display,
-                letterSpacing: typeface.displayTracking,
-              }}
+              className="truncate pb-0.5 text-[42px] font-black leading-[1.08] tracking-[-0.03em] text-white"
+              style={{ fontFamily: SHARE_DISPLAY }}
+              title={managerLabel}
             >
-              {headline.replace(/\.$/, "")}
-            </p>
-            <p className="mt-3 truncate text-[20px] font-semibold text-white/75">
               {managerLabel}
+            </p>
+            <p
+              className="mt-2.5 text-[21px] font-semibold lowercase leading-snug tracking-[-0.01em] text-white/68"
+              style={{ fontFamily: SHARE_UI }}
+            >
+              {lineupTag}
             </p>
           </div>
 
           <div>
             <p
-              className="text-[26px] font-extrabold leading-none tracking-[-0.02em] text-white"
-              style={{
-                fontFamily: typeface.display,
-                letterSpacing: typeface.displayTracking,
-              }}
+              className="text-[26px] font-bold uppercase leading-none tracking-[-0.02em] text-white"
+              style={{ fontFamily: SHARE_DISPLAY }}
             >
               {formation}
             </p>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/28">
+            <p
+              className="mt-2 text-[10px] font-medium uppercase tracking-[0.14em] text-white/32"
+              style={{ fontFamily: SHARE_UI }}
+            >
               {siteUrl}
             </p>
           </div>
