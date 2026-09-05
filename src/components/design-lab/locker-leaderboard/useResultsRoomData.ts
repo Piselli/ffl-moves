@@ -25,10 +25,13 @@ import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { isWorldCupTour, WC_TOUR_ID_BASE } from "@/lib/worldcup";
 import type { Player, TeamResult } from "@/lib/types";
 import type { SeasonLeaderboardPayload } from "@/lib/seasonPoints";
+import type { HonorBoardPayload } from "@/lib/honorBoard";
 import {
+  LAB_HONOR_BOARD,
   LAB_LEADERBOARD,
   LAB_PREV_LEADERBOARD,
   LAB_SEASON_HIGHLIGHTS,
+  type HonorBoardRow,
   type LabLeaderboardRow,
   type LabLeaderboardSnapshot,
   type LabSquadPlayer,
@@ -81,6 +84,9 @@ export type ResultsRoomData = {
   tablet: LabLeaderboardSnapshot;
   wallPrev: LabLeaderboardSnapshot;
   seasonHighlights: readonly SeasonHighlightRow[];
+  /** Wall honor board — all-time USDC top earners. */
+  honorBoard: readonly HonorBoardRow[];
+  honorSymbol: string;
   claiming: boolean;
   claimError: string | null;
   claimPrize: () => Promise<void>;
@@ -151,19 +157,31 @@ function seasonToHighlights(
   getNickname: (addr: string) => string,
   wallet?: string | null,
 ): SeasonHighlightRow[] {
-  const top = payload.entries.filter((e) => e.rank <= 5);
-  const you = wallet
-    ? payload.entries.find((e) => tourOwnersMatch(e.owner, wallet))
-    : undefined;
-  const list = [...top];
-  if (you && you.rank > 5) list.push(you);
-  return list.slice(0, 8).map((e) => ({
+  return payload.entries
+    .filter((e) => e.rank <= 10)
+    .slice(0, 10)
+    .map((e) => ({
+      rank: e.rank,
+      owner: e.owner,
+      nickname: getNickname(e.owner),
+      points: e.totalPoints,
+      top10: e.top10Finishes,
+      bestRank: e.bestRank,
+      isYou: wallet ? tourOwnersMatch(e.owner, wallet) : false,
+    }));
+}
+
+function honorFromPayload(
+  payload: HonorBoardPayload,
+  getNickname: (addr: string) => string,
+  wallet?: string | null,
+): HonorBoardRow[] {
+  return payload.entries.slice(0, 10).map((e) => ({
     rank: e.rank,
     owner: e.owner,
     nickname: getNickname(e.owner),
-    points: e.totalPoints,
-    top10: e.top10Finishes,
-    bestRank: e.bestRank,
+    earned: e.earned,
+    earnedLabel: e.earnedLabel,
     isYou: wallet ? tourOwnersMatch(e.owner, wallet) : false,
   }));
 }
@@ -180,6 +198,9 @@ export function useResultsRoomData(): ResultsRoomData {
   const [wallPrev, setWallPrev] = useState<LabLeaderboardSnapshot>(LAB_PREV_LEADERBOARD);
   const [seasonHighlights, setSeasonHighlights] =
     useState<readonly SeasonHighlightRow[]>(LAB_SEASON_HIGHLIGHTS);
+  const [honorBoard, setHonorBoard] =
+    useState<readonly HonorBoardRow[]>(LAB_HONOR_BOARD);
+  const [honorSymbol, setHonorSymbol] = useState("USDC");
   const [selectedGw, setSelectedGw] = useState(0);
   const [resolvedPair, setResolvedPair] = useState<number[]>([]);
   const [pickerGws, setPickerGws] = useState<number[]>([]);
@@ -211,6 +232,31 @@ export function useResultsRoomData(): ResultsRoomData {
     },
     [formatHumanPrize, getNickname, prize, wallet],
   );
+
+  // Honor board is independent of chain config — published results JSON is enough.
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/honor-board")
+      .then((r) => (r.ok ? (r.json() as Promise<HonorBoardPayload>) : null))
+      .then((honorRes) => {
+        if (cancelled || !honorRes?.entries?.length) return;
+        // Sparse early seasons (few prize winners) — keep full top-10 mock
+        // so the wall still reads as an honor board, not an empty plaque.
+        if (honorRes.entries.length < 10) {
+          setHonorBoard(LAB_HONOR_BOARD);
+          setHonorSymbol(honorRes.symbol || "USDC");
+          return;
+        }
+        setHonorSymbol(honorRes.symbol || "USDC");
+        setHonorBoard(honorFromPayload(honorRes, getNickname, wallet));
+      })
+      .catch(() => {
+        /* keep LAB_HONOR_BOARD */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [getNickname, wallet]);
 
   // Bootstrap once: resolve latest GWs + season highlights
   useEffect(() => {
@@ -355,6 +401,16 @@ export function useResultsRoomData(): ResultsRoomData {
     [getNickname, seasonHighlights, wallet],
   );
 
+  const honorMarked = useMemo(
+    () =>
+      honorBoard.map((r) => ({
+        ...r,
+        nickname: getNickname(r.owner),
+        isYou: wallet ? tourOwnersMatch(r.owner, wallet) : !!r.isYou,
+      })),
+    [getNickname, honorBoard, wallet],
+  );
+
   const claimPrize = useCallback(async () => {
     if (!connected || !wallet) {
       setClaimError("Connect wallet to claim");
@@ -466,6 +522,8 @@ export function useResultsRoomData(): ResultsRoomData {
     tablet: tabletMarked,
     wallPrev: wallMarked,
     seasonHighlights: seasonMarked,
+    honorBoard: honorMarked,
+    honorSymbol,
     claiming,
     claimError,
     claimPrize,

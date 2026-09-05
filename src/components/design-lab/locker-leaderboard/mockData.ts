@@ -556,7 +556,7 @@ export const LAB_PREV_LEADERBOARD: LabLeaderboardSnapshot = {
 };
 
 /**
- * Season points highlights for the wall (not lifetime USDC — that lands later).
+ * Season points highlights (tablet / older shells).
  * Shape matches `/api/season-points` highlights.
  */
 export const LAB_SEASON_HIGHLIGHTS: readonly SeasonHighlightRow[] = [
@@ -565,18 +565,36 @@ export const LAB_SEASON_HIGHLIGHTS: readonly SeasonHighlightRow[] = [
   { rank: 3, owner: "0xeee5", nickname: "KDB10", points: 148, top10: 2, bestRank: 2 },
   { rank: 4, owner: "0xccc3", nickname: "MAX", points: 131, top10: 2, bestRank: 3 },
   { rank: 5, owner: "0xddd4", nickname: "CHICHARITO", points: 118, top10: 1, bestRank: 4 },
-  {
-    rank: 12,
-    owner: "0xyou4",
-    nickname: "YOU",
-    points: 74,
-    top10: 0,
-    bestRank: 87,
-    isYou: true,
-  },
+  { rank: 6, owner: "0xfill006", nickname: "NICO", points: 109, top10: 1, bestRank: 5 },
+  { rank: 7, owner: "0xfill007", nickname: "ARIA", points: 101, top10: 1, bestRank: 6 },
+  { rank: 8, owner: "0xfill008", nickname: "TOM", points: 94, top10: 0, bestRank: 7 },
+  { rank: 9, owner: "0xfill009", nickname: "REX", points: 88, top10: 0, bestRank: 8 },
+  { rank: 10, owner: "0xfill00a", nickname: "JUN", points: 81, top10: 0, bestRank: 9 },
 ];
 
-/** @deprecated Use LAB_SEASON_HIGHLIGHTS — kept for older shells. */
+/** Wall honor board — all-time prize USDC (matches `/api/honor-board`). */
+export type HonorBoardRow = {
+  rank: number;
+  owner: string;
+  nickname: string;
+  earned: number;
+  earnedLabel: string;
+  isYou?: boolean;
+};
+
+export const LAB_HONOR_BOARD: readonly HonorBoardRow[] = [
+  { rank: 1, owner: "0xaaa1", nickname: "MAG", earned: 18420, earnedLabel: "18,420" },
+  { rank: 2, owner: "0xbbb2", nickname: "LUKA", earned: 12640, earnedLabel: "12,640" },
+  { rank: 3, owner: "0xeee5", nickname: "KDB10", earned: 9810, earnedLabel: "9,810" },
+  { rank: 4, owner: "0xccc3", nickname: "MAX", earned: 7420, earnedLabel: "7,420" },
+  { rank: 5, owner: "0xddd4", nickname: "CHICHARITO", earned: 5180, earnedLabel: "5,180" },
+  { rank: 6, owner: "0xfill006", nickname: "NICO", earned: 3640, earnedLabel: "3,640" },
+  { rank: 7, owner: "0xfill007", nickname: "ARIA", earned: 2910, earnedLabel: "2,910" },
+  { rank: 8, owner: "0xfill008", nickname: "TOM", earned: 2140, earnedLabel: "2,140" },
+  { rank: 9, owner: "0xfill009", nickname: "REX", earned: 1680, earnedLabel: "1,680" },
+  { rank: 10, owner: "0xfill00a", nickname: "JUN", earned: 1240, earnedLabel: "1,240" },
+];
+
 export type LifetimeEarning = {
   rank: number;
   nickname: string;
@@ -585,13 +603,13 @@ export type LifetimeEarning = {
   isYou?: boolean;
 };
 
-/** @deprecated Use LAB_SEASON_HIGHLIGHTS */
-export const LAB_LIFETIME_EARNINGS: readonly LifetimeEarning[] = LAB_SEASON_HIGHLIGHTS.map(
+/** @deprecated Use LAB_HONOR_BOARD */
+export const LAB_LIFETIME_EARNINGS: readonly LifetimeEarning[] = LAB_HONOR_BOARD.map(
   (r) => ({
     rank: r.rank,
     nickname: r.nickname,
-    earned: r.points * 40,
-    wins: r.top10,
+    earned: r.earned,
+    wins: Math.max(1, 5 - Math.floor(r.rank / 2)),
     isYou: r.isYou,
   }),
 );

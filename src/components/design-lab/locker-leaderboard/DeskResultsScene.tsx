@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
@@ -13,6 +13,10 @@ import {
   type TabletVariantId,
 } from "@/components/design-lab/locker-hero/tabletVariants";
 import { LockerRoomBackground } from "@/components/design-lab/locker-hero/LockerRoomBackground";
+import {
+  objectCoverRect,
+  type CoverRect,
+} from "@/components/design-lab/locker-hero/nameplateQuads";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
 import { cn } from "@/lib/utils";
 import { BoardBroadcast } from "./BoardBroadcast";
@@ -35,7 +39,6 @@ import {
   type YouXiVariantId,
 } from "./youXiVariants";
 import { SCROLLBAR_DEMOS } from "./resultsScrollbars";
-import { useWallCycle } from "./WallBroadcast";
 import { useResultsRoomData } from "./useResultsRoomData";
 
 /** Keep in sync with TABLET_MOTION_MS in TabletScene.tsx */
@@ -49,10 +52,55 @@ const TabletScene = dynamic(
   { ssr: false },
 );
 
+/**
+ * Desk plate + whiteboard writing surface.
+ * Board % are plate-relative (bright writing face), then mapped through
+ * object-cover + object-center so the overlay tracks the photo crop.
+ */
 const SCENE = {
   src: "/design-lab/locker-leaderboard/concepts/lb-locker-table-whiteboard.png",
-  board: { top: "12.3%", left: "27.4%", width: "45.2%", height: "32.8%" },
+  media: { w: 1536, h: 1024 },
+  /** Matches LockerRoomBackground object-center. */
+  objectPosition: { x: 0.5, y: 0.5 },
+  /**
+   * Bright writing face on the 1536×1024 plate (inside frame + top bevel).
+   * Calibrated from source luminance, not the full metal bezel.
+   */
+  /**
+   * Writing face — nudged down so the title clears the site nav,
+   * still inside the physical whiteboard frame.
+   */
+  board: { top: 18.4, left: 30.2, width: 39.6, height: 26.4 },
 } as const;
+
+function useDeskPlateCover() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [cover, setCover] = useState<CoverRect>({ x: 0, y: 0, w: 0, h: 0 });
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const measure = () => {
+      const r = host.getBoundingClientRect();
+      setCover(
+        objectCoverRect(
+          r.width,
+          r.height,
+          SCENE.media.w,
+          SCENE.media.h,
+          SCENE.objectPosition.x,
+          SCENE.objectPosition.y,
+        ),
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, []);
+
+  return { hostRef, cover };
+}
 
 type Props = {
   /**
@@ -66,6 +114,7 @@ export function DeskResultsScene({ lab = false }: Props) {
   const siteLocale = useSiteLocale();
   const room = useResultsRoomData();
   const reduceMotion = useReducedMotion();
+  const { hostRef, cover } = useDeskPlateCover();
   const [tabletRaised, setTabletRaised] = useState(true);
   const [pointerInTablet, setPointerInTablet] = useState(false);
   const [roomReady, setRoomReady] = useState(false);
@@ -80,7 +129,6 @@ export function DeskResultsScene({ lab = false }: Props) {
   const [tabletLookId, setTabletLookId] = useState<TabletVariantId>(
     SHIPPING_TABLET_VARIANT,
   );
-  const { mode } = useWallCycle(tabletRaised);
 
   const onTabletLookChange = useCallback(
     (id: TabletVariantId) => {
@@ -160,35 +208,53 @@ export function DeskResultsScene({ lab = false }: Props) {
     </LocaleBridge>
   );
 
+  const boardReady = cover.w > 0 && cover.h > 0;
+
   return (
-    <div className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white">
+    <div
+      ref={hostRef}
+      className="fixed inset-0 z-[45] overflow-hidden bg-[#1a1816] text-white"
+    >
       <LockerRoomBackground
         src={SCENE.src}
-        objectClassName="object-[center_62%]"
+        objectClassName="object-center"
         onImageLoad={onRoomLoad}
         onImageError={onRoomError}
       />
 
-      <div
-        className={cn(
-          "pointer-events-none absolute z-[15] overflow-hidden transition-opacity ease-[cubic-bezier(0.22,1,0.36,1)]",
-          tabletRaised ? "opacity-70" : "opacity-95",
-        )}
-        style={{
-          top: SCENE.board.top,
-          left: SCENE.board.left,
-          width: SCENE.board.width,
-          height: SCENE.board.height,
-          transitionDuration: reduceMotion ? "0ms" : `${TABLET_MOTION_MS}ms`,
-        }}
-      >
-        <BoardBroadcast
-          mode={mode}
-          prevBoard={room.wallPrev}
-          seasonHighlights={room.seasonHighlights}
-          className="h-full"
-        />
-      </div>
+      {boardReady ? (
+        <div
+          className="pointer-events-none absolute z-[15]"
+          style={{
+            left: cover.x,
+            top: cover.y,
+            width: cover.w,
+            height: cover.h,
+          }}
+        >
+          <div
+            className={cn(
+              "absolute overflow-hidden transition-opacity ease-[cubic-bezier(0.22,1,0.36,1)]",
+              tabletRaised ? "opacity-[0.72]" : "opacity-100",
+            )}
+            style={{
+              top: `${SCENE.board.top}%`,
+              left: `${SCENE.board.left}%`,
+              width: `${SCENE.board.width}%`,
+              height: `${SCENE.board.height}%`,
+              transitionDuration: reduceMotion
+                ? "0ms"
+                : `${TABLET_MOTION_MS}ms`,
+            }}
+          >
+            <BoardBroadcast
+              rows={room.honorBoard}
+              prizeSymbol={room.honorSymbol}
+              className="h-full"
+            />
+          </div>
+        </div>
+      ) : null}
 
       <LockerLabNav liveLinks={!lab} />
 

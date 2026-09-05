@@ -52,6 +52,11 @@ import {
 import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
+import { PickWelcomeOverlay } from "./PickWelcomeOverlay";
+import {
+  markPickWelcomeSeen,
+  shouldShowPickWelcome,
+} from "./pickWelcomeStorage";
 import { PitchFilledSlot } from "./PitchFilledSlot";
 import { PitchFringeBar } from "./PitchFringeBar";
 import { TabletLookPicker } from "./TabletLookPicker";
@@ -138,6 +143,8 @@ type Props = {
   onShareClick?: () => void;
   shareLabel?: string;
   shareSubline?: string;
+  /** Homepage first visit — one-screen welcome before picking. */
+  pickWelcome?: boolean;
 };
 
 type DeadlineParts = {
@@ -911,6 +918,7 @@ export function LockerTablet({
   onShareClick,
   shareLabel,
   shareSubline,
+  pickWelcome = false,
 }: Props) {
   const reduceMotion = useReducedMotion() ?? false;
   const { variant: tabletVariant, palette, cta } =
@@ -967,6 +975,8 @@ export function LockerTablet({
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const [scoringOpen, setScoringOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
     filledCount === FORMATION.TOTAL && captainIndex == null && Boolean(onSetCaptain);
@@ -1004,6 +1014,30 @@ export function LockerTablet({
       if (empty) setMobileTab("players");
     },
     [bench, onSlotClick, starters],
+  );
+
+  useEffect(() => {
+    if (!pickWelcome) return;
+    if (shouldShowPickWelcome()) setWelcomeOpen(true);
+  }, [pickWelcome]);
+
+  useEffect(() => {
+    if (filledCount > 0) setGuidePulseSlot(null);
+  }, [filledCount]);
+
+  const dismissWelcome = useCallback(() => {
+    markPickWelcomeSeen();
+    setWelcomeOpen(false);
+    if (filledCount > 0) return;
+    const idx = starters.findIndex((p) => !p);
+    if (idx < 0) return;
+    setGuidePulseSlot(idx);
+    handleSlotClick(idx);
+  }, [filledCount, handleSlotClick, starters]);
+
+  const slotGuideActive = useCallback(
+    (idx: number) => activeSlot === idx || guidePulseSlot === idx,
+    [activeSlot, guidePulseSlot],
   );
 
   const onRegisterClick = useCallback(() => {
@@ -1610,7 +1644,7 @@ export function LockerTablet({
                 {row.map((idx) => {
                   const p = starters[idx];
                   const pos = slotPos(idx);
-                  const active = activeSlot === idx;
+                  const active = slotGuideActive(idx);
                   return (
                     <button
                       key={idx}
@@ -1950,13 +1984,13 @@ export function LockerTablet({
             <div className="flex min-w-0 flex-1 items-end justify-evenly gap-1.5">
               {bench.slice(0, 3).map((p, i) => {
                 const slotIndex = 11 + i;
-                const active = activeSlot === slotIndex;
+                const active = slotGuideActive(slotIndex);
                 return (
                   <button
                     key={i}
                     type="button"
                     onClick={() =>
-                      p ? onClearSlot(slotIndex) : onSlotClick(slotIndex)
+                      p ? onClearSlot(slotIndex) : handleSlotClick(slotIndex)
                     }
                     className="flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]"
                     aria-label={
@@ -2199,6 +2233,11 @@ export function LockerTablet({
         )}
       </div>
 
+      <PickWelcomeOverlay
+        open={welcomeOpen}
+        onStart={dismissWelcome}
+        messages={m}
+      />
       <PickHelpOverlay
         kind="scoring"
         open={scoringOpen}

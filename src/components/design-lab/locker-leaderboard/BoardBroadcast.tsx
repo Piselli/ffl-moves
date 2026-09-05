@@ -1,79 +1,78 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { Permanent_Marker } from "next/font/google";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
-import type {
-  LabLeaderboardSnapshot,
-  SeasonHighlightRow,
-} from "./mockData";
-import type { WallMode } from "./WallBroadcast";
+import type { HonorBoardRow } from "./mockData";
+
+/** Classic dry-erase / Sharpie look. Latin only — title stays Latin caps. */
+const markerFont = Permanent_Marker({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const INK = "#000000";
 
 /**
- * Passive wall surface for the locker table scene — tactics whiteboard,
- * not a TV/monitor chrome skin.
+ * Passive honor board — all-time top-10 USDC earners, marker on whiteboard.
  */
 export function BoardBroadcast({
-  mode,
-  prevBoard,
-  seasonHighlights,
+  rows,
+  prizeSymbol = "USDC",
   className,
 }: {
-  mode: WallMode;
-  prevBoard: LabLeaderboardSnapshot;
-  seasonHighlights: readonly SeasonHighlightRow[];
+  rows: readonly HonorBoardRow[];
+  prizeSymbol?: string;
   className?: string;
 }) {
-  const rows =
-    mode === "prev"
-      ? prevBoard.rows.slice(0, 6).map((r) => ({
-          rank: r.rank,
-          name: r.nickname,
-          meta: `${r.finalPoints} pts`,
-        }))
-      : seasonHighlights.slice(0, 6).map((r) => ({
-          rank: r.rank,
-          name: r.nickname,
-          meta: `${r.points} pts`,
-        }));
+  const lb = useSiteMessages().pages.leaderboard;
+  const list = rows.slice(0, 10);
+  const title = lb.wallBoardHonorTitle;
 
   return (
     <div
       className={cn(
-        "pointer-events-none flex h-full select-none flex-col px-[4%] py-[3.5%]",
+        markerFont.className,
+        "pointer-events-none flex h-full select-none flex-col px-[3.5%] py-[3%]",
         className,
       )}
-      style={
-        {
-          color: "#1c1b1a",
-          fontFamily: "var(--font-onest), system-ui, sans-serif",
-        } as CSSProperties
-      }
+      style={{ color: INK } as CSSProperties}
+      role="status"
       aria-live="polite"
       aria-atomic="true"
+      aria-label={title}
     >
-      <div className="flex items-baseline justify-between gap-3 border-b border-black/15 pb-2">
-        <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-black/45 sm:text-[11px]">
-          {mode === "prev" ? "Last gameweek" : "Season board"}
+      <header className="shrink-0 pb-1">
+        <p className="text-[16px] leading-none tracking-wide sm:text-[18px]">
+          {title}
         </p>
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-black/30">
-          Tactics wall
-        </p>
-      </div>
+        <span
+          aria-hidden
+          className="mt-1.5 block h-[2.5px] w-[70%] origin-left rounded-sm bg-black"
+          style={{ transform: "rotate(-0.5deg)", opacity: 0.85 }}
+        />
+      </header>
 
-      <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-0.5 sm:mt-3">
-        {rows.map((row) => (
+      <ul className="mt-2 grid min-h-0 flex-1 grid-rows-10">
+        {list.map((row) => (
           <li
-            key={`${mode}-${row.rank}-${row.name}`}
-            className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-baseline gap-2 border-b border-dashed border-black/10 pb-1 last:border-0 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:gap-3"
+            key={`${row.rank}-${row.owner}`}
+            className="grid min-h-0 grid-cols-[1.6rem_minmax(0,1fr)_auto] items-center gap-1.5 sm:grid-cols-[1.9rem_minmax(0,1fr)_auto] sm:gap-2"
           >
-            <span className="font-display text-[13px] font-bold tabular-nums text-black/35 sm:text-[15px]">
+            <span className="text-[13px] leading-none tabular-nums sm:text-[14px]">
               {row.rank}
             </span>
-            <span className="truncate font-display text-[13px] font-bold uppercase tracking-[0.04em] text-black/80 sm:text-[15px]">
-              {row.name}
+            <span className="truncate text-[14px] leading-none tracking-wide sm:text-[15px]">
+              {row.nickname}
+              {row.isYou && row.nickname.toUpperCase() !== "YOU" ? (
+                <span className="ml-1 text-[10px]">you</span>
+              ) : null}
             </span>
-            <span className="text-[11px] font-semibold tabular-nums text-black/45 sm:text-[12px]">
-              {row.meta}
+            <span className="text-[15px] leading-none tracking-wide tabular-nums sm:text-[17px]">
+              {row.earnedLabel}{" "}
+              <span className="text-[12px] sm:text-[13px]">{prizeSymbol}</span>
             </span>
           </li>
         ))}

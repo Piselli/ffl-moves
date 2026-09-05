@@ -319,6 +319,7 @@ export function LockerHero({
       onShareClick={() => register.setShareOpen(true)}
       shareLabel={messages.pages.squadShare.registeredShareButton}
       shareSubline={messages.pages.squadShare.registeredShareSubline}
+      pickWelcome={isSite}
     />
   );
 

@@ -318,6 +318,13 @@ export type PagesMessages = {
     emptyNotPublished: (gw: number) => string;
     registerSquadCta: string;
     footerLine: (gw: number) => string;
+    /** Passive wall whiteboard — all-time USDC honor board. */
+    wallBoardEyebrow: string;
+    wallBoardHonorTitle: string;
+    wallBoardHint: string;
+    /** @deprecated kept so older shells compile during transition */
+    wallBoardPrevTitle: string;
+    wallBoardSeasonTitle: string;
   };
   seasonLeaderboard: {
     loading: string;
@@ -721,6 +728,11 @@ export type PagesMessages = {
     headerJob: string;
     /** Empty pitch only — gone after the first pick. */
     emptyPitchHint: string;
+    /** First-visit welcome modal (homepage, once). */
+    welcomeTitle: string;
+    welcomeLead: string;
+    welcomeAction: string;
+    welcomeCta: string;
   };
 };
 
@@ -1053,6 +1065,11 @@ export const pagesEn: PagesMessages = {
     emptyNotPublished: (gw) => `GW ${gw} results are not published yet.`,
     registerSquadCta: "Register your squad",
     footerLine: (gw) => `Real on-chain results · GW ${gw} · Solana`,
+    wallBoardEyebrow: "USDC",
+    wallBoardHonorTitle: "LEADERBOARD ALL TIME",
+    wallBoardHint: "",
+    wallBoardPrevTitle: "Last GW top 10",
+    wallBoardSeasonTitle: "Season top 10",
   },
   seasonLeaderboard: {
     loading: "Loading season standings…",
@@ -1687,6 +1704,11 @@ export const pagesEn: PagesMessages = {
     registrationClosed: "registration closed",
     headerJob: "11 + 3 bench. Points from this week’s matches.",
     emptyPitchHint: "Tap a + on the pitch, then a player in the list.",
+    welcomeTitle: "Pick your team",
+    welcomeLead:
+      "A squad for this Premier League weekend. Points from real matches.",
+    welcomeAction: "Tap + on the pitch, then pick a player from the list.",
+    welcomeCta: "Start picking",
   },
 };
 
@@ -2018,6 +2040,11 @@ export const pagesUk: PagesMessages = {
     emptyNotPublished: (gw) => `Результати Туру ${gw} ще не опубліковані.`,
     registerSquadCta: "Зареєструй свій склад",
     footerLine: (gw) => `Реальні on-chain результати · Тур ${gw} · Solana`,
+    wallBoardEyebrow: "USDC",
+    wallBoardHonorTitle: "LEADERBOARD ALL TIME",
+    wallBoardHint: "",
+    wallBoardPrevTitle: "Минулий тур топ-10",
+    wallBoardSeasonTitle: "Сезон топ-10",
   },
   seasonLeaderboard: {
     loading: "Завантаження сезонного рейтингу…",
@@ -2652,5 +2679,9 @@ export const pagesUk: PagesMessages = {
     registrationClosed: "реєстрація закрита",
     headerJob: "11 + 3 у запасі. Очки з матчів цього тура.",
     emptyPitchHint: "Натисни + на полі, потім гравця зі списку.",
+    welcomeTitle: "Збери склад",
+    welcomeLead: "Склад на вікенд АПЛ. Очки — з реальних матчів.",
+    welcomeAction: "Натисни + на полі, потім обери гравця зі списку.",
+    welcomeCta: "Почати збирати",
   },
 };

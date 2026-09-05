@@ -9,6 +9,7 @@ import {
 } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
+import { Form8Mark } from "@/components/Form8Mark";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import {
   DEFAULT_PITCH_STYLE,

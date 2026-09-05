@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { FormationPicker } from "@/components/FormationPicker";
 import type { FormationId } from "@/lib/formation";
@@ -51,7 +51,19 @@ export function PitchFringeBar({
   copy,
   needCaptain,
 }: Props) {
+  const [hintOpen, setHintOpen] = useState(false);
+  const scoreRef = useRef<HTMLDivElement>(null);
   const showLastGw = lastGw.starterCount > 0;
+
+  useEffect(() => {
+    if (!hintOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (scoreRef.current?.contains(e.target as Node)) return;
+      setHintOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [hintOpen]);
   if (!onFormationChange && !onPitchStyleChange && !showLastGw) return null;
 
   const gwLabel =
@@ -79,10 +91,15 @@ export function PitchFringeBar({
         </div>
 
         {showLastGw ? (
-          <div className="group/score pointer-events-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div
-              tabIndex={0}
+          <div
+            ref={scoreRef}
+            className="group/score pointer-events-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          >
+            <button
+              type="button"
               aria-describedby="last-gw-hint"
+              aria-expanded={hintOpen}
+              onClick={() => setHintOpen((open) => !open)}
               className={cn(
                 FRINGE_PLATE,
                 "max-w-[min(11rem,46vw)] items-center gap-1 px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:max-w-[13rem] md:gap-1.5 md:px-2.5 md:py-1",
@@ -110,12 +127,17 @@ export function PitchFringeBar({
                   </span>
                 </>
               ) : null}
-            </div>
+            </button>
 
             <div
               id="last-gw-hint"
               role="tooltip"
-              className="pointer-events-none absolute bottom-full left-1/2 z-50 hidden w-max max-w-[min(20rem,calc(100vw-1.5rem))] -translate-x-1/2 pb-2 group-hover/score:block group-focus-within/score:block"
+              className={cn(
+                "pointer-events-none absolute bottom-full left-1/2 z-50 w-max max-w-[min(20rem,calc(100vw-1.5rem))] -translate-x-1/2 pb-2",
+                hintOpen
+                  ? "block"
+                  : "hidden group-hover/score:block group-focus-within/score:block",
+              )}
             >
               <div className={HINT_BACKPLATE}>
                 <GlassPanel crystal className="!rounded-xl px-3 py-2">

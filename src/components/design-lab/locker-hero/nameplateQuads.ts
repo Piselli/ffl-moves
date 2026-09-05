@@ -122,14 +122,19 @@ export type CoverRect = { x: number; y: number; w: number; h: number };
 
 /**
  * CSS object-cover geometry: where a mediaW×mediaH plate lands inside a
- * container after cover+center. Nameplate % quads are plate-relative, so the
- * transform stage must match this rect — not the raw viewport.
+ * container after cover + object-position. Nameplate % quads are plate-relative,
+ * so the transform stage must match this rect — not the raw viewport.
+ *
+ * `objectPositionX/Y` match CSS object-position percentages (0–1), e.g. center
+ * 62% → (0.5, 0.62).
  */
 export function objectCoverRect(
   containerW: number,
   containerH: number,
   mediaW: number = NAMEPLATE_PLATE_PX.w,
   mediaH: number = NAMEPLATE_PLATE_PX.h,
+  objectPositionX = 0.5,
+  objectPositionY = 0.5,
 ): CoverRect {
   if (containerW <= 0 || containerH <= 0 || mediaW <= 0 || mediaH <= 0) {
     return { x: 0, y: 0, w: 0, h: 0 };
@@ -138,8 +143,8 @@ export function objectCoverRect(
   const w = mediaW * scale;
   const h = mediaH * scale;
   return {
-    x: (containerW - w) / 2,
-    y: (containerH - h) / 2,
+    x: (containerW - w) * objectPositionX,
+    y: (containerH - h) * objectPositionY,
     w,
     h,
   };
