@@ -398,7 +398,7 @@ export function HomepageNavRedesign() {
             <a href="/season-leaderboard" className="hover:text-white">
               Season SP
             </a>
-            <a href="https://x.com/MoveMatchxyz" className="hover:text-white">
+            <a href="https://x.com/Form8HQ" className="hover:text-white">
               X
             </a>
           </div>

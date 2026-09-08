@@ -335,7 +335,7 @@ const uk: SiteMessages = {
     loginPrivacy: "Приватність",
     continueWithGoogle: "Продовжити з Google",
     googleLoginNotEnabled:
-      "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz і https://movematch.xyz.",
+      "Google ще не увімкнено в Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.form8.football і https://form8.football.",
     emailPlaceholderLong: "Email адреса",
     emailContinue: "Далі",
     emailInvalid: "Введи коректний email.",
@@ -630,7 +630,7 @@ const en: SiteMessages = {
     loginPrivacy: "Privacy",
     continueWithGoogle: "Continue with Google",
     googleLoginNotEnabled:
-      "Google login is off in Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.movematch.xyz, and https://movematch.xyz.",
+      "Google login is off in Privy. Dashboard → Login methods → Socials → Google. Allowed origins: localhost, https://www.form8.football, and https://form8.football.",
     emailPlaceholderLong: "Email address",
     emailContinue: "Continue",
     emailInvalid: "Enter a valid email.",

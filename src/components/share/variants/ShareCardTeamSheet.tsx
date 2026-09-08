@@ -41,7 +41,7 @@ export function ShareCardTeamSheet({
   tourLabel,
   managerLabel,
   lockedLabel,
-  siteUrl = "movematch.xyz",
+  siteUrl = "form8.football",
   formationId,
   className,
 }: SquadShareCardProps & { bench?: Player[] }) {

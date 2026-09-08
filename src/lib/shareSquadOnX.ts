@@ -10,7 +10,7 @@ import {
 
 export type SquadShareContext = "gameweek" | "world-cup";
 
-const DEFAULT_PUBLIC_ORIGIN = "https://form8.app";
+const DEFAULT_PUBLIC_ORIGIN = "https://form8.football";
 const TWEET_CHAR_LIMIT = 280;
 
 /** Public URL for tweets — never share localhost. */
@@ -29,7 +29,7 @@ export function shareSiteUrl(path: string): string {
   return `${base}${path}`;
 }
 
-/** `movematch.xyz/world-cup/squad` — cleaner in tweets than full https:// */
+/** `form8.football/world-cup/squad` — cleaner in tweets than full https:// */
 export function tweetUrlDisplay(fullUrl: string): string {
   return fullUrl.replace(/^https?:\/\//, "");
 }

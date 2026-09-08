@@ -154,7 +154,7 @@ export function ShareSquadOnXModal({
     managerLabel,
     headline: ss.cardFantasyLineup,
     lockedLabel: ss.cardLocked,
-    siteUrl: "form8.app",
+    siteUrl: "form8.football",
     formationId,
     captainIndex,
   };

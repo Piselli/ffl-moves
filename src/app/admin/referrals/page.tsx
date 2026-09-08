@@ -190,7 +190,7 @@ export default function ReferralDashboardPage() {
           <input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://movematch.xyz"
+            placeholder="https://form8.football"
             className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
           />
           <input

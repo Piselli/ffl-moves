@@ -1315,8 +1315,8 @@ export const pagesEn: PagesMessages = {
     cardFantasyLineup: "my fantasy lineup",
     tweetXiLabel: "XI",
     tweetBenchLabel: "Bench",
-    tweetHeaderGw: (gw) => `My ${gw} squad on @MoveMatchxyz ⚽`,
-    tweetHeaderWc: (round) => `My WC ${round} squad on @MoveMatchxyz ⚽`,
+    tweetHeaderGw: (gw) => `My ${gw} squad on @Form8HQ ⚽`,
+    tweetHeaderWc: (round) => `My WC ${round} squad on @Form8HQ ⚽`,
   },
   admin: {
     alertInvalidGw: "Enter a valid gameweek number (integer ≥ 1).",
@@ -2290,8 +2290,8 @@ export const pagesUk: PagesMessages = {
     cardFantasyLineup: "мій фентезі склад",
     tweetXiLabel: "Основа",
     tweetBenchLabel: "Запас",
-    tweetHeaderGw: (gw) => `Мій склад ${gw} на @MoveMatchxyz ⚽`,
-    tweetHeaderWc: (round) => `Мій склад ЧС · ${round} на @MoveMatchxyz ⚽`,
+    tweetHeaderGw: (gw) => `Мій склад ${gw} на @Form8HQ ⚽`,
+    tweetHeaderWc: (round) => `Мій склад ЧС · ${round} на @Form8HQ ⚽`,
   },
   admin: {
     alertInvalidGw: "Введи коректний номер туру (ціле число ≥ 1).",

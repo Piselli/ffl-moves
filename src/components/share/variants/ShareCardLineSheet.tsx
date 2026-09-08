@@ -32,7 +32,7 @@ export function ShareCardLineSheet({
   managerLabel,
   headline,
   lockedLabel,
-  siteUrl = "movematch.xyz",
+  siteUrl = "form8.football",
   formationId,
   className,
 }: SquadShareCardProps) {

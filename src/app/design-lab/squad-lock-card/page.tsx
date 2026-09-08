@@ -180,7 +180,7 @@ export default function SquadLockCardPreviewPage() {
     managerLabel: "Piselli",
     headline: ss.cardFantasyLineup,
     lockedLabel: ss.cardLocked,
-    siteUrl: "form8.app",
+    siteUrl: "form8.football",
     formationId: FORMATION,
     captainIndex: SHARE_LAB_CAPTAIN_INDEX,
   };

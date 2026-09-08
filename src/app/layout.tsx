@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: siteTitle,
     description: siteDescription,
-    site: "@MoveMatchxyz",
+    site: "@Form8HQ",
   },
 };
 

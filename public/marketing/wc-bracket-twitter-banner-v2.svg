@@ -196,6 +196,6 @@
 
   <rect x="80" y="992" width="1760" height="56" rx="12" fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.08)"/>
   <text x="960" y="1026" text-anchor="middle" fill="#ffffff" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900">$500 USDCx PRIZE POOL</text>
-  <text x="960" y="1052" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="13" font-weight="600">FREE ENTRY · GAS ONLY · movematch.xyz/world-cup/bracket</text>
+  <text x="960" y="1052" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="13" font-weight="600">FREE ENTRY · GAS ONLY · form8.football/world-cup/bracket</text>
   <text x="680" y="1052" text-anchor="start" fill="#FFD700" font-family="Arial,sans-serif" font-size="12" font-weight="700">+$300 perfect bracket</text>
 </svg>

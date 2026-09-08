@@ -11,9 +11,11 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
 import { NicknameModal } from "@/components/NicknameModal";
 import { useLogin } from "@/components/LoginProvider";
+import { SocialLinkX } from "@/components/SocialLinkX";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
 import { cn, shortenAddress } from "@/lib/utils";
 import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
 
@@ -246,6 +248,11 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             )}
           />
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3">
+            <SocialLinkX
+              ariaLabel={m.nav.socialXAria}
+              variant="icon"
+              className="!hidden !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white md:!inline-flex"
+            />
             <Right compact />
             <button
               type="button"
@@ -356,6 +363,17 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 </Link>
               );
             })}
+            <a
+              href={SOCIAL_X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              aria-label={m.nav.socialXAria}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+            >
+              {SOCIAL_X_HANDLE}
+              <span className="text-[10px] font-bold tracking-[0.14em] text-white/35">X</span>
+            </a>
             {connected ? (
               <>
                 <div className="my-1 h-px bg-white/10" />

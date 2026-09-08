@@ -197,7 +197,7 @@ function buildSvg() {
 
   <rect x="80" y="${H - 88}" width="${W - 160}" height="56" rx="12" fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.08)"/>
   <text x="${cx}" y="${H - 54}" text-anchor="middle" fill="#ffffff" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900">$500 USDCx PRIZE POOL</text>
-  <text x="${cx}" y="${H - 28}" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="13" font-weight="600">FREE ENTRY · GAS ONLY · movematch.xyz/world-cup/bracket</text>
+  <text x="${cx}" y="${H - 28}" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="13" font-weight="600">FREE ENTRY · GAS ONLY · form8.football/world-cup/bracket</text>
   <text x="${cx - 280}" y="${H - 28}" text-anchor="start" fill="#FFD700" font-family="Arial,sans-serif" font-size="12" font-weight="700">+$300 perfect bracket</text>
 </svg>`;
 }

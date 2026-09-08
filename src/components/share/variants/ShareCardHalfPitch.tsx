@@ -55,7 +55,7 @@ export function ShareCardHalfPitch({
   tourLabel,
   managerLabel,
   lockedLabel,
-  siteUrl = "movematch.xyz",
+  siteUrl = "form8.football",
   formationId,
   className,
   listStyle = "kit",

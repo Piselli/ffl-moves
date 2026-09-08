@@ -39,7 +39,7 @@ export function ShareCardHalfPitchClassic({
   tourLabel,
   managerLabel,
   headline,
-  siteUrl = "form8.app",
+  siteUrl = "form8.football",
   formationId,
   className,
   captainIndex,

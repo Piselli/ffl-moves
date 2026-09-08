@@ -59,8 +59,8 @@ export const FORMATION = {
 export const MAX_PER_CLUB = 3;
 
 /** Official X (Twitter) profile — news and announcements. */
-export const SOCIAL_X_URL = "https://x.com/MoveMatchxyz";
-export const SOCIAL_X_HANDLE = "@MoveMatchxyz";
+export const SOCIAL_X_URL = "https://x.com/Form8HQ";
+export const SOCIAL_X_HANDLE = "@Form8HQ";
 
 /** Official Telegram channel — questions, bugs, support. */
 export const SOCIAL_TG_URL = "https://t.me/movematch";
