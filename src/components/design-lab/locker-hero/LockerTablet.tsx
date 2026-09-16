@@ -1284,12 +1284,12 @@ export function LockerTablet({
       <motion.header
         {...panelMotion(HERO_REVEAL.delays.header)}
         className={cn(
-          "relative flex shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
-          isGlass && chrome === "current" && "border-white/60 bg-black",
+          "relative flex shrink-0 items-center justify-between max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
+          isGlass && chrome === "current" && "bg-black",
           isGlass &&
             (isTripledChrome || isMotionChrome || isPlatesChrome) &&
             "bg-black/40 backdrop-blur-md",
-          isCrystal && "border-white/35 bg-black/30 backdrop-blur-xl",
+          isCrystal && "bg-black/30 backdrop-blur-xl",
         )}
       >
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
@@ -1309,9 +1309,7 @@ export function LockerTablet({
             </p>
             <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
               <span className="md:hidden">
-                {filledCount === 0
-                  ? pickCopy.emptyPitchHint
-                  : `GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
+                {`GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
               </span>
               <span className="hidden md:inline">{pickCopy.headerJob}</span>
             </p>
@@ -1354,15 +1352,6 @@ export function LockerTablet({
         </div>
         <div className="w-14 shrink-0 md:hidden" aria-hidden />
       </motion.header>
-
-      {filledCount === 0 ? (
-        <p
-          className="hidden shrink-0 border-b border-[var(--lt-hairline)] px-4 py-1.5 text-center text-[11px] font-medium leading-snug text-[color:var(--lt-ink)]/70 md:block"
-          style={{ fontFamily: "var(--lt-font-ui, inherit)" }}
-        >
-          {pickCopy.emptyPitchHint}
-        </p>
-      ) : null}
 
       <motion.div
         {...panelMotion(HERO_REVEAL.delays.meta)}

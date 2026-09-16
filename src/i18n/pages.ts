@@ -726,8 +726,6 @@ export type PagesMessages = {
     registrationClosed: string;
     /** Always-on header job line (desktop). */
     headerJob: string;
-    /** Empty pitch only — gone after the first pick. */
-    emptyPitchHint: string;
     /** First-visit welcome modal (homepage, once). */
     welcomeTitle: string;
     welcomeLead: string;
@@ -1703,7 +1701,6 @@ export const pagesEn: PagesMessages = {
     closingSoon: "closing soon",
     registrationClosed: "registration closed",
     headerJob: "11 + 3 bench. Points from this week’s matches.",
-    emptyPitchHint: "Tap a + on the pitch, then a player in the list.",
     welcomeTitle: "Pick your team",
     welcomeLead:
       "A squad for this Premier League weekend. Points from real matches.",
@@ -2678,7 +2675,6 @@ export const pagesUk: PagesMessages = {
     closingSoon: "скоро закриється",
     registrationClosed: "реєстрація закрита",
     headerJob: "11 + 3 у запасі. Очки з матчів цього тура.",
-    emptyPitchHint: "Натисни + на полі, потім гравця зі списку.",
     welcomeTitle: "Збери склад",
     welcomeLead: "Склад на вікенд АПЛ. Очки — з реальних матчів.",
     welcomeAction: "Натисни + на полі, потім обери гравця зі списку.",
