@@ -101,6 +101,11 @@ type Props = {
    * Lab / already-visible surfaces pass true immediately.
    */
   introReveal?: boolean;
+  /**
+   * Site: paint fully under the boot curtain (`instant`).
+   * Lab may keep staggered reveal.
+   */
+  introStyle?: "stagger" | "instant";
   prize: PrizeAssetContextValue;
   locale: SiteLocale;
   messages: SiteMessages;
@@ -881,6 +886,7 @@ export function LockerTablet({
   chainLoading = false,
   fixturesLoading = false,
   introReveal = true,
+  introStyle = "stagger",
   prize,
   locale,
   messages: m,
@@ -1248,7 +1254,7 @@ export function LockerTablet({
       : pickCopy.untilLock;
   const metaPending = chainLoading || fixturesLoading;
   const panelMotion = (delay: number) => {
-    const base = heroPanelReveal(delay, reduceMotion);
+    const base = heroPanelReveal(delay, reduceMotion, introStyle);
     return {
       initial: base.initial,
       animate: introReveal ? base.animate : base.initial,

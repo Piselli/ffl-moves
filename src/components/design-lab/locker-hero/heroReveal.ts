@@ -1,12 +1,13 @@
 /**
- * Homepage first-paint choreography — Emil ease-out + TripleD / Motion stagger.
- * Rare per session → delight OK; keep total under ~500ms so it feels fast.
+ * Homepage first-paint choreography.
+ * Site: content paints fully under the boot curtain (instant).
+ * Lab: optional stagger after boot for mixer delight.
  */
 export const HERO_EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 export const HERO_REVEAL = {
   duration: 0.4,
-  /** Stagger offsets (seconds) after boot lifts. */
+  /** Stagger offsets (seconds) — lab / legacy only. */
   delays: {
     room: 0,
     header: 0.04,
@@ -18,24 +19,40 @@ export const HERO_REVEAL = {
   },
 } as const;
 
+/** Site boot: hold curtain at least this long so lift feels intentional. */
+export const HERO_BOOT_MIN_MS = 420;
+/** Soft wait for player catalog before lifting (then proceed anyway). */
+export const HERO_BOOT_DATA_WAIT_MS = 1600;
+/** rAF frames after paint-ready before lifting. */
+export const HERO_BOOT_SETTLE_FRAMES = 3;
+
+export type HeroRevealStyle = "stagger" | "instant";
+
+const VISIBLE = {
+  opacity: 1,
+  y: 0,
+  filter: "blur(0px)",
+} as const;
+
 export function heroPanelReveal(
   delay: number,
   reduceMotion: boolean,
+  style: HeroRevealStyle = "stagger",
 ): {
   initial: { opacity: number; y: number; filter: string };
   animate: { opacity: number; y: number; filter: string };
   transition: { duration: number; delay: number; ease: typeof HERO_EASE_OUT };
 } {
-  if (reduceMotion) {
+  if (reduceMotion || style === "instant") {
     return {
-      initial: { opacity: 1, y: 0, filter: "blur(0px)" },
-      animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+      initial: { ...VISIBLE },
+      animate: { ...VISIBLE },
       transition: { duration: 0, delay: 0, ease: HERO_EASE_OUT },
     };
   }
   return {
     initial: { opacity: 0, y: 12, filter: "blur(8px)" },
-    animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+    animate: { ...VISIBLE },
     transition: {
       duration: HERO_REVEAL.duration,
       delay,

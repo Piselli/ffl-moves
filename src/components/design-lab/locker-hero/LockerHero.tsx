@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Player } from "@/lib/types";
@@ -35,7 +35,11 @@ import {
   type TabletVariantId,
 } from "./tabletVariants";
 import { FORMATION } from "@/lib/constants";
-import { HERO_EASE_OUT, HERO_REVEAL } from "./heroReveal";
+import {
+  HERO_BOOT_DATA_WAIT_MS,
+  HERO_BOOT_MIN_MS,
+  HERO_BOOT_SETTLE_FRAMES,
+} from "./heroReveal";
 
 /** `null` until mounted so SSR/hydration never loads the 3D iPad on a phone. */
 function useIsPhone(): boolean | null {
@@ -133,12 +137,16 @@ export function LockerHero({
   const [tabletReady, setTabletReady] = useState(!isSite);
   const [bootVisible, setBootVisible] = useState(isSite);
   const [bootMounted, setBootMounted] = useState(isSite);
+  const [prefsReady, setPrefsReady] = useState(!isSite);
+  const [frameSettled, setFrameSettled] = useState(!isSite);
+  const [dataGateOpen, setDataGateOpen] = useState(!isSite);
+  const bootStartedAt = useRef<number | null>(null);
   const isPhone = useIsPhone();
   const layoutMode = siteLayoutMode(isSite, isPhone);
   /** Only true on confirmed phone — never assume flat while `isPhone` is still null. */
   const flatPicker = layoutMode === "flat";
   const useTabletScene = layoutMode === "scene";
-  // Boot lifts once the room is paintable. Dom tablet is instant; WebGL upgrades quietly.
+  // Scene is paintable — Dom tablet is instant; WebGL upgrades quietly under boot.
   const sceneReady =
     layoutMode !== "pending" &&
     roomImageReady &&
@@ -157,6 +165,11 @@ export function LockerHero({
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
   const [homeLookId, setHomeLookId] =
     useState<TabletVariantId>(SHIPPING_TABLET_VARIANT);
+
+  useEffect(() => {
+    if (!isSite || bootStartedAt.current != null) return;
+    bootStartedAt.current = performance.now();
+  }, [isSite]);
 
   useEffect(() => {
     if (!isSite) return;
@@ -182,33 +195,80 @@ export function LockerHero({
     };
   }, [isSite]);
 
+  // Apply persisted look/pitch under the curtain so first visible frame is correct.
+  useEffect(() => {
+    if (!isSite) return;
+    setHomeLookId(loadHomepageLookId());
+    setPitchStyleId(loadPitchStyleId());
+    setPrefsReady(true);
+  }, [isSite]);
+
+  // Soft-wait for player catalog; don't block forever on a slow API.
+  useEffect(() => {
+    if (!isSite) return;
+    if (!data.playersLoading && data.players.length > 0) {
+      setDataGateOpen(true);
+      return;
+    }
+    const t = window.setTimeout(
+      () => setDataGateOpen(true),
+      HERO_BOOT_DATA_WAIT_MS,
+    );
+    return () => window.clearTimeout(t);
+  }, [isSite, data.playersLoading, data.players.length]);
+
+  // Paint the full tablet under the curtain (no stagger) once the scene exists.
   useEffect(() => {
     if (!isSite || !sceneReady) return;
     setIntroReveal(true);
-    if (reduceMotion) {
+  }, [isSite, sceneReady]);
+
+  const paintReady = sceneReady && prefsReady && dataGateOpen;
+
+  useEffect(() => {
+    if (!isSite || !paintReady || frameSettled) return;
+    let frames = 0;
+    let raf = 0;
+    const tick = () => {
+      frames += 1;
+      if (frames >= HERO_BOOT_SETTLE_FRAMES) {
+        setFrameSettled(true);
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isSite, paintReady, frameSettled]);
+
+  // Lift boot only after a calm first frame + short brand beat.
+  useEffect(() => {
+    if (!isSite || !paintReady || !frameSettled) return;
+    const started = bootStartedAt.current ?? performance.now();
+    const wait = Math.max(0, HERO_BOOT_MIN_MS - (performance.now() - started));
+    const lift = () => {
+      if (reduceMotion) {
+        setBootVisible(false);
+        setBootMounted(false);
+        return;
+      }
       setBootVisible(false);
-      setBootMounted(false);
-      return;
-    }
-    setBootVisible(false);
-  }, [isSite, reduceMotion, sceneReady]);
+    };
+    const t = window.setTimeout(lift, wait);
+    return () => window.clearTimeout(t);
+  }, [isSite, paintReady, frameSettled, reduceMotion]);
 
   useEffect(() => {
     if (!isSite) return;
     const id = window.setTimeout(() => {
       setRoomImageReady(true);
       setTabletReady(true);
+      setPrefsReady(true);
+      setDataGateOpen(true);
+      setFrameSettled(true);
     }, 6_000);
     return () => window.clearTimeout(id);
   }, [isSite]);
-
-  useEffect(() => {
-    setHomeLookId(loadHomepageLookId());
-  }, []);
-
-  useEffect(() => {
-    setPitchStyleId(loadPitchStyleId());
-  }, []);
 
   const onPitchStyleChange = useCallback((id: PitchStyleId) => {
     setPitchStyleId(id);
@@ -284,6 +344,7 @@ export function LockerHero({
       chainLoading={data.chainLoading}
       fixturesLoading={data.fixturesLoading}
       introReveal={introReveal}
+      introStyle={isSite ? "instant" : "stagger"}
       prize={prize}
       locale={locale}
       messages={messages}
@@ -332,30 +393,13 @@ export function LockerHero({
     >
       {!flatPicker ? (
         <>
-          <motion.div
-            className="absolute inset-0"
-            initial={
-              reduceMotion || !isSite
-                ? false
-                : { opacity: 0.55, scale: 1.035 }
-            }
-            animate={
-              introReveal
-                ? { opacity: 1, scale: 1 }
-                : { opacity: 0.55, scale: 1.035 }
-            }
-            transition={{
-              duration: reduceMotion ? 0 : 0.55,
-              delay: reduceMotion ? 0 : HERO_REVEAL.delays.room,
-              ease: HERO_EASE_OUT,
-            }}
-          >
+          <div className="absolute inset-0">
             <LockerRoomBackground
               src={ROOM_BACKGROUND.src}
               onImageLoad={onRoomImageLoad}
               onImageError={onRoomImageError}
             />
-          </motion.div>
+          </div>
 
           {useTabletScene ? (
             <LockerKits
