@@ -52,11 +52,9 @@ import {
 import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
+import { PickTourCoachmark } from "./PickTourCoachmark";
 import { PickWelcomeOverlay } from "./PickWelcomeOverlay";
-import {
-  markPickWelcomeSeen,
-  shouldShowPickWelcome,
-} from "./pickWelcomeStorage";
+import { usePickTour } from "./usePickTour";
 import { PitchFilledSlot } from "./PitchFilledSlot";
 import { PitchFringeBar } from "./PitchFringeBar";
 import { TabletLookPicker } from "./TabletLookPicker";
@@ -974,12 +972,20 @@ export function LockerTablet({
   const [clock, setClock] = useState("");
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const [scoringOpen, setScoringOpen] = useState(false);
-  const [howtoOpen, setHowtoOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
     filledCount === FORMATION.TOTAL && captainIndex == null && Boolean(onSetCaptain);
+  const hasCaptain = captainIndex != null;
+  const pickTour = usePickTour({
+    enabled: pickWelcome,
+    filledCount,
+    hasCaptain,
+  });
+  const scoringTourActive =
+    pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "scoring";
+  const registerTourActive =
+    pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "register";
   const lastGw = useLastGwPreview(starters, bench, captainIndex ?? null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
@@ -1017,23 +1023,26 @@ export function LockerTablet({
   );
 
   useEffect(() => {
-    if (!pickWelcome) return;
-    if (shouldShowPickWelcome()) setWelcomeOpen(true);
-  }, [pickWelcome]);
-
-  useEffect(() => {
     if (filledCount > 0) setGuidePulseSlot(null);
   }, [filledCount]);
 
   const dismissWelcome = useCallback(() => {
-    markPickWelcomeSeen();
-    setWelcomeOpen(false);
+    pickTour.dismissWelcome();
     if (filledCount > 0) return;
-    const idx = starters.findIndex((p) => !p);
-    if (idx < 0) return;
-    setGuidePulseSlot(idx);
-    handleSlotClick(idx);
-  }, [filledCount, handleSlotClick, starters]);
+    // Leave pitch visible for formation step; don't auto-open a slot.
+  }, [filledCount, pickTour.dismissWelcome]);
+
+  // Keep the right mobile tab visible for the active tour step.
+  useEffect(() => {
+    if (!pickTour.tourActive || !pickTour.step) return;
+    if (pickTour.step === "players") setMobileTab("players");
+    else if (
+      pickTour.step === "formation" ||
+      pickTour.step === "captain"
+    ) {
+      setMobileTab("pitch");
+    }
+  }, [pickTour.tourActive, pickTour.step]);
 
   const slotGuideActive = useCallback(
     (idx: number) => activeSlot === idx || guidePulseSlot === idx,
@@ -1285,6 +1294,8 @@ export function LockerTablet({
         {...panelMotion(HERO_REVEAL.delays.header)}
         className={cn(
           "relative flex shrink-0 items-center justify-between max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
+          // Above tour dim so Scoring stays lit on step 4 (before plaque opens).
+          scoringTourActive && !scoringOpen && "z-[50]",
           isGlass && chrome === "current" && "bg-black",
           isGlass &&
             (isTripledChrome || isMotionChrome || isPlatesChrome) &&
@@ -1318,11 +1329,11 @@ export function LockerTablet({
 
         <nav
           aria-label={pickCopy.howToPlayBtn}
-          className="absolute left-1/2 top-1/2 z-[1] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 px-1 sm:gap-2.5"
+          className="absolute left-1/2 top-1/2 z-[1] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1.5 sm:gap-2"
         >
           <button
             type="button"
-            onClick={() => setHowtoOpen(true)}
+            onClick={() => pickTour.replay()}
             className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
           >
             {pickCopy.howToPlayBtn}
@@ -1335,20 +1346,26 @@ export function LockerTablet({
           </span>
           <button
             type="button"
+            data-tour-anchor="scoring"
             onClick={() => setScoringOpen(true)}
-            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+            className={cn(
+              "truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]",
+              "data-[tour-active]:rounded-md data-[tour-active]:bg-white/20 data-[tour-active]:px-2 data-[tour-active]:py-1 data-[tour-active]:text-[color:var(--lt-ink)] data-[tour-active]:ring-2 data-[tour-active]:ring-white/50 data-[tour-active]:shadow-[0_0_0_4px_rgba(0,0,0,0.45)]",
+            )}
           >
             {pickCopy.scoringBtn}
           </button>
         </nav>
 
-        <div className="hidden shrink-0 text-right md:block">
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
-            Selected
-          </p>
-          <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[color:var(--lt-ink)]">
-            {filledCount} of {FORMATION.TOTAL}
-          </p>
+        <div className="hidden shrink-0 items-center gap-3 text-right md:flex">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
+              Selected
+            </p>
+            <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[color:var(--lt-ink)]">
+              {filledCount} of {FORMATION.TOTAL}
+            </p>
+          </div>
         </div>
         <div className="w-14 shrink-0 md:hidden" aria-hidden />
       </motion.header>
@@ -1625,19 +1642,37 @@ export function LockerTablet({
             lastGw={lastGw}
             copy={pickCopy}
             needCaptain={needsCaptain}
+            tourAnchor="formation"
           />
 
-          <div className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 pb-7 md:py-1 md:pb-8">
+          <div
+            className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 pb-7 md:py-1 md:pb-8"
+            data-tour-anchor={
+              pickTour.tourActive &&
+              pickTour.step === "captain" &&
+              !starters.some(Boolean)
+                ? "captain"
+                : undefined
+            }
+          >
             {rows.map((row) => (
               <div key={row.join("-")} className="flex justify-evenly gap-0.5">
                 {row.map((idx) => {
                   const p = starters[idx];
                   const pos = slotPos(idx);
                   const active = slotGuideActive(idx);
+                  const firstStarter =
+                    starters.findIndex((s) => s != null);
+                  const captainAnchor =
+                    Boolean(p) &&
+                    pickTour.tourActive &&
+                    pickTour.step === "captain" &&
+                    idx === (captainIndex ?? firstStarter);
                   return (
                     <button
                       key={idx}
                       type="button"
+                      data-tour-anchor={captainAnchor ? "captain" : undefined}
                       onClick={() => (p ? onClearSlot(idx) : handleSlotClick(idx))}
                       className={cn(
                         "flex flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
@@ -1646,6 +1681,7 @@ export function LockerTablet({
                         p && "max-md:overflow-visible max-md:[&>span]:origin-bottom max-md:[&>span]:scale-[0.78]",
                         active && !p && "opacity-100",
                         active && p && "brightness-110",
+                        "data-[tour-active]:relative data-[tour-active]:z-[46]",
                         isMotionChrome &&
                           "hover:-translate-y-0.5 hover:brightness-125 active:scale-[0.94]",
                       )}
@@ -1688,6 +1724,10 @@ export function LockerTablet({
             mobileTab !== "players" && "max-md:hidden",
             "max-md:flex-1",
           )}
+        >
+        <div
+          data-tour-anchor="players"
+          className="flex h-full min-h-0 min-w-0 flex-col data-[tour-active]:relative data-[tour-active]:z-[46]"
         >
         <Panel
           {...(useMaterialShell
@@ -1877,6 +1917,7 @@ export function LockerTablet({
             )}
           </div>
         </Panel>
+        </div>
         </motion.div>
 
         <motion.div
@@ -2006,7 +2047,11 @@ export function LockerTablet({
 
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.footer)}
-          className="relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2"
+          className={cn(
+            "relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2",
+            // Above tour dim so the register CTA stays lit on step 5.
+            registerTourActive && "z-[50]",
+          )}
         >
           <div className="flex shrink-0 flex-col gap-2">
             <button
@@ -2082,41 +2127,54 @@ export function LockerTablet({
               </svg>
             </button>
           </div>
-          <button
-            type="button"
-            onClick={primaryCtaOnClick}
-            disabled={primaryCtaDisabled}
-            className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
-              isMotionChrome &&
-                "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-              primaryCtaDisabled &&
-                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
-            )}
-            style={primaryCtaStyle}
-          >
-            {primaryCtaContent}
-          </button>
+          <div className="relative flex min-h-0 min-w-0 flex-1">
+            <button
+              type="button"
+              data-tour-anchor="register"
+              onClick={primaryCtaOnClick}
+              disabled={primaryCtaDisabled}
+              className={cn(
+                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
+                isMotionChrome &&
+                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+                primaryCtaDisabled &&
+                  "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+                registerTourActive && "!opacity-100",
+              )}
+              style={primaryCtaStyle}
+            >
+              {primaryCtaContent}
+            </button>
+          </div>
         </motion.div>
       </main>
 
-      <div className="shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+      <div
+        className={cn(
+          "shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden",
+          registerTourActive && "relative z-[50]",
+        )}
+      >
         {filledCount >= FORMATION.TOTAL ? (
-          <button
-            type="button"
-            onClick={primaryCtaOnClick}
-            disabled={primaryCtaDisabled}
-            className={cn(
-              "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3.5 text-[16px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
-              isMotionChrome &&
-                "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-              primaryCtaDisabled &&
-                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
-            )}
-            style={primaryCtaStyle}
-          >
-            {primaryCtaContent}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              data-tour-anchor="register"
+              onClick={primaryCtaOnClick}
+              disabled={primaryCtaDisabled}
+              className={cn(
+                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3.5 text-[16px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
+                isMotionChrome &&
+                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+                primaryCtaDisabled &&
+                  "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+                registerTourActive && "!opacity-100",
+              )}
+              style={primaryCtaStyle}
+            >
+              {primaryCtaContent}
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <button
@@ -2200,44 +2258,58 @@ export function LockerTablet({
                 <circle cx="16" cy="16" r="1.15" fill="currentColor" stroke="none" />
               </svg>
             </button>
-            <button
-              type="button"
-              onClick={onRegisterClick}
-              disabled={registerBusy || registerLocked || !onRegister}
-              className={cn(
-                "flex min-w-0 flex-[1.4] flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2.5 text-[13px] font-black uppercase leading-none tracking-[0.04em] transition active:scale-[0.985]",
-                isMotionChrome &&
-                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.97]",
-                (registerBusy || registerLocked || !onRegister) &&
-                  "cursor-default opacity-80 active:scale-100",
-              )}
-              style={cta.style}
-            >
-              <span className="truncate">{registerLabel ?? cta.label}</span>
-              <span className="text-[10px] font-bold tabular-nums opacity-90">
-                {filledCount}/{FORMATION.TOTAL}
-              </span>
-            </button>
+            <div className="relative min-w-0 flex-[1.4]">
+              <button
+                type="button"
+                data-tour-anchor="register"
+                onClick={onRegisterClick}
+                disabled={registerBusy || registerLocked || !onRegister}
+                className={cn(
+                  "flex w-full flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2.5 text-[13px] font-black uppercase leading-none tracking-[0.04em] transition active:scale-[0.985]",
+                  isMotionChrome &&
+                    "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.97]",
+                  (registerBusy || registerLocked || !onRegister) &&
+                    "cursor-default opacity-80 active:scale-100",
+                  registerTourActive && "!opacity-100",
+                )}
+                style={cta.style}
+              >
+                <span className="truncate">{registerLabel ?? cta.label}</span>
+                <span className="text-[10px] font-bold tabular-nums opacity-90">
+                  {filledCount}/{FORMATION.TOTAL}
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       <PickWelcomeOverlay
-        open={welcomeOpen}
+        open={pickTour.welcomeOpen}
         onStart={dismissWelcome}
         messages={m}
+      />
+      <PickTourCoachmark
+        step={pickTour.step}
+        open={pickTour.tourActive && !pickTour.welcomeOpen}
+        onNext={() => {
+          if (pickTour.step === "scoring") setScoringOpen(false);
+          pickTour.goNext();
+        }}
+        onSkip={() => {
+          setScoringOpen(false);
+          pickTour.skipTour();
+        }}
+        messages={m}
+        containerRef={tabletRootRef}
+        scoringOpen={scoringOpen}
       />
       <PickHelpOverlay
         kind="scoring"
         open={scoringOpen}
         onClose={() => setScoringOpen(false)}
         messages={m}
-      />
-      <PickHelpOverlay
-        kind="howto"
-        open={howtoOpen}
-        onClose={() => setHowtoOpen(false)}
-        messages={m}
+        tourAnchor="scoring-panel"
       />
     </div>
   );

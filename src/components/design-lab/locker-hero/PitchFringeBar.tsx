@@ -37,6 +37,8 @@ type Props = {
   lastGw: LastGwPreview;
   copy: Copy;
   needCaptain: boolean;
+  /** Guided tour spotlight target. */
+  tourAnchor?: "formation";
 };
 
 /**
@@ -50,6 +52,7 @@ export function PitchFringeBar({
   lastGw,
   copy,
   needCaptain,
+  tourAnchor,
 }: Props) {
   const [hintOpen, setHintOpen] = useState(false);
   const scoreRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,10 @@ export function PitchFringeBar({
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0.5 z-20 px-2 md:px-2.5">
       <div className="relative flex items-center justify-between">
-        <div className="pointer-events-auto flex min-w-0 shrink-0 items-center">
+        <div
+          data-tour-anchor={tourAnchor}
+          className="pointer-events-auto flex min-w-0 shrink-0 items-center rounded-full data-[tour-active]:relative data-[tour-active]:z-[46]"
+        >
           {onFormationChange ? (
             <FormationPicker
               value={formationId}

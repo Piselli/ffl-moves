@@ -16,7 +16,7 @@ type Props = {
 };
 
 /**
- * One-screen first visit — what this is + first action. No tour steps.
+ * Concept welcome — three plain facts, then guided pick tour.
  */
 export function PickWelcomeOverlay({ open, onStart, messages: m }: Props) {
   const reduce = Boolean(useReducedMotion());
@@ -58,12 +58,22 @@ export function PickWelcomeOverlay({ open, onStart, messages: m }: Props) {
                 >
                   {pick.welcomeTitle}
                 </h2>
-                <p className="mt-3 text-[14px] font-medium leading-snug text-white/88">
-                  {pick.welcomeLead}
-                </p>
-                <p className="mt-2.5 text-[14px] font-medium leading-snug text-white/55">
-                  {pick.welcomeAction}
-                </p>
+                <ol className="mt-4 space-y-2.5">
+                  {pick.welcomePoints.map((line, i) => (
+                    <li
+                      key={i}
+                      className="flex gap-2.5 text-[14px] font-medium leading-snug text-white/88"
+                    >
+                      <span
+                        className="shrink-0 tabular-nums text-white/35"
+                        aria-hidden
+                      >
+                        {i + 1}.
+                      </span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ol>
                 <button
                   type="button"
                   onClick={onStart}

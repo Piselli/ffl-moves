@@ -685,6 +685,10 @@ export type PagesMessages = {
     contactBody: string;
     contactCta: string;
     contactHref: string;
+    /** Replay homepage guided tour. */
+    replayGuideTitle: string;
+    replayGuideBody: string;
+    replayGuideCta: string;
     categories: FaqCategory[];
   };
   /** Homepage locker tablet — pick list + in-flow rules. */
@@ -728,9 +732,27 @@ export type PagesMessages = {
     headerJob: string;
     /** First-visit welcome modal (homepage, once). */
     welcomeTitle: string;
-    welcomeLead: string;
-    welcomeAction: string;
+    welcomePoints: string[];
     welcomeCta: string;
+    /** Guided pick tour (coachmarks). */
+    tourBtn: string;
+    tourSkip: string;
+    tourNext: string;
+    tourDone: string;
+    tourProgress: (step: number, total: number) => string;
+    tourTips: Record<
+      "formation" | "players" | "captain" | "scoring" | "register",
+      { title: string; lines: string[] }
+    >;
+  };
+  /** One-shot first-visit tips on secondary product surfaces. */
+  surfaceTips: {
+    leaderboardTitle: string;
+    leaderboardBody: string;
+    leaderboardCta: string;
+    seasonTitle: string;
+    seasonBody: string;
+    seasonCta: string;
   };
 };
 
@@ -1471,6 +1493,10 @@ export const pagesEn: PagesMessages = {
     contactBody: "Support on Telegram @movematch · updates on X.",
     contactCta: "Message us on",
     contactHref: "https://t.me/movematch",
+    replayGuideTitle: "New here?",
+    replayGuideBody:
+      "Replay the short home-screen guide — what fantasy is, how to pick a squad, and how prizes work.",
+    replayGuideCta: "Replay the guide",
     categories: [
       {
         id: "how-to-play",
@@ -1702,10 +1728,56 @@ export const pagesEn: PagesMessages = {
     registrationClosed: "registration closed",
     headerJob: "11 + 3 bench. Points from this week’s matches.",
     welcomeTitle: "Pick your team",
-    welcomeLead:
-      "A squad for this Premier League weekend. Points from real matches.",
-    welcomeAction: "Tap + on the pitch, then pick a player from the list.",
-    welcomeCta: "Start picking",
+    welcomePoints: [
+      "Pick 14 players for this gameweek.",
+      "What they do on the pitch = your points.",
+      "Top 10 split the prize pool.",
+    ],
+    welcomeCta: "OK",
+    tourBtn: "Tour",
+    tourSkip: "Skip",
+    tourNext: "Next",
+    tourDone: "Done",
+    tourProgress: (step, total) => `${step} / ${total}`,
+    tourTips: {
+      formation: {
+        title: "Formation",
+        lines: ["Choose your formation for the game."],
+      },
+      players: {
+        title: "Squad",
+        lines: [
+          "Pick 11 starters and 3 on the bench.",
+          "Bench covers a starter who plays 0 minutes.",
+          "Max 3 players from one club.",
+        ],
+      },
+      captain: {
+        title: "Captain",
+        lines: ["Tap C on a starter — their points count double."],
+      },
+      scoring: {
+        title: "Points",
+        lines: ['Open "Scoring" for the full points table.'],
+      },
+      register: {
+        title: "Register",
+        lines: [
+          "When your squad is ready, register.",
+          "Registration costs 5 USDC.",
+          "Fees fund the prize pool — top 10 split it when the gameweek ends.",
+        ],
+      },
+    },
+  },
+  surfaceTips: {
+    leaderboardTitle: "Leaderboard",
+    leaderboardBody:
+      "When the gameweek ends, ranks land here. Top 10 claim their cut of the prize pool.",
+    leaderboardCta: "Got it",
+    seasonTitle: "Season",
+    seasonBody: "Season ladder across weeks — not match scoring.",
+    seasonCta: "OK",
   },
 };
 
@@ -2445,6 +2517,10 @@ export const pagesUk: PagesMessages = {
     contactBody: "Підтримка в Telegram @movematch · новини в X.",
     contactCta: "Написати в",
     contactHref: "https://t.me/movematch",
+    replayGuideTitle: "Вперше тут?",
+    replayGuideBody:
+      "Увімкни коротку інструкцію на головній — що таке фентезі, як зібрати склад і як працюють призи.",
+    replayGuideCta: "Показати інструкцію знову",
     categories: [
       {
         id: "how-to-play",
@@ -2676,8 +2752,55 @@ export const pagesUk: PagesMessages = {
     registrationClosed: "реєстрація закрита",
     headerJob: "11 + 3 у запасі. Очки з матчів цього тура.",
     welcomeTitle: "Збери склад",
-    welcomeLead: "Склад на вікенд АПЛ. Очки — з реальних матчів.",
-    welcomeAction: "Натисни + на полі, потім обери гравця зі списку.",
-    welcomeCta: "Почати збирати",
+    welcomePoints: [
+      "Обери свою фентезі-команду з 14 гравців на цей тур.",
+      "Їхні корисні дії на полі — твої очки.",
+      "Топ-10 ділять призовий пул.",
+    ],
+    welcomeCta: "Добре",
+    tourBtn: "Тур",
+    tourSkip: "Пропустити",
+    tourNext: "Далі",
+    tourDone: "Готово",
+    tourProgress: (step, total) => `${step} / ${total}`,
+    tourTips: {
+      formation: {
+        title: "Схема",
+        lines: ["Обери свою схему на гру."],
+      },
+      players: {
+        title: "Склад",
+        lines: [
+          "Обери 11 основних і 3 запасних.",
+          "Запасні заміняють основних, якщо основний зіграв 0 хвилин.",
+          "Максимум 3 з одного клубу.",
+        ],
+      },
+      captain: {
+        title: "Капітан",
+        lines: ["Натисни C біля гравця в основі — його очки ×2."],
+      },
+      scoring: {
+        title: "Очки",
+        lines: ['Відкрий «Очки» — повна таблиця нарахування.'],
+      },
+      register: {
+        title: "Реєстрація",
+        lines: [
+          "Коли склад обраний — можеш реєструватись.",
+          "Вартість реєстрації 5 USDC.",
+          "Внески складають призовий пул, який ділять топ-10 по завершенню туру.",
+        ],
+      },
+    },
+  },
+  surfaceTips: {
+    leaderboardTitle: "Лідерборд",
+    leaderboardBody:
+      "Коли тур закінчився — місця з’являються тут. Топ-10 забирають свою частку призового пулу.",
+    leaderboardCta: "Зрозуміло",
+    seasonTitle: "Сезон",
+    seasonBody: "Драбина сезону по турах — не очки матчу.",
+    seasonCta: "Добре",
   },
 };

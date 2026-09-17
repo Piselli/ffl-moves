@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { SurfaceTipSheet } from "@/components/design-lab/locker-hero/SurfaceTipSheet";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { tourOwnersMatch } from "@/lib/tourClaimHistory";
@@ -16,7 +17,9 @@ import { SeasonVariantRail } from "./variants/SeasonVariantRail";
 
 export function SeasonStandingsShell() {
   const { account } = useWallet();
-  const m = useSiteMessages().pages.seasonLeaderboard;
+  const pages = useSiteMessages().pages;
+  const m = pages.seasonLeaderboard;
+  const tips = pages.surfaceTips;
   const reduceMotion = useReducedMotion();
   const { data, isLoading, error, wallet, myEntry: liveMyEntry } = useSeasonStandingsData();
   const [focusOwner, setFocusOwner] = useState<string | null>(null);
@@ -80,6 +83,13 @@ export function SeasonStandingsShell() {
           ) : null}
         </main>
       )}
+
+      <SurfaceTipSheet
+        tipId="season"
+        title={tips.seasonTitle}
+        body={tips.seasonBody}
+        cta={tips.seasonCta}
+      />
     </div>
   );
 }

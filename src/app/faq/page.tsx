@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_TG_HANDLE } from "@/lib/constants";
@@ -330,8 +331,30 @@ export default function FaqPage() {
           )}
         </div>
 
-        {/* Contact CTA */}
+        {/* Replay guided tour */}
         <div className="mt-12">
+          <GlassPanel matte className="px-4 py-4 sm:px-5 sm:py-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="min-w-0">
+                <p className="font-display text-[13px] font-black uppercase tracking-tight text-white/80">
+                  {faq.replayGuideTitle}
+                </p>
+                <p className="mt-1.5 text-[13px] leading-snug text-white/45">
+                  {faq.replayGuideBody}
+                </p>
+              </div>
+              <Link
+                href="/?tour=1"
+                className={cn(REGISTER_CTA_CLASS, "shrink-0 self-start sm:self-center")}
+              >
+                {faq.replayGuideCta}
+              </Link>
+            </div>
+          </GlassPanel>
+        </div>
+
+        {/* Contact CTA */}
+        <div className="mt-6">
           <GlassPanel matte className="px-4 py-4 sm:px-5 sm:py-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <p className="min-w-0 text-[13px] leading-snug text-white/45 sm:truncate">

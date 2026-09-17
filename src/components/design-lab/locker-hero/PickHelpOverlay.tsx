@@ -33,6 +33,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   messages: SiteMessages;
+  /** Tour spotlight target when this plaque is open. */
+  tourAnchor?: string;
 };
 
 type Row = { label: string; value?: string };
@@ -102,7 +104,13 @@ function useRows(kind: Kind, m: SiteMessages): { title: string; rows: Row[] } {
  * Help plaque — same family as Login / Deposit:
  * crystal GlassPanel, noble white type, TripleD spring enter.
  */
-export function PickHelpOverlay({ kind, open, onClose, messages: m }: Props) {
+export function PickHelpOverlay({
+  kind,
+  open,
+  onClose,
+  messages: m,
+  tourAnchor,
+}: Props) {
   const reduce = Boolean(useReducedMotion());
   const pick = m.pages.lockerPick;
   const { title, rows } = useRows(kind, m);
@@ -113,11 +121,11 @@ export function PickHelpOverlay({ kind, open, onClose, messages: m }: Props) {
   return (
     <AnimatePresence>
       {open ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center p-3 sm:p-4">
+        <div className="absolute inset-0 z-[50] flex items-center justify-center p-3 sm:p-4">
           <motion.button
             type="button"
             aria-label={pick.close}
-            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/25"
             initial={overlay.initial}
             animate={overlay.animate}
             exit={overlay.exit}
@@ -128,6 +136,7 @@ export function PickHelpOverlay({ kind, open, onClose, messages: m }: Props) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
+            data-tour-anchor={tourAnchor}
             className="relative z-10 w-full max-w-[400px]"
             initial={panel.initial}
             animate={panel.animate}

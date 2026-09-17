@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
-import { LocaleBridge, useSiteLocale } from "@/i18n/LocaleProvider";
+import { LocaleBridge, useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
+import { SurfaceTipSheet } from "@/components/design-lab/locker-hero/SurfaceTipSheet";
 import {
   loadHomepageLookId,
   saveHomepageLookId,
@@ -112,6 +113,7 @@ type Props = {
 
 export function DeskResultsScene({ lab = false }: Props) {
   const siteLocale = useSiteLocale();
+  const tips = useSiteMessages().pages.surfaceTips;
   const room = useResultsRoomData();
   const reduceMotion = useReducedMotion();
   const { hostRef, cover } = useDeskPlateCover();
@@ -392,6 +394,16 @@ export function DeskResultsScene({ lab = false }: Props) {
           {tabletScreen}
         </TabletScene>
       </div>
+
+      {!lab ? (
+        <SurfaceTipSheet
+          tipId="leaderboard"
+          title={tips.leaderboardTitle}
+          body={tips.leaderboardBody}
+          cta={tips.leaderboardCta}
+          placement="bottom-end"
+        />
+      ) : null}
     </div>
   );
 }
