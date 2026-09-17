@@ -182,7 +182,7 @@ function Right({ compact = false }: { compact?: boolean }) {
 
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
- * form8 left, actions right, links centered; locale pinned to the viewport corner.
+ * form8 left, actions right, primary links centered; FAQ + locale pinned to the corner.
  */
 export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
@@ -227,9 +227,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         <div
           className={cn(
             BRAND_LOCKUP_NAV_INNER,
-            /* Clear absolute EN/UA pinned to the viewport corner */
-            "pr-[5.25rem] sm:pr-24 md:pr-[6.5rem] lg:pr-28",
-            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[5.25rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
+            /* Clear absolute FAQ + EN/UA pinned to the viewport corner */
+            "pr-[7.75rem] sm:pr-[9.5rem] md:pr-40 lg:pr-44",
+            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[7.75rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
             tabletShell && "max-md:bg-black",
           )}
         >
@@ -273,7 +273,14 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 -translate-y-1/2 sm:right-4 lg:right-5">
+        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
+          <Link
+            href="/faq"
+            onClick={liveLinks ? undefined : (e) => e.preventDefault()}
+            className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
+          >
+            {m.nav.faq}
+          </Link>
           <LanguageSwitcher embedded />
         </div>
       </div>

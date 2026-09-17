@@ -51,6 +51,9 @@ export function LabChromeNav({ theme = "neon" }: Props) {
         </nav>
 
         <div className="relative z-10 ml-auto flex h-8 items-center gap-2">
+          <span className="hidden px-2 text-[10px] font-black uppercase tracking-wider text-white/55 sm:inline">
+            FAQ
+          </span>
           <div className="hidden items-center gap-0.5 p-0.5 sm:flex">
             <span className="rounded px-2 py-1 text-[10px] font-bold text-white">
               EN

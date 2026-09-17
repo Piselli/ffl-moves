@@ -51,7 +51,6 @@ export function Navbar() {
             ]
           : []),
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
-        { href: "/faq", label: m.nav.faq },
       ]
     : [
         ...primarySiteNavLinks(m),
@@ -131,6 +130,9 @@ export function Navbar() {
             <NavUtilityCluster>
               <span className="px-2 py-1.5 text-[10px] font-semibold text-white/30">{m.nav.loading}</span>
             </NavUtilityCluster>
+            <span className="px-2 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/30">
+              {m.nav.faq}
+            </span>
             <LanguageSwitcher embedded />
           </div>
         </nav>
@@ -304,6 +306,17 @@ export function Navbar() {
               </svg>
             )}
           </button>
+          <Link
+            href="/faq"
+            prefetch={!HEAVY_ROUTES.has("/faq")}
+            className={`inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider transition-colors sm:px-2.5 sm:text-[11px] ${
+              pathname === "/faq" || pathname.startsWith("/faq/")
+                ? "text-white"
+                : "text-white/45 hover:text-white/90"
+            }`}
+          >
+            {m.nav.faq}
+          </Link>
           <LanguageSwitcher embedded />
         </div>
       </nav>
