@@ -12,7 +12,7 @@ type Props = {
 
 /**
  * Covers the locker plate until the hero scene is composited — site homepage only.
- * Brand mark keeps the hold feeling intentional rather than a blank flash.
+ * Brand mark on pure black keeps the hold intentional until the settled frame.
  */
 export function LockerHeroBoot({
   visible,
@@ -23,7 +23,7 @@ export function LockerHeroBoot({
     <div
       aria-hidden
       className={cn(
-        "absolute inset-0 z-[100] flex items-center justify-center bg-[#1a1816]",
+        "absolute inset-0 z-[100] flex items-center justify-center bg-black",
         !reduceMotion && "transition-opacity duration-[480ms] ease-out",
         visible ? "opacity-100" : "opacity-0",
       )}
@@ -36,8 +36,8 @@ export function LockerHeroBoot({
       <Form8Mark
         priority
         className={cn(
-          "h-14 w-auto sm:h-16",
-          reduceMotion ? "opacity-90" : "opacity-80 animate-pulse",
+          "h-[4.5rem] w-auto sm:h-20",
+          reduceMotion ? "opacity-95" : "opacity-90 animate-pulse",
         )}
       />
     </div>
