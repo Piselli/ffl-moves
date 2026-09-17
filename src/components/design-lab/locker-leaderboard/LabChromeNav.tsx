@@ -34,7 +34,9 @@ export function LabChromeNav({ theme = "neon" }: Props) {
           />
         </Link>
 
-        <nav className="mx-4 hidden flex-1 items-center justify-center md:flex min-[1400px]:absolute min-[1400px]:left-1/2 min-[1400px]:top-1/2 min-[1400px]:mx-0 min-[1400px]:flex-none min-[1400px]:-translate-x-1/2 min-[1400px]:-translate-y-1/2">
+        <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
+
+        <nav className="relative z-10 hidden shrink-0 items-center md:flex">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -50,18 +52,9 @@ export function LabChromeNav({ theme = "neon" }: Props) {
           ))}
         </nav>
 
-        <div className="relative z-10 ml-auto flex h-8 items-center gap-2">
-          <span className="hidden px-2 text-[10px] font-black uppercase tracking-wider text-white/55 sm:inline">
-            FAQ
-          </span>
-          <div className="hidden items-center gap-0.5 p-0.5 sm:flex">
-            <span className="rounded px-2 py-1 text-[10px] font-bold text-white">
-              EN
-            </span>
-            <span className="px-2 py-1 text-[10px] font-bold text-white/40">
-              UA
-            </span>
-          </div>
+        <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
+
+        <div className="relative z-10 ml-auto flex h-8 shrink-0 items-center gap-2 md:ml-0">
           <button
             type="button"
             className={cn(
@@ -73,6 +66,17 @@ export function LabChromeNav({ theme = "neon" }: Props) {
           >
             Connect
           </button>
+          <span className="hidden px-2 text-[10px] font-black uppercase tracking-wider text-white/55 sm:inline">
+            FAQ
+          </span>
+          <div className="hidden items-center gap-0.5 p-0.5 sm:flex">
+            <span className="rounded px-2 py-1 text-[10px] font-bold text-white">
+              EN
+            </span>
+            <span className="px-2 py-1 text-[10px] font-bold text-white/40">
+              UA
+            </span>
+          </div>
         </div>
       </div>
     </div>

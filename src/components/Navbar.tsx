@@ -146,7 +146,7 @@ export function Navbar() {
       className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[min(100%,calc(100vw-1rem))] max-w-7xl px-2 sm:px-0 transition-all duration-500"
     >
       <nav
-        className={`flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+        className={`relative flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-3.5 rounded-2xl border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
           scrolled
             ? "bg-black/60 backdrop-blur-2xl border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
             : cinematicHeroTop
@@ -154,12 +154,10 @@ export function Navbar() {
               : "bg-black/40 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
         }`}
       >
-        {/* ── Left: Logo ──────────────────────────────── */}
-        <div className="min-w-0 flex-1 md:flex-none">{logoEl}</div>
+        <div className="relative z-10 min-w-0 shrink-0">{logoEl}</div>
 
-        {/* ── Center: Nav Links ───────────────────────── */}
         <LayoutGroup id="nav-links">
-        <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0 min-w-0">
+        <div className="absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 xl:gap-1 lg:flex">
           {navLinks.map((link) => {
             const isActive =
               link.href === "/"
@@ -198,7 +196,6 @@ export function Navbar() {
               </Link>
             );
           })}
-          {/* Таланти — coming soon, non-clickable */}
           <div className="relative flex flex-col items-center px-2.5 py-2 rounded-lg cursor-not-allowed select-none">
             <div className="relative">
               <span className="text-[10px] xl:text-[11px] font-black tracking-wide xl:tracking-widest uppercase text-white/20">
@@ -213,19 +210,7 @@ export function Navbar() {
         </div>
         </LayoutGroup>
 
-        {/* ── Nickname Modal ───────────────────────────── */}
-        {address ? (
-          <NicknameModal
-            open={showNicknameModal}
-            address={address}
-            currentNickname={myNickname}
-            onSave={(name) => setNickname(address, name)}
-            onClose={() => setShowNicknameModal(false)}
-          />
-        ) : null}
-
-        {/* ── Right: account cluster, then EN/UA in the far corner ─────────── */}
-        <div className="relative flex min-w-0 shrink-0 items-center gap-2">
+        <div className="relative z-10 ml-auto flex min-w-0 items-center gap-2">
           <NavUtilityCluster>
             <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
             {connected ? (
@@ -309,7 +294,7 @@ export function Navbar() {
           <Link
             href="/faq"
             prefetch={!HEAVY_ROUTES.has("/faq")}
-            className={`inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider transition-colors sm:px-2.5 sm:text-[11px] ${
+            className={`inline-flex h-8 shrink-0 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider transition-colors sm:px-2.5 sm:text-[11px] ${
               pathname === "/faq" || pathname.startsWith("/faq/")
                 ? "text-white"
                 : "text-white/45 hover:text-white/90"
@@ -320,6 +305,16 @@ export function Navbar() {
           <LanguageSwitcher embedded />
         </div>
       </nav>
+
+      {address ? (
+        <NicknameModal
+          open={showNicknameModal}
+          address={address}
+          currentNickname={myNickname}
+          onSave={(name) => setNickname(address, name)}
+          onClose={() => setShowNicknameModal(false)}
+        />
+      ) : null}
 
       <AnimatePresence>
       {mobileMenuOpen ? (

@@ -182,7 +182,10 @@ function Right({ compact = false }: { compact?: boolean }) {
 
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
- * form8 left, actions right, primary links centered; FAQ + locale pinned to the corner.
+ *
+ * Desktop row: logo · flex-1 · links · flex-1 · X+login
+ * → equal gaps on both sides of the links. FAQ + locale sit outside
+ * that row in the viewport corner and do not affect the spacers.
  */
 export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
@@ -227,9 +230,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         <div
           className={cn(
             BRAND_LOCKUP_NAV_INNER,
-            /* Clear absolute FAQ + EN/UA pinned to the viewport corner */
-            "pr-[7.75rem] sm:pr-[9.5rem] md:pr-40 lg:pr-44",
-            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[7.75rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
+            /* Reserve the viewport-corner FAQ+locale cluster; left pad stays from the shell. */
+            "pr-[7.25rem] sm:pr-[8.75rem] lg:pr-36 md:gap-0",
+            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[7.25rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
             tabletShell && "max-md:bg-black",
           )}
         >
@@ -238,16 +241,22 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
             linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
           />
+
+          <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
+
           <Links
             liveLinks={liveLinks}
-            className="hidden min-w-0 flex-1 justify-center md:flex"
+            className="relative z-10 mx-4 hidden shrink-0 md:!flex lg:mx-6"
             linkClassName={cn(
               "text-white",
               "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
               "hover:text-[#00f948]",
             )}
           />
-          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3">
+
+          <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
+
+          <div className="relative z-10 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 md:ml-0 md:gap-2.5">
             <SocialLinkX
               ariaLabel={m.nav.socialXAria}
               variant="icon"
@@ -273,6 +282,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             </button>
           </div>
         </div>
+
         <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
           <Link
             href="/faq"
