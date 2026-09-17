@@ -20,11 +20,16 @@ export const HERO_REVEAL = {
 } as const;
 
 /** Site boot: hold curtain at least this long so lift feels intentional. */
-export const HERO_BOOT_MIN_MS = 420;
-/** Soft wait for player catalog before lifting (then proceed anyway). */
-export const HERO_BOOT_DATA_WAIT_MS = 1600;
+export const HERO_BOOT_MIN_MS = 480;
+/** Soft wait for player/fixtures before lifting (then proceed anyway). */
+export const HERO_BOOT_DATA_WAIT_MS = 1800;
 /** rAF frames after paint-ready before lifting. */
-export const HERO_BOOT_SETTLE_FRAMES = 3;
+export const HERO_BOOT_SETTLE_FRAMES = 4;
+/**
+ * Site: if WebGL hasn't gone live by then, lift boot on Dom anyway
+ * so a slow GLB never traps the splash.
+ */
+export const HERO_BOOT_WEBGL_SOFT_MS = 2800;
 
 export type HeroRevealStyle = "stagger" | "instant";
 

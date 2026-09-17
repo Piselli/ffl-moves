@@ -203,10 +203,13 @@ export function LockerHero({
     setPrefsReady(true);
   }, [isSite]);
 
-  // Soft-wait for player catalog; don't block forever on a slow API.
+  // Soft-wait for catalog + fixtures; don't block forever on a slow API.
   useEffect(() => {
     if (!isSite) return;
-    if (!data.playersLoading && data.players.length > 0) {
+    const catalogReady =
+      !data.playersLoading && data.players.length > 0;
+    const fixturesReady = !data.fixturesLoading;
+    if (catalogReady && fixturesReady) {
       setDataGateOpen(true);
       return;
     }
@@ -215,7 +218,12 @@ export function LockerHero({
       HERO_BOOT_DATA_WAIT_MS,
     );
     return () => window.clearTimeout(t);
-  }, [isSite, data.playersLoading, data.players.length]);
+  }, [
+    isSite,
+    data.playersLoading,
+    data.players.length,
+    data.fixturesLoading,
+  ]);
 
   // Paint the full tablet under the curtain (no stagger) once the scene exists.
   useEffect(() => {
@@ -380,7 +388,7 @@ export function LockerHero({
       onShareClick={() => register.setShareOpen(true)}
       shareLabel={messages.pages.squadShare.registeredShareButton}
       shareSubline={messages.pages.squadShare.registeredShareSubline}
-      pickWelcome={isSite}
+      pickWelcome={isSite && !bootMounted}
     />
   );
 
@@ -552,6 +560,7 @@ export function LockerHero({
             onModelReady={onTabletReady}
             contentEpoch={squadEpoch}
             fastDomPreview={isSite}
+            deferReadyUntilWebgl={isSite}
           >
             {picker}
           </TabletScene>

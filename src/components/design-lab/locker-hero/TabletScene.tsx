@@ -26,6 +26,7 @@ import {
   TABLET_MOTION_MS,
   TabletDomFrame,
 } from "./TabletDomFrame";
+import { HERO_BOOT_WEBGL_SOFT_MS } from "./heroReveal";
 
 export { TABLET_MOTION_MS };
 
@@ -45,6 +46,11 @@ type Props = {
    */
   fastDomPreview?: boolean;
   /**
+   * With fastDomPreview: delay onModelReady until WebGL is live (or soft
+   * timeout) so the homepage boot curtain can hide the Dom→WebGL blink.
+   */
+  deferReadyUntilWebgl?: boolean;
+  /**
    * @deprecated Prefer fastDomPreview. When true (default), skip Dom until
    * WebGL settles (old path). Ignored when fastDomPreview is true.
    */
@@ -53,7 +59,8 @@ type Props = {
 };
 
 const TABLET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const CROSSFADE_MS = 180;
+/** Longer fade so Dom→WebGL under the boot is invisible when curtain lifts. */
+const CROSSFADE_MS = 280;
 
 const CANVAS_LOCKER_RAISED = "translate3d(0, 3vh, 0) scale(1)";
 const CANVAS_LOCKER_LOWERED = "translate3d(0, 46vh, 0) scale(0.9)";
@@ -409,6 +416,7 @@ function TabletAtmosphere({
 export function TabletScene(props: Props) {
   const placement = props.placement ?? "locker";
   const fastPreview = props.fastDomPreview === true;
+  const deferReady = props.deferReadyUntilWebgl === true;
   /** Legacy: hide Dom until WebGL — only when not using fast preview. */
   const waitForWebgl = !fastPreview && props.skipDomFallback !== false;
 
@@ -430,11 +438,25 @@ export function TabletScene(props: Props) {
     onReadyProp?.();
   }, [onReadyProp]);
 
-  // Fast path: Dom is interactive immediately — don't block homepage boot on GLB.
+  // Fast path: Dom interactive immediately — unless site asks to hide Dom→WebGL blink.
   useEffect(() => {
-    if (!fastPreview) return;
+    if (!fastPreview || deferReady) return;
     notifyReady();
-  }, [fastPreview, notifyReady]);
+  }, [fastPreview, deferReady, notifyReady]);
+
+  // Site: signal ready after WebGL is live (+ crossfade), or soft-timeout to Dom.
+  useEffect(() => {
+    if (!fastPreview || !deferReady) return;
+    if (webglLive) {
+      const t = window.setTimeout(
+        () => notifyReady(),
+        props.reduceMotion ? 0 : CROSSFADE_MS + 40,
+      );
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setTimeout(() => notifyReady(), HERO_BOOT_WEBGL_SOFT_MS);
+    return () => window.clearTimeout(t);
+  }, [fastPreview, deferReady, webglLive, notifyReady, props.reduceMotion]);
 
   // Phase 1: mesh loaded → settle camera/pose under the boot / Dom.
   useEffect(() => {
