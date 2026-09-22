@@ -8,6 +8,7 @@ import {
   isMobileBrowser,
   solanaWalletConnectRows,
   solanaWalletDefByAdapterName,
+  walletInstallUrl,
 } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { useWalletAdapterError } from "@/components/WalletProvider";
@@ -108,17 +109,13 @@ export function useWalletConnect() {
     try {
       const found = wallets.find(({ adapter }) => adapter.name === walletName);
       const def = solanaWalletDefByAdapterName(walletName);
-      if (!found || found.readyState === "NotDetected" || found.readyState === "Unsupported") {
+      if (!found || found.readyState !== "Installed") {
         window.clearTimeout(watchdog);
         pendingNameRef.current = null;
         setPending(false);
         setStatusLine(null);
         if (def) {
-          window.open(
-            isMobileBrowser() ? def.downloadUrl : def.chromeExtensionUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
+          window.open(walletInstallUrl(def), "_blank", "noopener,noreferrer");
         }
         setHint(m.nav.connectHintNotInstalled);
         return;

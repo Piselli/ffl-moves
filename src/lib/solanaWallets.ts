@@ -6,8 +6,12 @@ export type SolanaWalletDef = {
   id: SupportedSolanaWalletId;
   adapterNames: readonly string[];
   displayName: string;
+  /** Chromium desktop — Chrome Web Store listing (Add to Chrome). */
   chromeExtensionUrl: string;
+  /** Safari / Firefox / unknown — official download hub. */
   downloadUrl: string;
+  iosAppUrl: string;
+  androidAppUrl: string;
   fallbackIcon?: string;
 };
 
@@ -16,24 +20,33 @@ export const SOLANA_WALLETS: readonly SolanaWalletDef[] = [
     id: "phantom",
     adapterNames: ["Phantom"],
     displayName: "Phantom",
-    chromeExtensionUrl: "https://phantom.com/download",
+    chromeExtensionUrl:
+      "https://chromewebstore.google.com/detail/phantom/bfnaelmomeimhlpmgjnjophhpkkoljpa",
     downloadUrl: "https://phantom.com/download",
+    iosAppUrl: "https://apps.apple.com/app/phantom-solana-wallet/id1598432977",
+    androidAppUrl: "https://play.google.com/store/apps/details?id=app.phantom",
     fallbackIcon: "/wallets/phantom.svg",
   },
   {
     id: "solflare",
     adapterNames: ["Solflare"],
     displayName: "Solflare",
-    chromeExtensionUrl: "https://solflare.com/download",
+    chromeExtensionUrl:
+      "https://chromewebstore.google.com/detail/solflare-wallet/bhhhlbepdkbapadjdnnojkbgioiodbic",
     downloadUrl: "https://solflare.com/download",
+    iosAppUrl: "https://apps.apple.com/app/solflare/id1580902717",
+    androidAppUrl: "https://play.google.com/store/apps/details?id=com.solflare.mobile",
     fallbackIcon: "/wallets/solflare.svg",
   },
   {
     id: "jupiter",
     adapterNames: ["Jupiter", "Jupiter Wallet", "Jupiter Mobile"],
     displayName: "Jupiter",
-    chromeExtensionUrl: "https://jup.ag/download",
-    downloadUrl: "https://jup.ag/download",
+    chromeExtensionUrl:
+      "https://chromewebstore.google.com/detail/jupiter-wallet/iledlaeogohbilgbfhmbgkgmpplbfboh",
+    downloadUrl: "https://jup.ag/wallet",
+    iosAppUrl: "https://apps.apple.com/app/jupiter-mobile/id6484069059",
+    androidAppUrl: "https://play.google.com/store/apps/details?id=ag.jup.jupiter.android",
     fallbackIcon: "/wallets/jupiter.png",
   },
 ];
@@ -59,10 +72,30 @@ export function isSafariBrowser(): boolean {
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|Brave|OPR|OPiOS|CriOS|FxiOS/i.test(ua);
 }
 
+export function isFirefoxBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Firefox\//i.test(navigator.userAgent);
+}
+
+function isIOSBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/** Official install page for the current browser / OS. */
+export function walletInstallUrl(def: SolanaWalletDef): string {
+  if (typeof navigator === "undefined") return def.downloadUrl;
+  if (isMobileBrowser()) {
+    return isIOSBrowser() ? def.iosAppUrl : def.androidAppUrl;
+  }
+  if (isSafariBrowser() || isFirefoxBrowser()) return def.downloadUrl;
+  return def.chromeExtensionUrl;
+}
+
 type WalletRow = { name: string; icon?: string; readyState?: string };
 
 function isAdapterReady(readyState: string | undefined): boolean {
-  return readyState === "Installed" || readyState === "Loadable";
+  return readyState === "Installed";
 }
 
 export type WalletConnectRow = {
@@ -85,7 +118,7 @@ function rowForWallet(def: SolanaWalletDef, source: WalletRow, mode: WalletConne
     name: source.name,
     displayName: def.displayName,
     icon: source.icon || def.fallbackIcon,
-    installUrl: def.chromeExtensionUrl,
+    installUrl: walletInstallUrl(def),
     mode,
   };
 }
@@ -96,7 +129,7 @@ function fallbackRow(def: SolanaWalletDef, mode: WalletConnectRow["mode"]): Wall
     name: def.adapterNames[0],
     displayName: def.displayName,
     icon: def.fallbackIcon,
-    installUrl: def.chromeExtensionUrl,
+    installUrl: walletInstallUrl(def),
     mode,
   };
 }

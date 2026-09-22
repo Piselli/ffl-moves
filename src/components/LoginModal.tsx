@@ -21,7 +21,7 @@ import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { isLocalDevHost, isPrivyConfigured } from "@/lib/privy";
-import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
+import { solanaWalletDef } from "@/lib/solanaWallets";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { cn } from "@/lib/utils";
 
@@ -108,7 +108,7 @@ function WalletLogo({
 }) {
   const def = solanaWalletDef(row.walletId);
   const missing = row.mode === "extension-missing";
-  const href = isMobileBrowser() ? def.downloadUrl : def.chromeExtensionUrl;
+  const href = row.installUrl;
   const icon =
     row.walletId === "jupiter"
       ? def.fallbackIcon

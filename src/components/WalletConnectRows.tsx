@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
-import { isMobileBrowser, solanaWalletDef } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { usePrivyAuth } from "@/components/PrivyAppProvider";
 import { isLocalDevHost } from "@/lib/privy";
@@ -13,12 +12,6 @@ type Props = {
   onConnect: (walletName: string) => void;
   variant?: "navbar" | "cta";
 };
-
-function installHref(row: WalletConnectRow) {
-  const def = solanaWalletDef(row.walletId);
-  if (isMobileBrowser()) return def.downloadUrl;
-  return def.chromeExtensionUrl;
-}
 
 function ExternalIcon() {
   return (
@@ -104,7 +97,7 @@ export function WalletConnectRows({ rows, pending = false, onConnect, variant = 
           return (
             <a
               key={row.walletId + row.mode}
-              href={installHref(row)}
+              href={row.installUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={shellInstall}

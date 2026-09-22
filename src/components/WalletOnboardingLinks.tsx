@@ -1,6 +1,7 @@
 "use client";
 
 import { WalletBeginnerHelp } from "@/components/WalletBeginnerHelp";
+import { SOLANA_WALLETS, walletInstallUrl } from "@/lib/solanaWallets";
 
 const linkClass =
   "block w-full text-center rounded-xl px-3 py-2.5 text-xs font-display font-bold uppercase tracking-wider border transition-colors";
@@ -75,30 +76,17 @@ export function WalletOnboardingLinks({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       {includeBeginnerHelp ? <WalletBeginnerHelp locale={locale} /> : null}
-      <a
-        href="https://phantom.com/download"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={primaryLinkClass}
-      >
-        {t.phantom}
-      </a>
-      <a
-        href="https://solflare.com/download"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={secondaryLinkClass}
-      >
-        {t.solflare}
-      </a>
-      <a
-        href="https://jup.ag/download"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={secondaryLinkClass}
-      >
-        {t.jupiter}
-      </a>
+      {SOLANA_WALLETS.map((def, i) => (
+        <a
+          key={def.id}
+          href={walletInstallUrl(def)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={i === 0 ? primaryLinkClass : secondaryLinkClass}
+        >
+          {t[def.id]}
+        </a>
+      ))}
       <a
         href="https://faucet.circle.com/"
         target="_blank"
