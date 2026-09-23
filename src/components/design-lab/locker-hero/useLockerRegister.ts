@@ -102,14 +102,15 @@ export function useLockerRegister(opts: {
     : submitting
       ? g.submitRegistering
       : !isComplete
-        ? g.submitNeedPlayers(filledCount, FORMATION.TOTAL)
+        ? g.submitRegister
         : !hasCaptain
           ? g.submitNeedCaptain
           : !connected
             ? g.submitRegister
             : g.submitConfirm(feeLabel);
+  /** Subline under the CTA — only meaningful when a GW is open (locked hint wins in UI). */
   const ctaProgress =
-    alreadyRegistered || submitting || isReadyToRegister
+    alreadyRegistered || submitting || isReadyToRegister || isComplete
       ? null
       : g.submitNeedProgress(filledCount, FORMATION.TOTAL);
 

@@ -993,11 +993,11 @@ export function LockerTablet({
   const registerTourActive =
     pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "register";
   const lastGw = useLastGwPreview(starters, bench, captainIndex ?? null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>("players");
+  /** Phone lands on Team after Matchday Gate — pitch first, Pick via + / tab. */
+  const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
 
   useEffect(() => {
-    // Desktop / wide tablet keeps pitch as the visual home; phone is list-first (Matchday A).
     if (!isNarrow) setMobileTab("pitch");
   }, [isNarrow]);
 
@@ -1105,10 +1105,15 @@ export function LockerTablet({
   ]);
 
   const shareCtaActive = registeredShare && Boolean(onShareClick);
+  const squadIncomplete = filledCount < FORMATION.TOTAL;
   const primaryCtaOnClick = shareCtaActive ? onShareClick! : onRegisterClick;
+  /** Incomplete = disabled + progress subline (why Register won't go). Login/register stay tappable. */
   const primaryCtaDisabled = shareCtaActive
     ? registerBusy
-    : registerBusy || registerLocked || !onRegister;
+    : registerBusy ||
+      registerLocked ||
+      !onRegister ||
+      (squadIncomplete && !registerEntry);
   const primaryCtaLabel = shareCtaActive
     ? (shareLabel ?? "Share")
     : (registerLabel ?? cta.label);
@@ -1132,8 +1137,8 @@ export function LockerTablet({
         <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
           {registerHint}
         </span>
-      ) : registerProgress ? (
-        <span className="text-[13px] font-bold tracking-[0.14em] opacity-90">
+      ) : !registerLocked && registerProgress ? (
+        <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
           {registerProgress}
         </span>
       ) : null}
@@ -2137,8 +2142,8 @@ export function LockerTablet({
             <button
               type="button"
               onClick={onRandom}
-              aria-label="Random squad"
-              title="Random squad"
+              aria-label="Shuffle squad"
+              title="Shuffle squad"
               className={cn(
                 "grid h-11 w-11 place-items-center transition active:scale-[0.96]",
                 isTripledChrome || isMotionChrome
@@ -2165,10 +2170,11 @@ export function LockerTablet({
                 strokeLinejoin="round"
                 aria-hidden
               >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8" cy="8" r="1.15" fill="currentColor" stroke="none" />
-                <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="16" r="1.15" fill="currentColor" stroke="none" />
+                <path d="M16 3h5v5" />
+                <path d="M4 20L21 3" />
+                <path d="M21 16v5h-5" />
+                <path d="M15 15l6 6" />
+                <path d="M4 4l5 5" />
               </svg>
             </button>
           </div>
@@ -2200,48 +2206,53 @@ export function LockerTablet({
           registerTourActive && "relative z-[50]",
         )}
       >
-        {filledCount >= FORMATION.TOTAL ? (
-          <div className="relative mb-2">
-            <button
-              type="button"
-              data-tour-anchor="register"
-              onClick={primaryCtaOnClick}
-              disabled={primaryCtaDisabled}
-              className={cn(
-                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-[15px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
-                isMotionChrome &&
-                  "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-                primaryCtaDisabled &&
-                  "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
-                registerTourActive && "!opacity-100",
-              )}
-              style={primaryCtaStyle}
-            >
-              {primaryCtaContent}
-            </button>
-          </div>
-        ) : null}
-        <div className="flex items-center gap-2">
+        {/* Always reserve CTA row — no layout jump when XI fills / formation frees a slot. */}
+        <div className="relative mb-2">
+          <button
+            type="button"
+            data-tour-anchor="register"
+            onClick={primaryCtaOnClick}
+            disabled={primaryCtaDisabled}
+            className={cn(
+              "flex min-h-[3rem] w-full flex-col items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-[15px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
+              isMotionChrome &&
+                "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
+              primaryCtaDisabled &&
+                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+              registerTourActive && "!opacity-100",
+            )}
+            style={primaryCtaStyle}
+          >
+            {primaryCtaContent}
+          </button>
+        </div>
+        <div className="flex h-14 items-stretch gap-2">
           <button
             type="button"
             onClick={() => setMobileTab("pitch")}
             className={cn(
-              "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+              "relative flex h-full flex-1 flex-col items-center justify-center gap-0.5 rounded-xl transition-[color,transform] duration-150 active:scale-[0.97]",
               mobileTab === "pitch"
                 ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
                 : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
             )}
           >
+            {/* Pitch — Team = field view */}
             <svg
               className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden
             >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M3 9h18M9 21V9" />
+              <rect x="3" y="4" width="18" height="16" rx="1.5" />
+              <path d="M3 12h18" />
+              <circle cx="12" cy="12" r="2.75" />
+              <path d="M3 8h3.5v8H3" />
+              <path d="M21 8h-3.5v8H21" />
             </svg>
             <span className="text-[10px] font-bold uppercase tracking-wide">
               Team
@@ -2251,38 +2262,38 @@ export function LockerTablet({
             type="button"
             onClick={() => setMobileTab("players")}
             className={cn(
-              "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+              "relative flex h-full flex-1 flex-col items-center justify-center gap-0.5 rounded-xl transition-[color,transform] duration-150 active:scale-[0.97]",
               mobileTab === "players"
                 ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
                 : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
             )}
           >
+            {/* Jersey — Pick = choose players */}
             <svg
               className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"
-              />
+              <path d="M8.5 4.5 6 7v2.5l2.5-1V20h7V8.5L18 9.5V7l-2.5-2.5-1.5 2h-4l-1.5-2Z" />
+              <path d="M10 12h4" />
             </svg>
             <span className="text-[10px] font-bold uppercase tracking-wide">
               Pick
             </span>
           </button>
-          {filledCount < FORMATION.TOTAL ? (
+          {!shareCtaActive ? (
             <button
               type="button"
               onClick={onRandom}
               aria-label="Random squad"
               title="Random squad"
               className={cn(
-                "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition active:scale-[0.96]",
+                "grid h-14 w-14 shrink-0 place-items-center rounded-xl transition active:scale-[0.96]",
                 isGlass
                   ? "bg-black/55 text-white ring-1 ring-[color:var(--lt-glass-ring)] backdrop-blur-md"
                   : "border-2 border-[var(--lt-reset-border)] bg-[var(--lt-reset-bg)] text-[color:var(--lt-reset-text)]",
@@ -2294,13 +2305,15 @@ export function LockerTablet({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 aria-hidden
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
+                <path d="M16 3h5v5" />
+                <path d="M4 20L21 3" />
+                <path d="M21 16v5h-5" />
+                <path d="M15 15l6 6" />
+                <path d="M4 4l5 5" />
               </svg>
             </button>
           ) : null}
