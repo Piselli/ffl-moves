@@ -66,6 +66,33 @@ export function isMobileBrowser(): boolean {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
+/**
+ * Instagram / Facebook / TikTok / Line / Twitter in-app browsers.
+ * Wallet extensions and often Google OAuth break here — email + “open in Safari/Chrome”.
+ */
+export function isInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return (
+    /Instagram/i.test(ua) ||
+    /FBAN|FBAV|FB_IAB|FB4A|FBAN\//i.test(ua) ||
+    /Line\//i.test(ua) ||
+    /Twitter/i.test(ua) ||
+    /TikTok/i.test(ua) ||
+    /BytedanceWebview|ByteLocale|musical_ly/i.test(ua) ||
+    /Snapchat/i.test(ua) ||
+    /; wv\)/i.test(ua) // Android WebView marker
+  );
+}
+
+/** Prefer Safari on iOS, Chrome on Android — for banner copy. */
+export function preferredSystemBrowserName(): "Safari" | "Chrome" | "browser" {
+  if (typeof navigator === "undefined") return "browser";
+  if (isIOSBrowser()) return "Safari";
+  if (/Android/i.test(navigator.userAgent)) return "Chrome";
+  return "browser";
+}
+
 export function isSafariBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;

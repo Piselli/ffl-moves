@@ -2,6 +2,8 @@
 
 export const PICK_WELCOME_STORAGE_KEY = "ffl:homepage:pick-welcome-seen";
 export const PICK_TOUR_DONE_KEY = "ffl:homepage:pick-tour-done";
+/** Mobile Matchday Gate (IG entry) — once per browser until reset. */
+export const MATCHDAY_GATE_STORAGE_KEY = "ffl:homepage:matchday-gate-seen";
 
 export type SurfaceTipId = "leaderboard" | "season";
 
@@ -86,6 +88,26 @@ export function markPickWelcomeSeen(): void {
   writeFlag(PICK_WELCOME_STORAGE_KEY, true);
 }
 
+/** First phone visit gate. `?gate=1` forces; `?gate=reset` clears. */
+export function shouldShowMatchdayGate(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = searchParams();
+    if (params?.get("gate") === "reset") {
+      writeFlag(MATCHDAY_GATE_STORAGE_KEY, false);
+      return true;
+    }
+    if (params?.get("gate") === "1") return true;
+    return !readFlag(MATCHDAY_GATE_STORAGE_KEY);
+  } catch {
+    return false;
+  }
+}
+
+export function markMatchdayGateSeen(): void {
+  writeFlag(MATCHDAY_GATE_STORAGE_KEY, true);
+}
+
 export function isPickTourDone(): boolean {
   return readFlag(PICK_TOUR_DONE_KEY);
 }
@@ -125,6 +147,7 @@ export function preparePickTourReplay(): void {
 export function resetAllOnboarding(): void {
   writeFlag(PICK_WELCOME_STORAGE_KEY, false);
   writeFlag(PICK_TOUR_DONE_KEY, false);
+  writeFlag(MATCHDAY_GATE_STORAGE_KEY, false);
   clearSurfaceTip("leaderboard");
   clearSurfaceTip("season");
 }

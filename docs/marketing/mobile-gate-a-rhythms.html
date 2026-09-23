@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FORM8 · Gate A — 3 ритми</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0908; --fg: #f2efe8; --muted: #8a857c; --line: #2a2723; --lime: #00f948;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font: 14px/1.5 "DM Sans", system-ui, sans-serif; background: var(--bg); color: var(--fg);
+      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,249,72,0.06), transparent 55%);
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 36px 20px 100px; }
+    h1, h2, h3 { font-family: Oswald, sans-serif; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px; }
+    h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1; }
+    h2 { font-size: 18px; margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--line); }
+    p { color: #b8b3a8; }
+    .lead { font-size: 15px; max-width: 66ch; color: #cfc9bc; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 22px; }
+    .pill { display: inline-block; padding: 4px 10px; border: 1px solid #3a3530; border-radius: 999px; font-size: 11px; color: var(--muted); }
+    .pill.hot { border-color: rgba(0,249,72,0.35); color: var(--lime); }
+    .brief {
+      padding: 14px 16px; border: 1px solid var(--line); background: #1a1816; border-radius: 12px;
+      max-width: 780px; margin-bottom: 26px; font-size: 13px;
+    }
+    .brief strong { color: #fff; }
+    .grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    .card {
+      border: 1px solid var(--line); border-radius: 16px; background: #12100e;
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .card.picked { border-color: rgba(0,249,72,0.55); box-shadow: 0 0 0 1px rgba(0,249,72,0.2), 0 20px 40px rgba(0,0,0,0.45); }
+    .card-head { padding: 14px 14px 12px; border-bottom: 1px solid var(--line); }
+    .card-head .tag { font-size: 10px; letter-spacing: 0.12em; color: var(--lime); font-family: Oswald, sans-serif; text-transform: uppercase; margin-bottom: 5px; }
+    .card-head h3 { font-size: 16px; margin-bottom: 6px; }
+    .card-head p { margin: 0; font-size: 12.5px; line-height: 1.45; }
+    .phone-wrap { display: flex; justify-content: center; padding: 18px 10px 6px; }
+    .phone {
+      width: 220px; height: 440px; border-radius: 28px; border: 2px solid #3a3530;
+      overflow: hidden; position: relative; box-shadow: 0 16px 40px rgba(0,0,0,0.55); background: #000;
+    }
+    .phone::before {
+      content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      width: 56px; height: 5px; border-radius: 999px; background: #1c1c1c; z-index: 6;
+    }
+    .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 22px 16px 14px; color: #fff; }
+    .bg {
+      position: absolute; inset: 0; background-size: cover; background-position: center 35%;
+      background-image: url("../../public/design-lab/locker-hero/variants/locker-plate-v25-slate-hangers.webp");
+    }
+    .bg::after {
+      content: ""; position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.84) 55%, #000 100%),
+        radial-gradient(ellipse 65% 40% at 50% 100%, rgba(0,249,72,0.1), transparent 55%);
+    }
+    .rel { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+    .mark { font-family: Oswald, sans-serif; font-weight: 700; letter-spacing: 0.06em; font-size: 13px; }
+    .mark span { color: var(--lime); }
+    .cta {
+      display: flex; align-items: center; justify-content: center; height: 36px; border-radius: 10px;
+      font-family: Oswald, sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #fff;
+      background: linear-gradient(180deg, #3be07a 0%, #17c255 46%, #0e9b41 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 8px 20px rgba(10,120,50,0.3);
+    }
+    .trust { text-align: center; color: rgba(255,255,255,0.35); font-size: 8px; margin-top: 6px; }
+    .pool-label { font-size: 8px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+    .pool-num {
+      font-family: Oswald, sans-serif; font-weight: 700; color: var(--lime); line-height: 0.9;
+      letter-spacing: -0.02em; font-size: 52px; text-shadow: 0 0 28px rgba(0,249,72,0.3);
+    }
+    .mgr { color: rgba(255,255,255,0.55); font-weight: 600; font-size: 12px; }
+    .gw {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+    .center { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .foot { padding: 12px 14px 16px; border-top: 1px solid var(--line); margin-top: auto; }
+    .lock {
+      font-family: ui-monospace, monospace; font-size: 10px; background: #000; color: #8f8;
+      padding: 10px; border-radius: 8px; white-space: pre-wrap; line-height: 1.45; margin: 0 0 12px;
+    }
+    .note { font-size: 12px; color: #9a958c; margin: 0 0 12px; line-height: 1.45; }
+    .note em { color: #ddd; font-style: normal; }
+    .pick-btn {
+      width: 100%; height: 40px; border: 1px solid #3a3530; border-radius: 10px; background: #1a1816;
+      color: #fff; font-family: Oswald, sans-serif; font-size: 13px; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer;
+    }
+    .pick-btn:hover { border-color: rgba(0,249,72,0.5); color: var(--lime); }
+    .pick-btn.active {
+      background: linear-gradient(180deg, #3be07a 0%, #0e9b41 100%); border-color: transparent; color: #fff;
+    }
+    .decision {
+      margin-top: 28px; padding: 18px 20px; border-radius: 12px;
+      border: 1px dashed rgba(0,249,72,0.35); background: rgba(0,249,72,0.04);
+    }
+    .decision h3 { font-size: 15px; color: var(--lime); }
+    #out { margin-top: 10px; font-size: 13px; color: #cfc9bc; }
+    #out b { color: var(--lime); }
+
+    /* A1 — GW top */
+    .a1 .gw { margin-top: 14px; }
+    .a1 .pool-label { margin-top: 28px; }
+    .a1 .pool-num { margin-top: 10px; }
+    .a1 .mgr { margin-top: 22px; }
+
+    /* A2 — GW under managers */
+    .a2 .pool-label { margin-top: 0; }
+    .a2 .pool-num { margin-top: 10px; }
+    .a2 .mgr { margin-top: 22px; }
+    .a2 .gw { margin-top: 18px; }
+
+    /* A3 — GW above CTA, floating away from money stack */
+    .a3 .pool-label { margin-top: 0; }
+    .a3 .pool-num { margin-top: 10px; }
+    .a3 .mgr { margin-top: 24px; }
+    .a3 .gw-dock {
+      margin-top: auto; margin-bottom: 14px;
+      font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="meta">
+      <span class="pill hot">Locked base: A · Money Center</span>
+      <span class="pill">Only Game Week + spacing</span>
+      <span class="pill">3 rhythms</span>
+    </div>
+
+    <h1>Варіант A — три ритми</h1>
+    <p class="lead">
+      Основа та сама: <strong style="color:#fff">великий пул</strong>, менеджери видно, CTA внизу, фон-локер.
+      Різниця лише в <strong style="color:#fff">повітрі між блоками</strong> і <strong style="color:#fff">де стоїть Game Week · Closed</strong>.
+    </p>
+
+    <div class="brief">
+      <strong>Фікс після попереднього:</strong> більше дистанції між «Prize pool» → сума → менеджери (не злипається в купку).<br />
+      <strong>Game Week</strong> завжди повними словами + статус через крапку.
+    </div>
+
+    <div class="grid" id="cards">
+      <!-- A1 -->
+      <article class="card" data-id="A1">
+        <div class="card-head">
+          <div class="tag">A1 · Game Week зверху</div>
+          <h3>Контекст → гроші</h3>
+          <p>Спочатку читаєш «де ти» (Game Week 4 · Closed), потім удар по пулу. Класичний matchday poster.</p>
+        </div>
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="screen a1">
+              <div class="bg"></div>
+              <div class="rel">
+                <div class="mark">FORM<span>8</span></div>
+                <div class="center">
+                  <div class="gw">Game Week 4  ·  Closed</div>
+                  <div class="pool-label">Prize pool</div>
+                  <div class="pool-num">$420</div>
+                  <div class="mgr">128 managers in</div>
+                </div>
+                <div>
+                  <div class="cta">Build your team</div>
+                  <div class="trust">Email · card</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <p class="note"><em>Плюс:</em> статус видно одразу, не губиться під грошима.<br /><em>Мінус:</em> трохи відтягує увагу від $ до того, як око доходить до пулу.</p>
+          <pre class="lock">Order: GW → pool label → $ → managers → CTA
+Space: 28px after GW, 22px before managers</pre>
+          <button type="button" class="pick-btn" data-pick="A1">Обрати A1</button>
+        </div>
+      </article>
+
+      <!-- A2 -->
+      <article class="card" data-id="A2">
+        <div class="card-head">
+          <div class="tag">A2 · Game Week під менеджерами</div>
+          <h3>Гроші → люди → час</h3>
+          <p>Пул б’є першим. Потім «скільки вже зайшло». Game Week — фінальний шепіт під соціальним доказом. Найближче до чистого Money Center.</p>
+        </div>
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="screen a2">
+              <div class="bg"></div>
+              <div class="rel">
+                <div class="mark">FORM<span>8</span></div>
+                <div class="center">
+                  <div class="pool-label">Prize pool</div>
+                  <div class="pool-num">$420</div>
+                  <div class="mgr">128 managers in</div>
+                  <div class="gw">Game Week 4  ·  Closed</div>
+                </div>
+                <div>
+                  <div class="cta">Build your team</div>
+                  <div class="trust">Email · card</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <p class="note"><em>Плюс:</em> найсильніший грошовий удар з IG.<br /><em>Мінус:</em> Closed читається пізніше (ок, якщо в креативі реклами вже є дедлайн).</p>
+          <pre class="lock">Order: pool → $ → managers → GW
+Space: 10px label→$, 22px →managers, 18px →GW
+Rec: default for cold ads about $</pre>
+          <button type="button" class="pick-btn" data-pick="A2">Обрати A2</button>
+        </div>
+      </article>
+
+      <!-- A3 -->
+      <article class="card" data-id="A3">
+        <div class="card-head">
+          <div class="tag">A3 · Game Week біля CTA</div>
+          <h3>Гроші окремо · статус біля дії</h3>
+          <p>Центр — тільки пул і менеджери з великим повітрям. Game Week припаркований над кнопкою: «закрито, але все одно зайди подивитись».</p>
+        </div>
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="screen a3">
+              <div class="bg"></div>
+              <div class="rel">
+                <div class="mark">FORM<span>8</span></div>
+                <div class="center">
+                  <div class="pool-label">Prize pool</div>
+                  <div class="pool-num">$420</div>
+                  <div class="mgr">128 managers in</div>
+                </div>
+                <div>
+                  <div class="gw-dock">Game Week 4  ·  Closed</div>
+                  <div class="cta">Build your team</div>
+                  <div class="trust">Email · card</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <p class="note"><em>Плюс:</em> центр взагалі не злипається; статус логічно біля CTA.<br /><em>Мінус:</em> Game Week далеко від «героя» — хтось може не помітити Closed.</p>
+          <pre class="lock">Order: pool+$+managers (center) // GW above CTA
+Space: max air in money stack
+Best if: Closed feels secondary to exploring</pre>
+          <button type="button" class="pick-btn" data-pick="A3">Обрати A3</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="decision">
+      <h3>Моя рекомендація</h3>
+      <p style="margin:0">Для Instagram-реклами про призовий пул — <b style="color:#00f948">A2</b>: спочатку $, потім люди, потім Game Week · status. Якщо Closed критично показати відразу — бери <b style="color:#00f948">A1</b>.</p>
+      <p id="out" style="margin-top:12px">Обери кнопку на картці.</p>
+    </div>
+  </div>
+  <script>
+    const labels = {
+      A1: "A1 — Game Week зверху (контекст → гроші).",
+      A2: "A2 — Game Week під менеджерами (гроші → люди → час).",
+      A3: "A3 — Game Week біля CTA (гроші окремо від статусу).",
+    };
+    const out = document.getElementById("out");
+    function select(id) {
+      document.querySelectorAll(".card").forEach((el) => el.classList.toggle("picked", el.dataset.id === id));
+      document.querySelectorAll("[data-pick]").forEach((btn) => btn.classList.toggle("active", btn.dataset.pick === id));
+      out.innerHTML = "Обрано: <b>" + id + "</b> — " + labels[id];
+      try { localStorage.setItem("form8-gate-a-rhythm", id); } catch (_) {}
+    }
+    document.querySelectorAll("[data-pick]").forEach((btn) => btn.addEventListener("click", () => select(btn.dataset.pick)));
+    try {
+      const s = localStorage.getItem("form8-gate-a-rhythm");
+      if (s && labels[s]) select(s);
+    } catch (_) {}
+  </script>
+</body>
+</html>

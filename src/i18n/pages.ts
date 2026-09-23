@@ -734,6 +734,19 @@ export type PagesMessages = {
     welcomeTitle: string;
     welcomePoints: string[];
     welcomeCta: string;
+    /** Mobile Matchday Gate (IG entry, phone only). */
+    matchdayGate: {
+      buildTeam: string;
+      trustLine: string;
+      closesIn: (label: string) => string;
+      closedLabel: string;
+      openLabel: string;
+      poolFallback: string;
+      poolLabel: string;
+      managersLabel: (n: number) => string;
+      managersFallback: string;
+      gwLabel: (id: number | string) => string;
+    };
     /** Guided pick tour (coachmarks). */
     tourBtn: string;
     tourSkip: string;
@@ -1734,6 +1747,19 @@ export const pagesEn: PagesMessages = {
       "Top 10 split the prize pool.",
     ],
     welcomeCta: "OK",
+    matchdayGate: {
+      buildTeam: "Build your team",
+      trustLine: "Email · card",
+      closesIn: (label) => `${label} left`,
+      closedLabel: "Closed",
+      openLabel: "Open",
+      poolFallback: "—",
+      poolLabel: "Prize pool",
+      managersLabel: (n) =>
+        n === 1 ? "1 manager in" : `${n} managers in`,
+      managersFallback: "…",
+      gwLabel: (id) => `Game Week ${id}`,
+    },
     tourBtn: "Tour",
     tourSkip: "Skip",
     tourNext: "Next",
@@ -2758,6 +2784,19 @@ export const pagesUk: PagesMessages = {
       "Топ-10 ділять призовий пул.",
     ],
     welcomeCta: "Добре",
+    matchdayGate: {
+      buildTeam: "Зібрати команду",
+      trustLine: "Email · картка",
+      closesIn: (label) => `${label}`,
+      closedLabel: "Closed",
+      openLabel: "Open",
+      poolFallback: "—",
+      poolLabel: "Призовий пул",
+      managersLabel: (n) =>
+        n === 1 ? "1 менеджер у грі" : `${n} менеджерів у грі`,
+      managersFallback: "…",
+      gwLabel: (id) => `Game Week ${id}`,
+    },
     tourBtn: "Тур",
     tourSkip: "Пропустити",
     tourNext: "Далі",

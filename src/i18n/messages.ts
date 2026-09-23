@@ -49,6 +49,7 @@ export type SiteMessages = {
     socialXAria: string;
     installJupiterExtension: string;
     walletJupiterInstallSub: string;
+    language: string;
     continueWithEmail: string;
     continueWithEmailSub: string;
     orUseWallet: string;
@@ -66,6 +67,14 @@ export type SiteMessages = {
     emailBack: string;
     enterCode: string;
     codeSentTo: (email: string) => string;
+    /** In-app browser (Instagram etc.) — open in system browser. */
+    inAppBrowserTitle: (browser: string) => string;
+    inAppBrowserTitleGeneric: string;
+    inAppBrowserBody: string;
+    inAppBrowserCopyLink: string;
+    inAppBrowserCopied: string;
+    /** Collapsed wallets on mobile. */
+    walletMoreToggle: string;
   };
   deposit: {
     title: string;
@@ -325,6 +334,7 @@ const uk: SiteMessages = {
     continueWithEmail: "Продовжити з email",
     continueWithEmailSub: "Google або пошта — без розширення",
     orUseWallet: "або гаманець",
+    language: "Мова",
     emailLoginNeedsAppId:
       "Вхід через Google і email зараз недоступний. Увійди гаманцем нижче.",
     emailLoginNeedsAppIdLocal:
@@ -342,6 +352,13 @@ const uk: SiteMessages = {
     emailBack: "Інший email",
     enterCode: "Код з листа",
     codeSentTo: (email) => `Код надіслано на ${email}`,
+    inAppBrowserTitle: (browser) => `Відкрий у ${browser}`,
+    inAppBrowserTitleGeneric: "Відкрий у браузері",
+    inAppBrowserBody:
+      "У браузері Instagram Google і гаманці часто не працюють. Меню ⋯ → «Відкрити в браузері», або скопіюй посилання.",
+    inAppBrowserCopyLink: "Скопіювати посилання",
+    inAppBrowserCopied: "Скопійовано",
+    walletMoreToggle: "Вже є Solana-гаманець?",
   },
   deposit: {
     title: "Поповнити",
@@ -350,7 +367,7 @@ const uk: SiteMessages = {
     balanceLabel: "Баланс",
     tabCash: "Картка",
     tabCrypto: "Крипта",
-    cashHint: "Купи USDC карткою або Apple Pay.",
+    cashHint: "Додай кошти карткою або Apple Pay.",
     cryptoHint: "Надішли USDC у Solana.",
     cryptoTransferHint: "Скопіюй адресу й надішли USDC у мережі Solana.",
     methodCard: "Картка",
@@ -359,12 +376,12 @@ const uk: SiteMessages = {
     instant: "Миттєво",
     amountCustom: "Своя сума",
     amountInvalid: "Вкажи суму від $5 до $5000.",
-    buyCardCta: "Купити USDC",
+    buyCardCta: "Оплатити",
     buyCardLoading: "Відкриваємо…",
-    buyCardPending: "Платіж прийнято — USDC з’явиться за хвилину.",
+    buyCardPending: "Платіж прийнято — баланс оновиться за хвилину.",
     buyCardConfirmed: "Готово — баланс оновлено.",
     buyCardExternalOpened: "Відкрито оплату в новій вкладці. Після оплати повернись сюди.",
-    buyCardFailed: "Не вдалося відкрити оплату. Спробуй ще раз або Crypto-вкладку.",
+    buyCardFailed: "Не вдалося відкрити оплату. Спробуй ще раз або вкладку «Крипта».",
     buyCardNeedLogin: "Увійди через Google або email, щоб купити карткою.",
     buyCardMainnetOnly: "Картка доступна лише на Solana mainnet.",
     copyAddress: "Копіювати",
@@ -620,6 +637,7 @@ const en: SiteMessages = {
     continueWithEmail: "Continue with email",
     continueWithEmailSub: "Google or email — no extension",
     orUseWallet: "or a wallet",
+    language: "Language",
     emailLoginNeedsAppId:
       "Google and email login is not available yet. Use a wallet below.",
     emailLoginNeedsAppIdLocal:
@@ -637,6 +655,13 @@ const en: SiteMessages = {
     emailBack: "Use a different email",
     enterCode: "Code from email",
     codeSentTo: (email) => `Code sent to ${email}`,
+    inAppBrowserTitle: (browser) => `Open in ${browser}`,
+    inAppBrowserTitleGeneric: "Open in your browser",
+    inAppBrowserBody:
+      "In Instagram’s browser, Google and wallets often fail. Tap ⋯ → Open in Browser, or copy the link.",
+    inAppBrowserCopyLink: "Copy link",
+    inAppBrowserCopied: "Copied",
+    walletMoreToggle: "Already have a Solana wallet?",
   },
   deposit: {
     title: "Deposit",
@@ -645,7 +670,7 @@ const en: SiteMessages = {
     balanceLabel: "Balance",
     tabCash: "Cash",
     tabCrypto: "Crypto",
-    cashHint: "Buy USDC with a card or Apple Pay.",
+    cashHint: "Add funds with a card or Apple Pay.",
     cryptoHint: "Send USDC on Solana.",
     cryptoTransferHint: "Copy your address and send USDC on Solana.",
     methodCard: "Card",
@@ -654,13 +679,13 @@ const en: SiteMessages = {
     instant: "Instant",
     amountCustom: "Custom amount",
     amountInvalid: "Enter an amount between $5 and $5000.",
-    buyCardCta: "Buy USDC",
+    buyCardCta: "Pay",
     buyCardLoading: "Opening…",
-    buyCardPending: "Payment submitted — USDC usually arrives within a minute.",
+    buyCardPending: "Payment submitted — balance usually updates within a minute.",
     buyCardConfirmed: "Done — balance refreshed.",
     buyCardExternalOpened: "Checkout opened in a new tab. Come back here after paying.",
     buyCardFailed: "Could not open checkout. Try again or use the Crypto tab.",
-    buyCardNeedLogin: "Sign in with Google or email to buy with a card.",
+    buyCardNeedLogin: "Sign in with Google or email to pay with a card.",
     buyCardMainnetOnly: "Card funding is available on Solana mainnet only.",
     copyAddress: "Copy",
     copied: "Copied",

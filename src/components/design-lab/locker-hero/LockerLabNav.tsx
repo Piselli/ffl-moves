@@ -103,9 +103,20 @@ function Right({ compact = false }: { compact?: boolean }) {
   const chip = compact ? MOBILE_CHIP : CHIP;
 
   return (
-    <div className="relative z-10 flex min-w-0 items-center gap-1.5 sm:gap-2">
+    <div className="relative z-10 flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
       {connected ? (
         <>
+          {/* Phone: deposit always visible in the bar */}
+          <button
+            type="button"
+            onClick={openDeposit}
+            className={cn(
+              chip,
+              "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98] md:hidden",
+            )}
+          >
+            {m.deposit.open}
+          </button>
           <div className="hidden items-center gap-1.5 rounded-xl border border-white/12 bg-black/45 p-1 backdrop-blur-md md:flex">
             <NavUsdcBalance
               className={cn(
@@ -227,13 +238,47 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         />
       ) : null}
       <div className="pointer-events-auto relative w-full">
+        {/* —— Phone: menu · logo · login/deposit —— */}
+        <div
+          className={cn(
+            "grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/10 px-3 backdrop-blur-xl md:hidden",
+            tabletShell ? "bg-black" : "bg-black/95",
+          )}
+        >
+          <div className="flex justify-start">
+            <button
+              type="button"
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
+              onClick={() => setMobileOpen((o) => !o)}
+              className="relative z-20 inline-flex h-8 min-w-[4.75rem] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-3 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96]"
+            >
+              {mobileOpen ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <BrandLockup
+            priority
+            className="h-9 gap-2 [&_span:last-child]:text-[18px]/none"
+            linkClassName="relative z-10 justify-self-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+          />
+
+          <Right compact />
+        </div>
+
+        {/* —— Desktop / tablet scene —— */}
         <div
           className={cn(
             BRAND_LOCKUP_NAV_INNER,
-            /* Reserve the viewport-corner FAQ+locale cluster; left pad stays from the shell. */
-            "pr-[7.25rem] sm:pr-[8.75rem] lg:pr-36 md:gap-0",
-            "max-md:h-14 max-md:gap-2 max-md:border-b max-md:border-white/10 max-md:bg-black/95 max-md:pl-3 max-md:pr-[7.25rem] max-md:backdrop-blur-xl sm:max-md:pl-4",
-            tabletShell && "max-md:bg-black",
+            "hidden pr-[7.25rem] sm:pr-[8.75rem] lg:pr-36 md:!flex md:gap-0",
           )}
         >
           <BrandLockup
@@ -262,28 +307,12 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
               variant="icon"
               className="!hidden !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white md:!inline-flex"
             />
-            <Right compact />
-            <button
-              type="button"
-              aria-expanded={mobileOpen}
-              aria-label={mobileOpen ? m.nav.menuClose : m.nav.menuOpen}
-              onClick={() => setMobileOpen((o) => !o)}
-              className="relative z-20 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/15 bg-black/40 text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.96] md:hidden"
-            >
-              {mobileOpen ? (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
+            <Right />
           </div>
         </div>
 
-        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
+        {/* FAQ + locale — desktop corner only (phone: inside menu) */}
+        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 hidden -translate-y-1/2 items-center gap-1.5 md:flex sm:right-4 sm:gap-2 lg:right-5">
           <Link
             href="/faq"
             onClick={liveLinks ? undefined : (e) => e.preventDefault()}
@@ -391,6 +420,22 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
               {SOCIAL_X_HANDLE}
               <span className="text-[10px] font-bold tracking-[0.14em] text-white/35">X</span>
             </a>
+            <Link
+              href="/faq"
+              onClick={(e) => {
+                if (!liveLinks) e.preventDefault();
+                setMobileOpen(false);
+              }}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+            >
+              {m.nav.faq}
+            </Link>
+            <div className="flex items-center justify-between rounded-xl px-4 py-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                {m.nav.language}
+              </span>
+              <LanguageSwitcher embedded />
+            </div>
             {connected ? (
               <>
                 <div className="my-1 h-px bg-white/10" />

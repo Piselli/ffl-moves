@@ -24,8 +24,8 @@ export function WalletOnboardingLinks({
   if (variant === "footer") {
     const t =
       locale === "uk"
-        ? { refresh: "Після встановлення гаманця оновіть сторінку.", faq: "Phantom Help", usdc: "Circle USDC faucet" }
-        : { refresh: "Refresh after installing a wallet.", faq: "Phantom Help", usdc: "Circle USDC faucet" };
+        ? { refresh: "Після встановлення гаманця оновіть сторінку.", faq: "Phantom Help" }
+        : { refresh: "Refresh after installing a wallet.", faq: "Phantom Help" };
 
     return (
       <div className={`space-y-2 ${className}`}>
@@ -41,17 +41,6 @@ export function WalletOnboardingLinks({
             >
               {t.faq}
             </a>
-            <span className="text-white/20 select-none" aria-hidden>
-              ·
-            </span>
-            <a
-              href="https://faucet.circle.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-400/70 hover:text-sky-300 transition-colors"
-            >
-              {t.usdc}
-            </a>
           </div>
         </div>
       </div>
@@ -64,13 +53,11 @@ export function WalletOnboardingLinks({
           phantom: "Встановити Phantom",
           solflare: "Встановити Solflare",
           jupiter: "Встановити Jupiter",
-          usdc: "Отримати devnet USDC",
         }
       : {
           phantom: "Install Phantom",
           solflare: "Install Solflare",
           jupiter: "Install Jupiter",
-          usdc: "Get devnet USDC",
         };
 
   return (
@@ -87,15 +74,6 @@ export function WalletOnboardingLinks({
           {t[def.id]}
         </a>
       ))}
-      <a
-        href="https://faucet.circle.com/"
-        target="_blank"
-        rel="noopener noreferrer"
-        title={locale === "uk" ? "Офіційний faucet Circle для devnet USDC" : "Official Circle faucet for devnet USDC"}
-        className={`${linkClass} border-sky-400/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 hover:border-sky-400/50`}
-      >
-        {t.usdc}
-      </a>
     </div>
   );
 }

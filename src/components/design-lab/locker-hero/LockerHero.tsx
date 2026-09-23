@@ -18,6 +18,7 @@ import {
   type PitchStyleId,
 } from "./pitchStyles";
 import { LockerLabNav } from "./LockerLabNav";
+import { MatchdayGate } from "./MatchdayGate";
 import { useLockerHeroData } from "./useLockerHeroData";
 import { useSquadPick } from "./useSquadPick";
 import { useLockerRegister } from "./useLockerRegister";
@@ -26,6 +27,11 @@ import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
+import {
+  markMatchdayGateSeen,
+  markPickWelcomeSeen,
+  shouldShowMatchdayGate,
+} from "./onboardingStorage";
 import {
   getTabletVariant,
   HOMEPAGE_COMPARE_VARIANTS,
@@ -153,6 +159,26 @@ export function LockerHero({
     (flatPicker || tabletReady);
 
   const [introReveal, setIntroReveal] = useState(!isSite);
+  /** Phone Matchday Gate — `null` until flat + storage known (avoids picker flash). */
+  const [matchdayGate, setMatchdayGate] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isSite || !flatPicker) {
+      setMatchdayGate(false);
+      return;
+    }
+    if (register.alreadyRegistered) {
+      setMatchdayGate(false);
+      return;
+    }
+    setMatchdayGate(shouldShowMatchdayGate());
+  }, [flatPicker, isSite, register.alreadyRegistered]);
+
+  const dismissMatchdayGate = useCallback(() => {
+    markMatchdayGateSeen();
+    markPickWelcomeSeen();
+    setMatchdayGate(false);
+  }, []);
 
   const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
   const onRoomImageError = useCallback(() => setRoomImageReady(true), []);
@@ -388,9 +414,17 @@ export function LockerHero({
       onShareClick={() => register.setShareOpen(true)}
       shareLabel={messages.pages.squadShare.registeredShareButton}
       shareSubline={messages.pages.squadShare.registeredShareSubline}
-      pickWelcome={isSite && !bootMounted}
+      pickWelcome={isSite && !bootMounted && !flatPicker}
     />
   );
+
+  const gatePrizeLabel =
+    data.chainLoading || data.prizePoolRaw == null
+      ? "—"
+      : prize.formatHero(data.prizePoolRaw, locale === "uk" ? "uk" : "en");
+  const gateGwId =
+    data.fixtures?.gameweek?.id ?? data.openGwId ?? null;
+  const gateCopy = messages.pages.lockerPick.matchdayGate;
 
   return (
     <div
@@ -544,7 +578,19 @@ export function LockerHero({
 
       {flatPicker ? (
         <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden bg-black pt-14 md:pt-[4.25rem]">
-          {picker}
+          {!bootMounted && matchdayGate === true ? (
+            <MatchdayGate
+              gwId={gateGwId}
+              prizeLabel={gatePrizeLabel}
+              entries={data.entries}
+              deadlineIso={data.fixtures?.gameweek?.deadlineTime ?? null}
+              loading={data.chainLoading || data.fixturesLoading}
+              copy={gateCopy}
+              onEnter={dismissMatchdayGate}
+            />
+          ) : !bootMounted && matchdayGate === false ? (
+            picker
+          ) : null}
         </div>
       ) : useTabletScene ? (
         <div

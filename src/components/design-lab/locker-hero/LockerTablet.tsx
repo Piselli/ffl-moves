@@ -993,8 +993,22 @@ export function LockerTablet({
   const registerTourActive =
     pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "register";
   const lastGw = useLastGwPreview(starters, bench, captainIndex ?? null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("players");
   const isNarrow = useIsNarrowTablet();
+
+  useEffect(() => {
+    // Desktop / wide tablet keeps pitch as the visual home; phone is list-first (Matchday A).
+    if (!isNarrow) setMobileTab("pitch");
+  }, [isNarrow]);
+
+  // When the XI fills on phone, land on Team so the pitch + Register are visible.
+  const wasFull = useRef(false);
+  useEffect(() => {
+    if (!isNarrow) return;
+    const full = filledCount >= FORMATION.TOTAL;
+    if (full && !wasFull.current) setMobileTab("pitch");
+    wasFull.current = full;
+  }, [filledCount, isNarrow]);
   const tabletRootRef = useLocalWheelScroll();
 
   const renderStarterChip = useCallback(
@@ -1280,9 +1294,10 @@ export function LockerTablet({
         } as CSSProperties
       }
     >
-      <div className="relative flex h-6 shrink-0 items-center justify-between px-3 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)] md:h-7 md:px-5">
+      {/* Status strip — desktop iPad chrome only (no clock / theme on phone). */}
+      <div className="relative hidden h-7 shrink-0 items-center justify-between px-5 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)] md:flex">
         <span>{clock}</span>
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-3">
           {onTabletLookChange ? (
             <TabletLookPicker
               value={tabletVariantId}
@@ -1290,16 +1305,14 @@ export function LockerTablet({
               compact
             />
           ) : null}
-          <span className="hidden tracking-[0.08em] md:inline">
-            Wi-Fi&nbsp;&nbsp;100%
-          </span>
+          <span className="tracking-[0.08em]">Wi-Fi&nbsp;&nbsp;100%</span>
         </div>
       </div>
 
       <motion.header
         {...panelMotion(HERO_REVEAL.delays.header)}
         className={cn(
-          "relative flex shrink-0 items-center justify-between max-md:h-10 max-md:px-3 md:h-[52px] md:px-5",
+          "relative flex shrink-0 items-center justify-between max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-2 max-md:px-3 max-md:pb-2 max-md:pt-2 md:h-[52px] md:px-5",
           // Above tour dim so Scoring stays lit on step 4 (before plaque opens).
           scoringTourActive && !scoringOpen && "z-[50]",
           isGlass && chrome === "current" && "bg-black",
@@ -1309,33 +1322,60 @@ export function LockerTablet({
           isCrystal && "bg-black/30 backdrop-blur-xl",
         )}
       >
-        <div className="flex min-w-0 items-center gap-2 md:gap-3">
-          <Form8Mark
-            className={cn(
-              "hidden h-9 shrink-0 md:block",
-              isMotionChrome &&
-                "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
-            )}
-          />
-          <div className="min-w-0">
-            <p
-              className="truncate text-[14px] font-black leading-none text-[color:var(--lt-ink)] md:text-[17px]"
-              style={DISPLAY}
-            >
-              Pick your team
-            </p>
-            <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
-              <span className="md:hidden">
-                {`GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
-              </span>
-              <span className="hidden md:inline">{pickCopy.headerJob}</span>
-            </p>
+        <div className="flex min-w-0 items-center justify-between gap-2 md:gap-3">
+          <div className="flex min-w-0 items-center gap-2 md:gap-3">
+            <Form8Mark
+              className={cn(
+                "hidden h-9 shrink-0 md:block",
+                isMotionChrome &&
+                  "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
+              )}
+            />
+            <div className="min-w-0">
+              <p
+                className="truncate text-[14px] font-black leading-none text-[color:var(--lt-ink)] md:text-[17px]"
+                style={DISPLAY}
+              >
+                Pick your team
+              </p>
+              <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
+                <span className="md:hidden">
+                  {`GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
+                </span>
+                <span className="hidden md:inline">{pickCopy.headerJob}</span>
+              </p>
+            </div>
           </div>
+
+          {/* Mobile: clear help chips (desktop keeps centered nav below) */}
+          <nav
+            aria-label={pickCopy.howToPlayBtn}
+            className="flex shrink-0 items-center gap-1.5 md:hidden"
+          >
+            <button
+              type="button"
+              onClick={() => pickTour.replay()}
+              className="rounded-lg border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/90 transition active:scale-[0.98]"
+            >
+              {pickCopy.howToPlayBtn}
+            </button>
+            <button
+              type="button"
+              data-tour-anchor="scoring"
+              onClick={() => setScoringOpen(true)}
+              className={cn(
+                "rounded-lg border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/90 transition active:scale-[0.98]",
+                "data-[tour-active]:border-[#00f948]/50 data-[tour-active]:bg-[#00f948]/15 data-[tour-active]:text-[#00f948]",
+              )}
+            >
+              {pickCopy.scoringBtn}
+            </button>
+          </nav>
         </div>
 
         <nav
           aria-label={pickCopy.howToPlayBtn}
-          className="absolute left-1/2 top-1/2 z-[1] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1.5 sm:gap-2"
+          className="absolute left-1/2 top-1/2 z-[1] hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1.5 md:flex sm:gap-2"
         >
           <button
             type="button"
@@ -1373,7 +1413,6 @@ export function LockerTablet({
             </p>
           </div>
         </div>
-        <div className="w-14 shrink-0 md:hidden" aria-hidden />
       </motion.header>
 
       <motion.div
@@ -2157,19 +2196,19 @@ export function LockerTablet({
 
       <div
         className={cn(
-          "shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden",
+          "shrink-0 border-t border-[var(--lt-hairline)] bg-[var(--lt-canvas)] px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden",
           registerTourActive && "relative z-[50]",
         )}
       >
         {filledCount >= FORMATION.TOTAL ? (
-          <div className="relative">
+          <div className="relative mb-2">
             <button
               type="button"
               data-tour-anchor="register"
               onClick={primaryCtaOnClick}
               disabled={primaryCtaDisabled}
               className={cn(
-                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3.5 text-[16px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
+                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-[15px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
                 isMotionChrome &&
                   "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
                 primaryCtaDisabled &&
@@ -2181,61 +2220,62 @@ export function LockerTablet({
               {primaryCtaContent}
             </button>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMobileTab("pitch")}
-              className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
-                mobileTab === "pitch"
-                  ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
-                  : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
-              )}
+        ) : null}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMobileTab("pitch")}
+            className={cn(
+              "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+              mobileTab === "pitch"
+                ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
+                : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
+            )}
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              aria-hidden
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                aria-hidden
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M3 9h18M9 21V9" />
-              </svg>
-              <span className="text-[10px] font-bold uppercase tracking-wide">
-                Team
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileTab("players")}
-              className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
-                mobileTab === "players"
-                  ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
-                  : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
-              )}
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg>
+            <span className="text-[10px] font-bold uppercase tracking-wide">
+              Team
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("players")}
+            className={cn(
+              "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2.5 transition-[color,transform] duration-150 active:scale-[0.97]",
+              mobileTab === "players"
+                ? "bg-[color:var(--lt-accent-soft)] text-[color:var(--lt-accent)]"
+                : "text-[color:var(--lt-muted)] hover:text-[color:var(--lt-ink)]",
+            )}
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              aria-hidden
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"
-                />
-              </svg>
-              <span className="text-[10px] font-bold uppercase tracking-wide">
-                Pick
-              </span>
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"
+              />
+            </svg>
+            <span className="text-[10px] font-bold uppercase tracking-wide">
+              Pick
+            </span>
+          </button>
+          {filledCount < FORMATION.TOTAL ? (
             <button
               type="button"
               onClick={onRandom}
@@ -2253,41 +2293,18 @@ export function LockerTablet({
                 className="h-[18px] w-[18px]"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                strokeWidth="2"
                 aria-hidden
               >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8" cy="8" r="1.15" fill="currentColor" stroke="none" />
-                <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="16" r="1.15" fill="currentColor" stroke="none" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </button>
-            <div className="relative min-w-0 flex-[1.4]">
-              <button
-                type="button"
-                data-tour-anchor="register"
-                onClick={onRegisterClick}
-                disabled={registerBusy || registerLocked || !onRegister}
-                className={cn(
-                  "flex w-full flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2.5 text-[13px] font-black uppercase leading-none tracking-[0.04em] transition active:scale-[0.985]",
-                  isMotionChrome &&
-                    "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.97]",
-                  (registerBusy || registerLocked || !onRegister) &&
-                    "cursor-default opacity-80 active:scale-100",
-                  registerTourActive && "!opacity-100",
-                )}
-                style={cta.style}
-              >
-                <span className="truncate">{registerLabel ?? cta.label}</span>
-                <span className="text-[10px] font-bold tabular-nums opacity-90">
-                  {filledCount}/{FORMATION.TOTAL}
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
+          ) : null}
+        </div>
       </div>
 
       <PickWelcomeOverlay

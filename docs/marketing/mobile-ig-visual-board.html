@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FORM8 · Mobile IG — 3 напрямки</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0908;
+      --fg: #f2efe8;
+      --muted: #8a857c;
+      --line: #2a2723;
+      --lime: #00f948;
+      --warm: #1a1816;
+      --pitch: #0f3d22;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 14px/1.5 "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,249,72,0.06), transparent 55%),
+        linear-gradient(180deg, #0e0c0a 0%, #0a0908 40%);
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 36px 20px 100px; }
+    h1, h2, h3 { font-family: Oswald, sans-serif; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px; }
+    h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1; }
+    h2 { font-size: 22px; margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--line); }
+    p, li { color: #b8b3a8; }
+    .lead { font-size: 16px; max-width: 68ch; color: #cfc9bc; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 28px; }
+    .pill {
+      display: inline-block; padding: 4px 10px; border: 1px solid #3a3530;
+      border-radius: 999px; font-size: 11px; color: var(--muted); letter-spacing: 0.04em;
+    }
+    .pill.hot { border-color: rgba(0,249,72,0.35); color: var(--lime); }
+    .brief {
+      display: grid; gap: 12px; padding: 18px 20px;
+      border: 1px solid var(--line); background: var(--warm); border-radius: 12px;
+      max-width: 900px;
+    }
+    .brief strong { color: #fff; }
+    .grid-3 {
+      display: grid; gap: 20px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 980px) {
+      .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    }
+    .variant {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #12100e;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .variant.picked {
+      border-color: rgba(0,249,72,0.55);
+      box-shadow: 0 0 0 1px rgba(0,249,72,0.2), 0 24px 48px rgba(0,0,0,0.45);
+    }
+    .variant-head {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .variant-head .tag {
+      font-size: 10px; letter-spacing: 0.12em; color: var(--lime); margin-bottom: 6px;
+      font-family: Oswald, sans-serif; text-transform: uppercase;
+    }
+    .variant-head h3 { font-size: 18px; margin-bottom: 6px; }
+    .variant-head p { margin: 0; font-size: 12.5px; line-height: 1.45; }
+    .phones {
+      display: flex; gap: 10px; overflow-x: auto; padding: 16px 12px 8px;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    }
+    .phones::-webkit-scrollbar { height: 4px; }
+    .phones::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    .phone-col { flex: 0 0 auto; width: 168px; scroll-snap-align: start; }
+    .phone-label {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; font-family: Oswald, sans-serif;
+      text-align: center;
+    }
+    .phone {
+      width: 168px; height: 340px; border-radius: 22px;
+      border: 2px solid #3a3530; background: #000; overflow: hidden;
+      position: relative; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    }
+    .phone::before {
+      content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+      width: 48px; height: 5px; border-radius: 999px; background: #1c1c1c; z-index: 5;
+    }
+    .screen { position: absolute; inset: 0; display: flex; flex-direction: column; font-size: 9px; }
+    .notch-pad { height: 18px; flex-shrink: 0; }
+
+    /* Shared UI atoms */
+    .mark {
+      font-family: Oswald, sans-serif; font-weight: 700; letter-spacing: 0.08em;
+      font-size: 13px; color: #fff;
+    }
+    .mark span { color: var(--lime); }
+    .cta {
+      display: flex; align-items: center; justify-content: center;
+      height: 28px; border-radius: 8px; font-family: Oswald, sans-serif;
+      font-weight: 600; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+      background: linear-gradient(180deg, #3be07a 0%, #17c255 46%, #0e9b41 100%);
+      color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 4px 10px rgba(0,0,0,0.35);
+    }
+    .cta.ghost {
+      background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: none; text-shadow: none;
+    }
+    .cta.white {
+      background: #fff; color: #000; box-shadow: none; text-shadow: none;
+    }
+    .muted-xs { color: rgba(255,255,255,0.45); font-size: 7.5px; }
+    .lime { color: var(--lime); }
+
+    /* —— A: Matchday Gate —— */
+    .a-entry {
+      background:
+        linear-gradient(180deg, transparent 30%, #000 88%),
+        radial-gradient(ellipse at 70% 20%, rgba(0,249,72,0.15), transparent 50%),
+        linear-gradient(160deg, #1a2e1f 0%, #0a0a0a 55%);
+      padding: 0 10px 10px;
+    }
+    .a-entry .hero-num {
+      font-family: Oswald, sans-serif; font-size: 52px; line-height: 0.85;
+      font-weight: 700; color: #fff; margin-top: 36px; letter-spacing: -0.02em;
+    }
+    .a-entry .hero-sub {
+      font-family: Oswald, sans-serif; font-size: 14px; text-transform: uppercase;
+      color: rgba(255,255,255,0.7); margin: 4px 0 12px; letter-spacing: 0.04em;
+    }
+    .a-entry .chips { display: flex; gap: 4px; margin-bottom: auto; }
+    .a-entry .chip {
+      padding: 3px 6px; border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px; font-size: 7px; color: rgba(255,255,255,0.7);
+    }
+    .a-entry .footer { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+    .a-login {
+      background: #050505; padding: 0 10px 10px;
+    }
+    .a-login .sheet {
+      margin-top: auto; background: #12120f; border-radius: 14px 14px 10px 10px;
+      border: 1px solid rgba(255,255,255,0.12); padding: 12px 10px 10px;
+    }
+    .a-login .sheet h4 {
+      font-family: Oswald, sans-serif; font-size: 13px; margin: 0 0 4px;
+      text-transform: uppercase; color: #fff;
+    }
+    .a-login .field {
+      height: 26px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18);
+      background: #000; margin: 8px 0 6px; display: flex; align-items: center;
+      padding: 0 8px; color: rgba(255,255,255,0.35); font-size: 8px;
+    }
+    .a-login .or {
+      text-align: center; color: rgba(255,255,255,0.3); font-size: 7px; margin: 6px 0;
+    }
+    .a-pick { background: #000; }
+    .a-pick .top {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 2px 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .a-pick .meta-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
+      padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .a-pick .meta-row div { text-align: center; }
+    .a-pick .meta-row b {
+      display: block; font-family: Oswald, sans-serif; font-size: 11px; color: #fff;
+    }
+    .a-pick .list { flex: 1; overflow: hidden; padding: 4px 6px; }
+    .a-pick .row {
+      display: flex; align-items: center; gap: 6px; padding: 5px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .a-pick .av {
+      width: 18px; height: 18px; border-radius: 50%; background: #1a3d28;
+      border: 1px solid rgba(0,249,72,0.3);
+    }
+    .a-pick .row span { flex: 1; color: #ddd; font-size: 8px; }
+    .a-pick .row em { font-style: normal; color: var(--lime); font-size: 8px; font-family: Oswald, sans-serif; }
+    .a-pick .bot {
+      margin-top: auto; padding: 6px 8px 8px; border-top: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.9);
+    }
+    .a-pick .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+    .a-pick .tab {
+      flex: 1; text-align: center; padding: 4px; border-radius: 6px;
+      font-family: Oswald, sans-serif; font-size: 9px; letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.35); text-transform: uppercase;
+    }
+    .a-pick .tab.on { background: rgba(0,249,72,0.12); color: var(--lime); }
+
+    /* —— B: Locker Flat —— */
+    .b-entry {
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.2) 0%, #0a0908 55%),
+        repeating-linear-gradient(-12deg, #2a221c 0 2px, #1c1713 2px 4px);
+      padding: 0 10px 10px;
+    }
+    .b-entry .room-strip {
+      height: 72px; margin: 8px -10px 0; position: relative;
+      background:
+        linear-gradient(90deg, transparent, rgba(0,249,72,0.08), transparent),
+        linear-gradient(180deg, #3a2e24 0%, #1a1512 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .b-entry .room-strip::after {
+      content: "LOCKER"; position: absolute; left: 12px; bottom: 8px;
+      font-family: Oswald, sans-serif; font-size: 9px; letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.25);
+    }
+    .b-entry .plaque {
+      margin-top: -18px; background: rgba(0,0,0,0.82);
+      border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+      padding: 12px 10px; backdrop-filter: blur(8px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 12px 24px rgba(0,0,0,0.4);
+    }
+    .b-entry .plaque h4 {
+      font-family: Oswald, sans-serif; font-size: 16px; margin: 6px 0 4px;
+      text-transform: uppercase; color: #fff; line-height: 1.05;
+    }
+    .b-login { background: #0c0b0a; padding: 0 10px 10px; }
+    .b-login .glass {
+      margin-top: 28px; padding: 14px 10px 10px;
+      background: rgba(0,0,0,0.75); border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .b-login .wallets {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .b-login .wallets summary {
+      font-size: 7.5px; color: rgba(255,255,255,0.35); cursor: default;
+      list-style: none;
+    }
+    .b-pick { background: #000; }
+    .b-pick .pitch {
+      flex: 1; margin: 6px 6px 0; border-radius: 10px;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(0,249,72,0.08), transparent 60%),
+        linear-gradient(180deg, #14522c 0%, var(--pitch) 100%);
+      border: 1px solid rgba(0,0,0,0.5); position: relative;
+      display: grid; grid-template-rows: repeat(4, 1fr); padding: 8px 10px; gap: 2px;
+    }
+    .b-pick .line { display: flex; justify-content: center; gap: 8px; align-items: center; }
+    .b-pick .slot {
+      width: 22px; height: 26px; border-radius: 5px;
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15);
+      display: flex; align-items: flex-end; justify-content: center;
+      font-size: 5px; color: rgba(255,255,255,0.5); padding-bottom: 2px;
+    }
+    .b-pick .slot.filled {
+      background: rgba(0,0,0,0.65); border-color: rgba(0,249,72,0.4); color: #fff;
+    }
+
+    /* —— C: Coach Steps —— */
+    .c-entry {
+      background: #0a0a0a; padding: 0 10px 10px;
+    }
+    .c-entry .steps {
+      display: flex; gap: 4px; margin: 8px 0 16px;
+    }
+    .c-entry .step {
+      flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.12);
+    }
+    .c-entry .step.on { background: var(--lime); }
+    .c-entry .coach {
+      margin: 8px 0 12px; padding: 10px;
+      border-left: 2px solid var(--lime);
+      background: rgba(0,249,72,0.06);
+    }
+    .c-entry .coach b {
+      display: block; font-family: Oswald, sans-serif; font-size: 12px;
+      text-transform: uppercase; color: #fff; margin-bottom: 3px;
+    }
+    .c-login { background: #0a0a0a; padding: 0 10px 10px; }
+    .c-login .prog {
+      font-family: Oswald, sans-serif; font-size: 10px; color: var(--lime);
+      letter-spacing: 0.08em; margin: 8px 0 4px;
+    }
+    .c-login .big {
+      font-family: Oswald, sans-serif; font-size: 18px; text-transform: uppercase;
+      color: #fff; line-height: 1.05; margin-bottom: 8px;
+    }
+    .c-pick { background: #000; }
+    .c-pick .tip {
+      margin: 6px 8px; padding: 6px 8px; border-radius: 8px;
+      background: rgba(0,249,72,0.08); border: 1px solid rgba(0,249,72,0.2);
+      font-size: 7.5px; color: rgba(255,255,255,0.75);
+    }
+    .c-pick .tip strong { color: var(--lime); }
+
+    .variant-foot {
+      padding: 12px 14px 16px; border-top: 1px solid var(--line);
+      margin-top: auto;
+    }
+    .variant-foot .lock {
+      font-family: ui-monospace, monospace; font-size: 10px;
+      background: #000; color: #8f8; padding: 10px; border-radius: 8px;
+      white-space: pre-wrap; line-height: 1.45; margin: 0 0 12px;
+    }
+    .pick-btn {
+      width: 100%; height: 40px; border: 1px solid #3a3530; border-radius: 10px;
+      background: #1a1816; color: #fff; font-family: Oswald, sans-serif;
+      font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: 0.15s ease;
+    }
+    .pick-btn:hover { border-color: rgba(0,249,72,0.5); color: var(--lime); }
+    .pick-btn.active {
+      background: linear-gradient(180deg, #3be07a 0%, #0e9b41 100%);
+      border-color: transparent; color: #fff;
+    }
+
+    .compare { overflow-x: auto; }
+    .compare table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720px; }
+    .compare th, .compare td {
+      border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top;
+    }
+    .compare th { background: #141210; color: #ddd; font-family: Oswald, sans-serif;
+      font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+    .compare td strong { color: #fff; font-weight: 600; }
+
+    .decision {
+      margin-top: 24px; padding: 18px 20px; border-radius: 12px;
+      border: 1px dashed rgba(0,249,72,0.35); background: rgba(0,249,72,0.04);
+    }
+    .decision h3 { font-size: 16px; color: var(--lime); }
+    .choice-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .choice-row button {
+      font-family: Oswald, sans-serif; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 10px 14px; border-radius: 8px; border: 1px solid #3a3530;
+      background: #1a1816; color: #fff; cursor: pointer; font-size: 12px;
+    }
+    .choice-row button.sel {
+      border-color: transparent;
+      background: linear-gradient(180deg, #3be07a 0%, #0e9b41 100%);
+    }
+    #choiceOut { margin-top: 12px; font-size: 13px; color: #cfc9bc; min-height: 1.4em; }
+    #choiceOut b { color: var(--lime); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="meta">
+      <span class="pill hot">LOCKED · A Matchday Gate</span>
+      <span class="pill">Borrow from B: WebView banner · wallets collapsed</span>
+      <span class="pill">IG · crypto-naive</span>
+      <span class="pill">Sep 2026</span>
+    </div>
+
+    <h1>Mobile IG — як має виглядати перший досвід</h1>
+    <p class="lead">
+      Людина з Instagram знає фентезі, не знає крипту. Нижче три <strong style="color:#fff">різні композиційні метафори</strong>
+      (не три колор-теми). Кожен варіант показує ланцюг: Entry → Login → Pick.
+      Обери один домінантний — потім кодим P0 поверх нього.
+    </p>
+
+    <div class="brief" style="margin: 24px 0 32px;">
+      <div><strong>Brief.</strong> Designing mobile IG funnel for FORM8 on web (phone / Instagram WebView).</div>
+      <div><strong>Goal.</strong> Зібрати XI → увійти → оплатити $ без слів про Solana/USDC у першому екрані.</div>
+      <div><strong>Tone.</strong> Matchday clarity · locker brand · zero wallet anxiety.</div>
+      <div><strong>Risk.</strong> Google/wallet ламаються в IG WebView; jargon убиває конверсію.</div>
+      <div><strong>Constraints.</strong> Oswald · #00f948 · dark locker language · Privy email+card під капотом.</div>
+    </div>
+
+    <div class="grid-3" id="variants">
+      <!-- ========== A ========== -->
+      <article class="variant" data-id="A" id="var-A">
+        <div class="variant-head">
+          <div class="tag">A · Matchday Gate</div>
+          <h3>Один удар — далі гра</h3>
+          <p>Як Nike challenge: гігантський сигнал туру + один CTA. Login — bottom sheet. Pick — щільний FPL-список. Максимальна ясність для cold IG traffic.</p>
+        </div>
+        <div class="phones">
+          <div class="phone-col">
+            <div class="phone-label">Entry</div>
+            <div class="phone">
+              <div class="screen a-entry">
+                <div class="notch-pad"></div>
+                <div class="mark">FORM<span>8</span></div>
+                <div class="hero-num">GW 8</div>
+                <div class="hero-sub">Призовий пул $420</div>
+                <div class="chips">
+                  <span class="chip">Дедлайн 19:00</span>
+                  <span class="chip">Топ-10 ділять</span>
+                </div>
+                <div class="footer">
+                  <div class="cta">Зібрати команду</div>
+                  <div class="muted-xs" style="text-align:center">Вхід через email · оплата карткою</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Login</div>
+            <div class="phone">
+              <div class="screen a-login">
+                <div class="notch-pad"></div>
+                <div class="mark" style="opacity:0.4">FORM<span>8</span></div>
+                <div style="flex:1"></div>
+                <div class="sheet">
+                  <h4>Увійди, щоб зареєструвати</h4>
+                  <p class="muted-xs">Склад уже зібраний — лишилось увійти.</p>
+                  <div class="field">email@example.com</div>
+                  <div class="cta">Продовжити</div>
+                  <div class="or">або</div>
+                  <div class="cta ghost">Google</div>
+                  <p class="muted-xs" style="margin-top:8px;text-align:center">В Instagram краще відкрити в Safari →</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Pick</div>
+            <div class="phone">
+              <div class="screen a-pick">
+                <div class="notch-pad"></div>
+                <div class="top">
+                  <span class="mark" style="font-size:11px">FORM<span>8</span></span>
+                  <span class="muted-xs">8 / 14</span>
+                </div>
+                <div class="meta-row">
+                  <div><b class="lime">$420</b><span class="muted-xs">пул</span></div>
+                  <div><b>19:00</b><span class="muted-xs">дедлайн</span></div>
+                  <div><b>FWD</b><span class="muted-xs">позиція</span></div>
+                </div>
+                <div class="list">
+                  <div class="row"><div class="av"></div><span>Haaland</span><em>+12</em></div>
+                  <div class="row"><div class="av"></div><span>Salah</span><em>+9</em></div>
+                  <div class="row"><div class="av"></div><span>Palmer</span><em>+7</em></div>
+                  <div class="row"><div class="av"></div><span>Saka</span><em>+6</em></div>
+                  <div class="row"><div class="av"></div><span>Isak</span><em>+5</em></div>
+                </div>
+                <div class="bot">
+                  <div class="tabs">
+                    <div class="tab">Пітч</div>
+                    <div class="tab on">Гравці</div>
+                  </div>
+                  <div class="cta">Далі · $5</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="variant-foot">
+          <pre class="lock">Preserve: giant GW numeral · one CTA · list-first pick
+Borrow: Nike entry clarity · FPL dense rows
+Reject: wallet grid · USDC in hero · 3D tablet
+Best for: cold Instagram / bloggers</pre>
+          <button type="button" class="pick-btn" data-pick="A">Обрати A</button>
+        </div>
+      </article>
+
+      <!-- ========== B ========== -->
+      <article class="variant" data-id="B" id="var-B">
+        <div class="variant-head">
+          <div class="tag">B · Locker Flat</div>
+          <h3>Атмосфера без 3D</h3>
+          <p>Найближче до поточного бренду: тепла локер-смуга + glass plaque. Login як вивіска. Pick — пітч у центрі (як зараз), але з мобільним chrome. Сильніший «вау», трохи більше когнітивного шуму.</p>
+        </div>
+        <div class="phones">
+          <div class="phone-col">
+            <div class="phone-label">Entry</div>
+            <div class="phone">
+              <div class="screen b-entry">
+                <div class="notch-pad"></div>
+                <div class="room-strip"></div>
+                <div class="plaque">
+                  <div class="mark">FORM<span>8</span></div>
+                  <h4>Збери XI.<br>Забери пул.</h4>
+                  <p class="muted-xs" style="margin-bottom:8px">Фентезі АПЛ · тиждень · топ-10 ділять банк</p>
+                  <div class="cta">Відкрити планшет</div>
+                </div>
+                <p class="muted-xs" style="text-align:center;margin-top:10px">Без гаманця · email + картка</p>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Login</div>
+            <div class="phone">
+              <div class="screen b-login">
+                <div class="notch-pad"></div>
+                <div class="mark">FORM<span>8</span></div>
+                <div class="glass">
+                  <h4 style="font-family:Oswald;font-size:14px;text-transform:uppercase;margin:0 0 8px;color:#fff">Вхід</h4>
+                  <div class="cta white" style="margin-bottom:6px;color:#111">Продовжити з Google</div>
+                  <div class="cta ghost">Email</div>
+                  <div class="wallets">
+                    <summary>Вже є Solana-гаманець? ▾</summary>
+                  </div>
+                </div>
+                <p class="muted-xs" style="margin-top:auto;padding:8px;text-align:center;border:1px dashed rgba(0,249,72,0.3);border-radius:8px;color:rgba(0,249,72,0.8)">
+                  Instagram? Відкрий у Safari — Google інакше може не спрацювати
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Pick</div>
+            <div class="phone">
+              <div class="screen b-pick">
+                <div class="notch-pad"></div>
+                <div style="display:flex;justify-content:space-between;padding:0 8px;align-items:center">
+                  <span class="mark" style="font-size:11px">FORM<span>8</span></span>
+                  <span class="muted-xs">Пул $420</span>
+                </div>
+                <div class="pitch">
+                  <div class="line"><div class="slot filled">GK</div></div>
+                  <div class="line"><div class="slot filled">DEF</div><div class="slot filled">DEF</div><div class="slot">+</div><div class="slot">+</div></div>
+                  <div class="line"><div class="slot filled">MID</div><div class="slot">+</div><div class="slot filled">MID</div></div>
+                  <div class="line"><div class="slot filled">FWD</div><div class="slot">+</div></div>
+                </div>
+                <div style="padding:6px 8px 8px">
+                  <div class="tabs" style="display:flex;gap:4px;margin-bottom:6px">
+                    <div class="tab on" style="flex:1;text-align:center;padding:4px;border-radius:6px;font-family:Oswald;font-size:9px;background:rgba(0,249,72,0.12);color:var(--lime)">Пітч</div>
+                    <div class="tab" style="flex:1;text-align:center;padding:4px;border-radius:6px;font-family:Oswald;font-size:9px;color:rgba(255,255,255,0.35)">Гравці</div>
+                  </div>
+                  <div class="cta">Зареєструвати · $5</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="variant-foot">
+          <pre class="lock">Preserve: locker strip · glass plaque · pitch-first
+Borrow: current LockerHero brand DNA
+Reject: black void with no atmosphere · wallet-first
+Best for: brand continuity with desktop locker</pre>
+          <button type="button" class="pick-btn" data-pick="B">Обрати B</button>
+        </div>
+      </article>
+
+      <!-- ========== C ========== -->
+      <article class="variant" data-id="C" id="var-C">
+        <div class="variant-head">
+          <div class="tag">C · Coach Steps</div>
+          <h3>Крок за кроком</h3>
+          <p>Як Duolingo: прогрес 1→2→3, коуч-підказки, мінімум шуму. Найбезпечніший для «взагалі перший раз у крипті», але найменш «вау» і найдовший шлях до піку.</p>
+        </div>
+        <div class="phones">
+          <div class="phone-col">
+            <div class="phone-label">Entry</div>
+            <div class="phone">
+              <div class="screen c-entry">
+                <div class="notch-pad"></div>
+                <div class="mark">FORM<span>8</span></div>
+                <div class="steps">
+                  <div class="step on"></div>
+                  <div class="step"></div>
+                  <div class="step"></div>
+                </div>
+                <p class="muted-xs" style="letter-spacing:0.1em;text-transform:uppercase;font-family:Oswald">Крок 1 з 3</p>
+                <div class="coach">
+                  <b>Це фентезі, не біржа</b>
+                  <span class="muted-xs">Обираєш гравців АПЛ. Очки — з реальних матчів. Приз — топ-10 туру.</span>
+                </div>
+                <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+                  <div class="cta">Зрозуміло · зібрати XI</div>
+                  <div class="cta ghost">Що з грошима?</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Login</div>
+            <div class="phone">
+              <div class="screen c-login">
+                <div class="notch-pad"></div>
+                <div class="mark">FORM<span>8</span></div>
+                <div class="steps" style="display:flex;gap:4px;margin:8px 0">
+                  <div class="step" style="flex:1;height:3px;border-radius:2px;background:var(--lime)"></div>
+                  <div class="step" style="flex:1;height:3px;border-radius:2px;background:var(--lime)"></div>
+                  <div class="step" style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.12)"></div>
+                </div>
+                <div class="prog">Крок 2 з 3 · Вхід</div>
+                <div class="big">Залиш email — ми створимо акаунт за тебе</div>
+                <p class="muted-xs" style="margin-bottom:10px">Гаманець з’явиться автоматично. Тобі не треба нічого встановлювати.</p>
+                <div class="field" style="height:28px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:#000;display:flex;align-items:center;padding:0 8px;color:rgba(255,255,255,0.35);margin-bottom:8px">твій@email.com</div>
+                <div class="cta">Надіслати код</div>
+                <p class="muted-xs" style="margin-top:auto;text-align:center">Оплата карткою буде на наступному кроці</p>
+              </div>
+            </div>
+          </div>
+          <div class="phone-col">
+            <div class="phone-label">Pick</div>
+            <div class="phone">
+              <div class="screen c-pick">
+                <div class="notch-pad"></div>
+                <div style="padding:0 8px;display:flex;justify-content:space-between">
+                  <span class="mark" style="font-size:11px">FORM<span>8</span></span>
+                  <span class="muted-xs">Крок 3 · XI</span>
+                </div>
+                <div class="tip"><strong>Порада:</strong> почни з форвардів — Haaland / Salah зазвичай несуть очки.</div>
+                <div class="list" style="flex:1;padding:4px 6px">
+                  <div class="row" style="display:flex;gap:6px;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.05);align-items:center">
+                    <div class="av" style="width:18px;height:18px;border-radius:50%;background:#1a3d28"></div>
+                    <span style="flex:1;color:#ddd;font-size:8px">Haaland · MCI</span>
+                    <span class="cta" style="height:18px;width:40px;font-size:8px;border-radius:4px">+</span>
+                  </div>
+                  <div class="row" style="display:flex;gap:6px;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.05);align-items:center">
+                    <div class="av" style="width:18px;height:18px;border-radius:50%;background:#1a3d28"></div>
+                    <span style="flex:1;color:#ddd;font-size:8px">Salah · LIV</span>
+                    <span class="cta" style="height:18px;width:40px;font-size:8px;border-radius:4px">+</span>
+                  </div>
+                  <div class="row" style="display:flex;gap:6px;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.05);align-items:center">
+                    <div class="av" style="width:18px;height:18px;border-radius:50%;background:#1a3d28"></div>
+                    <span style="flex:1;color:#ddd;font-size:8px">Palmer · CHE</span>
+                    <span class="cta" style="height:18px;width:40px;font-size:8px;border-radius:4px">+</span>
+                  </div>
+                </div>
+                <div style="padding:8px;border-top:1px solid rgba(255,255,255,0.1)">
+                  <div class="cta">Готово · оплатити $5</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="variant-foot">
+          <pre class="lock">Preserve: 3-step progress · coach tip · email explainer
+Borrow: Duolingo league clarity / hand-holding
+Reject: dense matchday chrome · pitch-first for newbies
+Best for: max trust · slowest path · FAQ-heavy ads</pre>
+          <button type="button" class="pick-btn" data-pick="C">Обрати C</button>
+        </div>
+      </article>
+    </div>
+
+    <h2>Порівняння</h2>
+    <div class="compare">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>A · Matchday Gate</th>
+            <th>B · Locker Flat</th>
+            <th>C · Coach Steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Швидкість до піку</strong></td>
+            <td>Найшвидша — 1 тап</td>
+            <td>Швидка — атмосфера → пітч</td>
+            <td>Повільна — 3 кроки</td>
+          </tr>
+          <tr>
+            <td><strong>Зрозумілість для новачка</strong></td>
+            <td>Висока (якщо знає FPL)</td>
+            <td>Середня (вау > інструкція)</td>
+            <td>Найвища</td>
+          </tr>
+          <tr>
+            <td><strong>Бренд = десктоп-локер</strong></td>
+            <td>Слабший (matchday, не кімната)</td>
+            <td>Найсильніший</td>
+            <td>Слабкий (утилітарний)</td>
+          </tr>
+          <tr>
+            <td><strong>IG WebView</strong></td>
+            <td>Email sheet + Safari hint</td>
+            <td>Явний Safari banner</td>
+            <td>Email-only + пояснення гаманця</td>
+          </tr>
+          <tr>
+            <td><strong>Ризик</strong></td>
+            <td>Може здатись «просто FPL clone»</td>
+            <td>Пітч-first важчий для cold traffic</td>
+            <td>Занадто довго → bounce з реклами</td>
+          </tr>
+          <tr>
+            <td><strong>Рекомендація</strong></td>
+            <td><strong style="color:#00f948">Default під IG ads</strong></td>
+            <td>Якщо бренд > конверсія</td>
+            <td>Якщо CAC високий через страх крипти</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="decision">
+      <h3>Твій вибір</h3>
+      <p style="margin:0">Натисни варіант вище або тут. Можна також гібрид: наприклад <strong style="color:#fff">A структура + B атмосфера на entry</strong>.</p>
+      <div class="choice-row">
+        <button type="button" data-pick="A">A · Matchday</button>
+        <button type="button" data-pick="B">B · Locker Flat</button>
+        <button type="button" data-pick="C">C · Coach</button>
+        <button type="button" data-pick="A+B">Гібрид A+B</button>
+      </div>
+      <p id="choiceOut">Поки не обрано — моя робоча рекомендація: <b>A</b> для реклами, з легким locker-strip з B якщо захочеться бренду.</p>
+    </div>
+
+    <h2>Що далі після вибору</h2>
+    <ol>
+      <li>Lock reference (tokens + copy + screen order).</li>
+      <li>P0 у коді: email-first login, WebView→Safari, deposit без «USDC» у Cash.</li>
+      <li>P1: mobile entry + pick defaults за обраним варіантом.</li>
+    </ol>
+    <p class="muted-xs" style="margin-top:32px;color:var(--muted)">
+      Research: codebase audit + docs/marketing/refs (FPL, Nike, Duolingo) + craft skill.
+      Refero MCP був недоступний (підписка) — борд зібраний без live Refero styles.
+    </p>
+  </div>
+
+  <script>
+    const out = document.getElementById("choiceOut");
+    const labels = {
+      A: "A · Matchday Gate — швидкий IG funnel, list-first pick.",
+      B: "B · Locker Flat — бренд-атмосфера, pitch-first.",
+      C: "C · Coach Steps — максимальний hand-holding.",
+      "A+B": "Гібрид A+B — Matchday структура + locker-strip на entry (рекомендований компроміс).",
+    };
+    function select(id) {
+      document.querySelectorAll(".variant").forEach((el) => {
+        el.classList.toggle("picked", el.dataset.id === id || (id === "A+B" && (el.dataset.id === "A" || el.dataset.id === "B")));
+      });
+      document.querySelectorAll("[data-pick]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.pick === id);
+        btn.classList.toggle("sel", btn.dataset.pick === id);
+      });
+      out.innerHTML = "Обрано: <b>" + id + "</b> — " + labels[id];
+      try { localStorage.setItem("form8-mobile-ig-pick", id); } catch (_) {}
+    }
+    document.querySelectorAll("[data-pick]").forEach((btn) => {
+      btn.addEventListener("click", () => select(btn.dataset.pick));
+    });
+    try {
+      const saved = localStorage.getItem("form8-mobile-ig-pick");
+      if (saved && labels[saved]) select(saved);
+    } catch (_) {}
+  </script>
+</body>
+</html>

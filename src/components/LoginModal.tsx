@@ -23,6 +23,11 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { isLocalDevHost, isPrivyConfigured } from "@/lib/privy";
 import { solanaWalletDef } from "@/lib/solanaWallets";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
+import {
+  isInAppBrowser,
+  isMobileBrowser,
+  preferredSystemBrowserName,
+} from "@/lib/solanaWallets";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -212,7 +217,14 @@ function ContinueControl({
   );
 }
 
-function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
+function PrivyAuthFields({
+  theme,
+  emailFirst = false,
+}: {
+  theme: LoginSkinTheme;
+  /** Mobile / IG: email primary, Google secondary. */
+  emailFirst?: boolean;
+}) {
   const m = useSiteMessages();
   const privy = usePrivyAuth();
   const { initGoogle, googleLoading, oauthError, clearOauthError } =
@@ -306,6 +318,38 @@ function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
     }
   };
 
+  const googleBtn = (
+    <button
+      type="button"
+      disabled={googleLoading || !privy.ready}
+      onClick={() => void onGoogle()}
+      className={theme.googleClass}
+      style={theme.googleStyle}
+    >
+      <GoogleMark mono={theme.googleMono} />
+      {m.nav.continueWithGoogle}
+    </button>
+  );
+
+  const emailForm = (
+    <form onSubmit={onSendCode} className="relative">
+      <input
+        type="email"
+        autoComplete="email"
+        inputMode="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={m.nav.emailPlaceholderLong}
+        className={theme.inputClass}
+      />
+      <ContinueControl
+        theme={theme}
+        disabled={emailBusy}
+        label={m.nav.emailContinue}
+      />
+    </form>
+  );
+
   return (
     <AnimatePresence mode="wait" initial={false}>
       {step === "code" ? (
@@ -320,7 +364,6 @@ function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
         </p>
         <div className="relative">
           <input
-            autoFocus
             inputMode="numeric"
             autoComplete="one-time-code"
             value={code}
@@ -355,32 +398,19 @@ function PrivyAuthFields({ theme }: { theme: LoginSkinTheme }) {
       </motion.form>
       ) : (
     <motion.div key="form" className="flex flex-col gap-4" {...stepMotion}>
-      <button
-        type="button"
-        disabled={googleLoading || !privy.ready}
-        onClick={() => void onGoogle()}
-        className={theme.googleClass}
-        style={theme.googleStyle}
-      >
-        <GoogleMark mono={theme.googleMono} />
-        {m.nav.continueWithGoogle}
-      </button>
-      <OrDivider theme={theme} label={m.nav.loginOr} />
-      <form onSubmit={onSendCode} className="relative">
-        <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={m.nav.emailPlaceholderLong}
-          className={theme.inputClass}
-        />
-        <ContinueControl
-          theme={theme}
-          disabled={emailBusy}
-          label={m.nav.emailContinue}
-        />
-      </form>
+      {emailFirst ? (
+        <>
+          {emailForm}
+          <OrDivider theme={theme} label={m.nav.loginOr} />
+          {googleBtn}
+        </>
+      ) : (
+        <>
+          {googleBtn}
+          <OrDivider theme={theme} label={m.nav.loginOr} />
+          {emailForm}
+        </>
+      )}
       {displayHint ? (
         <p className="text-center text-[16px] leading-snug text-amber-200/85">
           {displayHint}
@@ -433,6 +463,44 @@ function FallbackAuthFields({ theme }: { theme: LoginSkinTheme }) {
   );
 }
 
+function InAppBrowserBanner() {
+  const m = useSiteMessages();
+  const [copied, setCopied] = useState(false);
+  const browser = preferredSystemBrowserName();
+  const title =
+    browser === "browser"
+      ? m.nav.inAppBrowserTitleGeneric
+      : m.nav.inAppBrowserTitle(browser);
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div className="mb-6 rounded-xl border border-dashed border-[#00f948]/35 bg-[#00f948]/[0.06] px-3.5 py-3 text-center">
+      <p className="font-display text-[13px] font-bold uppercase tracking-wide text-[#00f948]">
+        {title}
+      </p>
+      <p className="mt-1.5 text-[13px] leading-snug text-white/65">
+        {m.nav.inAppBrowserBody}
+      </p>
+      <button
+        type="button"
+        onClick={() => void onCopy()}
+        className="mt-2.5 text-[13px] font-semibold text-white/85 underline-offset-2 hover:underline"
+      >
+        {copied ? m.nav.inAppBrowserCopied : m.nav.inAppBrowserCopyLink}
+      </button>
+    </div>
+  );
+}
+
 function LoginPlaqueBody({
   theme,
   titleId,
@@ -455,6 +523,33 @@ function LoginPlaqueBody({
   lastError: string | null;
 }) {
   const m = useSiteMessages();
+  const [inApp, setInApp] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const [walletsOpen, setWalletsOpen] = useState(false);
+
+  useEffect(() => {
+    setInApp(isInAppBrowser());
+    setMobile(isMobileBrowser());
+  }, []);
+
+  const emailFirst = mobile || inApp;
+  const demoteWallets = mobile || inApp;
+
+  const walletLogos = (
+    <div className="flex items-center justify-center gap-9">
+      {walletRows.map((row, i) => (
+        <WalletLogo
+          key={row.walletId}
+          row={row}
+          pending={pending}
+          delay={reduce ? 0 : 0.12 + i * 0.045}
+          reduce={reduce}
+          onConnect={connectWallet}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="mb-9 flex flex-col items-center pt-1">
@@ -463,24 +558,31 @@ function LoginPlaqueBody({
         </h2>
       </div>
 
+      {inApp ? <InAppBrowserBanner /> : null}
+
       {isPrivyConfigured() ? (
-        <PrivyAuthFields theme={theme} />
+        <PrivyAuthFields theme={theme} emailFirst={emailFirst} />
       ) : (
         <FallbackAuthFields theme={theme} />
       )}
 
-      <div className="mt-8 flex items-center justify-center gap-9">
-        {walletRows.map((row, i) => (
-          <WalletLogo
-            key={row.walletId}
-            row={row}
-            pending={pending}
-            delay={reduce ? 0 : 0.12 + i * 0.045}
-            reduce={reduce}
-            onConnect={connectWallet}
-          />
-        ))}
-      </div>
+      {demoteWallets ? (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setWalletsOpen((v) => !v)}
+            className="mx-auto block text-center text-[14px] text-white/40 transition-colors hover:text-white/65"
+          >
+            {m.nav.walletMoreToggle}
+            <span className="ml-1 opacity-60" aria-hidden>
+              {walletsOpen ? "▴" : "▾"}
+            </span>
+          </button>
+          {walletsOpen ? <div className="mt-5">{walletLogos}</div> : null}
+        </div>
+      ) : (
+        <div className="mt-8">{walletLogos}</div>
+      )}
 
       {hint || lastError || statusLine ? (
         <p
