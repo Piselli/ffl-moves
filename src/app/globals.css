@@ -251,3 +251,13 @@
   @apply text-amber-600;
   text-shadow: 0 0 15px hsla(30, 90%, 40%, 0.5);
 }
+
+/*
+ * Helius/Turnkey auth modal defaults to z-index:auto (utility max z-50 in their
+ * CSS). Our LoginModal is z-[200], so OTP sat underneath and failed interact /
+ * stacked with a broken logo. Keep Turnkey above app modals.
+ */
+.tk-modal {
+  z-index: 400 !important;
+}
+

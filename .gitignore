@@ -61,6 +61,12 @@ next-env.d.ts
 solana/movematch/.bin/
 .env*
 
+# Cached upstream dumps for face-map / atlas scripts
+.cache/
+
+# Local pitch/boards/refs — not product code
+docs/marketing/
+
 # Solana local validator ledger (unix sockets break Vercel upload)
 solana/movematch/.test-ledger/
 solana/movematch/target/

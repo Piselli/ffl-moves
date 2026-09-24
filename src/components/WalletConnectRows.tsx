@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { useHeliusAuth } from "@/components/HeliusAppProvider";
+import { useLogin } from "@/components/LoginProvider";
 import { isLocalDevHost } from "@/lib/helius";
 
 type Props = {
@@ -33,6 +34,7 @@ function MailIcon() {
 export function WalletConnectRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
   const m = useSiteMessages();
   const helius = useHeliusAuth();
+  const { closeLogin } = useLogin();
   const [emailHint, setEmailHint] = useState<string | null>(null);
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 
@@ -51,6 +53,7 @@ export function WalletConnectRows({ rows, pending = false, onConnect, variant = 
       );
       return;
     }
+    closeLogin();
     void helius.login().catch((error) => {
       setEmailHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
     });

@@ -8,8 +8,8 @@ import {
   getFplPhotoFrame,
   hasFplAtlas,
 } from "@/lib/fpl-photo-atlas";
-import { hueFromString, initialsFromDisplayName } from "@/lib/avatar-fallback";
-import { apiSportsPhotoProxyPath, playerPhotoCandidates } from "@/lib/playerPhoto";
+import { initialsFromDisplayName } from "@/lib/avatar-fallback";
+import { apiSportsPhotoProxyPath, playerPhotoCandidates, resolveEaFaceId } from "@/lib/playerPhoto";
 import type { CSSProperties } from "react";
 
 type Props = {
@@ -17,17 +17,19 @@ type Props = {
   fplPhotoCode?: number | null;
   /** API-Sports id — World Cup catalog */
   apiId?: number | null;
+  /** EA FC resource id — FC27 miniface */
+  eaFaceId?: number | null;
   /** Full photo URL — used for fallback and to derive code */
   photoUrl?: string | null;
   alt: string;
   className?: string;
   /** Square size in px */
   size: number;
-  /** Club / team name — stable tint for generated avatar when photo missing */
+  /** Kept for call-site compat; plate is brand-unified (not team-tinted). */
   teamName?: string | null;
   /** Override initials (e.g. `webName`) */
   initials?: string | null;
-  /** Fixed hue 0–359 instead of hashing `teamName` or `alt` */
+  /** Optional one-off hue 0–359; default is the shared brand plate */
   accentHue?: number | null;
   /** Skip the viewport gate — pitch chips are already on-screen (incl. 3D Html). */
   eager?: boolean;
@@ -50,38 +52,63 @@ function FallbackSilhouette({ className }: { className?: string }) {
   );
 }
 
-/** Wait to fetch remote portraits until the chip is near the viewport. */
-function useNearViewport<T extends HTMLElement>() {
+/** Prefetch when near the visible area of the nearest scroll parent (or viewport). */
+function useNearViewport<T extends HTMLElement>(enabled: boolean) {
   const ref = useRef<T>(null);
-  const [near, setNear] = useState(false);
+  const [near, setNear] = useState(!enabled);
   useEffect(() => {
+    if (!enabled) {
+      setNear(true);
+      return;
+    }
     const el = ref.current;
     if (!el || near) return;
+
+    let root: Element | null = el.parentElement;
+    while (root && root !== document.body) {
+      const { overflowY } = getComputedStyle(root);
+      if (
+        overflowY === "auto" ||
+        overflowY === "scroll" ||
+        overflowY === "overlay"
+      ) {
+        break;
+      }
+      root = root.parentElement;
+    }
+    if (root === document.body) root = null;
+
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) setNear(true);
       },
-      { rootMargin: "160px" },
+      {
+        root,
+        // Load a few rows ahead inside the picker scroller.
+        rootMargin: "480px 0px",
+        threshold: 0.01,
+      },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [near]);
+  }, [near, enabled]);
   return { ref, near };
 }
 
 export function FplPhotoAvatar({
   fplPhotoCode,
   apiId,
+  eaFaceId,
   photoUrl,
   alt,
   className,
   size,
-  teamName,
+  teamName: _teamName,
   initials: initialsProp,
   accentHue,
   eager = false,
 }: Props) {
-  const { ref, near } = useNearViewport<HTMLDivElement>();
+  const { ref, near } = useNearViewport<HTMLDivElement>(!eager);
   const allowRemote = eager || near;
   // Track BOTH "loaded" and "failed" so the fallback can render underneath the
   // <img> until the request actually succeeds. This prevents the browser's
@@ -98,12 +125,24 @@ export function FplPhotoAvatar({
         photo: photoUrl ?? undefined,
         fplPhotoCode: fplPhotoCode ?? undefined,
         apiId: apiId ?? undefined,
+        eaFaceId: eaFaceId ?? undefined,
       }),
-    [photoUrl, fplPhotoCode, apiId],
+    [photoUrl, fplPhotoCode, apiId, eaFaceId],
   );
 
+  const hasEaFace =
+    resolveEaFaceId({
+      eaFaceId: eaFaceId ?? undefined,
+      fplPhotoCode: fplPhotoCode ?? undefined,
+    }) != null;
+  const hasFpl =
+    (fplPhotoCode != null && fplPhotoCode > 0) ||
+    Boolean(fplPhotoCodeFromUrl(photoUrl || undefined));
+  // World Cup-only portraits: API-Sports when we have no FPL/EA mapping.
   const wcPortraitSrc =
-    apiId != null && apiId > 0 ? apiSportsPhotoProxyPath(apiId) : null;
+    !hasEaFace && !hasFpl && apiId != null && apiId > 0
+      ? apiSportsPhotoProxyPath(apiId)
+      : null;
 
   const candidateKey = photoCandidates.join("|");
   const portraitKey = wcPortraitSrc ?? candidateKey;
@@ -127,23 +166,26 @@ export function FplPhotoAvatar({
       ? String(fplPhotoCode)
       : fplPhotoCodeFromUrl(photoUrl || undefined);
   const frame = code ? getFplPhotoFrame(code) : null;
-  // World Cup portraits use API-Sports. FPL atlas wins whenever we have a frame
-  // (even if apiId is present as a CDN fallback for missing PL assets).
-  const useSprite = hasFplAtlas() && frame != null;
+  // Prefer EA FC27 heads over the kit-era atlas sprite when mapped.
+  const useSprite = hasFplAtlas() && frame != null && !hasEaFace;
   const showImg =
     Boolean(resolvedPhotoUrl) && !imgFailed && !useSprite && allowRemote;
   const fallbackVisible = !imgLoaded || imgFailed;
 
   const initials =
     (initialsProp && initialsProp.trim()) || initialsFromDisplayName(alt);
-  const hue =
-    accentHue != null && accentHue >= 0
-      ? Math.round(accentHue) % 360
-      : hueFromString((teamName && teamName.trim()) || alt);
 
-  const plateStyle: CSSProperties = {
-    background: `linear-gradient(168deg, hsl(${hue} 20% 24%) 0%, hsl(${hue} 14% 13%) 52%, #050608 100%)`,
-  };
+  // One brand plate for every chip — team-tinted hues looked noisy behind
+  // transparent EA heads. Optional accentHue still allows rare one-offs.
+  const plateStyle: CSSProperties =
+    accentHue != null && accentHue >= 0
+      ? {
+          background: `linear-gradient(168deg, hsl(${Math.round(accentHue) % 360} 18% 22%) 0%, hsl(${Math.round(accentHue) % 360} 12% 12%) 55%, #050608 100%)`,
+        }
+      : {
+          background:
+            "radial-gradient(ellipse 90% 70% at 50% 28%, rgba(0,249,72,0.10) 0%, transparent 55%), linear-gradient(168deg, #14181f 0%, #0a0d12 52%, #050608 100%)",
+        };
 
   const initialsSize = Math.max(9, Math.min(16, Math.round(size * 0.22)));
   const silhouetteBox = Math.round(size * 0.56);
@@ -221,6 +263,9 @@ export function FplPhotoAvatar({
             imgLoaded ? "opacity-100" : "opacity-0"
           )}
           referrerPolicy="no-referrer"
+          decoding="async"
+          loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
           onLoad={() => setImgLoaded(true)}
           onError={() => {
             if (retryTick < 2) {

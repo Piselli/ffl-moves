@@ -17,6 +17,8 @@ export interface Player {
   photo?: string;          // FPL photo URL
   /** FPL `elements[].code` — used with local photo sprite atlas */
   fplPhotoCode?: number;
+  /** EA Sports FC resource id — FC27 miniface (`cdn.futwiz.com/.../faces/{id}.png`) */
+  eaFaceId?: number;
   imageUrl?: string;       // legacy field
   /** FPL: a=available, d=doubtful, i=injured, s=suspended */
   status?: string;

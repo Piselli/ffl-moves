@@ -12,11 +12,12 @@ export type PitchChipCutoutPlayer = {
   photo?: string | null;
   fplPhotoCode?: number | null;
   apiId?: number | null;
+  eaFaceId?: number | null;
 };
 
 /**
  * Freestanding bust on the squad-pick pitch and results XI.
- * PL 110×140 cutouts (transparent) — not the opaque atlas plate.
+ * EA FC27 minifaces (transparent heads) when mapped; else PL 110×140 cutouts.
  */
 export function PitchChipCutout({
   player,
@@ -39,8 +40,9 @@ export function PitchChipCutout({
         photo: player.photo ?? undefined,
         fplPhotoCode: code ?? undefined,
         apiId: player.apiId ?? undefined,
+        eaFaceId: player.eaFaceId ?? undefined,
       }),
-    [player.photo, player.apiId, code],
+    [player.photo, player.apiId, player.eaFaceId, code],
   );
 
   const [urlIndex, setUrlIndex] = useState(0);

@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { NextResponse } from "next/server";
 import { CLEAN_SHEET_POINTS, GOAL_POINTS } from "@/lib/scoring-rules";
-import { playerPhotoSrc } from "@/lib/playerPhoto";
+import { eaFaceIdFromFplCode, playerPhotoSrc } from "@/lib/playerPhoto";
 import type { Player } from "@/lib/types";
 import {
   getCachedPlayers,
@@ -165,6 +165,7 @@ function mapBootstrapToPlayers(data: {
         API_ID_BY_NAME_POS.get(`${normName(webName)}|${pos}`) ??
         API_ID_BY_NAME_POS.get(`${normName(secondName)}|${pos}`) ??
         undefined;
+      const eaFaceId = eaFaceIdFromFplCode(code) ?? undefined;
       return {
         id: el.id as number,
         fplId: el.id as number,
@@ -180,6 +181,7 @@ function mapBootstrapToPlayers(data: {
             : Number(el.squad_number),
         photo: `${PHOTO_BASE}${el.code}.png`,
         fplPhotoCode: code,
+        eaFaceId,
         apiId,
         status: el.status as string,
         chanceOfPlaying: el.chance_of_playing_next_round as number | null | undefined,

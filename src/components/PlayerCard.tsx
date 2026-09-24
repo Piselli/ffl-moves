@@ -188,6 +188,7 @@ export function PlayerCard({
           <FplPhotoAvatar
             fplPhotoCode={fplCode}
             apiId={apiId}
+            eaFaceId={player.eaFaceId}
             photoUrl={photoUrl}
             alt={player.name}
             size={48}
@@ -224,6 +225,7 @@ export function PlayerCard({
           <FplPhotoAvatar
             fplPhotoCode={fplCode}
             apiId={apiId}
+            eaFaceId={player.eaFaceId}
             photoUrl={photoUrl}
             alt={player.name}
             size={44}

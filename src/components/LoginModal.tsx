@@ -14,6 +14,7 @@ import {
 } from "@/components/loginSkins";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useHeliusAuth } from "@/components/HeliusAppProvider";
+import { useLogin } from "@/components/LoginProvider";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { isLocalDevHost } from "@/lib/helius";
@@ -154,6 +155,7 @@ function OrDivider({ theme, label }: { theme: LoginSkinTheme; label: string }) {
 function HeliusAuthFields({ theme }: { theme: LoginSkinTheme }) {
   const m = useSiteMessages();
   const helius = useHeliusAuth();
+  const { closeLogin, openLogin } = useLogin();
   const [hint, setHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -166,11 +168,14 @@ function HeliusAuthFields({ theme }: { theme: LoginSkinTheme }) {
       return;
     }
     setLoading(true);
+    // Helius/Turnkey always opens its own OTP modal — close ours so they
+    // don't stack (their sheet sat under z-[200] with a broken empty logo).
+    closeLogin();
     try {
       await helius.login();
     } catch (error) {
+      openLogin();
       setHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
-    } finally {
       setLoading(false);
     }
   };

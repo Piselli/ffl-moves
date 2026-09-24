@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiSportsPlayerPhotoUrl, isProxiedPhotoHost } from "@/lib/playerPhoto";
+import {
+  apiSportsPlayerPhotoUrl,
+  eaFaceUrl,
+  isProxiedPhotoHost,
+} from "@/lib/playerPhoto";
+import {
+  hostNeedsWhiteBgStrip,
+  stripWhitePhotoBackground,
+} from "@/lib/stripWhitePhotoBg";
 
 /**
+ * GET /api/player-photo?eaId=239085
  * GET /api/player-photo?apiId=874
  * GET /api/player-photo?url=https://media.api-sports.io/football/players/278.png
  *
- * Proxies player portraits (API-Sports + Premier League CDN) so squad UIs can load
- * photos from the same origin.
+ * Proxies player portraits (EA FC27 faces + API-Sports + Premier League CDN)
+ * so squad UIs can load photos from the same origin.
+ * API-Sports white studio plates are stripped to transparency.
  */
 export const dynamic = "force-dynamic";
 
@@ -18,6 +28,14 @@ const UPSTREAM_HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   Referer: "https://fantasy.premierleague.com/",
   Origin: "https://fantasy.premierleague.com",
+};
+
+const FUTWIZ_HEADERS = {
+  Accept: "image/png,image/*,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Referer: "https://www.futwiz.com/",
 };
 
 async function sleep(ms: number) {
@@ -59,10 +77,15 @@ function expandPremierLeaguePhotoUrls(upstreamUrl: string): string[] {
   }
 }
 
+function headersForHost(hostname: string): Record<string, string> {
+  return hostname === "cdn.futwiz.com" ? FUTWIZ_HEADERS : UPSTREAM_HEADERS;
+}
+
 async function fetchUpstreamImage(upstreamUrl: string): Promise<Response | null> {
   try {
+    const hostname = new URL(upstreamUrl).hostname;
     const upstream = await fetch(upstreamUrl, {
-      headers: UPSTREAM_HEADERS,
+      headers: headersForHost(hostname),
       cache: "no-store",
     });
     if (!upstream.ok) return null;
@@ -76,19 +99,56 @@ async function fetchUpstreamImage(upstreamUrl: string): Promise<Response | null>
   }
 }
 
+function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
+  return buf.buffer.slice(
+    buf.byteOffset,
+    buf.byteOffset + buf.byteLength,
+  ) as ArrayBuffer;
+}
+
+async function maybeStripWhiteBg(
+  upstreamUrl: string,
+  bytes: ArrayBuffer,
+  contentType: string,
+): Promise<{ body: ArrayBuffer; contentType: string }> {
+  let hostname = "";
+  try {
+    hostname = new URL(upstreamUrl).hostname;
+  } catch {
+    return { body: bytes, contentType };
+  }
+  if (!hostNeedsWhiteBgStrip(hostname)) {
+    return { body: bytes, contentType };
+  }
+  try {
+    const stripped = await stripWhitePhotoBackground(Buffer.from(bytes));
+    if (stripped) {
+      return {
+        body: bufferToArrayBuffer(stripped.buffer),
+        contentType: stripped.contentType,
+      };
+    }
+  } catch (err) {
+    console.warn("player-photo white-bg strip failed:", err);
+  }
+  return { body: bytes, contentType };
+}
+
 async function proxyImage(upstreamUrl: string) {
   const candidates = expandPremierLeaguePhotoUrls(upstreamUrl);
 
   for (let attempt = 0; attempt < candidates.length; attempt++) {
     if (attempt > 0) await sleep(40);
-    const upstream = await fetchUpstreamImage(candidates[attempt]!);
+    const candidate = candidates[attempt]!;
+    const upstream = await fetchUpstreamImage(candidate);
     if (!upstream) continue;
 
     const bytes = await upstream.arrayBuffer();
     const contentType = upstream.headers.get("content-type") || "image/png";
-    return new NextResponse(bytes, {
+    const out = await maybeStripWhiteBg(candidate, bytes, contentType);
+    return new NextResponse(out.body, {
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": out.contentType,
         "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       },
     });
@@ -98,6 +158,20 @@ async function proxyImage(upstreamUrl: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const eaIdRaw = req.nextUrl.searchParams.get("eaId");
+  if (eaIdRaw) {
+    const eaId = Number(eaIdRaw);
+    if (!Number.isFinite(eaId) || eaId <= 0) {
+      return NextResponse.json({ error: "Invalid eaId" }, { status: 400 });
+    }
+    try {
+      return await proxyImage(eaFaceUrl(eaId));
+    } catch (err) {
+      console.error("player-photo EA face proxy failed:", err);
+      return new NextResponse(null, { status: 502 });
+    }
+  }
+
   const apiIdRaw = req.nextUrl.searchParams.get("apiId");
   if (apiIdRaw) {
     const apiId = Number(apiIdRaw);
@@ -114,7 +188,10 @@ export async function GET(req: NextRequest) {
 
   const raw = req.nextUrl.searchParams.get("url");
   if (!raw) {
-    return NextResponse.json({ error: "Missing url or apiId" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing eaId, url, or apiId" },
+      { status: 400 },
+    );
   }
 
   let parsed: URL;
@@ -138,6 +215,13 @@ export async function GET(req: NextRequest) {
   if (
     parsed.hostname === "resources.premierleague.com" &&
     !parsed.pathname.startsWith("/premierleague/photos/players/")
+  ) {
+    return NextResponse.json({ error: "Path not allowed" }, { status: 400 });
+  }
+
+  if (
+    parsed.hostname === "cdn.futwiz.com" &&
+    !/^\/assets\/img\/fc\d+\/faces\/\d+\.png$/i.test(parsed.pathname)
   ) {
     return NextResponse.json({ error: "Path not allowed" }, { status: 400 });
   }
