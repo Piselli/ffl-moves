@@ -105,8 +105,20 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
     }
     setLoading(true);
     try {
+      let sponsor = feePayer;
+      if (!sponsor) {
+        try {
+          const res = await fetch("/api/solana/fee-payer", { cache: "no-store" });
+          const data = (await res.json()) as { feePayer?: string | null };
+          if (typeof data.feePayer === "string" && data.feePayer.length > 30) {
+            sponsor = data.feePayer;
+          }
+        } catch {
+          /* fall through — signAndSubmit will retry / surface error */
+        }
+      }
       const ixs = await buildUsdcTransfer(address, to, raw, {
-        ataPayer: feePayer ?? undefined,
+        ataPayer: sponsor ?? undefined,
       });
       const sig = await signAndSubmit(ixs);
       setStatus(w.success(formatFeeUnits(raw), to));

@@ -236,7 +236,7 @@ function PrivySolanaSessionInner({ children }: PropsWithChildren) {
       const lamports = await connection.getBalance(userKey, "confirmed");
       if (lamports < 5000) {
         throw new Error(
-          "Not enough SOL for network fees (~0.001 SOL). Form8 can sponsor USDC send/withdraw when SOLANA_FEE_SPONSOR_KEYPAIR is set; for squad register enable Privy Gas sponsorship or add a little SOL.",
+          "Withdraw is temporarily unavailable (network fee). Please try again in a moment.",
         );
       }
 
