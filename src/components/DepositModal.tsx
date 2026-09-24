@@ -22,6 +22,9 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 
 type Tab = "cash" | "crypto";
 
+/** Card / Apple / Google onramp UI is visible but not live — crypto deposit works. */
+const CASH_ONRAMP_LIVE = false;
+
 type DepositModalProps = {
   open: boolean;
   onClose: () => void;
@@ -154,6 +157,7 @@ function CashMethods({
   needLogin,
   onLogin,
   mainnetOnly,
+  unavailable,
 }: {
   address: string | null;
   d: DepositCopy;
@@ -163,10 +167,12 @@ function CashMethods({
   needLogin: boolean;
   onLogin: () => void;
   mainnetOnly: boolean;
+  unavailable?: boolean;
 }) {
   const { run, loading } = useCashOnramp(address);
 
   const onPick = async (method: OnrampPaymentHint) => {
+    if (unavailable) return;
     if (mainnetOnly) {
       onError(d.buyCardMainnetOnly);
       return;
@@ -197,9 +203,24 @@ function CashMethods({
   };
 
   const methods: { id: OnrampPaymentHint; label: string; icon: ReactNode; badge?: string }[] = [
-    { id: "card", label: d.methodCard, icon: <CardIcon />, badge: d.instant },
-    { id: "apple", label: d.methodApplePay, icon: <ApplePayIcon /> },
-    { id: "google", label: d.methodGooglePay, icon: <GooglePayIcon /> },
+    {
+      id: "card",
+      label: d.methodCard,
+      icon: <CardIcon />,
+      badge: unavailable ? d.cashComingSoon : d.instant,
+    },
+    {
+      id: "apple",
+      label: d.methodApplePay,
+      icon: <ApplePayIcon />,
+      badge: unavailable ? d.cashComingSoon : undefined,
+    },
+    {
+      id: "google",
+      label: d.methodGooglePay,
+      icon: <GooglePayIcon />,
+      badge: unavailable ? d.cashComingSoon : undefined,
+    },
   ];
 
   return (
@@ -208,9 +229,15 @@ function CashMethods({
         <button
           key={m.id}
           type="button"
-          disabled={loading}
+          disabled={loading || unavailable}
+          aria-disabled={unavailable || undefined}
           onClick={() => void onPick(m.id)}
-          className="group flex w-full items-center gap-3.5 rounded-2xl border border-white/14 bg-gradient-to-b from-white/[0.07] to-white/[0.02] px-3.5 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-white/30 hover:from-white/[0.1] active:scale-[0.99] disabled:opacity-50"
+          className={cn(
+            "group flex w-full items-center gap-3.5 rounded-2xl border px-3.5 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            unavailable
+              ? "cursor-not-allowed border-white/10 bg-white/[0.03] opacity-55"
+              : "border-white/14 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:border-white/30 hover:from-white/[0.1] active:scale-[0.99] disabled:opacity-50",
+          )}
         >
           <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/12 bg-black/45 text-white">
             {m.icon}
@@ -218,16 +245,23 @@ function CashMethods({
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
               <span className="text-[15px] font-semibold tracking-[-0.015em] text-white">
-                {loading ? d.buyCardLoading : m.label}
+                {loading && !unavailable ? d.buyCardLoading : m.label}
               </span>
               {m.badge ? (
-                <span className="rounded-md bg-[#00f948]/16 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#9dffb8]">
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
+                    unavailable
+                      ? "bg-white/10 text-white/55"
+                      : "bg-[#00f948]/16 text-[#9dffb8]",
+                  )}
+                >
                   {m.badge}
                 </span>
               ) : null}
             </span>
           </span>
-          <ChevronIcon />
+          {!unavailable ? <ChevronIcon /> : null}
         </button>
       ))}
     </div>
@@ -244,6 +278,7 @@ function CashTab({
   error,
   setError,
   reduce,
+  onSwitchCrypto,
 }: {
   address: string | null;
   d: DepositCopy;
@@ -254,6 +289,7 @@ function CashTab({
   error: string | null;
   setError: (msg: string | null) => void;
   reduce: boolean;
+  onSwitchCrypto?: () => void;
 }) {
   const privyReady = isPrivyConfigured();
   const privy = usePrivyAuth();
@@ -261,14 +297,33 @@ function CashTab({
   const onrampOk = isPrivyOnrampUsdcAvailable();
   const needLogin = privyReady && onrampOk && !privy.authenticated;
   const mainnetOnly = privyReady && !onrampOk;
+  const unavailable = !CASH_ONRAMP_LIVE;
 
-  if (!privyReady) {
+  if (!privyReady && !unavailable) {
     return <p className="mt-3 text-[13px] font-medium text-white/55">{d.buyCardNeedLogin}</p>;
   }
 
   return (
     <>
-      {status ? (
+      {unavailable ? (
+        <div className="mt-3 rounded-2xl border border-amber-200/25 bg-amber-400/[0.08] px-3.5 py-3">
+          <p className="text-[13px] font-semibold tracking-[-0.01em] text-amber-50">
+            {d.cashUnavailableTitle}
+          </p>
+          <p className="mt-1 text-[12px] font-medium leading-snug text-amber-50/70">
+            {d.cashUnavailableBody}
+          </p>
+          {onSwitchCrypto ? (
+            <button
+              type="button"
+              onClick={onSwitchCrypto}
+              className="mt-3 inline-flex rounded-xl border border-white/20 bg-white/[0.08] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white/90 transition hover:border-white/35 hover:bg-white/[0.12] active:scale-[0.98]"
+            >
+              {d.cashUnavailableCta}
+            </button>
+          ) : null}
+        </div>
+      ) : status ? (
         <p className="mt-2 text-[12px] font-medium leading-snug text-[#9dffb8]/90">{status}</p>
       ) : mainnetOnly ? (
         <p className="mt-2 text-[12px] font-medium leading-snug text-white/45">{d.buyCardMainnetOnly}</p>
@@ -276,49 +331,52 @@ function CashTab({
         <p className="mt-2 text-[12px] font-medium leading-snug text-white/45">{d.buyCardNeedLogin}</p>
       ) : null}
 
-      <div className="mt-4 flex items-center gap-2">
-        {AMOUNT_PRESETS.map((a) => {
-          const active = amount === a;
-          return (
-            <button
-              key={a}
-              type="button"
-              onClick={() => setAmount(a)}
-              className={cn(
-                "relative h-10 min-w-[3.25rem] flex-1 rounded-xl text-[13px] font-semibold tabular-nums tracking-tight transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]",
-                active ? "text-white" : "text-white/50 hover:text-white/80",
-              )}
-            >
-              {active ? (
-                <motion.span
-                  layoutId="deposit-amount-pill"
-                  className="absolute inset-0 rounded-xl border border-white/25 bg-white/[0.12]"
-                  transition={reduce ? { duration: 0 } : SPRING_PILL}
-                />
-              ) : (
-                <span className="absolute inset-0 rounded-xl border border-white/10 bg-black/30" />
-              )}
-              <span className="relative z-10">${a}</span>
-            </button>
-          );
-        })}
-        <label className="relative flex h-10 min-w-[5.5rem] flex-[1.15] items-center rounded-xl border border-white/15 bg-black/40 px-3 focus-within:border-white/35">
-          <span className="mr-1 text-[13px] font-semibold text-white/40">$</span>
-          <input
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, "").slice(0, 8))}
-            aria-label={d.amountCustom}
-            placeholder="40"
-            className="w-full bg-transparent text-[13px] font-semibold tabular-nums text-white outline-none placeholder:text-white/25"
-          />
-        </label>
-      </div>
+      {!unavailable ? (
+        <div className="mt-4 flex items-center gap-2">
+          {AMOUNT_PRESETS.map((a) => {
+            const active = amount === a;
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => setAmount(a)}
+                className={cn(
+                  "relative h-10 min-w-[3.25rem] flex-1 rounded-xl text-[13px] font-semibold tabular-nums tracking-tight transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]",
+                  active ? "text-white" : "text-white/50 hover:text-white/80",
+                )}
+              >
+                {active ? (
+                  <motion.span
+                    layoutId="deposit-amount-pill"
+                    className="absolute inset-0 rounded-xl border border-white/25 bg-white/[0.12]"
+                    transition={reduce ? { duration: 0 } : SPRING_PILL}
+                  />
+                ) : (
+                  <span className="absolute inset-0 rounded-xl border border-white/10 bg-black/30" />
+                )}
+                <span className="relative z-10">${a}</span>
+              </button>
+            );
+          })}
+          <label className="relative flex h-10 min-w-[5.5rem] flex-[1.15] items-center rounded-xl border border-white/15 bg-black/40 px-3 focus-within:border-white/35">
+            <span className="mr-1 text-[13px] font-semibold text-white/40">$</span>
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, "").slice(0, 8))}
+              aria-label={d.amountCustom}
+              placeholder="40"
+              className="w-full bg-transparent text-[13px] font-semibold tabular-nums text-white outline-none placeholder:text-white/25"
+            />
+          </label>
+        </div>
+      ) : null}
 
       <CashMethods
         address={address}
         d={d}
         amount={amount}
+        unavailable={unavailable}
         needLogin={needLogin}
         onLogin={openLogin}
         mainnetOnly={mainnetOnly}
@@ -332,7 +390,7 @@ function CashTab({
         }}
       />
 
-      {error ? (
+      {error && !unavailable ? (
         <p className="mt-2 text-[12px] font-medium leading-snug text-amber-100/90">{error}</p>
       ) : null}
     </>
@@ -349,7 +407,12 @@ function CashTabBody(props: {
   error: string | null;
   setError: (msg: string | null) => void;
   reduce: boolean;
+  onSwitchCrypto?: () => void;
 }) {
+  if (!CASH_ONRAMP_LIVE && !isPrivyConfigured()) {
+    // Still show the unavailable panel even without Privy configured.
+    return <CashTab {...props} />;
+  }
   if (!isPrivyConfigured()) {
     return <p className="mt-3 text-[13px] font-medium text-white/55">{props.d.buyCardNeedLogin}</p>;
   }
@@ -363,7 +426,7 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
   const { balanceLabel, refreshBalance } = useDeposit();
   const address = account?.address ?? null;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [tab, setTab] = useState<Tab>("cash");
+  const [tab, setTab] = useState<Tab>(CASH_ONRAMP_LIVE ? "cash" : "crypto");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -389,7 +452,7 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
 
   useEffect(() => {
     if (!open) {
-      setTab("cash");
+      setTab(CASH_ONRAMP_LIVE ? "cash" : "crypto");
       setCopied(false);
       setError(null);
       setStatus(null);
@@ -483,8 +546,13 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
                             transition={reduce ? { duration: 0 } : SPRING_PILL}
                           />
                         ) : null}
-                        <span className="relative z-10">
+                        <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
                           {id === "cash" ? d.tabCash : d.tabCrypto}
+                          {id === "cash" && !CASH_ONRAMP_LIVE ? (
+                            <span className="rounded bg-white/10 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-white/45">
+                              {d.cashComingSoon}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                     );
@@ -505,9 +573,11 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
                   >
                     {tab === "cash" ? (
                       <>
-                        <p className="text-[16px] font-semibold leading-snug tracking-[-0.015em] text-white">
-                          {d.cashHint}
-                        </p>
+                        {CASH_ONRAMP_LIVE ? (
+                          <p className="text-[16px] font-semibold leading-snug tracking-[-0.015em] text-white">
+                            {d.cashHint}
+                          </p>
+                        ) : null}
                         <CashTabBody
                           address={address}
                           d={d}
@@ -518,6 +588,7 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
                           error={error}
                           setError={setError}
                           reduce={reduce}
+                          onSwitchCrypto={() => setTab("crypto")}
                         />
                       </>
                     ) : (

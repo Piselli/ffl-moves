@@ -84,6 +84,11 @@ export type SiteMessages = {
     tabCash: string;
     tabCrypto: string;
     cashHint: string;
+    /** Shown when card/Apple/Google onramp is not live yet. */
+    cashUnavailableTitle: string;
+    cashUnavailableBody: string;
+    cashUnavailableCta: string;
+    cashComingSoon: string;
     cryptoHint: string;
     cryptoTransferHint: string;
     methodCard: string;
@@ -111,18 +116,20 @@ export type SiteMessages = {
     open: string;
     close: string;
     hint: string;
+    assetUsdc: string;
+    assetSol: string;
     balanceLabel: string;
     recipientLabel: string;
     recipientPlaceholder: string;
     amountLabel: (symbol: string) => string;
     max: string;
-    submit: string;
+    submit: (symbol: string) => string;
     sending: string;
     needWallet: string;
     invalidRecipient: string;
     sameWallet: string;
     invalidAmount: string;
-    success: (amount: string, to: string) => string;
+    success: (amount: string, symbol: string, to: string) => string;
     failed: string;
   };
   footer: {
@@ -387,6 +394,11 @@ const uk: SiteMessages = {
     tabCash: "Картка",
     tabCrypto: "Крипта",
     cashHint: "Додай кошти карткою або Apple Pay.",
+    cashUnavailableTitle: "Картка поки недоступна",
+    cashUnavailableBody:
+      "Оплата карткою / Apple Pay / Google Pay ще не підключена. Зараз поповнення — лише USDC у Solana (вкладка «Крипта»).",
+    cashUnavailableCta: "Перейти до крипти",
+    cashComingSoon: "Скоро",
     cryptoHint: "Надішли USDC у Solana.",
     cryptoTransferHint: "Скопіюй адресу й надішли USDC у мережі Solana.",
     methodCard: "Картка",
@@ -413,19 +425,22 @@ const uk: SiteMessages = {
     title: "Вивести",
     open: "Вивести",
     close: "Закрити",
-    hint: "Надішли USDC зі свого ігрового Solana-гаманця на Phantom, біржу чи іншу адресу (мережа Solana).",
+    hint: "Надішли USDC або SOL зі свого ігрового Solana-гаманця на Phantom, біржу чи іншу адресу (мережа Solana).",
+    assetUsdc: "USDC",
+    assetSol: "SOL",
     balanceLabel: "Баланс",
     recipientLabel: "Адреса отримувача",
     recipientPlaceholder: "Solana-адреса…",
     amountLabel: (symbol) => `Сума (${symbol})`,
     max: "Max",
-    submit: "Вивести USDC",
+    submit: (symbol) => `Вивести ${symbol}`,
     sending: "Надсилаємо…",
     needWallet: "Увійди або підключи гаманець.",
     invalidRecipient: "Некоректна Solana-адреса.",
     sameWallet: "Не можна вивести на той самий гаманець.",
     invalidAmount: "Вкажи суму більше 0.",
-    success: (amount, to) => `Надіслано ${amount} USDC → ${to.slice(0, 4)}…${to.slice(-4)}`,
+    success: (amount, symbol, to) =>
+      `Надіслано ${amount} ${symbol} → ${to.slice(0, 4)}…${to.slice(-4)}`,
     failed: "Не вдалося вивести. Перевір баланс і спробуй ще раз.",
   },
   footer: {
@@ -709,6 +724,11 @@ const en: SiteMessages = {
     tabCash: "Cash",
     tabCrypto: "Crypto",
     cashHint: "Add funds with a card or Apple Pay.",
+    cashUnavailableTitle: "Card payments unavailable",
+    cashUnavailableBody:
+      "Card / Apple Pay / Google Pay aren’t connected yet. For now, deposit USDC on Solana via the Crypto tab.",
+    cashUnavailableCta: "Go to crypto",
+    cashComingSoon: "Soon",
     cryptoHint: "Send USDC on Solana.",
     cryptoTransferHint: "Copy your address and send USDC on Solana.",
     methodCard: "Card",
@@ -735,19 +755,22 @@ const en: SiteMessages = {
     title: "Withdraw",
     open: "Withdraw",
     close: "Close",
-    hint: "Send USDC from your in-app Solana wallet to Phantom, an exchange, or another address (Solana network).",
+    hint: "Send USDC or SOL from your in-app Solana wallet to Phantom, an exchange, or another address (Solana network).",
+    assetUsdc: "USDC",
+    assetSol: "SOL",
     balanceLabel: "Balance",
     recipientLabel: "Recipient address",
     recipientPlaceholder: "Solana address…",
     amountLabel: (symbol) => `Amount (${symbol})`,
     max: "Max",
-    submit: "Send USDC",
+    submit: (symbol) => `Send ${symbol}`,
     sending: "Sending…",
     needWallet: "Sign in or connect a wallet.",
     invalidRecipient: "Invalid Solana address.",
     sameWallet: "Cannot withdraw to the same wallet.",
     invalidAmount: "Enter an amount greater than 0.",
-    success: (amount, to) => `Sent ${amount} USDC → ${to.slice(0, 4)}…${to.slice(-4)}`,
+    success: (amount, symbol, to) =>
+      `Sent ${amount} ${symbol} → ${to.slice(0, 4)}…${to.slice(-4)}`,
     failed: "Withdraw failed. Check your balance and try again.",
   },
   footer: {

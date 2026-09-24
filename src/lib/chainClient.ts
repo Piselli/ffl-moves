@@ -501,6 +501,35 @@ export async function buildUsdcTransfer(
   ];
 }
 
+/** Native SOL transfer. With Form8 fee sponsor as fee payer, the full balance can be sent. */
+export async function buildSolTransfer(
+  owner: string,
+  recipient: string,
+  lamports: bigint,
+): Promise<TransactionInstruction[]> {
+  if (lamports <= BigInt(0)) throw new Error("Amount must be positive");
+  if (lamports > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Amount is too large.");
+  }
+  const ownerKey = key(owner);
+  const recipientKey = key(recipient);
+  const balance = await getConnection().getBalance(ownerKey, "confirmed");
+  if (BigInt(balance) < lamports) {
+    throw new Error(`Insufficient SOL (have ${balance}, need ${lamports})`);
+  }
+  return [
+    SystemProgram.transfer({
+      fromPubkey: ownerKey,
+      toPubkey: recipientKey,
+      lamports: Number(lamports),
+    }),
+  ];
+}
+
+export async function getSolBalanceLamports(owner: string): Promise<number> {
+  return getConnection().getBalance(key(owner), "confirmed");
+}
+
 export type OnChainPlayerStats = {
   position: number;
   minutes_played: number;

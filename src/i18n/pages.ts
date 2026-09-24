@@ -1798,7 +1798,7 @@ export const pagesEn: PagesMessages = {
     welcomeCta: "OK",
     matchdayGate: {
       buildTeam: "Build your team",
-      trustLine: "Email · card",
+      trustLine: "Email · wallet",
       poolFallback: "—",
       poolLabel: "Prize pool",
       managersLabel: (n) =>
@@ -2871,7 +2871,7 @@ export const pagesUk: PagesMessages = {
     welcomeCta: "Добре",
     matchdayGate: {
       buildTeam: "Зібрати команду",
-      trustLine: "Email · картка",
+      trustLine: "Email · гаманець",
       poolFallback: "—",
       poolLabel: "Призовий пул",
       managersLabel: (n) =>

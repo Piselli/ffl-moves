@@ -162,8 +162,9 @@ Stats base URL на проді: `https://form8.football/data/stats`.
 5. **Вивести** (кнопка в навбарі поруч із «Поповнити»): вказати Solana-адресу
    (Phantom / біржа) + суму → Send USDC.
 
-Якщо Privy gas sponsorship увімкнено в дашборді — комісію SOL платить Privy
-(для register/claim тощо).
+Якщо Privy gas sponsorship увімкнено в дашборді — це fallback, коли Form8
+sponsor недоступний. Основний шлях для email/Google: **FORM8 fee sponsor**
+(withdraw, register, claim).
 
 **Вивід USDC (критично для email/Google):** гравець має USDC, але зазвичай
 **0 SOL**. Без fee payer вивід падає з «Something went wrong».
@@ -186,10 +187,12 @@ SOLANA_FEE_SPONSOR_KEYPAIR=[...]
 | Дія | USDC | SOL (мережа) |
 |-----|------|----------------|
 | Withdraw / send USDC (Privy) | гравець | **FORM8 fee sponsor** |
-| Register / claim (Privy) | гравець (entry) | Privy Gas sponsorship **або** SOL на гаманці гравця |
+| Register / claim (Privy) | гравець (entry) | **FORM8 fee sponsor** (мережа + ATA + rent top-up для Entry/Claim PDA) |
 | Phantom / зовнішній гаманець | гравець | гравець (у розширенні) |
 
-Інакше на гаманці гравця має бути трохи SOL (~0.01) на fee.
+Sponsor також може переказати гравцю до **0.01 SOL** на rent PDA (`init` у програмі
+все ще списує rent з owner). Без `SOLANA_FEE_SPONSOR_KEYPAIR` / Privy gas — на
+гаманці гравця має бути трохи SOL (~0.01).
 
 ### Імпорт ops-ключів (admin / house / oracle)
 

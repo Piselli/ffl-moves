@@ -3,14 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useDeposit } from "@/components/depositContext";
 import { useWallet } from "@/hooks/useSolanaWallet";
-import { buildUsdcTransfer } from "@/lib/chainClient";
+import {
+  buildSolTransfer,
+  buildUsdcTransfer,
+  getSolBalanceLamports,
+} from "@/lib/chainClient";
 import { displayAmountToRaw, ENTRY_FEE_SYMBOL, formatFeeUnits } from "@/lib/entryFee";
 import { cn, formatTxError } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+
+type WithdrawAsset = "usdc" | "sol";
 
 type WithdrawModalProps = {
   open: boolean;
@@ -34,6 +40,21 @@ function parseRecipient(raw: string): string | null {
   }
 }
 
+function formatSol(lamports: number): string {
+  const sol = lamports / LAMPORTS_PER_SOL;
+  if (sol >= 1) return sol.toFixed(4).replace(/\.?0+$/, "") || "0";
+  if (sol <= 0) return "0";
+  return sol.toFixed(6).replace(/\.?0+$/, "") || "0";
+}
+
+function parseSolToLamports(raw: string): bigint | null {
+  const n = Number(raw.replace(",", ".").trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const lamports = Math.round(n * LAMPORTS_PER_SOL);
+  if (!Number.isFinite(lamports) || lamports <= 0) return null;
+  return BigInt(lamports);
+}
+
 export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
   const w = useSiteMessages().withdraw;
   const reduce = Boolean(useReducedMotion());
@@ -41,11 +62,23 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
   const { balanceLabel, refreshBalance } = useDeposit();
   const address = account?.address ?? null;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const [asset, setAsset] = useState<WithdrawAsset>("usdc");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
+  const [solBalanceLamports, setSolBalanceLamports] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const symbol = asset === "usdc" ? ENTRY_FEE_SYMBOL : "SOL";
+  const displayBalance =
+    asset === "usdc"
+      ? connected
+        ? balanceLabel ?? "—"
+        : "—"
+      : connected && solBalanceLamports !== null
+        ? formatSol(solBalanceLamports)
+        : "—";
 
   useEffect(() => {
     setPortalRoot(document.body);
@@ -65,17 +98,38 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
     };
   }, [open, onClose]);
 
+  const refreshSol = useCallback(async () => {
+    if (!address) {
+      setSolBalanceLamports(null);
+      return;
+    }
+    try {
+      setSolBalanceLamports(await getSolBalanceLamports(address));
+    } catch {
+      setSolBalanceLamports(null);
+    }
+  }, [address]);
+
   useEffect(() => {
     if (!open) {
+      setAsset("usdc");
       setRecipient("");
       setAmount("");
       setError(null);
       setStatus(null);
       setLoading(false);
+      setSolBalanceLamports(null);
       return;
     }
     refreshBalance();
-  }, [open, refreshBalance]);
+    void refreshSol();
+  }, [open, refreshBalance, refreshSol]);
+
+  useEffect(() => {
+    setAmount("");
+    setError(null);
+    setStatus(null);
+  }, [asset]);
 
   const submit = useCallback(async () => {
     setError(null);
@@ -93,16 +147,6 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
       setError(w.sameWallet);
       return;
     }
-    const n = Number(amount.replace(",", ".").trim());
-    if (!Number.isFinite(n) || n <= 0) {
-      setError(w.invalidAmount);
-      return;
-    }
-    const raw = BigInt(displayAmountToRaw(n));
-    if (raw <= BigInt(0)) {
-      setError(w.invalidAmount);
-      return;
-    }
     setLoading(true);
     try {
       let sponsor = feePayer;
@@ -117,20 +161,56 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
           /* fall through — signAndSubmit will retry / surface error */
         }
       }
-      const ixs = await buildUsdcTransfer(address, to, raw, {
-        ataPayer: sponsor ?? undefined,
-      });
-      const sig = await signAndSubmit(ixs);
-      setStatus(w.success(formatFeeUnits(raw), to));
-      setAmount("");
-      refreshBalance();
-      console.info("USDC withdraw tx", sig);
+
+      if (asset === "sol") {
+        const lamports = parseSolToLamports(amount);
+        if (lamports === null) {
+          setError(w.invalidAmount);
+          return;
+        }
+        const ixs = await buildSolTransfer(address, to, lamports);
+        const sig = await signAndSubmit(ixs);
+        setStatus(w.success(formatSol(Number(lamports)), "SOL", to));
+        setAmount("");
+        void refreshSol();
+        console.info("SOL withdraw tx", sig);
+      } else {
+        const n = Number(amount.replace(",", ".").trim());
+        if (!Number.isFinite(n) || n <= 0) {
+          setError(w.invalidAmount);
+          return;
+        }
+        const raw = BigInt(displayAmountToRaw(n));
+        if (raw <= BigInt(0)) {
+          setError(w.invalidAmount);
+          return;
+        }
+        const ixs = await buildUsdcTransfer(address, to, raw, {
+          ataPayer: sponsor ?? undefined,
+        });
+        const sig = await signAndSubmit(ixs);
+        setStatus(w.success(formatFeeUnits(raw), ENTRY_FEE_SYMBOL, to));
+        setAmount("");
+        refreshBalance();
+        console.info("USDC withdraw tx", sig);
+      }
     } catch (err) {
       setError(formatTxError(err) || w.failed);
     } finally {
       setLoading(false);
     }
-  }, [address, amount, connected, feePayer, recipient, refreshBalance, signAndSubmit, w]);
+  }, [
+    address,
+    amount,
+    asset,
+    connected,
+    feePayer,
+    recipient,
+    refreshBalance,
+    refreshSol,
+    signAndSubmit,
+    w,
+  ]);
 
   if (!portalRoot) return null;
 
@@ -168,13 +248,37 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
                 {w.title}
               </h2>
               <p className="mt-2 text-[13px] font-medium text-white/50">{w.hint}</p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["usdc", w.assetUsdc],
+                    ["sol", w.assetSol],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setAsset(id)}
+                    className={cn(
+                      "rounded-xl border py-2.5 text-[12px] font-black uppercase tracking-[0.08em] transition-colors",
+                      asset === id
+                        ? "border-white/40 bg-white text-black"
+                        : "border-white/15 bg-black/25 text-white/70 hover:border-white/30 hover:text-white",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               <p className="mt-3 flex items-baseline gap-2 text-[13px] font-medium text-white/50">
                 {w.balanceLabel}
                 <span className="text-[17px] font-semibold tabular-nums tracking-tight text-white">
-                  {connected ? balanceLabel ?? "—" : "—"}
+                  {displayBalance}
                 </span>
                 <span className="text-[12px] font-semibold tracking-[0.06em] text-white/45">
-                  {ENTRY_FEE_SYMBOL}
+                  {symbol}
                 </span>
               </p>
 
@@ -195,7 +299,7 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
 
               <label className="mt-3 block">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-                  {w.amountLabel(ENTRY_FEE_SYMBOL)}
+                  {w.amountLabel(symbol)}
                 </span>
                 <div className="mt-1.5 flex gap-2">
                   <input
@@ -208,9 +312,18 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
                   />
                   <button
                     type="button"
-                    disabled={!balanceLabel || balanceLabel === "—"}
+                    disabled={
+                      asset === "usdc"
+                        ? !balanceLabel || balanceLabel === "—"
+                        : solBalanceLamports === null || solBalanceLamports <= 0
+                    }
                     onClick={() => {
-                      if (balanceLabel && balanceLabel !== "—") setAmount(balanceLabel);
+                      if (asset === "usdc") {
+                        if (balanceLabel && balanceLabel !== "—") setAmount(balanceLabel);
+                      } else if (solBalanceLamports !== null && solBalanceLamports > 0) {
+                        // Fee sponsor pays network fee → full balance can leave.
+                        setAmount(formatSol(solBalanceLamports));
+                      }
                     }}
                     className="shrink-0 rounded-xl border border-white/20 px-3 text-[11px] font-bold uppercase tracking-wide text-white/80 hover:border-white/40 disabled:opacity-40"
                   >
@@ -234,7 +347,7 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
                   "mt-5 w-full rounded-xl bg-white py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-[transform,opacity] duration-150 active:scale-[0.98] disabled:opacity-40",
                 )}
               >
-                {loading ? w.sending : w.submit}
+                {loading ? w.sending : w.submit(symbol)}
               </button>
 
               <button
