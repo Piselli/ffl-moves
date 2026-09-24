@@ -2,13 +2,13 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import { LOCKER_CTA, SHARE_SQUAD_CTA_STYLE } from "@/components/design-lab/locker-hero/ctaStyles";
+import { LOCKER_CTA, NAV_DEPOSIT_CTA_STYLE } from "@/components/design-lab/locker-hero/ctaStyles";
 import { cn } from "@/lib/utils";
 
 type VariantId = "A" | "B" | "C" | "D";
 
 const BTN =
-  "inline-flex h-8 items-center justify-center rounded-lg px-3 font-display text-[11px] font-black uppercase leading-none tracking-wide";
+  "box-border inline-flex h-9 items-center justify-center rounded-xl px-3 font-display text-[11px] font-black uppercase leading-none tracking-wide";
 
 function XBtn() {
   return (
@@ -64,7 +64,12 @@ function BalanceWhite() {
   return (
     <span
       className={cn(BTN, "gap-1.5 normal-case tracking-normal")}
-      style={SHARE_SQUAD_CTA_STYLE}
+      style={{
+        background: "linear-gradient(180deg, #ffffff 0%, #f6f6f7 48%, #ececee 100%)",
+        color: "#08090a",
+        boxShadow:
+          "inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.35)",
+      }}
     >
       <span className="font-display text-[12px] font-black leading-none tracking-tight text-[#08090a]">
         5.00
@@ -86,7 +91,7 @@ function DepositGreen({ style }: { style?: CSSProperties }) {
 
 function DepositWhite() {
   return (
-    <span className={BTN} style={SHARE_SQUAD_CTA_STYLE}>
+    <span className={BTN} style={NAV_DEPOSIT_CTA_STYLE}>
       Deposit
     </span>
   );
