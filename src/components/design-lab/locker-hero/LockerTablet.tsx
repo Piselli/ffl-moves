@@ -146,8 +146,10 @@ type Props = {
   onShareClick?: () => void;
   shareLabel?: string;
   shareSubline?: string;
-  /** Homepage first visit — one-screen welcome before picking. */
+  /** Homepage first visit — guided pick tour / welcome. */
   pickWelcome?: boolean;
+  /** After Matchday Gate dismiss — open How to play, then coachmarks. */
+  kickTour?: boolean;
 };
 
 type DeadlineParts = {
@@ -923,6 +925,7 @@ export function LockerTablet({
   shareLabel,
   shareSubline,
   pickWelcome = false,
+  kickTour = false,
 }: Props) {
   const reduceMotion = useReducedMotion() ?? false;
   const { variant: tabletVariant, palette, cta } =
@@ -978,6 +981,9 @@ export function LockerTablet({
   const [clock, setClock] = useState("");
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const [scoringOpen, setScoringOpen] = useState(false);
+  const [howtoOpen, setHowtoOpen] = useState(false);
+  /** Gate handoff: after How to play closes, start the 5-step coachmarks once. */
+  const pendingTourAfterHowtoRef = useRef(false);
   const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
@@ -987,7 +993,27 @@ export function LockerTablet({
     enabled: pickWelcome,
     filledCount,
     hasCaptain,
+    kickTour,
   });
+
+  // Gate → visual How to play first; coachmarks follow when plaque finishes.
+  useEffect(() => {
+    if (!kickTour) return;
+    pendingTourAfterHowtoRef.current = true;
+    setHowtoOpen(true);
+  }, [kickTour]);
+
+  const finishHowto = useCallback(
+    (startTour: boolean) => {
+      setHowtoOpen(false);
+      const fromGate = pendingTourAfterHowtoRef.current;
+      pendingTourAfterHowtoRef.current = false;
+      if (fromGate || startTour) {
+        pickTour.beginGuidedTour();
+      }
+    },
+    [pickTour],
+  );
   const scoringTourActive =
     pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "scoring";
   const registerTourActive =
@@ -1359,7 +1385,7 @@ export function LockerTablet({
           >
             <button
               type="button"
-              onClick={() => pickTour.replay()}
+              onClick={() => setHowtoOpen(true)}
               className="rounded-lg border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/90 transition active:scale-[0.98]"
             >
               {pickCopy.howToPlayBtn}
@@ -1384,7 +1410,7 @@ export function LockerTablet({
         >
           <button
             type="button"
-            onClick={() => pickTour.replay()}
+            onClick={() => setHowtoOpen(true)}
             className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
           >
             {pickCopy.howToPlayBtn}
@@ -2339,6 +2365,14 @@ export function LockerTablet({
         messages={m}
         containerRef={tabletRootRef}
         scoringOpen={scoringOpen}
+      />
+      <PickHelpOverlay
+        kind="howto"
+        open={howtoOpen}
+        onClose={() => finishHowto(false)}
+        onContinue={() => finishHowto(true)}
+        continueLabel={pickCopy.howToPlayContinue}
+        messages={m}
       />
       <PickHelpOverlay
         kind="scoring"

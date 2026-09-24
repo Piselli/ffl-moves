@@ -714,7 +714,15 @@ export type PagesMessages = {
     scoringFaqLink: string;
     howToPlayTitle: string;
     howToPlaySubtitle: string;
-    howToPlaySteps: string[];
+    /** Illustrated how-to steps (mobile + desktop overlay). */
+    howToPlaySteps: Array<{
+      title: string;
+      /** One or two short lines under the title. */
+      body: string[];
+      art: "squad" | "points" | "entry" | "split";
+    }>;
+    /** Under the visual how-to — starts the 5-step coachmark tour. */
+    howToPlayContinue: string;
     chooseCaptainHint: string;
     chooseCaptainBanner: string;
     setCaptainLabel: string;
@@ -738,14 +746,11 @@ export type PagesMessages = {
     matchdayGate: {
       buildTeam: string;
       trustLine: string;
-      closesIn: (label: string) => string;
-      closedLabel: string;
-      openLabel: string;
       poolFallback: string;
       poolLabel: string;
       managersLabel: (n: number) => string;
       managersFallback: string;
-      gwLabel: (id: number | string) => string;
+      fundLines: [string, string];
     };
     /** Guided pick tour (coachmarks). */
     tourBtn: string;
@@ -1721,13 +1726,43 @@ export const pagesEn: PagesMessages = {
     prizeSplitHint: "",
     scoringFaqLink: "FAQ",
     howToPlayTitle: "How to play",
-    howToPlaySubtitle: "A squad for this Premier League weekend. Points from real matches.",
+    howToPlaySubtitle: "One PL weekend · real points · entry pool",
     howToPlaySteps: [
-      "Pick 11 starters and 3 on the bench",
-      "Tap C on a starter — captain scores double",
-      "Max 3 players from one club",
-      "After the matches, the top 10 split the prize pool",
+      {
+        title: "Build your squad",
+        body: [
+          "11 starters + 3 on the bench.",
+          "Captain scores double.",
+        ],
+        art: "squad",
+      },
+      {
+        title: "Points from real matches",
+        body: [
+          "Goals, assists, cards from live matches.",
+          "Full table under Scoring.",
+        ],
+        art: "points",
+      },
+      {
+        title: "Register your squad for $5",
+        body: [
+          "$4 goes to the prize pool.",
+          "$1 is the platform fee.",
+        ],
+        art: "entry",
+      },
+      {
+        title: "Top 10 split the pool",
+        body: [
+          "Ranks lock in after the gameweek.",
+          "Top 10 claim on the leaderboard.",
+        ],
+        art: "split",
+      },
     ],
+    /** CTA under the visual how-to — opens the 5-step coachmark tour. */
+    howToPlayContinue: "Show me how",
     chooseCaptainHint: "Hover a starter · tap C for captain",
     chooseCaptainBanner: "Squad complete — pick your captain for double points",
     setCaptainLabel: "Set as captain",
@@ -1751,15 +1786,15 @@ export const pagesEn: PagesMessages = {
     matchdayGate: {
       buildTeam: "Build your team",
       trustLine: "Email · card",
-      closesIn: (label) => `${label} left`,
-      closedLabel: "Closed",
-      openLabel: "Open",
       poolFallback: "—",
       poolLabel: "Prize pool",
       managersLabel: (n) =>
         n === 1 ? "1 manager in" : `${n} managers in`,
       managersFallback: "…",
-      gwLabel: (id) => `Game Week ${id}`,
+      fundLines: [
+        "Squad entry is $5 — it funds this pool.",
+        "Top 10 split it after the matches.",
+      ],
     },
     tourBtn: "Tour",
     tourSkip: "Skip",
@@ -2759,13 +2794,42 @@ export const pagesUk: PagesMessages = {
     prizeSplitHint: "",
     scoringFaqLink: "FAQ",
     howToPlayTitle: "Як грати",
-    howToPlaySubtitle: "Склад на вікенд АПЛ. Очки — з реальних матчів.",
+    howToPlaySubtitle: "Тур АПЛ · очки з матчів · пул внесків",
     howToPlaySteps: [
-      "Обери 11 в основі і 3 запасних",
-      "Натисни C на гравці в основі — капітан дає подвійні очки",
-      "Не більше 3 з одного клубу",
-      "Після матчів топ-10 ділять призовий фонд",
+      {
+        title: "Збери склад",
+        body: [
+          "11 в основі + 3 запасні.",
+          "Капітан дає подвійні очки.",
+        ],
+        art: "squad",
+      },
+      {
+        title: "Очки з реальних матчів",
+        body: [
+          "Голи, асисти, картки з живих матчів.",
+          "Повна таблиця в «Очки».",
+        ],
+        art: "points",
+      },
+      {
+        title: "Реєстрація складу за $5",
+        body: [
+          "$4 йде в призовий пул.",
+          "$1 комісія платформи.",
+        ],
+        art: "entry",
+      },
+      {
+        title: "Топ-10 ділять пул",
+        body: [
+          "Місця фіксуються після туру.",
+          "Топ-10 забирають з лідерборду.",
+        ],
+        art: "split",
+      },
     ],
+    howToPlayContinue: "Покажи як",
     chooseCaptainHint: "Наведи на гравця в основі · C — капітан",
     chooseCaptainBanner: "Склад готовий — обери капітана (подвійні очки)",
     setCaptainLabel: "Зробити капітаном",
@@ -2789,15 +2853,15 @@ export const pagesUk: PagesMessages = {
     matchdayGate: {
       buildTeam: "Зібрати команду",
       trustLine: "Email · картка",
-      closesIn: (label) => `${label}`,
-      closedLabel: "Closed",
-      openLabel: "Open",
       poolFallback: "—",
       poolLabel: "Призовий пул",
       managersLabel: (n) =>
         n === 1 ? "1 менеджер у грі" : `${n} менеджерів у грі`,
       managersFallback: "…",
-      gwLabel: (id) => `Game Week ${id}`,
+      fundLines: [
+        "Реєстрація складу — $5 у цей пул.",
+        "Топ-10 ділять після матчів.",
+      ],
     },
     tourBtn: "Тур",
     tourSkip: "Пропустити",

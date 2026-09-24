@@ -71,6 +71,12 @@ function visibleAnchors(
       return r.width >= 4 && r.height >= 4;
     })
     .sort((a, b) => {
+      // Register: prefer the lower CTA (mobile footer over desktop column).
+      if (step === "register") {
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        if (Math.abs(rb.bottom - ra.bottom) > 4) return rb.bottom - ra.bottom;
+      }
       const ra = a.getBoundingClientRect();
       const rb = b.getBoundingClientRect();
       return rb.width * rb.height - ra.width * ra.height;
@@ -192,7 +198,18 @@ function tipPlacement(
   }
 
   if (step === "players") {
-    // Sit in the tablet center (pitch side), clear of the players list on the right.
+    // Mobile: tip up top so the player list stays tappable under it.
+    if (rootW < 640) {
+      return {
+        top: margin + 4,
+        bottom: "auto",
+        left: margin,
+        right: margin,
+        width: Math.min(width, rootW - margin * 2),
+        maxHeight: Math.min(TIP_EST_H, rootH * 0.42),
+      };
+    }
+    // Desktop: sit on the pitch side, clear of the players list on the right.
     const gap = 14;
     const left = hole
       ? Math.max(margin, Math.min(hole.left - width - gap, rootW - width - margin))
@@ -211,7 +228,65 @@ function tipPlacement(
     };
   }
 
-  if (step === "formation" || step === "captain") {
+  if (step === "formation") {
+    // Formation control sits on the pitch fringe (bottom) — tip just above it.
+    if (rootW < 640) {
+      const tipW = Math.min(width, rootW - margin * 2);
+      if (hole) {
+        const gap = 10;
+        return {
+          top: "auto",
+          bottom: Math.max(margin + 8, rootH - hole.top + gap),
+          left: Math.max(margin, Math.min(hole.left, rootW - tipW - margin)),
+          right: "auto",
+          width: tipW,
+          maxHeight: Math.min(TIP_EST_H, Math.max(120, hole.top - margin - gap)),
+        };
+      }
+      return {
+        top: "auto",
+        bottom: margin + 56,
+        left: margin,
+        right: margin,
+        width: tipW,
+        maxHeight: TIP_EST_H,
+      };
+    }
+    return {
+      top: "auto",
+      bottom: margin,
+      right: margin,
+      left: "auto",
+      width,
+    };
+  }
+
+  if (step === "captain") {
+    // Below the highlighted player / toward GK — still fully on screen.
+    if (rootW < 640) {
+      const tipW = Math.min(width, rootW - margin * 2);
+      const tipH = Math.min(TIP_EST_H, rootH * 0.36);
+      if (hole) {
+        const below = hole.top + hole.height + 10;
+        const maxTop = rootH - tipH - margin - 64; // clear bottom nav / fringe
+        return {
+          top: Math.max(margin, Math.min(below, maxTop)),
+          bottom: "auto",
+          left: margin,
+          right: margin,
+          width: tipW,
+          maxHeight: tipH,
+        };
+      }
+      return {
+        top: "auto",
+        bottom: margin + 72,
+        left: margin,
+        right: margin,
+        width: tipW,
+        maxHeight: tipH,
+      };
+    }
     return {
       top: "auto",
       bottom: margin,
@@ -256,15 +331,33 @@ function tipPlacement(
     };
   }
 
-  // Register tip — just left of the CTA, without covering it.
+  // Register tip — bottom edge sits just above the CTA (grows upward).
   if (step === "register") {
-    const gap = 14;
     const tipW = Math.min(300, width);
+    const gap = 12;
     if (hole) {
+      const spaceAbove = hole.top - margin;
+      const preferAbove = rootW < 640 || spaceAbove >= 140;
+      if (preferAbove) {
+        return {
+          top: "auto",
+          bottom: Math.max(margin, rootH - hole.top + gap),
+          left: Math.max(
+            margin,
+            Math.min(
+              hole.left + hole.width / 2 - tipW / 2,
+              rootW - tipW - margin,
+            ),
+          ),
+          right: "auto",
+          width: tipW,
+          maxHeight: Math.max(128, spaceAbove - gap),
+        };
+      }
       return {
         top: "auto",
         bottom: margin,
-        left: Math.max(margin, hole.left - tipW - gap),
+        left: Math.max(margin, hole.left - tipW - 14),
         right: "auto",
         width: tipW,
         maxHeight: rootH - margin * 2,
@@ -272,8 +365,8 @@ function tipPlacement(
     }
     return {
       top: "auto",
-      bottom: margin,
-      left: margin,
+      bottom: margin + 72,
+      left: Math.max(margin, (rootW - tipW) / 2),
       right: "auto",
       width: tipW,
       maxHeight: rootH - margin * 2,

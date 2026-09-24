@@ -161,6 +161,9 @@ export function LockerHero({
   const [introReveal, setIntroReveal] = useState(!isSite);
   /** Phone Matchday Gate — `null` until flat + storage known (avoids picker flash). */
   const [matchdayGate, setMatchdayGate] = useState<boolean | null>(null);
+  /** Phone: after gate → force the 5-step coachmark tour. */
+  const [kickTour, setKickTour] = useState(false);
+  const gateDismissedRef = useRef(false);
 
   useEffect(() => {
     if (!isSite || !flatPicker) {
@@ -171,13 +174,18 @@ export function LockerHero({
       setMatchdayGate(false);
       return;
     }
+    // Don't resurrect the gate after the user already entered this session
+    // (esp. with `?gate=1`, which would otherwise win every re-run).
+    if (gateDismissedRef.current) return;
     setMatchdayGate(shouldShowMatchdayGate());
   }, [flatPicker, isSite, register.alreadyRegistered]);
 
   const dismissMatchdayGate = useCallback(() => {
+    gateDismissedRef.current = true;
     markMatchdayGateSeen();
     markPickWelcomeSeen();
     setMatchdayGate(false);
+    setKickTour(true);
   }, []);
 
   const onRoomImageLoad = useCallback(() => setRoomImageReady(true), []);
@@ -414,7 +422,8 @@ export function LockerHero({
       onShareClick={() => register.setShareOpen(true)}
       shareLabel={messages.pages.squadShare.registeredShareButton}
       shareSubline={messages.pages.squadShare.registeredShareSubline}
-      pickWelcome={isSite && !bootMounted && !flatPicker}
+      pickWelcome={isSite && !bootMounted}
+      kickTour={kickTour}
     />
   );
 
@@ -422,8 +431,6 @@ export function LockerHero({
     data.chainLoading || data.prizePoolRaw == null
       ? "—"
       : prize.formatHero(data.prizePoolRaw, locale === "uk" ? "uk" : "en");
-  const gateGwId =
-    data.fixtures?.gameweek?.id ?? data.openGwId ?? null;
   const gateCopy = messages.pages.lockerPick.matchdayGate;
 
   return (
@@ -580,10 +587,8 @@ export function LockerHero({
         <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden bg-black pt-14 md:pt-[4.25rem]">
           {!bootMounted && matchdayGate === true ? (
             <MatchdayGate
-              gwId={gateGwId}
               prizeLabel={gatePrizeLabel}
               entries={data.entries}
-              deadlineIso={data.fixtures?.gameweek?.deadlineTime ?? null}
               loading={data.chainLoading || data.fixturesLoading}
               copy={gateCopy}
               onEnter={dismissMatchdayGate}

@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
+import { HowToStepArt } from "@/components/design-lab/locker-hero/HowToStepArt";
+import { LOCKER_CTA } from "@/components/design-lab/locker-hero/ctaStyles";
 import type { SiteMessages } from "@/i18n/messages";
 import {
   ASSIST_POINTS,
@@ -35,24 +37,20 @@ type Props = {
   messages: SiteMessages;
   /** Tour spotlight target when this plaque is open. */
   tourAnchor?: string;
+  /** How to play — primary CTA after the visual loop (starts the 5-step tour). */
+  onContinue?: () => void;
+  continueLabel?: string;
 };
 
 type Row = { label: string; value?: string };
 
-function useRows(kind: Kind, m: SiteMessages): { title: string; rows: Row[] } {
+function useScoringRows(m: SiteMessages): { title: string; rows: Row[] } {
   const g = m.scoringGains;
   const a = m.positionAbbrev;
   const pick = m.pages.lockerPick;
   const home = m.home;
 
   return useMemo(() => {
-    if (kind === "howto") {
-      return {
-        title: pick.howToPlayTitle,
-        rows: pick.howToPlaySteps.map((label) => ({ label })),
-      };
-    }
-
     const ratingPlus = (tenths: number) =>
       RATING_BONUS_TIERS.find((t) => t.minTenths === tenths)?.points ?? 0;
 
@@ -97,12 +95,12 @@ function useRows(kind: Kind, m: SiteMessages): { title: string; rows: Row[] } {
         { label: g.fplBonus, value: `+0–${FPL_BONUS_MAX}` },
       ],
     };
-  }, [a, g, home, kind, pick]);
+  }, [a, g, home, pick.scoringTitle]);
 }
 
 /**
- * Help plaque — same family as Login / Deposit:
- * crystal GlassPanel, noble white type, TripleD spring enter.
+ * Help plaque — same family as Login / Deposit.
+ * How to play: illustrated steps + continue into the 5-step coachmark tour.
  */
 export function PickHelpOverlay({
   kind,
@@ -110,10 +108,13 @@ export function PickHelpOverlay({
   onClose,
   messages: m,
   tourAnchor,
+  onContinue,
+  continueLabel,
 }: Props) {
   const reduce = Boolean(useReducedMotion());
   const pick = m.pages.lockerPick;
-  const { title, rows } = useRows(kind, m);
+  const scoring = useScoringRows(m);
+  const title = kind === "howto" ? pick.howToPlayTitle : scoring.title;
   const titleId = `lt-help-${kind}`;
   const overlay = modalOverlayMotion(reduce);
   const panel = modalPanelMotion(reduce);
@@ -137,52 +138,90 @@ export function PickHelpOverlay({
             aria-modal="true"
             aria-labelledby={titleId}
             data-tour-anchor={tourAnchor}
-            className="relative z-10 w-full max-w-[400px]"
+            className="relative z-10 w-full max-w-[min(440px,100%)]"
             initial={panel.initial}
             animate={panel.animate}
             exit={panel.exit}
             transition={panel.transition}
           >
             <div className={BACKPLATE}>
-              <GlassPanel crystal className="w-full !rounded-2xl p-5 sm:p-6">
+              <GlassPanel crystal className="w-full !rounded-2xl p-4 sm:p-5">
                 <h2
                   id={titleId}
-                  className="pr-9 text-[22px] font-black uppercase tracking-[-0.02em] text-white"
+                  className="pr-9 text-[20px] font-black uppercase tracking-[-0.02em] text-white sm:text-[22px]"
                   style={DISPLAY}
                 >
                   {title}
                 </h2>
                 {kind === "howto" && pick.howToPlaySubtitle ? (
-                  <p className="mt-1.5 pr-9 text-[13px] font-medium leading-snug text-white/55">
+                  <p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap pr-9 text-[11px] font-medium leading-none text-white/55">
                     {pick.howToPlaySubtitle}
                   </p>
                 ) : null}
 
-                <ul className="mt-4 max-h-[min(52vh,420px)] space-y-0 overflow-y-auto overscroll-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin]">
-                  {rows.map((row, i) => (
-                    <li
-                      key={`${row.label}-${row.value ?? ""}`}
-                      className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] py-2.5 last:border-0"
-                    >
-                      <span className="min-w-0 text-[14px] font-medium leading-snug text-white/88">
-                        {kind === "howto" ? (
-                          <span className="mr-2.5 tabular-nums text-white/40">
-                            {String(i + 1).padStart(2, "0")}
+                {kind === "howto" ? (
+                  <>
+                    <ul className="mt-3 space-y-1.5">
+                      {pick.howToPlaySteps.map((step) => (
+                        <li
+                          key={step.title}
+                          className="flex items-start gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] p-1.5 pr-2.5"
+                        >
+                          <HowToStepArt id={step.art} />
+                          <div className="min-w-0 pt-0.5">
+                            <p
+                              className="text-[13px] font-bold leading-snug text-white"
+                              style={DISPLAY}
+                            >
+                              {step.title}
+                            </p>
+                            <div className="mt-0.5 space-y-0.5">
+                              {step.body.map((line) => (
+                                <p
+                                  key={line}
+                                  className="text-[11px] font-medium leading-snug text-white/55"
+                                >
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {onContinue ? (
+                      <button
+                        type="button"
+                        onClick={onContinue}
+                        className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-[14px] font-black uppercase tracking-[0.06em] text-white transition hover:brightness-[1.06] active:scale-[0.985]"
+                        style={LOCKER_CTA.style}
+                      >
+                        {continueLabel ?? pick.tourNext}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <ul className="mt-4 max-h-[min(52vh,420px)] space-y-0 overflow-y-auto overscroll-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin]">
+                    {scoring.rows.map((row) => (
+                      <li
+                        key={`${row.label}-${row.value ?? ""}`}
+                        className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] py-2.5 last:border-0"
+                      >
+                        <span className="min-w-0 text-[14px] font-medium leading-snug text-white/88">
+                          {row.label}
+                        </span>
+                        {row.value ? (
+                          <span
+                            className="shrink-0 text-right text-[13px] font-semibold tabular-nums tracking-tight text-white"
+                            style={DISPLAY}
+                          >
+                            {row.value}
                           </span>
                         ) : null}
-                        {row.label}
-                      </span>
-                      {row.value ? (
-                        <span
-                          className="shrink-0 text-right text-[13px] font-semibold tabular-nums tracking-tight text-white"
-                          style={DISPLAY}
-                        >
-                          {row.value}
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </GlassPanel>
             </div>
 
