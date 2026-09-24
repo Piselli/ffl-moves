@@ -117,18 +117,18 @@ export const SHARE_SQUAD_CTA_STYLE: CSSProperties = {
 };
 
 /**
- * Compact nav Deposit — clean white convex, no neon halo (matches h-9 peers).
+ * Compact nav Deposit — soft convex green (register family). Inviting, not neon.
  */
 export const NAV_DEPOSIT_CTA_STYLE: CSSProperties = {
   background:
-    "linear-gradient(180deg, #ffffff 0%, #f6f6f7 48%, #ececee 100%)",
-  color: "#08090a",
-  textShadow: "none",
+    "linear-gradient(180deg, #2fd46a 0%, #18b34f 48%, #0f8f3c 100%)",
+  color: "#FFFFFF",
+  textShadow: "0 1px 1px rgba(0,0,0,0.28)",
   boxShadow: [
-    "inset 0 1px 0 rgba(255,255,255,1)",
-    "inset 0 -1px 0 rgba(0,0,0,0.08)",
-    "0 0 0 1px rgba(255,255,255,0.12)",
-    "0 1px 2px rgba(0,0,0,0.35)",
+    "inset 0 1px 0 rgba(255,255,255,0.45)",
+    "inset 0 -1.5px 3px rgba(0,40,14,0.35)",
+    "0 1px 2px rgba(0,0,0,0.3)",
+    "0 4px 12px rgba(12,100,45,0.28)",
   ].join(", "),
 };
 

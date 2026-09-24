@@ -27,10 +27,6 @@ import type { Player, TeamResult } from "@/lib/types";
 import type { SeasonLeaderboardPayload } from "@/lib/seasonPoints";
 import type { HonorBoardPayload } from "@/lib/honorBoard";
 import {
-  LAB_HONOR_BOARD,
-  LAB_LEADERBOARD,
-  LAB_PREV_LEADERBOARD,
-  LAB_SEASON_HIGHLIGHTS,
   type HonorBoardRow,
   type LabLeaderboardRow,
   type LabLeaderboardSnapshot,
@@ -42,6 +38,16 @@ import {
   inferFormationFromPositions,
   type FormationId,
 } from "@/lib/formation";
+
+const EMPTY_BOARD: LabLeaderboardSnapshot = {
+  gameweek: 0,
+  status: "closed",
+  prizePoolLabel: "0",
+  prizeSymbol: "USDC",
+  entries: 0,
+  isPreview: false,
+  rows: [],
+};
 
 type XiPayload = {
   xi: LabSquadPlayer[];
@@ -79,7 +85,7 @@ function eplScanCeiling(highestId: number): number {
 }
 
 export type ResultsRoomData = {
-  source: "live" | "mock";
+  source: "live" | "empty";
   loading: boolean;
   tablet: LabLeaderboardSnapshot;
   wallPrev: LabLeaderboardSnapshot;
@@ -193,13 +199,12 @@ export function useResultsRoomData(): ResultsRoomData {
   const wallet = account?.address?.toString() ?? null;
 
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<"live" | "mock">("mock");
-  const [tablet, setTablet] = useState<LabLeaderboardSnapshot>(LAB_LEADERBOARD);
-  const [wallPrev, setWallPrev] = useState<LabLeaderboardSnapshot>(LAB_PREV_LEADERBOARD);
+  const [source, setSource] = useState<"live" | "empty">("empty");
+  const [tablet, setTablet] = useState<LabLeaderboardSnapshot>(EMPTY_BOARD);
+  const [wallPrev, setWallPrev] = useState<LabLeaderboardSnapshot>(EMPTY_BOARD);
   const [seasonHighlights, setSeasonHighlights] =
-    useState<readonly SeasonHighlightRow[]>(LAB_SEASON_HIGHLIGHTS);
-  const [honorBoard, setHonorBoard] =
-    useState<readonly HonorBoardRow[]>(LAB_HONOR_BOARD);
+    useState<readonly SeasonHighlightRow[]>([]);
+  const [honorBoard, setHonorBoard] = useState<readonly HonorBoardRow[]>([]);
   const [honorSymbol, setHonorSymbol] = useState("USDC");
   const [selectedGw, setSelectedGw] = useState(0);
   const [resolvedPair, setResolvedPair] = useState<number[]>([]);
@@ -239,19 +244,16 @@ export function useResultsRoomData(): ResultsRoomData {
     void fetch("/api/honor-board")
       .then((r) => (r.ok ? (r.json() as Promise<HonorBoardPayload>) : null))
       .then((honorRes) => {
-        if (cancelled || !honorRes?.entries?.length) return;
-        // Sparse early seasons (few prize winners) — keep full top-10 mock
-        // so the wall still reads as an honor board, not an empty plaque.
-        if (honorRes.entries.length < 10) {
-          setHonorBoard(LAB_HONOR_BOARD);
-          setHonorSymbol(honorRes.symbol || "USDC");
-          return;
-        }
+        if (cancelled || !honorRes) return;
         setHonorSymbol(honorRes.symbol || "USDC");
-        setHonorBoard(honorFromPayload(honorRes, getNickname, wallet));
+        setHonorBoard(
+          honorRes.entries?.length
+            ? honorFromPayload(honorRes, getNickname, wallet)
+            : [],
+        );
       })
       .catch(() => {
-        /* keep LAB_HONOR_BOARD */
+        if (!cancelled) setHonorBoard([]);
       });
     return () => {
       cancelled = true;
@@ -334,16 +336,15 @@ export function useResultsRoomData(): ResultsRoomData {
         setTablet(tabletSnap);
         setSource("live");
       } else {
-        // Keep the preview sheet until published results land — an empty
-        // table reads as broken, not as "still loading".
-        setSource("mock");
-        setTablet({
-          ...LAB_LEADERBOARD,
-          gameweek: selectedGw || LAB_LEADERBOARD.gameweek,
-          prizePoolLabel:
-            tabletSnap?.prizePoolLabel ?? LAB_LEADERBOARD.prizePoolLabel,
-          prizeSymbol: tabletSnap?.prizeSymbol ?? LAB_LEADERBOARD.prizeSymbol,
-        });
+        setSource("empty");
+        setTablet(
+          tabletSnap
+            ? { ...tabletSnap, rows: [] }
+            : {
+                ...EMPTY_BOARD,
+                gameweek: selectedGw || 0,
+              },
+        );
       }
 
       if (prevSnap) {
@@ -351,13 +352,13 @@ export function useResultsRoomData(): ResultsRoomData {
       } else if (tabletSnap) {
         setWallPrev(tabletSnap);
       } else {
-        setWallPrev(LAB_PREV_LEADERBOARD);
+        setWallPrev(EMPTY_BOARD);
       }
     } catch (e) {
       console.error("Results room board load failed", e);
-      setSource("mock");
-      setTablet(LAB_LEADERBOARD);
-      setWallPrev(LAB_PREV_LEADERBOARD);
+      setSource("empty");
+      setTablet(EMPTY_BOARD);
+      setWallPrev(EMPTY_BOARD);
     } finally {
       setLoading(false);
     }

@@ -7,13 +7,14 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import { ENTRY_FEE_SYMBOL } from "@/lib/entryFee";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
+import { NAV_TRAY_BTN, navWhiteCtaStyle } from "@/components/navUtilityStyles";
 
 type Props = {
   variant?: "chip" | "cluster";
   className?: string;
 };
 
-/** Balance — click opens Deposit / Withdraw. Cluster = flat aligned type (interim). */
+/** Balance — click opens Deposit / Withdraw menu. Cluster reads as a real control. */
 export function NavUsdcBalance({ variant = "chip", className }: Props) {
   const { connected } = useWallet();
   const { openDeposit, openWithdraw, balanceLabel } = useDeposit();
@@ -54,12 +55,12 @@ export function NavUsdcBalance({ variant = "chip", className }: Props) {
         onClick={() => setOpen((v) => !v)}
         aria-label={`${d.balanceLabel} ${amount} ${ENTRY_FEE_SYMBOL}`}
         title={d.balanceLabel}
+        style={variant === "cluster" ? navWhiteCtaStyle : undefined}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 tabular-nums transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]",
+          "inline-flex shrink-0 items-center gap-1.5 tabular-nums transition-[transform,filter,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]",
           variant === "chip" &&
             "h-8 rounded-lg border border-white/20 bg-black/40 px-2.5 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm hover:border-white/35",
-          variant === "cluster" &&
-            "h-9 rounded-xl px-2.5 hover:bg-white/[0.06]",
+          variant === "cluster" && cn(NAV_TRAY_BTN, "gap-1.5 px-2.5"),
         )}
       >
         <motion.span
@@ -68,7 +69,7 @@ export function NavUsdcBalance({ variant = "chip", className }: Props) {
             "leading-none",
             variant === "chip" && "font-semibold tracking-tight text-white",
             variant === "cluster" &&
-              "font-display text-[13px] font-black tracking-tight text-white",
+              "font-display text-[12px] font-black tracking-tight text-[#08090a]",
           )}
           initial={reduce ? false : { opacity: 0.65, filter: "blur(2px)" }}
           animate={{ opacity: 1, filter: "blur(0px)" }}
@@ -81,11 +82,30 @@ export function NavUsdcBalance({ variant = "chip", className }: Props) {
             "leading-none",
             variant === "chip" && "font-semibold tracking-[0.06em] text-white/50",
             variant === "cluster" &&
-              "font-display text-[10px] font-black uppercase tracking-[0.1em] text-white/45",
+              "font-display text-[10px] font-black uppercase tracking-[0.08em] text-[#08090a]/50",
           )}
         >
           {ENTRY_FEE_SYMBOL}
         </span>
+        {variant === "cluster" ? (
+          <svg
+            className={cn(
+              "h-2.5 w-2.5 shrink-0 text-[#08090a]/45 transition-transform duration-150",
+              open && "rotate-180",
+            )}
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M2.5 4.5 6 8l3.5-3.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ) : null}
       </button>
 
       <AnimatePresence>

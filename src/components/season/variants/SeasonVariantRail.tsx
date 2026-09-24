@@ -76,17 +76,21 @@ export function SeasonVariantRail({
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <GlassPanel matte className="flex min-h-0 flex-col !rounded-xl px-3 pb-0 pt-2.5 sm:px-4 sm:pt-3">
-          <SeasonLeaderboardTable
-            entries={data.entries}
-            currentUser={wallet}
-            showBreakdown
-            focusOwner={focusOwner}
-            pulseYou={pulseYou}
-            variant="board"
-            page={page}
-            pageSize={RAIL_PAGE_SIZE}
-            onPageChange={setPage}
-          />
+          {data.entries.length === 0 ? (
+            <p className="px-2 py-10 text-center text-sm text-white/40">{m.emptyHint}</p>
+          ) : (
+            <SeasonLeaderboardTable
+              entries={data.entries}
+              currentUser={wallet}
+              showBreakdown
+              focusOwner={focusOwner}
+              pulseYou={pulseYou}
+              variant="board"
+              page={page}
+              pageSize={RAIL_PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          )}
         </GlassPanel>
 
         <div className="hidden xl:block">

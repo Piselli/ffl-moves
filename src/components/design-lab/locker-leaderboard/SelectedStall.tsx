@@ -182,7 +182,7 @@ export function SelectedStall() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
                 GW {s.data.gameweek}
                 {room.loading ? " · …" : ""}
-                {room.source === "mock" ? " · preview" : ""}
+                {room.source === "empty" ? " · awaiting results" : ""}
               </p>
               <p className="mt-0.5 truncate font-[family-name:var(--font-onest),system-ui,sans-serif] text-[12px] text-white/55">
                 {s.open

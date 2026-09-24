@@ -9,7 +9,6 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import { tourOwnersMatch } from "@/lib/tourClaimHistory";
 import { useSeasonStandingsData } from "./useSeasonStandingsData";
 import { type SeasonStandingsContext } from "./seasonStandingsShared";
-import { resolveDemoWallet, resolveSeasonPayload } from "./seasonStandingsMockData";
 import { SeasonPageWash } from "./seasonPageChrome";
 import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import { cn } from "@/lib/utils";
@@ -25,18 +24,14 @@ export function SeasonStandingsShell() {
   const [focusOwner, setFocusOwner] = useState<string | null>(null);
   const [pulseYou, setPulseYou] = useState(false);
 
-  const { payload, isDemo } = useMemo(() => resolveSeasonPayload(data), [data]);
-
-  const effectiveWallet = resolveDemoWallet(wallet, isDemo);
   const myEntry = useMemo(() => {
-    if (!effectiveWallet) return null;
-    return payload.entries.find((e) => tourOwnersMatch(e.owner, effectiveWallet)) ?? null;
-  }, [payload.entries, effectiveWallet]);
+    if (!wallet || !data) return liveMyEntry;
+    return data.entries.find((e) => tourOwnersMatch(e.owner, wallet)) ?? liveMyEntry;
+  }, [data, wallet, liveMyEntry]);
 
   const onFindMe = () => {
-    const target = isDemo ? myEntry : liveMyEntry ?? myEntry;
-    if (!target) return;
-    setFocusOwner(target.owner);
+    if (!myEntry) return;
+    setFocusOwner(myEntry.owner);
     document.getElementById("season-you")?.scrollIntoView({
       behavior: reduceMotion ? "auto" : "smooth",
       block: "center",
@@ -47,24 +42,27 @@ export function SeasonStandingsShell() {
     }
   };
 
-  const showContent = !isLoading && (!error || isDemo);
+  const showContent = !isLoading && !error && !!data && data.status !== "inactive";
 
-  const ctx: SeasonStandingsContext = {
-    data: payload,
-    wallet: effectiveWallet,
-    myEntry,
-    focusOwner,
-    pulseYou,
-    onFindMe,
-    isDemo,
-  };
+  const ctx: SeasonStandingsContext | null =
+    showContent && data
+      ? {
+          data,
+          wallet,
+          myEntry,
+          focusOwner,
+          pulseYou,
+          onFindMe,
+          isDemo: false,
+        }
+      : null;
 
   return (
     <div className="relative min-h-screen bg-[#0D0F12] text-white">
       <SeasonPageWash warm={false} />
       <LockerLabNav liveLinks />
 
-      {showContent ? (
+      {ctx ? (
         <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
           <SeasonVariantRail ctx={ctx} connected={!!account} />
         </div>
@@ -74,11 +72,11 @@ export function SeasonStandingsShell() {
             <p className="py-12 text-sm text-white/35">{m.loading}</p>
           ) : null}
 
-          {!isLoading && error && !isDemo ? (
+          {!isLoading && error ? (
             <p className="py-12 text-sm text-amber-200/70">{m.loadError(error)}</p>
           ) : null}
 
-          {!isLoading && !error && data?.status === "inactive" && !isDemo ? (
+          {!isLoading && !error && (data?.status === "inactive" || !data) ? (
             <p className="py-12 text-sm text-white/40">{m.inactiveHint}</p>
           ) : null}
         </main>

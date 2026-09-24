@@ -32,14 +32,14 @@ type Props = {
 };
 
 const NAV_LINK =
-  "inline-flex h-9 items-center px-2.5 text-sm font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10";
+  "inline-flex h-9 items-center px-1.5 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10 sm:px-2 lg:px-2.5 lg:text-sm lg:tracking-[0.14em]";
 
 export function LockerTalentsSoon({ className }: { className?: string }) {
   const m = useSiteMessages();
   return (
     <span
       className={cn(
-        "relative inline-flex h-8 cursor-not-allowed select-none items-center px-2.5 pr-9 text-[13px] font-semibold uppercase leading-none tracking-[0.14em] text-white/30",
+        "relative inline-flex h-8 cursor-not-allowed select-none items-center px-1.5 pr-8 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-white/30 sm:px-2 sm:pr-9 lg:text-[13px] lg:tracking-[0.14em]",
         className,
       )}
     >
@@ -113,7 +113,7 @@ function Right({ compact = false }: { compact?: boolean }) {
           >
             {m.deposit.open}
           </button>
-          {/* Variant D — quiet balance · white deposit · live-dot nick */}
+          {/* White bone balance · soft green deposit · live-dot nick */}
           <div className={cn("hidden items-center gap-1.5 md:inline-flex")}>
             <NavUsdcBalance
               variant="cluster"
@@ -192,9 +192,10 @@ function Right({ compact = false }: { compact?: boolean }) {
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
  *
- * Desktop row: logo · flex-1 · links · flex-1 · X+login
- * → equal gaps on both sides of the links. FAQ + locale sit outside
- * that row in the viewport corner and do not affect the spacers.
+ * Desktop: logo · equal spacer · links · equal spacer · utilities
+ * inside a symmetric max-width row (same inset L/R as each other — aligns
+ * with the centered tablet). FAQ + locale float in the viewport corner and
+ * must NOT add extra padding that pulls utilities inward.
  */
 export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
@@ -273,52 +274,54 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         </div>
 
         {/* —— Desktop / tablet scene —— */}
-        <div
-          className={cn(
-            BRAND_LOCKUP_NAV_INNER,
-            "hidden pr-[7.25rem] sm:pr-[8.75rem] lg:pr-36 md:!flex md:gap-0",
-          )}
-        >
-          <BrandLockup
-            priority
-            className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
-            linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-          />
-
-          <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
-
-          <Links
-            liveLinks={liveLinks}
-            className="relative z-10 mx-4 hidden shrink-0 md:!flex lg:mx-6"
-            linkClassName={cn(
-              "text-white",
-              "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
-              "hover:text-[#00f948]",
+        <div className="relative hidden md:block">
+          <div
+            className={cn(
+              BRAND_LOCKUP_NAV_INNER,
+              "!flex gap-0",
             )}
-          />
-
-          <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
-
-          <div className="relative z-10 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 md:ml-0 md:gap-2.5">
-            <SocialLinkX
-              ariaLabel={m.nav.socialXAria}
-              variant="icon"
-              className="!hidden !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white md:!inline-flex"
-            />
-            <Right />
-          </div>
-        </div>
-
-        {/* FAQ + locale — desktop corner only (phone: inside menu) */}
-        <div className="pointer-events-auto absolute right-3 top-1/2 z-30 hidden -translate-y-1/2 items-center gap-1.5 md:flex sm:right-4 sm:gap-2 lg:right-5">
-          <Link
-            href="/faq"
-            onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-            className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
           >
-            {m.nav.faq}
-          </Link>
-          <LanguageSwitcher embedded />
+            <BrandLockup
+              priority
+              className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
+              linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+            />
+
+            <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
+
+            <Links
+              liveLinks={liveLinks}
+              className="relative z-10 shrink-0"
+              linkClassName={cn(
+                "text-white",
+                "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
+                "hover:text-[#00f948]",
+              )}
+            />
+
+            <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
+
+            <div className="relative z-20 flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-2.5">
+              <SocialLinkX
+                ariaLabel={m.nav.socialXAria}
+                variant="icon"
+                className="!inline-flex !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white"
+              />
+              <Right />
+            </div>
+          </div>
+
+          {/* FAQ + locale — outside the content row so L/R insets stay equal */}
+          <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
+            <Link
+              href="/faq"
+              onClick={liveLinks ? undefined : (e) => e.preventDefault()}
+              className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
+            >
+              {m.nav.faq}
+            </Link>
+            <LanguageSwitcher embedded />
+          </div>
         </div>
       </div>
 
