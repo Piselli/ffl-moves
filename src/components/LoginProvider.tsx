@@ -10,7 +10,6 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { PrivyLoginSession } from "@/components/PrivyLoginSession";
 import { useWallet } from "@/hooks/useSolanaWallet";
 
 const LoginModal = dynamic(
@@ -51,10 +50,8 @@ export function LoginProvider({ children }: PropsWithChildren) {
 
   return (
     <LoginContext.Provider value={value}>
-      <PrivyLoginSession>
-        {children}
-        {open ? <LoginModal open={open} onClose={closeLogin} /> : null}
-      </PrivyLoginSession>
+      {children}
+      {open ? <LoginModal open={open} onClose={closeLogin} /> : null}
     </LoginContext.Provider>
   );
 }

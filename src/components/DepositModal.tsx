@@ -3,16 +3,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
-import { useFundWallet } from "@privy-io/react-auth/solana";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useDeposit } from "@/components/depositContext";
 import { useLogin } from "@/components/LoginProvider";
-import { usePrivyAuth } from "@/components/PrivyAppProvider";
 import { SPRING_PILL } from "@/lib/uiMotion";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { ENTRY_FEE_SYMBOL } from "@/lib/entryFee";
-import { isPrivyConfigured } from "@/lib/privy";
-import { isPrivyOnrampUsdcAvailable } from "@/lib/privyFunding";
 import {
   openExternalUsdcOnramp,
   type OnrampPaymentHint,
@@ -110,7 +106,6 @@ function parseAmount(raw: string): string | null {
 }
 
 function useCashOnramp(address: string | null) {
-  const { fundWallet } = useFundWallet();
   const [loading, setLoading] = useState(false);
 
   const run = useCallback(
@@ -127,22 +122,12 @@ function useCashOnramp(address: string | null) {
         ) {
           return "external" as const;
         }
-        // Stripe fails in UA — Privy Solana fundWallet uses Coinbase/MoonPay, not Stripe.
-        await fundWallet({
-          address,
-          options: {
-            amount: amountUsd,
-            asset: "USDC",
-            defaultFundingMethod: "card",
-            card: { preferredProvider: "coinbase" },
-          },
-        });
-        return "privy" as const;
+        throw new Error("Card onramp is not configured.");
       } finally {
         setLoading(false);
       }
     },
-    [address, fundWallet],
+    [address],
   );
 
   return { run, loading };
@@ -291,17 +276,11 @@ function CashTab({
   reduce: boolean;
   onSwitchCrypto?: () => void;
 }) {
-  const privyReady = isPrivyConfigured();
-  const privy = usePrivyAuth();
   const { openLogin } = useLogin();
-  const onrampOk = isPrivyOnrampUsdcAvailable();
-  const needLogin = privyReady && onrampOk && !privy.authenticated;
-  const mainnetOnly = privyReady && !onrampOk;
+  const { connected } = useWallet();
+  const needLogin = !connected;
+  const mainnetOnly = false;
   const unavailable = !CASH_ONRAMP_LIVE;
-
-  if (!privyReady && !unavailable) {
-    return <p className="mt-3 text-[13px] font-medium text-white/55">{d.buyCardNeedLogin}</p>;
-  }
 
   return (
     <>
@@ -409,13 +388,6 @@ function CashTabBody(props: {
   reduce: boolean;
   onSwitchCrypto?: () => void;
 }) {
-  if (!CASH_ONRAMP_LIVE && !isPrivyConfigured()) {
-    // Still show the unavailable panel even without Privy configured.
-    return <CashTab {...props} />;
-  }
-  if (!isPrivyConfigured()) {
-    return <p className="mt-3 text-[13px] font-medium text-white/55">{props.d.buyCardNeedLogin}</p>;
-  }
   return <CashTab {...props} />;
 }
 

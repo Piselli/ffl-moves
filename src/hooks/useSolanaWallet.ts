@@ -3,50 +3,46 @@
 import { useCallback, useMemo } from "react";
 import { useConnection, useWallet as useAdapterWallet } from "@solana/wallet-adapter-react";
 import { Transaction, TransactionInstruction } from "@solana/web3.js";
-import { usePrivyAuth } from "@/components/PrivyAppProvider";
-import { usePrivySolanaSession } from "@/components/PrivySolanaSession";
-import { isPrivyWalletName, privyLinkedSolanaAddress, privyLoginLabel } from "@/lib/privy";
+import { useHeliusAuth } from "@/components/HeliusAppProvider";
+import { useHeliusSolanaSession } from "@/components/HeliusSolanaSession";
 
 /**
  * App-facing wallet adapter. Pages only receive base58 addresses and submit
  * instruction arrays; Solana SDK details stay in this hook and chainClient.
  *
  * Phantom / Solflare / Jupiter stay on the wallet adapter. Email login uses a
- * Privy embedded Solana address as a fallback when no extension is connected.
+ * Helius embedded Solana address when no extension is connected.
  */
 export function useWallet() {
   const { connection } = useConnection();
   const adapter = useAdapterWallet();
-  const privyAuth = usePrivyAuth();
-  const privySession = usePrivySolanaSession();
+  const heliusAuth = useHeliusAuth();
+  const heliusSession = useHeliusSolanaSession();
   const adapterAddress = adapter.publicKey?.toBase58() ?? null;
-  const adapterName = adapter.wallet?.adapter.name ?? null;
-  const hasExternalWallet = Boolean(
-    adapter.connected && adapter.publicKey && !isPrivyWalletName(adapterName),
-  );
+  const hasExternalWallet = Boolean(adapter.connected && adapter.publicKey);
   const address =
     adapterAddress ??
-    privySession.address ??
-    (privyAuth.authenticated ? privyLinkedSolanaAddress(privyAuth.user) : null);
-  const connected = Boolean(adapter.connected || privyAuth.authenticated);
+    heliusSession.address ??
+    (heliusAuth.authenticated ? heliusAuth.address : null);
+  const connected = Boolean(adapter.connected || heliusAuth.authenticated);
   const connecting =
-    adapter.connecting || Boolean(privyAuth.authenticated && !address);
+    adapter.connecting || Boolean(heliusAuth.authenticated && !address);
 
-  const signAndSubmit = useCallback(async (instructions: TransactionInstruction[]) => {
-    const adapterName = adapter.wallet?.adapter.name;
-    if (
-      adapter.publicKey &&
-      adapter.sendTransaction &&
-      !isPrivyWalletName(adapterName)
-    ) {
-      const transaction = new Transaction().add(...instructions);
-      transaction.feePayer = adapter.publicKey;
-      transaction.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
-      return adapter.sendTransaction(transaction, connection);
-    }
-    if (privySession.signAndSubmit) return privySession.signAndSubmit(instructions);
-    throw new Error("Connect a Solana wallet first.");
-  }, [adapter, connection, privySession]);
+  const signAndSubmit = useCallback(
+    async (instructions: TransactionInstruction[]) => {
+      if (adapter.publicKey && adapter.sendTransaction && hasExternalWallet) {
+        const transaction = new Transaction().add(...instructions);
+        transaction.feePayer = adapter.publicKey;
+        transaction.recentBlockhash = (
+          await connection.getLatestBlockhash("confirmed")
+        ).blockhash;
+        return adapter.sendTransaction(transaction, connection);
+      }
+      if (heliusSession.signAndSubmit) return heliusSession.signAndSubmit(instructions);
+      throw new Error("Connect a Solana wallet first.");
+    },
+    [adapter, connection, hasExternalWallet, heliusSession],
+  );
 
   const disconnect = useCallback(async () => {
     try {
@@ -55,47 +51,52 @@ export function useWallet() {
       console.error("Wallet disconnect failed:", error);
     }
     try {
-      if (privyAuth.authenticated) await privyAuth.logout();
+      if (heliusAuth.authenticated) await heliusAuth.logout();
     } catch (error) {
       console.error("Email session logout failed:", error);
     }
-  }, [adapter, privyAuth]);
+  }, [adapter, heliusAuth]);
 
-  return useMemo(() => ({
-    address,
-    account: address ? { address } : null,
-    connected,
-    connecting,
-    disconnect,
-    connect: adapter.connect,
-    walletName:
-      adapter.wallet?.adapter.name ??
-      (privyAuth.authenticated ? privyLoginLabel(privyAuth.user) : null),
-    /** Phantom / Solflare / Jupiter — pay by signing in the extension, not an in-app deposit. */
-    hasExternalWallet,
-    /** Form8 fee sponsor for Privy embedded wallets (USDC + register/claim). */
-    feePayer: hasExternalWallet ? null : privySession.feePayer,
-    signAndSubmit,
-    /** Legacy transaction builders are deliberately unsupported after Solana migration. */
-    signTransaction: async (_legacyPayload?: unknown): Promise<any> => {
-      throw new Error("Build Solana instructions through chainClient and call signAndSubmit.");
-    },
-    signAndSubmitTransaction: async (_legacyPayload?: unknown): Promise<any> => {
-      throw new Error("Build Solana instructions through chainClient and call signAndSubmit.");
-    },
-  }), [
-    address,
-    adapter.connecting,
-    adapter.connect,
-    adapter.wallet,
-    connected,
-    connecting,
-    disconnect,
-    hasExternalWallet,
-    privyAuth.authenticated,
-    privyAuth.user,
-    privySession.address,
-    privySession.feePayer,
-    signAndSubmit,
-  ]);
+  return useMemo(
+    () => ({
+      address,
+      account: address ? { address } : null,
+      connected,
+      connecting,
+      disconnect,
+      connect: adapter.connect,
+      walletName:
+        adapter.wallet?.adapter.name ??
+        (heliusAuth.authenticated
+          ? heliusAuth.email
+            ? "Email"
+            : "Helius"
+          : null),
+      /** Phantom / Solflare / Jupiter — pay by signing in the extension. */
+      hasExternalWallet,
+      /** Form8 fee sponsor for Helius embedded wallets (USDC/SOL + register/claim). */
+      feePayer: hasExternalWallet ? null : heliusSession.feePayer,
+      signAndSubmit,
+      signTransaction: async (_legacyPayload?: unknown): Promise<any> => {
+        throw new Error("Build Solana instructions through chainClient and call signAndSubmit.");
+      },
+      signAndSubmitTransaction: async (_legacyPayload?: unknown): Promise<any> => {
+        throw new Error("Build Solana instructions through chainClient and call signAndSubmit.");
+      },
+    }),
+    [
+      address,
+      adapter.connecting,
+      adapter.connect,
+      adapter.wallet,
+      connected,
+      connecting,
+      disconnect,
+      hasExternalWallet,
+      heliusAuth.authenticated,
+      heliusAuth.email,
+      heliusSession.feePayer,
+      signAndSubmit,
+    ],
+  );
 }

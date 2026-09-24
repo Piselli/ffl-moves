@@ -35,8 +35,6 @@ function publicEnvFromEnvLocal() {
     "NEXT_PUBLIC_MODULE_ADDRESS",
     "NEXT_PUBLIC_MODULE_NAME",
     "NEXT_PUBLIC_APTOS_API",
-    "NEXT_PUBLIC_PRIVY_APP_ID",
-    "NEXT_PUBLIC_PRIVY_CLIENT_ID",
   ];
   const out = {};
   for (const k of keys) {
@@ -56,7 +54,7 @@ function publicEnvFromEnvLocal() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@privy-io/react-auth"],
+  transpilePackages: ["helius-wallet-kit", "@turnkey/react-wallet-kit"],
   env: publicEnvFromEnvLocal(),
   async redirects() {
     return [
@@ -81,21 +79,6 @@ const nextConfig = {
     ];
   },
   webpack: (config, { dev, webpack: webpackApi }) => {
-    // Privy optional peers (Stripe onramp, Farcaster, Abstract). Webpack still
-    // resolves the import() literals and Next 500s if the packages are missing.
-    const privyOptionalStub = path.resolve(__dirname, "src/shims/empty-module.js");
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      "@stripe/crypto": privyOptionalStub,
-      "@farcaster/mini-app-solana": privyOptionalStub,
-      "@abstract-foundation/agw-client/actions": privyOptionalStub,
-      "@abstract-foundation/agw-client": privyOptionalStub,
-    };
-    config.plugins.push(
-      new webpackApi.IgnorePlugin({
-        resourceRegExp: /^(@stripe\/crypto|@farcaster\/mini-app-solana|@abstract-foundation\/agw-client)(\/.*)?$/,
-      }),
-    );
     config.resolve.fallback = {
       fs: false,
       net: false,

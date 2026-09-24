@@ -8,6 +8,7 @@
     "dev:3001": "WATCHPACK_POLLING=1 next dev -p 3001",
     "dev:lan": "WATCHPACK_POLLING=1 next dev -H :: -p 3000",
     "build:atlas": "node scripts/build-fpl-photo-atlas.mjs",
+    "build:ea-faces": "node scripts/build-fpl-ea-face-map.mjs",
     "gw:recap": "node scripts/generate-gw-recap.mjs",
     "fpl:gw": "node scripts/fpl-oracle-gw.mjs",
     "fpl:bootstrap-lite": "node scripts/refresh-fpl-bootstrap-lite.mjs",
@@ -40,7 +41,6 @@
   "dependencies": {
     "@anchor-lang/core": "^1.1.2",
     "@noble/hashes": "^2.2.0",
-    "@privy-io/react-auth": "^3.34.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-select": "^2.0.0",
@@ -64,6 +64,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.2.6",
+    "helius-wallet-kit": "^1.1.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.383.0",

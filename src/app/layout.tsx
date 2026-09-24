@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
-import { PrivyAppProvider } from "@/components/PrivyAppProvider";
+import { HeliusAppProvider } from "@/components/HeliusAppProvider";
 import { DepositProvider } from "@/components/DepositProvider";
 import { LoginProvider } from "@/components/LoginProvider";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -55,6 +55,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Helius WaaS modal CSS — served as static files (Turnkey ships Tailwind v4
+            which Next 14 postcss cannot compile from node_modules). */}
+        <link rel="stylesheet" href="/vendor/turnkey-wallet-kit.css" />
+        <link rel="stylesheet" href="/vendor/helius-wallet-kit.css" />
         <link
           rel="preload"
           as="image"
@@ -71,7 +75,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${oswald.variable} font-sans antialiased`}>
         <LocaleProvider>
           <PrizeAssetProvider>
-            <PrivyAppProvider>
+            <HeliusAppProvider>
             <WalletProvider>
               <DepositProvider>
               <LoginProvider>
@@ -84,7 +88,7 @@ export default function RootLayout({
               </LoginProvider>
               </DepositProvider>
             </WalletProvider>
-            </PrivyAppProvider>
+            </HeliusAppProvider>
           </PrizeAssetProvider>
         </LocaleProvider>
       </body>

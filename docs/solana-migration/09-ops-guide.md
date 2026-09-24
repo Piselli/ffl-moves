@@ -88,7 +88,7 @@ PY
 | **5 USDC (прод)** | 4.00 | **1.00** |
 
 Після `publish_results` переможці забирають приз з Treasury через `claim_prize`
-на **свій** Solana-гаманець (Privy embedded або Phantom).
+на **свій** Solana-гаманець (Helius embedded або Phantom).
 
 ---
 
@@ -153,21 +153,28 @@ Stats base URL на проді: `https://form8.football/data/stats`.
 
 ---
 
-## 6. Гравець через Gmail / email (Privy)
+## 6. Гравець через email (Helius embedded) або гаманець
 
-1. Логін Google або email → Privy створює **embedded Solana wallet**.
-2. Deposit: поповнити USDC (on-ramp або переказ на адресу з Deposit modal).
+**Email / passkey (Helius WaaS):**
+1. Логін email (OTP) → Helius створює **embedded Solana wallet**.
+2. Deposit: поповнити USDC (переказ на адресу з Deposit modal).
 3. Зібрати XI → оплата `entry_fee` → реєстрація on-chain.
 4. Після settle → **Claim** → USDC на той самий embedded-гаманець.
-5. **Вивести** (кнопка в навбарі поруч із «Поповнити»): вказати Solana-адресу
-   (Phantom / біржа) + суму → Send USDC.
+5. **Вивести** (USDC або SOL): адреса Phantom / біржі + сума.
 
-Якщо Privy gas sponsorship увімкнено в дашборді — це fallback, коли Form8
-sponsor недоступний. Основний шлях для email/Google: **FORM8 fee sponsor**
-(withdraw, register, claim).
+Потрібно: Helius plan **Developer+** ($49), `HELIUS_API_KEY` у Vercel /
+`.env.local`, route `/api/helius/[...path]`. У Helius Dashboard → WaaS →
+Configuration увімкни **email** (± passkey); **external wallet** лишай
+вимкненим — Phantom / Solflare / Jupiter йдуть через wallet-adapter напряму.
 
-**Вивід USDC (критично для email/Google):** гравець має USDC, але зазвичай
-**0 SOL**. Без fee payer вивід падає з «Something went wrong».
+**Phantom / Solflare / Jupiter:** підключають свій гаманець, платять SOL fee
+самі, USDC з їхнього балансу — без «внутрішнього» депозиту на сайт.
+
+Основний шлях для email (0 SOL): **FORM8 fee sponsor**
+(withdraw USDC/SOL, register, claim).
+
+**Вивід USDC (критично для email):** гравець має USDC, але зазвичай
+**0 SOL**. Без fee payer вивід падає з помилкою мережі.
 
 Налаштування Form8 fee sponsor (рекомендовано):
 
@@ -186,13 +193,13 @@ SOLANA_FEE_SPONSOR_KEYPAIR=[...]
 
 | Дія | USDC | SOL (мережа) |
 |-----|------|----------------|
-| Withdraw / send USDC (Privy) | гравець | **FORM8 fee sponsor** |
-| Register / claim (Privy) | гравець (entry) | **FORM8 fee sponsor** (мережа + ATA + rent top-up для Entry/Claim PDA) |
-| Phantom / зовнішній гаманець | гравець | гравець (у розширенні) |
+| Withdraw / send USDC or SOL (Helius email) | гравець | **FORM8 fee sponsor** |
+| Register / claim (Helius email) | гравець (entry) | **FORM8 fee sponsor** (мережа + ATA + rent top-up для Entry/Claim PDA) |
+| Phantom / Solflare / Jupiter | гравець | гравець (у розширенні) |
 
 Sponsor також може переказати гравцю до **0.01 SOL** на rent PDA (`init` у програмі
-все ще списує rent з owner). Без `SOLANA_FEE_SPONSOR_KEYPAIR` / Privy gas — на
-гаманці гравця має бути трохи SOL (~0.01).
+все ще списує rent з owner). Без `SOLANA_FEE_SPONSOR_KEYPAIR` на
+гаманці email-гравця має бути трохи SOL (~0.01).
 
 ### Імпорт ops-ключів (admin / house / oracle)
 

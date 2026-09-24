@@ -2,7 +2,7 @@ import { getUsdcBalance } from "@/lib/chainClient";
 import { formatTxError, getErrorMessage } from "@/lib/utils";
 
 /**
- * Email / Google sessions spend USDC from the Privy embedded address — gate on
+ * Email sessions spend USDC from the Helius embedded address — gate on
  * that balance and open deposit if it's short. Phantom / Solflare / Jupiter
  * pay from the extension: skip the pre-check so Confirm squad opens the wallet.
  */

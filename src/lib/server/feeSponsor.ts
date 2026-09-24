@@ -1,6 +1,6 @@
 /**
  * Server-only Solana fee sponsor (pays network fees + ATA rent + capped PDA rent
- * top-ups for Privy embedded register/claim).
+ * top-ups for Helius embedded register/claim).
  * Env (first match wins):
  *   SOLANA_FEE_SPONSOR_KEYPAIR — dedicated fee wallet (preferred)
  *   ADMIN_KEYPAIR              — fallback for local/ops

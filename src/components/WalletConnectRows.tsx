@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { usePrivyAuth } from "@/components/PrivyAppProvider";
-import { isLocalDevHost } from "@/lib/privy";
+import { useHeliusAuth } from "@/components/HeliusAppProvider";
+import { isLocalDevHost } from "@/lib/helius";
 
 type Props = {
   rows: WalletConnectRow[];
@@ -32,7 +32,7 @@ function MailIcon() {
 
 export function WalletConnectRows({ rows, pending = false, onConnect, variant = "cta" }: Props) {
   const m = useSiteMessages();
-  const privy = usePrivyAuth();
+  const helius = useHeliusAuth();
   const [emailHint, setEmailHint] = useState<string | null>(null);
   const pad = variant === "navbar" ? "px-2 py-1" : "";
 
@@ -45,21 +45,22 @@ export function WalletConnectRows({ rows, pending = false, onConnect, variant = 
 
   const onEmailLogin = () => {
     setEmailHint(null);
-    if (!privy.configured) {
+    if (!helius.ready) {
       setEmailHint(
         isLocalDevHost() ? m.nav.emailLoginNeedsAppIdLocal : m.nav.emailLoginNeedsAppId,
       );
       return;
     }
-    if (!privy.ready) return;
-    privy.login({ loginMethods: ["email", "google"] });
+    void helius.login().catch((error) => {
+      setEmailHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
+    });
   };
 
   return (
     <div className={`flex flex-col gap-1.5 ${pad}`}>
       <button
         type="button"
-        disabled={pending || (privy.configured && !privy.ready)}
+        disabled={pending || !helius.ready}
         onClick={onEmailLogin}
         className={shellConnect}
       >

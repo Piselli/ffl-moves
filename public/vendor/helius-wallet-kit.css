@@ -1,0 +1,10 @@
+/* Helius WaaS modal overrides (Turnkey base loaded separately).
+ * Hide Turnkey branding in the auth modal. */
+
+a[href="https://www.turnkey.com/"][target="_blank"] {
+  display: none !important;
+}
+
+div:has(> span > a[href*="turnkey.com/legal"]) {
+  display: none !important;
+}

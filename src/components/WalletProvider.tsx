@@ -15,7 +15,7 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SOLANA_RPC_URL } from "@/lib/constants";
-import { PrivySolanaSession } from "@/components/PrivySolanaSession";
+import { HeliusSolanaSession } from "@/components/HeliusSolanaSession";
 
 type WalletAdapterErrorContextValue = {
   lastError: string | null;
@@ -55,7 +55,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
           }}
         >
           <QueryClientProvider client={queryClient}>
-            <PrivySolanaSession>{children}</PrivySolanaSession>
+            <HeliusSolanaSession>{children}</HeliusSolanaSession>
           </QueryClientProvider>
         </SolanaWalletProvider>
       </ConnectionProvider>

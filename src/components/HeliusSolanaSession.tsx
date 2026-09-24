@@ -10,8 +10,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import type { WalletName } from "@solana/wallet-adapter-base";
+import { useConnection } from "@solana/wallet-adapter-react";
 import { sha256 } from "@noble/hashes/sha2.js";
 import {
   ComputeBudgetProgram,
@@ -25,15 +24,8 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import {
-  useCreateWallet,
-  useSignAndSendTransaction,
-  useSignTransaction,
-  useWallets,
-} from "@privy-io/react-auth/solana";
-import { usePrivyAuth } from "@/components/PrivyAppProvider";
-import { isPrivyConfigured, isPrivyWalletName, privyLinkedSolanaAddress } from "@/lib/privy";
-import { MOVEMATCH_PROGRAM_ID, SOLANA_CLUSTER } from "@/lib/constants";
+import { useHeliusWallet } from "helius-wallet-kit";
+import { MOVEMATCH_PROGRAM_ID } from "@/lib/constants";
 
 /** Matches on-chain `Entry::SPACE` (TEAM_SIZE = 14). */
 const ENTRY_ACCOUNT_SPACE = 168;
@@ -53,23 +45,6 @@ const CLAIM_PRIZE_DISC = anchorDisc("claim_prize");
 
 function discHex(data: Uint8Array): string {
   return Array.from(data.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-function encodeSigBase58(bytes: Uint8Array): string {
-  let n = 0n;
-  for (const b of bytes) n = (n << 8n) + BigInt(b);
-  let s = "";
-  while (n > 0n) {
-    const r = n % 58n;
-    n /= 58n;
-    s = B58[Number(r)] + s;
-  }
-  for (const b of bytes) {
-    if (b === 0) s = "1" + s;
-    else break;
-  }
-  return s || "1";
 }
 
 const FEELESS_PROGRAMS = new Set([
@@ -100,7 +75,6 @@ function isForm8GameAction(instructions: TransactionInstruction[]): boolean {
   return instructions.some((ix) => ix.programId.equals(PROGRAM_ID));
 }
 
-/** True when Form8 server sponsorship can cover this instruction set. */
 function isForm8Sponsorable(instructions: TransactionInstruction[]): boolean {
   return (
     isUsdcTransferLike(instructions) ||
@@ -147,7 +121,6 @@ async function prepareSponsoredInstructions(
     const space = pdaSpaceForGameAction(prepared);
     const rent = await connection.getMinimumBalanceForRentExemption(space);
     const balance = await connection.getBalance(userKey, "confirmed");
-    // Program `init` still deducts rent from the player; top up only what's missing.
     const need = rent;
     if (balance < need) {
       const topUp = Math.min(need - balance, MAX_RENT_TOPUP_LAMPORTS);
@@ -173,23 +146,23 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-type PrivySolanaSessionValue = {
+type HeliusSolanaSessionValue = {
   address: string | null;
   /** Form8 fee payer when server sponsorship is configured. */
   feePayer: string | null;
   signAndSubmit: ((instructions: TransactionInstruction[]) => Promise<string>) | null;
 };
 
-const EMPTY: PrivySolanaSessionValue = {
+const EMPTY: HeliusSolanaSessionValue = {
   address: null,
   feePayer: null,
   signAndSubmit: null,
 };
 
-const PrivySolanaSessionContext = createContext<PrivySolanaSessionValue>(EMPTY);
+const HeliusSolanaSessionContext = createContext<HeliusSolanaSessionValue>(EMPTY);
 
-export function usePrivySolanaSession(): PrivySolanaSessionValue {
-  return useContext(PrivySolanaSessionContext);
+export function useHeliusSolanaSession(): HeliusSolanaSessionValue {
+  return useContext(HeliusSolanaSessionContext);
 }
 
 async function fetchFeePayer(): Promise<string | null> {
@@ -206,52 +179,12 @@ async function fetchFeePayer(): Promise<string | null> {
   return null;
 }
 
-function PrivySolanaSessionInner({ children }: PropsWithChildren) {
-  const { authenticated, ready, user } = usePrivyAuth();
-  const { wallets: privyWallets, ready: walletsReady } = useWallets();
-  const { createWallet } = useCreateWallet();
-  const { signTransaction } = useSignTransaction();
-  const { signAndSendTransaction } = useSignAndSendTransaction();
+function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
+  const { address, status, signTransaction, signAndSendTransaction } = useHeliusWallet();
   const { connection } = useConnection();
-  const adapter = useWallet();
-  const creatingRef = useRef(false);
-  const connectingRef = useRef(false);
   const feePayerRef = useRef<string | null>(null);
   const [feePayer, setFeePayer] = useState<string | null>(null);
-
-  const embedded =
-    privyWallets.find((w) => /privy/i.test(w.standardWallet?.name ?? "")) ?? null;
-  const address =
-    (authenticated && embedded?.address ? embedded.address : null) ??
-    (authenticated ? privyLinkedSolanaAddress(user) : null);
-
-  useEffect(() => {
-    if (!ready || !authenticated || !walletsReady || embedded || creatingRef.current) return;
-    creatingRef.current = true;
-    void createWallet()
-      .catch((error) => {
-        console.error("Privy Solana wallet create failed:", error);
-      })
-      .finally(() => {
-        creatingRef.current = false;
-      });
-  }, [authenticated, createWallet, embedded, ready, walletsReady]);
-
-  useEffect(() => {
-    if (!address || adapter.connected || connectingRef.current) return;
-    if (adapter.wallet && !isPrivyWalletName(adapter.wallet.adapter.name)) return;
-    const match = adapter.wallets.find(({ adapter: item }) => isPrivyWalletName(item.name));
-    if (!match) return;
-    connectingRef.current = true;
-    adapter.select(match.adapter.name as WalletName);
-    void Promise.resolve(match.adapter.connect())
-      .catch((error) => {
-        console.error("Privy wallet-adapter connect failed:", error);
-      })
-      .finally(() => {
-        connectingRef.current = false;
-      });
-  }, [adapter.connected, adapter.select, adapter.wallet, adapter.wallets, address]);
+  const authenticated = status === "authenticated" && Boolean(address);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,11 +198,9 @@ function PrivySolanaSessionInner({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const chain = SOLANA_CLUSTER === "mainnet-beta" ? "solana:mainnet" : "solana:devnet";
-
   const signAndSubmit = useCallback(
     async (instructions: TransactionInstruction[]) => {
-      if (!embedded || !address) throw new Error("Connect a Solana wallet first.");
+      if (!authenticated || !address) throw new Error("Connect a Solana wallet first.");
 
       const userKey = new PublicKey(address);
       const form8Sponsorable = isForm8Sponsorable(instructions);
@@ -298,15 +229,17 @@ function PrivySolanaSessionInner({ children }: PropsWithChildren) {
               requireAllSignatures: false,
               verifySignatures: false,
             });
-            const { signedTransaction } = await signTransaction({
-              transaction: serialized,
-              wallet: embedded,
-              chain,
-            });
+            const signedTransaction = await signTransaction(serialized);
             const res = await fetch("/api/solana/sponsor-send", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ transaction: bytesToBase64(signedTransaction) }),
+              body: JSON.stringify({
+                transaction: bytesToBase64(
+                  signedTransaction instanceof Uint8Array
+                    ? signedTransaction
+                    : new Uint8Array(signedTransaction),
+                ),
+              }),
             });
             const data = (await res.json().catch(() => ({}))) as {
               signature?: string;
@@ -321,12 +254,11 @@ function PrivySolanaSessionInner({ children }: PropsWithChildren) {
             return data.signature;
           } catch (sponsorError) {
             console.warn("Form8 fee sponsorship failed, trying fallbacks:", sponsorError);
-            // Fall through to Privy gas / user-paid.
           }
         }
       }
 
-      // —— Prefer Privy dashboard gas sponsorship when enabled ——
+      // —— User-paid fee (needs SOL on the embedded wallet) ——
       const transaction = new Transaction().add(...instructions);
       transaction.feePayer = userKey;
       transaction.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
@@ -335,63 +267,52 @@ function PrivySolanaSessionInner({ children }: PropsWithChildren) {
         verifySignatures: false,
       });
 
-      try {
-        const sent = await signAndSendTransaction({
-          transaction: serialized,
-          wallet: embedded,
-          chain,
-          options: { sponsor: true } as { sponsor?: boolean },
-        });
-        const sig = (sent as { signature?: string | Uint8Array })?.signature ?? sent;
-        if (typeof sig === "string") return sig;
-        if (sig instanceof Uint8Array) return encodeSigBase58(sig);
-      } catch (sponsoredError) {
-        console.warn("Privy gas sponsorship failed, trying user-paid fee:", sponsoredError);
-      }
-
       const lamports = await connection.getBalance(userKey, "confirmed");
-      const rentNeed = form8Sponsorable && isForm8GameAction(instructions)
-        ? await connection.getMinimumBalanceForRentExemption(
-            pdaSpaceForGameAction(instructions),
-          )
-        : 5000;
+      const rentNeed =
+        form8Sponsorable && isForm8GameAction(instructions)
+          ? await connection.getMinimumBalanceForRentExemption(
+              pdaSpaceForGameAction(instructions),
+            )
+          : 5000;
       if (lamports < rentNeed) {
         throw new Error(
           isForm8GameAction(instructions)
-            ? "Registration needs a tiny bit of SOL for account rent, and sponsorship is unavailable right now. Try again in a moment, or connect Phantom."
-            : "This action needs a tiny bit of SOL for network fees, and sponsorship is unavailable right now. Try again in a moment, or connect Phantom.",
+            ? "Registration needs a tiny bit of SOL for account rent, and sponsorship is unavailable right now. Try again in a moment, or connect a wallet extension."
+            : "This action needs a tiny bit of SOL for network fees, and sponsorship is unavailable right now. Try again in a moment, or connect a wallet extension.",
         );
       }
 
-      const { signedTransaction } = await signTransaction({
-        transaction: serialized,
-        wallet: embedded,
-        chain,
-      });
-      return connection.sendRawTransaction(signedTransaction, { skipPreflight: false });
+      try {
+        return await signAndSendTransaction(serialized);
+      } catch (sendError) {
+        console.warn("Helius signAndSend failed, trying sign + RPC send:", sendError);
+        const signedTransaction = await signTransaction(serialized);
+        const raw =
+          signedTransaction instanceof Uint8Array
+            ? signedTransaction
+            : new Uint8Array(signedTransaction);
+        return connection.sendRawTransaction(raw, { skipPreflight: false });
+      }
     },
-    [address, chain, connection, embedded, signAndSendTransaction, signTransaction],
+    [address, authenticated, connection, signAndSendTransaction, signTransaction],
   );
 
-  const value = useMemo<PrivySolanaSessionValue>(
+  const value = useMemo<HeliusSolanaSessionValue>(
     () => ({
-      address,
+      address: authenticated ? address : null,
       feePayer,
-      signAndSubmit: embedded && address ? signAndSubmit : null,
+      signAndSubmit: authenticated && address ? signAndSubmit : null,
     }),
-    [address, embedded, feePayer, signAndSubmit],
+    [address, authenticated, feePayer, signAndSubmit],
   );
 
   return (
-    <PrivySolanaSessionContext.Provider value={value}>{children}</PrivySolanaSessionContext.Provider>
+    <HeliusSolanaSessionContext.Provider value={value}>
+      {children}
+    </HeliusSolanaSessionContext.Provider>
   );
 }
 
-export function PrivySolanaSession({ children }: PropsWithChildren) {
-  if (!isPrivyConfigured()) {
-    return (
-      <PrivySolanaSessionContext.Provider value={EMPTY}>{children}</PrivySolanaSessionContext.Provider>
-    );
-  }
-  return <PrivySolanaSessionInner>{children}</PrivySolanaSessionInner>;
+export function HeliusSolanaSession({ children }: PropsWithChildren) {
+  return <HeliusSolanaSessionInner>{children}</HeliusSolanaSessionInner>;
 }

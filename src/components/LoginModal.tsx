@@ -3,24 +3,20 @@
 import {
   useEffect,
   useId,
-  useRef,
   useState,
-  type FormEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useLoginWithEmail } from "@privy-io/react-auth";
-import { usePrivyAuth } from "@/components/PrivyAppProvider";
-import { usePrivyLoginSession } from "@/components/PrivyLoginSession";
 import {
   LOGIN_THEME,
   type LoginSkinTheme,
 } from "@/components/loginSkins";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
+import { useHeliusAuth } from "@/components/HeliusAppProvider";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { isLocalDevHost, isPrivyConfigured } from "@/lib/privy";
+import { isLocalDevHost } from "@/lib/helius";
 import { solanaWalletDef } from "@/lib/solanaWallets";
 import type { WalletConnectRow } from "@/lib/solanaWallets";
 import {
@@ -36,30 +32,6 @@ type Props = {
 };
 
 const plaqueEase = [0.23, 1, 0.32, 1] as const;
-
-function GoogleMark({ mono = false }: { mono?: boolean }) {
-  const fill = (color: string) => (mono ? "currentColor" : color);
-  return (
-    <svg className="h-[27px] w-[27px]" viewBox="0 0 24 24" aria-hidden>
-      <path
-        fill={fill("#4285F4")}
-        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.46c-.28 1.5-1.12 2.77-2.39 3.63v3.02h3.87c2.26-2.08 3.55-5.14 3.55-8.68z"
-      />
-      <path
-        fill={fill("#34A853")}
-        d="M12 24c3.24 0 5.96-1.08 7.95-2.92l-3.87-3.02c-1.08.72-2.45 1.15-4.08 1.15-3.14 0-5.8-2.12-6.75-4.96H1.27v3.12C3.25 21.3 7.31 24 12 24z"
-      />
-      <path
-        fill={fill("#FBBC05")}
-        d="M5.25 14.25A7.2 7.2 0 0 1 4.88 12c0-.78.13-1.54.37-2.25V6.63H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.37l3.98-3.12z"
-      />
-      <path
-        fill={fill("#EA4335")}
-        d="M12 4.75c1.76 0 3.34.6 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.63l3.98 3.12C6.2 6.87 8.86 4.75 12 4.75z"
-      />
-    </svg>
-  );
-}
 
 function CloseIcon() {
   return (
@@ -85,16 +57,6 @@ function ArrowIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-function OrDivider({ theme, label }: { theme: LoginSkinTheme; label: string }) {
-  return (
-    <div className="flex items-center gap-4 py-1">
-      <span className={theme.orLineClass} />
-      <span className={theme.orTextClass}>{label}</span>
-      <span className={theme.orLineClass} />
-    </div>
   );
 }
 
@@ -179,285 +141,53 @@ function WalletLogo({
   );
 }
 
-function privyLoginHint(error: unknown, fallback: string, googleOff: string): string {
-  const raw =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : "";
-  if (/not allowed/i.test(raw) || /oauth.*disabled/i.test(raw)) return googleOff;
-  return raw || fallback;
-}
-
-function ContinueControl({
-  theme,
-  disabled,
-  label,
-  type = "submit",
-  onClick,
-}: {
-  theme: LoginSkinTheme;
-  disabled: boolean;
-  label: string;
-  type?: "submit" | "button";
-  onClick?: () => void;
-}) {
+function OrDivider({ theme, label }: { theme: LoginSkinTheme; label: string }) {
   return (
-    <button
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={theme.continueClass}
-      style={theme.continueStyle}
-      aria-label={label}
-    >
-      {theme.continueKind === "arrow" ? <ArrowIcon /> : label}
-    </button>
+    <div className="flex items-center gap-4 py-1">
+      <span className={theme.orLineClass} />
+      <span className={theme.orTextClass}>{label}</span>
+      <span className={theme.orLineClass} />
+    </div>
   );
 }
 
-function PrivyAuthFields({
-  theme,
-  emailFirst = false,
-}: {
-  theme: LoginSkinTheme;
-  /** Mobile / IG: email primary, Google secondary. */
-  emailFirst?: boolean;
-}) {
+function HeliusAuthFields({ theme }: { theme: LoginSkinTheme }) {
   const m = useSiteMessages();
-  const privy = usePrivyAuth();
-  const { initGoogle, googleLoading, oauthError, clearOauthError } =
-    usePrivyLoginSession();
-  const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail();
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"form" | "code">("form");
+  const helius = useHeliusAuth();
   const [hint, setHint] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const submittedCode = useRef("");
-  const emailBusy =
-    sending ||
-    emailState.status === "sending-code" ||
-    emailState.status === "submitting-code";
-  const displayHint =
-    hint ??
-    (oauthError
-      ? privyLoginHint(oauthError, m.nav.connectHintFailed, m.nav.googleLoginNotEnabled)
-      : null);
-  const reduce = Boolean(useReducedMotion());
-  const stepMotion = reduce
-    ? {}
-    : {
-        initial: { opacity: 0, y: 8, filter: "blur(2px)" },
-        animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-        exit: { opacity: 0, y: -6, filter: "blur(2px)" },
-        transition: { duration: 0.18, ease: plaqueEase },
-      };
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (step !== "code" || code.length !== 6 || submittedCode.current === code)
-      return;
-    submittedCode.current = code;
-    void (async () => {
-      setHint(null);
-      setSending(true);
-      try {
-        await loginWithCode({ code });
-      } catch (error) {
-        submittedCode.current = "";
-        setHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
-      } finally {
-        setSending(false);
-      }
-    })();
-  }, [code, loginWithCode, m.nav.connectHintFailed, step]);
-
-  const onGoogle = async () => {
+  const onEmail = async () => {
     setHint(null);
-    clearOauthError();
-    if (!privy.ready) return;
-    try {
-      await initGoogle();
-    } catch (error) {
+    if (!helius.ready) {
       setHint(
-        privyLoginHint(error, m.nav.connectHintFailed, m.nav.googleLoginNotEnabled),
+        isLocalDevHost() ? m.nav.emailLoginNeedsAppIdLocal : m.nav.emailLoginNeedsAppId,
       );
-    }
-  };
-
-  const onSendCode = async (e: FormEvent) => {
-    e.preventDefault();
-    setHint(null);
-    const trimmed = email.trim();
-    if (!trimmed.includes("@")) {
-      setHint(m.nav.emailInvalid);
       return;
     }
-    setSending(true);
+    setLoading(true);
     try {
-      await sendCode({ email: trimmed });
-      setStep("code");
+      await helius.login();
     } catch (error) {
       setHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
     } finally {
-      setSending(false);
+      setLoading(false);
     }
   };
 
-  const onVerify = async (e: FormEvent) => {
-    e.preventDefault();
-    setHint(null);
-    setSending(true);
-    try {
-      await loginWithCode({ code: code.trim() });
-    } catch (error) {
-      setHint(error instanceof Error ? error.message : m.nav.connectHintFailed);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const googleBtn = (
-    <button
-      type="button"
-      disabled={googleLoading || !privy.ready}
-      onClick={() => void onGoogle()}
-      className={theme.googleClass}
-      style={theme.googleStyle}
-    >
-      <GoogleMark mono={theme.googleMono} />
-      {m.nav.continueWithGoogle}
-    </button>
-  );
-
-  const emailForm = (
-    <form onSubmit={onSendCode} className="relative">
-      <input
-        type="email"
-        autoComplete="email"
-        inputMode="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder={m.nav.emailPlaceholderLong}
-        className={theme.inputClass}
-      />
-      <ContinueControl
-        theme={theme}
-        disabled={emailBusy}
-        label={m.nav.emailContinue}
-      />
-    </form>
-  );
-
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-      {step === "code" ? (
-      <motion.form
-        key="code"
-        onSubmit={onVerify}
-        className="flex flex-col gap-4"
-        {...stepMotion}
-      >
-        <p className="text-center text-[20px] leading-snug text-white/50">
-          {m.nav.codeSentTo(email.trim())}
-        </p>
-        <div className="relative">
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            placeholder={m.nav.enterCode}
-            className={theme.inputClass}
-          />
-          <ContinueControl
-            theme={theme}
-            disabled={emailBusy || code.length < 4}
-            label={m.nav.emailContinue}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setStep("form");
-            setCode("");
-            setHint(null);
-          }}
-          className="text-[18px] text-white/40 transition-colors duration-150 hover:text-white/70"
-        >
-          {m.nav.emailBack}
-        </button>
-        {hint ? (
-          <p className="text-center text-[16px] leading-snug text-amber-200/85">
-            {hint}
-          </p>
-        ) : null}
-      </motion.form>
-      ) : (
-    <motion.div key="form" className="flex flex-col gap-4" {...stepMotion}>
-      {emailFirst ? (
-        <>
-          {emailForm}
-          <OrDivider theme={theme} label={m.nav.loginOr} />
-          {googleBtn}
-        </>
-      ) : (
-        <>
-          {googleBtn}
-          <OrDivider theme={theme} label={m.nav.loginOr} />
-          {emailForm}
-        </>
-      )}
-      {displayHint ? (
-        <p className="text-center text-[16px] leading-snug text-amber-200/85">
-          {displayHint}
-        </p>
-      ) : null}
-    </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function FallbackAuthFields({ theme }: { theme: LoginSkinTheme }) {
-  const m = useSiteMessages();
-  const [hint, setHint] = useState(false);
-  const show = () => setHint(true);
   return (
     <div className="flex flex-col gap-4">
       <button
         type="button"
-        onClick={show}
+        disabled={loading || !helius.ready}
+        onClick={() => void onEmail()}
         className={theme.googleClass}
         style={theme.googleStyle}
       >
-        <GoogleMark mono={theme.googleMono} />
-        {m.nav.continueWithGoogle}
+        {loading ? m.nav.emailContinue : m.nav.continueWithEmail}
       </button>
-      <OrDivider theme={theme} label={m.nav.loginOr} />
-      <div className="relative">
-        <input
-          type="email"
-          readOnly
-          onFocus={show}
-          placeholder={m.nav.emailPlaceholderLong}
-          className={theme.inputClass}
-        />
-        <ContinueControl
-          theme={theme}
-          disabled={false}
-          label={m.nav.emailContinue}
-          type="button"
-          onClick={show}
-        />
-      </div>
       {hint ? (
-        <p className="text-center text-[16px] leading-snug text-amber-200/85">
-          {isLocalDevHost() ? m.nav.emailLoginNeedsAppIdLocal : m.nav.emailLoginNeedsAppId}
-        </p>
+        <p className="text-center text-[16px] leading-snug text-amber-200/85">{hint}</p>
       ) : null}
     </div>
   );
@@ -532,7 +262,6 @@ function LoginPlaqueBody({
     setMobile(isMobileBrowser());
   }, []);
 
-  const emailFirst = mobile || inApp;
   const demoteWallets = mobile || inApp;
 
   const walletLogos = (
@@ -560,11 +289,11 @@ function LoginPlaqueBody({
 
       {inApp ? <InAppBrowserBanner /> : null}
 
-      {isPrivyConfigured() ? (
-        <PrivyAuthFields theme={theme} emailFirst={emailFirst} />
-      ) : (
-        <FallbackAuthFields theme={theme} />
-      )}
+      <HeliusAuthFields theme={theme} />
+
+      <div className="mt-6">
+        <OrDivider theme={theme} label={m.nav.loginOr} />
+      </div>
 
       {demoteWallets ? (
         <div className="mt-6">
@@ -581,7 +310,7 @@ function LoginPlaqueBody({
           {walletsOpen ? <div className="mt-5">{walletLogos}</div> : null}
         </div>
       ) : (
-        <div className="mt-8">{walletLogos}</div>
+        <div className="mt-6">{walletLogos}</div>
       )}
 
       {hint || lastError || statusLine ? (

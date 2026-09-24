@@ -1,5 +1,3 @@
-import { PRIVY_ONRAMP_USDC_MINT } from "@/lib/privyFunding";
-
 function publicEnv(s: string | undefined): string | undefined {
   if (s == null) return undefined;
   const t = s.trim();
@@ -71,7 +69,7 @@ export function buildOnramperBuyUrl(args: OpenUsdcOnrampArgs): string | null {
   return `https://buy.onramper.com/?${params.toString()}`;
 }
 
-/** Prefer Transak (Solana-wallet standard), then Onramper. Null → caller uses Privy Coinbase. */
+/** Prefer Transak (Solana-wallet standard), then Onramper. */
 export function buildExternalUsdcOnrampUrl(args: OpenUsdcOnrampArgs): string | null {
   return buildTransakBuyUrl(args) ?? buildOnramperBuyUrl(args);
 }
@@ -82,5 +80,3 @@ export function openExternalUsdcOnramp(args: OpenUsdcOnrampArgs): boolean {
   window.open(url, "_blank", "noopener,noreferrer");
   return true;
 }
-
-export { PRIVY_ONRAMP_USDC_MINT };
