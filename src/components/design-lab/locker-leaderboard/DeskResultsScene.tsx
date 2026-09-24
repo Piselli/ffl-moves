@@ -111,11 +111,39 @@ type Props = {
   lab?: boolean;
 };
 
+/** `null` until mounted so SSR/hydration never boots the desk scene on a phone. */
+function useIsPhone(): boolean | null {
+  const [phone, setPhone] = useState<boolean | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return phone;
+}
+
+type LayoutMode = "pending" | "flat" | "scene";
+
+function shippingLayoutMode(
+  lab: boolean,
+  isPhone: boolean | null,
+): LayoutMode {
+  if (lab) return "scene";
+  if (isPhone === null) return "pending";
+  return isPhone ? "flat" : "scene";
+}
+
 export function DeskResultsScene({ lab = false }: Props) {
   const siteLocale = useSiteLocale();
   const tips = useSiteMessages().pages.surfaceTips;
   const room = useResultsRoomData();
   const reduceMotion = useReducedMotion();
+  const isPhone = useIsPhone();
+  const layoutMode = shippingLayoutMode(lab, isPhone);
+  const flatShell = layoutMode === "flat";
+  const useDeskScene = layoutMode === "scene";
   const { hostRef, cover } = useDeskPlateCover();
   const [tabletRaised, setTabletRaised] = useState(true);
   const [pointerInTablet, setPointerInTablet] = useState(false);
@@ -186,6 +214,7 @@ export function DeskResultsScene({ lab = false }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!useDeskScene) return;
     const onWheel = (e: WheelEvent) => {
       if (pointerInTablet) return;
       if (Math.abs(e.deltaY) < 6) return;
@@ -194,7 +223,7 @@ export function DeskResultsScene({ lab = false }: Props) {
     };
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
-  }, [pointerInTablet]);
+  }, [pointerInTablet, useDeskScene]);
 
   void roomReady;
 
@@ -206,11 +235,38 @@ export function DeskResultsScene({ lab = false }: Props) {
         youXiVariantId={youXiVariantId}
         tabletLookId={tabletLookId}
         onTabletLookChange={onTabletLookChange}
+        flatShell={flatShell}
       />
     </LocaleBridge>
   );
 
-  const boardReady = cover.w > 0 && cover.h > 0;
+  const boardReady = useDeskScene && cover.w > 0 && cover.h > 0;
+
+  if (layoutMode === "pending") {
+    return (
+      <div className="fixed inset-0 z-[45] overflow-hidden bg-black text-white">
+        <LockerLabNav liveLinks={!lab} tabletShell />
+      </div>
+    );
+  }
+
+  if (flatShell) {
+    return (
+      <div className="fixed inset-0 z-[45] overflow-hidden bg-black text-white">
+        <LockerLabNav liveLinks={!lab} tabletShell />
+        <div className="absolute inset-0 z-[60] flex flex-col overflow-hidden bg-black pt-14">
+          {tabletScreen}
+        </div>
+        <SurfaceTipSheet
+          tipId="leaderboard"
+          title={tips.leaderboardTitle}
+          body={tips.leaderboardBody}
+          cta={tips.leaderboardCta}
+          placement="bottom-end"
+        />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -325,7 +325,8 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
         </div>
       </div>
 
-      {liveLinks ? <SiteBackHomeFloat /> : null}
+      {/* Flat phone shells already have Home in the menu + wordmark — float overlaps UI. */}
+      {liveLinks && !tabletShell ? <SiteBackHomeFloat /> : null}
 
       <AnimatePresence>
         {mobileOpen ? (

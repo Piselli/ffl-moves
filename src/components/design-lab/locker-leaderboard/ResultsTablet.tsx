@@ -168,7 +168,14 @@ type Props = {
   /** Obsidian / Crystal — same key as homepage pick tablet */
   tabletLookId?: TabletVariantId;
   onTabletLookChange?: (id: TabletVariantId) => void;
+  /**
+   * Phone shipping shell — full viewport, no fake iPad chrome.
+   * Board = rankings list; tap a manager → XI with back.
+   */
+  flatShell?: boolean;
 };
+
+type BoardPane = "list" | "xi";
 
 /**
  * Results iPad — fixed composition (table left, XI right).
@@ -180,6 +187,7 @@ export function ResultsTablet({
   youXiVariantId = DEFAULT_YOU_XI_VARIANT,
   tabletLookId = "current",
   onTabletLookChange,
+  flatShell = false,
 }: Props) {
   const chrome = getResultsChrome(chromeId);
   const palette = getLockerPalette(chrome.paletteId);
@@ -192,6 +200,7 @@ export function ResultsTablet({
   const typeface = getTypeface();
   const tabletRootRef = useLocalWheelScroll();
   const [tab, setTab] = useState<TabId>("board");
+  const [boardPane, setBoardPane] = useState<BoardPane>("list");
   const [clock, setClock] = useState("");
   const [claimOpen, setClaimOpen] = useState(false);
   const [pitchStyleId, setPitchStyleId] =
@@ -228,6 +237,11 @@ export function ResultsTablet({
     savePitchStyleId(id);
   };
 
+  const onSelectManager = (owner: string) => {
+    s.select(owner);
+    if (flatShell) setBoardPane("xi");
+  };
+
   const d = chrome.details;
   const namingSheet = d.softPlate;
   /** Match homepage Crystal / plates chrome — same corner on both tablet pages. */
@@ -256,6 +270,122 @@ export function ResultsTablet({
       "0 0 0 1px rgba(255,255,255,0.19), inset 0 1px 0 rgba(255,255,255,0.11), 0 14px 40px rgba(0,0,0,0.55)",
   };
 
+  const boardTable = (
+    <TeamSheetTable
+      key={`${s.data.gameweek}-${chromeId}-stagger`}
+      rows={s.data.rows}
+      openOwner={s.openOwner}
+      onSelect={onSelectManager}
+      sectionLabel="This gameweek"
+      dense={d.denseTable}
+      condensed={d.condensedBoard}
+      scrollToYou={d.scrollToYou}
+      stagger={d.staggerRows}
+      selectPulse={d.selectPulse}
+      layoutSelect={d.layoutSelect}
+      className="min-h-0 flex-1 px-0"
+    />
+  );
+
+  const boardPitch = (
+    <TeamSheetPitch
+      manager={s.open}
+      landKey={s.landKey}
+      loadingXi={s.loadingXi}
+      pitchStyleId={pitchStyleId}
+      onPitchStyleChange={onPitchStyleChange}
+      fillPlate
+      plateClassName={plateRadiusClass}
+      showHeader={false}
+      className="h-full min-h-0"
+    />
+  );
+
+  const namingTablePlate = (
+    <div
+      className={cn(
+        "relative flex h-full min-h-0 flex-col overflow-hidden",
+        plateRadius,
+      )}
+      style={namingSheetStyle}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 16%)",
+        }}
+      />
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
+        {boardTable}
+      </div>
+    </div>
+  );
+
+  const glassTablePlate = (
+    <SpotlightShell enabled={d.spotlight}>
+      <GlassPanel
+        interactive={d.interactivePanels}
+        crystal={d.crystalGlass}
+        className={cn("h-full min-h-0", plateRadius)}
+      >
+        {boardTable}
+      </GlassPanel>
+    </SpotlightShell>
+  );
+
+  const boardDesktop = namingSheet ? (
+    <div className="grid h-full min-h-0 gap-2 lg:grid-cols-2">
+      {namingTablePlate}
+      {boardPitch}
+    </div>
+  ) : (
+    <div className="grid h-full min-h-0 gap-2 lg:grid-cols-2">
+      {glassTablePlate}
+      <SpotlightShell enabled={d.spotlight}>{boardPitch}</SpotlightShell>
+    </div>
+  );
+
+  const boardMobile =
+    boardPane === "xi" ? (
+      <div className="flex h-full min-h-0 flex-col gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBoardPane("list")}
+            className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/70 transition hover:border-white/30 hover:text-white active:scale-[0.98]"
+          >
+            ← Rankings
+          </button>
+          {s.open ? (
+            <p
+              className="min-w-0 truncate text-[12px] font-bold uppercase tracking-tight text-white/55"
+              style={DISPLAY}
+            >
+              #{s.open.rank} {s.open.nickname}
+            </p>
+          ) : null}
+        </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {namingSheet ? (
+            <div
+              className={cn("h-full min-h-0 overflow-hidden", plateRadius)}
+              style={namingSheetStyle}
+            >
+              {boardPitch}
+            </div>
+          ) : (
+            <SpotlightShell enabled={d.spotlight}>{boardPitch}</SpotlightShell>
+          )}
+        </div>
+      </div>
+    ) : namingSheet ? (
+      namingTablePlate
+    ) : (
+      glassTablePlate
+    );
+
   return (
     <div
       ref={tabletRootRef}
@@ -277,21 +407,23 @@ export function ResultsTablet({
     >
       <style>{resultsScrollbarCss()}</style>
 
-      <div className="relative flex h-6 shrink-0 items-center justify-between px-4 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)]/70 md:h-7">
-        <span>{clock}</span>
-        <div className="flex items-center gap-2 md:gap-3">
-          {onTabletLookChange ? (
-            <TabletLookPicker
-              value={tabletLookId}
-              onChange={onTabletLookChange}
-              compact
-            />
-          ) : null}
-          <span className="hidden tracking-[0.08em] md:inline">
-            Wi-Fi&nbsp;&nbsp;100%
-          </span>
+      {!flatShell ? (
+        <div className="relative flex h-6 shrink-0 items-center justify-between px-4 text-[10px] font-semibold tabular-nums text-[color:var(--lt-ink)]/70 md:h-7">
+          <span>{clock}</span>
+          <div className="flex items-center gap-2 md:gap-3">
+            {onTabletLookChange ? (
+              <TabletLookPicker
+                value={tabletLookId}
+                onChange={onTabletLookChange}
+                compact
+              />
+            ) : null}
+            <span className="hidden tracking-[0.08em] md:inline">
+              Wi-Fi&nbsp;&nbsp;100%
+            </span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* py-2 matches tabs pt-2 so the hairline sits midway between GW plate and Board/You */}
       <header className="relative flex shrink-0 items-center justify-between border-b border-[var(--lt-hairline)] bg-black px-4 py-2">
@@ -353,6 +485,7 @@ export function ResultsTablet({
                 type="button"
                 onClick={() => {
                   setTab(id);
+                  if (id === "board") setBoardPane("list");
                   if (id === "you") s.findMe();
                 }}
                 className={cn(
@@ -367,133 +500,32 @@ export function ResultsTablet({
         </div>
       </div>
 
-      {/* Fixed composition: table left · pitch right */}
+      {/* Fixed composition: table left · pitch right — flat phone = list → XI */}
       <div className="relative mt-2 min-h-0 flex-1 px-3">
-        {namingSheet ? (
-          tab === "board" ? (
-            <div className="grid h-full min-h-0 gap-2 lg:grid-cols-2">
-              <div
-                className={cn(
-                  "relative flex h-full min-h-0 flex-col overflow-hidden",
-                  plateRadius,
-                )}
-                style={namingSheetStyle}
-              >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-[inherit]"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 16%)",
-                  }}
-                />
-                <div className="relative z-10 flex h-full min-h-0 flex-col">
-                  <TeamSheetTable
-                    key={`${s.data.gameweek}-${chromeId}-stagger`}
-                    rows={s.data.rows}
-                    openOwner={s.openOwner}
-                    onSelect={s.select}
-                    sectionLabel="This gameweek"
-                    dense={d.denseTable}
-                    condensed={d.condensedBoard}
-                    scrollToYou={d.scrollToYou}
-                    stagger={d.staggerRows}
-                    selectPulse={d.selectPulse}
-                    layoutSelect={d.layoutSelect}
-                    className="min-h-0 flex-1 px-0"
-                  />
-                </div>
-              </div>
-              <TeamSheetPitch
-                manager={s.open}
-                landKey={s.landKey}
-                loadingXi={s.loadingXi}
-                pitchStyleId={pitchStyleId}
-                onPitchStyleChange={onPitchStyleChange}
-                fillPlate
-                plateClassName={plateRadiusClass}
-                showHeader={false}
-                className="h-full min-h-0"
-              />
-            </div>
+        {tab === "board" ? (
+          flatShell ? (
+            boardMobile
           ) : (
-            <div className="flex h-full min-h-0 flex-col overflow-hidden">
-              {s.you ? (
-                <>
-                  {!isYouResultPlate(youXiVariantId) ? (
-                    <YouResultHero
-                      manager={s.you}
-                      gameweek={s.data.gameweek}
-                    />
-                  ) : null}
-                  <YouXiPanel
-                    manager={s.open?.owner === s.you.owner ? s.open : s.you}
-                    landKey={s.landKey}
-                    loadingXi={s.loadingXi}
-                    variantId={youXiVariantId}
-                    gameweek={s.data.gameweek}
-                    className="min-h-0 flex-1"
-                  />
-                </>
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                  <p className="text-[15px] text-white/45">
-                    Connect a wallet that entered this gameweek to see your
-                    result.
-                  </p>
-                </div>
-              )}
-            </div>
+            boardDesktop
           )
-        ) : tab === "board" ? (
-          <div className="grid h-full min-h-0 gap-2 lg:grid-cols-2">
-            <SpotlightShell enabled={d.spotlight}>
-              <GlassPanel
-                interactive={d.interactivePanels}
-                crystal={d.crystalGlass}
-                className={cn("h-full min-h-0", plateRadius)}
-              >
-                <TeamSheetTable
-                  key={`${s.data.gameweek}-${chromeId}-stagger`}
-                  rows={s.data.rows}
-                  openOwner={s.openOwner}
-                  onSelect={s.select}
-                  sectionLabel="This gameweek"
-                  dense={d.denseTable}
-                  condensed={d.condensedBoard}
-                  scrollToYou={d.scrollToYou}
-                  stagger={d.staggerRows}
-                  selectPulse={d.selectPulse}
-                  layoutSelect={d.layoutSelect}
-                  className="min-h-0 flex-1 px-0"
-                />
-              </GlassPanel>
-            </SpotlightShell>
-            <SpotlightShell enabled={d.spotlight}>
-              <TeamSheetPitch
-                manager={s.open}
-                landKey={s.landKey}
-                loadingXi={s.loadingXi}
-                pitchStyleId={pitchStyleId}
-                onPitchStyleChange={onPitchStyleChange}
-                fillPlate
-                plateClassName={plateRadiusClass}
-                showHeader={false}
-                className="h-full min-h-0"
-              />
-            </SpotlightShell>
-          </div>
         ) : (
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {s.you ? (
               <>
                 {!isYouResultPlate(youXiVariantId) ? (
-                  <YouResultHero
-                    manager={s.you}
-                    gameweek={s.data.gameweek}
-                    counter={d.counterPts}
-                    Counter={CounterUp}
-                  />
+                  namingSheet ? (
+                    <YouResultHero
+                      manager={s.you}
+                      gameweek={s.data.gameweek}
+                    />
+                  ) : (
+                    <YouResultHero
+                      manager={s.you}
+                      gameweek={s.data.gameweek}
+                      counter={d.counterPts}
+                      Counter={CounterUp}
+                    />
+                  )
                 ) : null}
                 <YouXiPanel
                   manager={s.open?.owner === s.you.owner ? s.open : s.you}
@@ -516,7 +548,14 @@ export function ResultsTablet({
         )}
       </div>
 
-      <div className="relative mt-1.5 shrink-0 px-3 pb-2.5">
+      <div
+        className={cn(
+          "relative mt-1.5 shrink-0 px-3",
+          flatShell
+            ? "pb-[max(0.65rem,env(safe-area-inset-bottom))]"
+            : "pb-2.5",
+        )}
+      >
         <ClaimFascia
           data={s.data}
           you={s.you}
