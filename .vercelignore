@@ -9,7 +9,9 @@ tmp
 archive
 
 # Solana local artifacts (huge + unix sockets break upload)
-solana
+# Anchor workspace only — do NOT use bare `solana` (that also drops src/app/api/solana).
+/solana
+solana/movematch
 
 # Move local build output
 move/**/build
