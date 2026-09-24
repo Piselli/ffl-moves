@@ -106,6 +106,25 @@ export type SiteMessages = {
     needWallet: string;
     solanaAddress: string;
   };
+  withdraw: {
+    title: string;
+    open: string;
+    close: string;
+    hint: string;
+    balanceLabel: string;
+    recipientLabel: string;
+    recipientPlaceholder: string;
+    amountLabel: (symbol: string) => string;
+    max: string;
+    submit: string;
+    sending: string;
+    needWallet: string;
+    invalidRecipient: string;
+    sameWallet: string;
+    invalidAmount: string;
+    success: (amount: string, to: string) => string;
+    failed: string;
+  };
   footer: {
     socialHint: string;
     socialHintShort: string;
@@ -389,6 +408,25 @@ const uk: SiteMessages = {
     copyFailed: "Не вдалося скопіювати.",
     needWallet: "Підключи гаманець.",
     solanaAddress: "Адреса",
+  },
+  withdraw: {
+    title: "Вивести",
+    open: "Вивести",
+    close: "Закрити",
+    hint: "Надішли USDC зі свого ігрового Solana-гаманця на Phantom, біржу чи іншу адресу (мережа Solana).",
+    balanceLabel: "Баланс",
+    recipientLabel: "Адреса отримувача",
+    recipientPlaceholder: "Solana-адреса…",
+    amountLabel: (symbol) => `Сума (${symbol})`,
+    max: "Max",
+    submit: "Вивести USDC",
+    sending: "Надсилаємо…",
+    needWallet: "Увійди або підключи гаманець.",
+    invalidRecipient: "Некоректна Solana-адреса.",
+    sameWallet: "Не можна вивести на той самий гаманець.",
+    invalidAmount: "Вкажи суму більше 0.",
+    success: (amount, to) => `Надіслано ${amount} USDC → ${to.slice(0, 4)}…${to.slice(-4)}`,
+    failed: "Не вдалося вивести. Перевір баланс і спробуй ще раз.",
   },
   footer: {
     socialHint: "Питання й баги — у Telegram @movematch. Новини туру та оновлення — у X.",
@@ -692,6 +730,25 @@ const en: SiteMessages = {
     copyFailed: "Could not copy.",
     needWallet: "Connect a wallet.",
     solanaAddress: "Address",
+  },
+  withdraw: {
+    title: "Withdraw",
+    open: "Withdraw",
+    close: "Close",
+    hint: "Send USDC from your in-app Solana wallet to Phantom, an exchange, or another address (Solana network).",
+    balanceLabel: "Balance",
+    recipientLabel: "Recipient address",
+    recipientPlaceholder: "Solana address…",
+    amountLabel: (symbol) => `Amount (${symbol})`,
+    max: "Max",
+    submit: "Send USDC",
+    sending: "Sending…",
+    needWallet: "Sign in or connect a wallet.",
+    invalidRecipient: "Invalid Solana address.",
+    sameWallet: "Cannot withdraw to the same wallet.",
+    invalidAmount: "Enter an amount greater than 0.",
+    success: (amount, to) => `Sent ${amount} USDC → ${to.slice(0, 4)}…${to.slice(-4)}`,
+    failed: "Withdraw failed. Check your balance and try again.",
   },
   footer: {
     socialHint: "Questions and bugs — Telegram @movematch. Gameweek news and updates — on X.",

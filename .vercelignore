@@ -1,0 +1,18 @@
+# Never upload build caches / local toolchains
+node_modules
+.next
+.git
+.movement
+.numba_cache
+.tmp-pydeps
+tmp
+archive
+
+# Solana local artifacts (huge + unix sockets break upload)
+solana
+
+# Move local build output
+move/**/build
+
+# Marketing boards / refs — not needed for Next app runtime
+docs/marketing

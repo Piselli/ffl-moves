@@ -7,11 +7,13 @@ import {
   type PropsWithChildren,
 } from "react";
 import { PrivyProvider, usePrivy, type LoginModalOptions, type User } from "@privy-io/react-auth";
+import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import {
   isPrivyConfigured,
   PRIVY_APP_ID,
   PRIVY_CLIENT_ID,
 } from "@/lib/privy";
+import { SOLANA_RPC_URL } from "@/lib/constants";
 
 type PrivyAuthValue = {
   configured: boolean;
@@ -55,6 +57,16 @@ function PrivyAuthInner({ children }: PropsWithChildren) {
   return <PrivyAuthContext.Provider value={value}>{children}</PrivyAuthContext.Provider>;
 }
 
+/** Privy embedded wallet UIs need CAIP-2 RPC clients (`signTransaction` / `signAndSend`). */
+function solanaRpcWsUrl(httpUrl: string): string {
+  return httpUrl.replace(/^https:/i, "wss:").replace(/^http:/i, "ws:");
+}
+
+const PRIVY_SOLANA_RPC_ENTRY = {
+  rpc: createSolanaRpc(SOLANA_RPC_URL),
+  rpcSubscriptions: createSolanaRpcSubscriptions(solanaRpcWsUrl(SOLANA_RPC_URL)),
+};
+
 export function PrivyAppProvider({ children }: PropsWithChildren) {
   if (!isPrivyConfigured()) {
     return <PrivyAuthContext.Provider value={emptyAuth}>{children}</PrivyAuthContext.Provider>;
@@ -75,6 +87,13 @@ export function PrivyAppProvider({ children }: PropsWithChildren) {
         embeddedWallets: {
           ethereum: { createOnLogin: "off" },
           solana: { createOnLogin: "all-users" },
+        },
+        solana: {
+          // Register both CAIP-2 keys so a mismatch with SOLANA_CLUSTER still resolves.
+          rpcs: {
+            "solana:mainnet": PRIVY_SOLANA_RPC_ENTRY,
+            "solana:devnet": PRIVY_SOLANA_RPC_ENTRY,
+          },
         },
       }}
     >

@@ -59,3 +59,12 @@ public/design-lab/locker-hero/variants/*
 *.tsbuildinfo
 next-env.d.ts
 solana/movematch/.bin/
+.env*
+
+# Solana local validator ledger (unix sockets break Vercel upload)
+solana/movematch/.test-ledger/
+solana/movematch/target/
+
+solana/movematch/.anchor/
+solana/movematch/.test-ledger/
+solana/movematch/target/

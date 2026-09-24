@@ -133,9 +133,14 @@ if (!rpc) {
 const programIdRaw = read("NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID") || DEVNET_PROGRAM_ID;
 const programId = pubkeyOrNull(programIdRaw);
 if (!programId) fail(`NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID is not a valid pubkey: "${programIdRaw}"`);
-else if (!devnetMode && programIdRaw === DEVNET_PROGRAM_ID) {
-  fail("Program id is still the devnet default. Deploy to mainnet and set NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID.");
-} else ok(`Program id ${programIdRaw}`);
+else {
+  // Same program keypair is intentional across clusters (see Anchor.toml / runbook).
+  // Mainnet safety is enforced by on-chain checks below, not by rejecting this id.
+  if (!devnetMode && programIdRaw === DEVNET_PROGRAM_ID) {
+    warn("Program id matches the shared/devnet keypair — verifying it exists on mainnet below.");
+  }
+  ok(`Program id ${programIdRaw}`);
+}
 
 const expectedMint = devnetMode ? USDC_DEVNET : USDC_MAINNET;
 const mintRaw = read("NEXT_PUBLIC_USDC_MINT") || expectedMint;

@@ -1,14 +1,24 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { NAV_UTILITY_TRAY } from "@/components/navUtilityStyles";
 
-/** 2026-style grouped header utilities: lang · social · wallet in one chip row. */
-export function NavUtilityCluster({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/30 p-0.5 backdrop-blur-sm">
-      {children}
-    </div>
-  );
+type Props = {
+  children: ReactNode;
+  /** Kept for callers; tray chrome moved to design-lab until a variant ships. */
+  tray?: boolean;
+  className?: string;
+};
+
+/** Header utilities — flat peers for now (see /design-lab/nav-utility). */
+export function NavUtilityCluster({ children, className }: Props) {
+  return <div className={cn(NAV_UTILITY_TRAY, className)}>{children}</div>;
 }
 
 export function NavUtilityDivider() {
-  return <span className="mx-0.5 h-5 w-px shrink-0 bg-white/10" aria-hidden />;
+  return (
+    <span
+      className="mx-0.5 h-3.5 w-px shrink-0 bg-gradient-to-b from-transparent via-white/20 to-transparent"
+      aria-hidden
+    />
+  );
 }

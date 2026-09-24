@@ -18,11 +18,17 @@ const DepositModal = dynamic(
   { ssr: false },
 );
 
+const WithdrawModal = dynamic(
+  () => import("@/components/WithdrawModal").then((m) => m.WithdrawModal),
+  { ssr: false },
+);
+
 export { useDeposit } from "@/components/depositContext";
 
 export function DepositProvider({ children }: PropsWithChildren) {
   const { address, connected } = useWallet();
-  const [open, setOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [balanceLabel, setBalanceLabel] = useState<string | null>(null);
   const requestId = useRef(0);
 
@@ -55,16 +61,29 @@ export function DepositProvider({ children }: PropsWithChildren) {
     };
   }, [refreshBalance]);
 
-  const openDeposit = useCallback(() => setOpen(true), []);
+  const openDeposit = useCallback(() => {
+    setWithdrawOpen(false);
+    setDepositOpen(true);
+  }, []);
   const closeDeposit = useCallback(() => {
-    setOpen(false);
+    setDepositOpen(false);
+    refreshBalance();
+  }, [refreshBalance]);
+
+  const openWithdraw = useCallback(() => {
+    setDepositOpen(false);
+    setWithdrawOpen(true);
+  }, []);
+  const closeWithdraw = useCallback(() => {
+    setWithdrawOpen(false);
     refreshBalance();
   }, [refreshBalance]);
 
   return (
-    <DepositContext.Provider value={{ openDeposit, balanceLabel, refreshBalance }}>
+    <DepositContext.Provider value={{ openDeposit, openWithdraw, balanceLabel, refreshBalance }}>
       {children}
-      {open ? <DepositModal open={open} onClose={closeDeposit} /> : null}
+      {depositOpen ? <DepositModal open={depositOpen} onClose={closeDeposit} /> : null}
+      {withdrawOpen ? <WithdrawModal open={withdrawOpen} onClose={closeWithdraw} /> : null}
     </DepositContext.Provider>
   );
 }

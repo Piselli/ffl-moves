@@ -1,0 +1,50 @@
+# Auto-close OPEN MoveMatch gameweek after FPL first-kickoff deadline.
+# Hits production API every 5 minutes (Vercel Hobby cannot run sub-daily crons).
+#
+# Required GitHub secret:
+#   CRON_SECRET — same value as Vercel Production CRON_SECRET
+#
+# Optional repo Variables:
+#   AUTO_CLOSE_URL — default https://www.movematch.xyz/api/cron/close-gameweek
+
+name: Auto-close gameweek
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no on-chain close)"
+        type: boolean
+        default: false
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call close-gameweek cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.AUTO_CLOSE_URL || 'https://www.movematch.xyz/api/cron/close-gameweek' }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRON_SECRET"
+            exit 1
+          fi
+          URL="$BASE_URL"
+          if [ "$DRY" = "1" ]; then
+            URL="${URL}?dryRun=1"
+          fi
+          echo "GET $URL"
+          curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" "$URL" | tee /tmp/auto-close.json
+          python3 - <<'PY'
+          import json
+          data = json.load(open("/tmp/auto-close.json"))
+          print("action:", data.get("action"), "ok:", data.get("ok"))
+          if data.get("ok") is False:
+            raise SystemExit(1)
+          PY

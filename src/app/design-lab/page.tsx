@@ -84,6 +84,12 @@ export default function DesignLabPage() {
               Desk results →
             </Link>
             <Link
+              href="/design-lab/nav-utility"
+              className="rounded-sm border border-emerald-400/35 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-emerald-300 transition-colors hover:bg-emerald-400/20"
+            >
+              Nav utility →
+            </Link>
+            <Link
               href="/design-lab/locker-menu"
               className="rounded-sm border border-orange-400/35 bg-orange-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-orange-300 transition-colors hover:bg-orange-400/20"
             >

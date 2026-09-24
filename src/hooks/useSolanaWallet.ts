@@ -73,6 +73,8 @@ export function useWallet() {
       (privyAuth.authenticated ? privyLoginLabel(privyAuth.user) : null),
     /** Phantom / Solflare / Jupiter — pay by signing in the extension, not an in-app deposit. */
     hasExternalWallet,
+    /** Form8 fee sponsor for Privy embedded wallets (USDC send/withdraw). */
+    feePayer: hasExternalWallet ? null : privySession.feePayer,
     signAndSubmit,
     /** Legacy transaction builders are deliberately unsupported after Solana migration. */
     signTransaction: async (_legacyPayload?: unknown): Promise<any> => {
@@ -93,6 +95,7 @@ export function useWallet() {
     privyAuth.authenticated,
     privyAuth.user,
     privySession.address,
+    privySession.feePayer,
     signAndSubmit,
   ]);
 }

@@ -10,6 +10,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { Buffer } from "buffer";
@@ -453,6 +454,51 @@ export async function getUsdcBalance(owner: string): Promise<bigint> {
   const ata = getAssociatedTokenAddressSync(USDC_MINT, key(owner));
   const balance = await getConnection().getTokenAccountBalance(ata).catch(() => null);
   return balance ? BigInt(balance.value.amount) : BigInt(0);
+}
+
+/**
+ * SPL USDC transfer from `owner` wallet to `recipient` wallet (owner ATAs).
+ * Creates the recipient ATA idempotently when missing.
+ * `ataPayer` pays ATA rent (defaults to owner; use fee sponsor for gasless UX).
+ */
+export async function buildUsdcTransfer(
+  owner: string,
+  recipient: string,
+  amountRaw: bigint,
+  opts?: { ataPayer?: string },
+): Promise<TransactionInstruction[]> {
+  if (amountRaw <= BigInt(0)) throw new Error("Amount must be positive");
+  const ownerKey = key(owner);
+  const recipientKey = key(recipient);
+  const ataPayerKey = opts?.ataPayer ? key(opts.ataPayer) : ownerKey;
+  const fromAta = getAssociatedTokenAddressSync(USDC_MINT, ownerKey);
+  const toAta = getAssociatedTokenAddressSync(USDC_MINT, recipientKey);
+  const connection = getConnection();
+  const balance = await connection.getTokenAccountBalance(fromAta).catch(() => null);
+  const available = balance ? BigInt(balance.value.amount) : BigInt(0);
+  if (available < amountRaw) {
+    throw new Error(`Insufficient USDC (have ${available}, need ${amountRaw})`);
+  }
+  return [
+    createAssociatedTokenAccountIdempotentInstruction(
+      ataPayerKey,
+      toAta,
+      recipientKey,
+      USDC_MINT,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    ),
+    createTransferCheckedInstruction(
+      fromAta,
+      USDC_MINT,
+      toAta,
+      ownerKey,
+      amountRaw,
+      6,
+      [],
+      TOKEN_PROGRAM_ID,
+    ),
+  ];
 }
 
 export type OnChainPlayerStats = {

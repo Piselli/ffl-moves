@@ -17,6 +17,11 @@ import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
 import { cn, shortenAddress } from "@/lib/utils";
+import {
+  NAV_TRAY_BTN,
+  navDepositCtaStyle,
+  navWhiteCtaStyle,
+} from "@/components/navUtilityStyles";
 import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
 
 type Props = {
@@ -25,12 +30,6 @@ type Props = {
   /** Mobile flat tablet — solid bar, no room gradient. */
   tabletShell?: boolean;
 };
-
-const CHIP =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-lg px-4 text-xs font-bold uppercase leading-none tracking-wide sm:h-10 sm:px-5";
-
-const MOBILE_CHIP =
-  "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-2.5 text-[10px] font-bold uppercase leading-none tracking-wide";
 
 const NAV_LINK =
   "inline-flex h-9 items-center px-2.5 text-sm font-semibold uppercase leading-none tracking-[0.14em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10";
@@ -100,7 +99,6 @@ function Right({ compact = false }: { compact?: boolean }) {
   const { openDeposit } = useDeposit();
   const { setNickname, myNickname } = useNickname(address);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
-  const chip = compact ? MOBILE_CHIP : CHIP;
 
   return (
     <div className="relative z-10 flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
@@ -110,24 +108,22 @@ function Right({ compact = false }: { compact?: boolean }) {
           <button
             type="button"
             onClick={openDeposit}
-            className={cn(
-              chip,
-              "bg-[#00f948] text-black transition hover:brightness-110 active:scale-[0.98] md:hidden",
-            )}
+            style={navDepositCtaStyle}
+            className={cn(NAV_TRAY_BTN, "md:hidden", compact && "px-2.5 text-[10px]")}
           >
             {m.deposit.open}
           </button>
-          <div className="hidden items-center gap-1.5 rounded-xl border border-white/12 bg-black/45 p-1 backdrop-blur-md md:flex">
+          {/* Variant D — quiet balance · white deposit · live-dot nick */}
+          <div className={cn("hidden items-center gap-1.5 md:inline-flex")}>
             <NavUsdcBalance
-              className={cn(
-                "!h-8 !rounded-lg !border-0 !bg-transparent !px-2.5 !text-[11px] !font-semibold !normal-case !tracking-tight text-white/90 hover:!bg-white/[0.06]",
-                compact && "max-w-[4.75rem] !text-[10px]",
-              )}
+              variant="cluster"
+              className={cn(compact && "max-w-[5.5rem]")}
             />
             <button
               type="button"
               onClick={openDeposit}
-              className="inline-flex h-8 items-center rounded-lg bg-[#00f948] px-3.5 text-[11px] font-black uppercase tracking-[0.06em] text-black transition hover:brightness-110 active:scale-[0.98]"
+              style={navDepositCtaStyle}
+              className={NAV_TRAY_BTN}
             >
               {m.deposit.open}
             </button>
@@ -138,9 +134,12 @@ function Right({ compact = false }: { compact?: boolean }) {
               }}
               disabled={!address}
               title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
-              className="inline-flex h-8 max-w-[8rem] items-center truncate rounded-lg px-2.5 text-[11px] font-semibold tracking-tight text-white/80 transition hover:bg-white/[0.06] hover:text-white active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex h-9 max-w-[8rem] items-center gap-1.5 truncate rounded-xl px-2.5 text-[11px] font-semibold leading-none tracking-tight text-white/85 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.98] disabled:opacity-50"
             >
-              {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
+              <span className="truncate font-display text-[11px] font-black uppercase tracking-wider">
+                {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
+              </span>
             </button>
           </div>
           <button
@@ -174,18 +173,17 @@ function Right({ compact = false }: { compact?: boolean }) {
           ) : null}
         </>
       ) : (
-        <button
-          type="button"
-          id="wallet-connect-btn"
-          onClick={openLogin}
-          className={cn(
-            chip,
-            "bg-white text-black transition hover:bg-white/90 active:scale-[0.98]",
-            compact && "px-3",
-          )}
-        >
-          {m.nav.connectWallet}
-        </button>
+        <div className="inline-flex items-center">
+          <button
+            type="button"
+            id="wallet-connect-btn"
+            onClick={openLogin}
+            style={navWhiteCtaStyle}
+            className={cn(NAV_TRAY_BTN, compact && "px-3")}
+          >
+            {m.nav.connectWallet}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -485,7 +483,8 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                   openLogin();
                   setMobileOpen(false);
                 }}
-                className="mt-1 flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-black transition hover:bg-white/90"
+                style={navWhiteCtaStyle}
+                className={cn(NAV_TRAY_BTN, "mt-1 h-11 w-full rounded-xl text-sm tracking-[0.14em]")}
               >
                 {m.nav.connectWallet}
               </button>

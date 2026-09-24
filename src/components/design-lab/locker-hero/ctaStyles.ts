@@ -116,6 +116,38 @@ export const SHARE_SQUAD_CTA_STYLE: CSSProperties = {
   ].join(", "),
 };
 
+/**
+ * Compact nav balance / Connect — white convex bone (share family, denser).
+ * Prefer over plain `bg-white` in tight header chrome.
+ */
+export const NAV_WHITE_CTA_STYLE: CSSProperties = {
+  background:
+    "linear-gradient(180deg, #ffffff 0%, #f4f4f5 55%, #e8e8ea 100%)",
+  color: "#08090a",
+  textShadow: "none",
+  boxShadow: [
+    "inset 0 1px 0 rgba(255,255,255,0.95)",
+    "inset 0 -1px 0 rgba(0,0,0,0.06)",
+    "0 0 0 1px rgba(255,255,255,0.18)",
+    "0 1px 3px rgba(0,0,0,0.22)",
+  ].join(", "),
+};
+
+/**
+ * Compact nav Deposit — same language as locker register (convex-green), denser.
+ */
+export const NAV_GREEN_CTA_STYLE: CSSProperties = {
+  background:
+    "linear-gradient(180deg, #3BE07A 0%, #17C255 46%, #0E9B41 100%)",
+  color: "#FFFFFF",
+  textShadow: "0 1px 1px rgba(0,0,0,0.35)",
+  boxShadow: [
+    "inset 0 1px 0 rgba(255,255,255,0.5)",
+    "inset 0 -1.5px 3px rgba(0,40,14,0.4)",
+    "0 1px 3px rgba(0,0,0,0.28)",
+    "0 3px 10px rgba(10,120,50,0.22)",
+  ].join(", "),
+};
 const CTAS: Record<CtaStyleId, CtaStyle> = {
   "convex-green": LOCKER_CTA,
   "tripled-white": TRIPLED_WHITE_CTA,

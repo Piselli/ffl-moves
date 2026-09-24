@@ -4,12 +4,14 @@ import { createContext, useContext } from "react";
 
 export type DepositContextValue = {
   openDeposit: () => void;
+  openWithdraw: () => void;
   balanceLabel: string | null;
   refreshBalance: () => void;
 };
 
 export const DepositContext = createContext<DepositContextValue>({
   openDeposit: () => {},
+  openWithdraw: () => {},
   balanceLabel: null,
   refreshBalance: () => {},
 });

@@ -7,11 +7,11 @@ import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
-import { shortenAddress } from "@/lib/utils";
+import { cn, shortenAddress } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { NavUtilityCluster, NavUtilityDivider } from "@/components/NavUtilityCluster";
+import { NavUtilityCluster } from "@/components/NavUtilityCluster";
 import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
 import { SOCIAL_X_URL } from "@/lib/constants";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -19,6 +19,11 @@ import { Form8Lockup } from "@/components/Form8Mark";
 import { useDeposit } from "@/components/DepositProvider";
 import { useLogin } from "@/components/LoginProvider";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
+import {
+  NAV_TRAY_BTN,
+  navDepositCtaStyle,
+  navWhiteCtaStyle,
+} from "@/components/navUtilityStyles";
 import { SPRING_PILL } from "@/lib/uiMotion";
 import { primarySiteNavLinks } from "@/lib/siteNav";
 
@@ -127,7 +132,7 @@ export function Navbar() {
             <div className="h-10 min-w-[5.5rem] rounded-xl border border-white/10 bg-white/[0.04]" aria-hidden />
           </div>
           <div className="hidden lg:flex flex-1 justify-end items-center gap-2">
-            <NavUtilityCluster>
+            <NavUtilityCluster tray={false}>
               <span className="px-2 py-1.5 text-[10px] font-semibold text-white/30">{m.nav.loading}</span>
             </NavUtilityCluster>
             <span className="px-2 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/30">
@@ -210,17 +215,17 @@ export function Navbar() {
         </div>
         </LayoutGroup>
 
-        <div className="relative z-10 ml-auto flex min-w-0 items-center gap-2">
-          <NavUtilityCluster>
-            <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
-            {connected ? (
-              <>
-                <NavUtilityDivider />
+        <div className="relative z-10 ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
+          {connected ? (
+            <>
+              <NavUtilityCluster>
                 <NavUsdcBalance variant="cluster" />
                 <button
                   type="button"
                   onClick={openDeposit}
-                  className="rounded-lg bg-[#00f948]/15 px-2.5 py-1.5 text-[10px] font-display font-black uppercase tracking-wide text-[#00f948] transition-[background-color,transform] duration-150 hover:bg-[#00f948]/25 active:scale-[0.97] whitespace-nowrap min-[400px]:text-[11px]"
+                  style={navDepositCtaStyle}
+                  className={NAV_TRAY_BTN}
                 >
                   {m.deposit.open}
                 </button>
@@ -230,48 +235,49 @@ export function Navbar() {
                     if (address) setShowNicknameModal(true);
                   }}
                   disabled={!address}
-                  className="group inline-flex min-w-0 max-w-[7.5rem] items-center gap-1.5 rounded-lg px-2 py-1.5 transition-[background-color,transform] duration-150 hover:bg-white/[0.06] active:scale-[0.97] disabled:opacity-50 min-[400px]:max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none"
+                  className="group inline-flex h-9 min-w-0 max-w-[7.5rem] items-center gap-1.5 rounded-xl px-2.5 transition-[background-color,transform] duration-150 hover:bg-white/[0.07] active:scale-[0.97] disabled:opacity-50 min-[400px]:max-w-[8.5rem] lg:max-w-[9.5rem] xl:max-w-none"
                   title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#00f948] shadow-[0_0_6px_rgba(0,249,72,0.8)]" />
-                  <span className="truncate font-display text-[10px] font-black uppercase tracking-wider text-white/85 xl:text-[11px]">
+                  <span className="truncate font-display text-[10px] font-black uppercase leading-none tracking-wider text-white/85 xl:text-[11px]">
                     {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
                   </span>
                 </button>
-                <button
-                  onClick={disconnect}
-                  aria-label={m.nav.disconnect}
-                  title={m.nav.disconnect}
-                  className="inline-flex shrink-0 items-center justify-center rounded-lg px-2 py-1.5 text-white/40 transition-[background-color,color,transform] duration-150 hover:bg-white/[0.06] hover:text-white/75 active:scale-[0.97]"
-                >
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1M3 12h11M10 8l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </>
-            ) : (
-              <>
-                <NavUtilityDivider />
-                <button
-                  id="wallet-connect-btn"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openLogin();
-                  }}
-                  className="whitespace-nowrap rounded-lg bg-white px-2.5 py-1.5 font-display text-[10px] font-black uppercase tracking-wide text-black transition-[background-color,transform] duration-150 hover:bg-white/90 active:scale-[0.97] min-[400px]:text-[11px]"
-                >
-                  <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
-                  <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
-                </button>
-              </>
-            )}
-          </NavUtilityCluster>
+              </NavUtilityCluster>
+              <button
+                onClick={disconnect}
+                aria-label={m.nav.disconnect}
+                title={m.nav.disconnect}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/40 text-white/45 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/25 hover:bg-white/[0.06] hover:text-white/80 active:scale-[0.97]"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1M3 12h11M10 8l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <NavUtilityCluster>
+              <button
+                id="wallet-connect-btn"
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openLogin();
+                }}
+                style={navWhiteCtaStyle}
+                className={cn(NAV_TRAY_BTN, "px-3")}
+              >
+                <span className="min-[400px]:hidden">{m.nav.walletShort}</span>
+                <span className="hidden min-[400px]:inline">{m.nav.connectWallet}</span>
+              </button>
+            </NavUtilityCluster>
+          )}
           <button
             type="button"
             aria-expanded={mobileMenuOpen}

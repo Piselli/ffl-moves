@@ -706,7 +706,11 @@ export default function AdminPage() {
             <p>Oracle: {config?.oracle ?? "—"}</p>
           </div>
           <p className="mt-4 text-xs text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
-            Use Phantom on <strong className="text-white/70">Devnet</strong> — the app reads Solana devnet, not mainnet.
+            Підключи <strong className="text-white/70">Admin</strong> (
+            <span className="font-mono text-white/60">CJKNFK…</span>) або{" "}
+            <strong className="text-white/70">Oracle</strong> (
+            <span className="font-mono text-white/60">6vvo1t…</span>) на Solana{" "}
+            <strong className="text-white/70">{SOLANA_CLUSTER}</strong>.
           </p>
         </div>
       </SitePageShell>
