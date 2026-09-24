@@ -705,6 +705,13 @@ export type PagesMessages = {
     lastGwSampleLabel: string;
     lastGwPartial: (picked: number) => string;
     lastGwPickCaptain: string;
+    /** Player list form dots (last finished GWs). */
+    formDotsLegend: string;
+    formDotsNewestHint: string;
+    formDotsStart: string;
+    formDotsSub: string;
+    formDotsOut: string;
+    formDotsGwLine: (gw: number, status: string) => string;
     howToPlayBtn: string;
     scoringTitle: string;
     scoringSubtitle: string;
@@ -1718,6 +1725,12 @@ export const pagesEn: PagesMessages = {
     lastGwSampleLabel: "Sample score",
     lastGwPartial: (picked) => `${picked}/11`,
     lastGwPickCaptain: "Pick C to double",
+    formDotsLegend: "Green started · amber sub · red out",
+    formDotsNewestHint: "Oldest left → newest right",
+    formDotsStart: "Started",
+    formDotsSub: "Sub",
+    formDotsOut: "Did not play",
+    formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
     howToPlayBtn: "How to play",
     scoringTitle: "Scoring",
     scoringSubtitle: "",
@@ -2786,6 +2799,12 @@ export const pagesUk: PagesMessages = {
     lastGwSampleLabel: "Приклад рахунку",
     lastGwPartial: (picked) => `${picked}/11`,
     lastGwPickCaptain: "Обери C — подвоєння",
+    formDotsLegend: "Зелена — старт · жовта — з лави · червона — не грав",
+    formDotsNewestHint: "Ліворуч старіше → праворуч останній тур",
+    formDotsStart: "Старт",
+    formDotsSub: "З лави",
+    formDotsOut: "Не грав",
+    formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
     howToPlayBtn: "Як грати",
     scoringTitle: "Очки",
     scoringSubtitle: "",

@@ -43,6 +43,7 @@ import {
 import { SHARE_SQUAD_CTA_STYLE } from "./ctaStyles";
 import { pl2627HomeKit } from "./pl2627HomeKits";
 import { clubKitFor } from "./clubKitColors";
+import { PlayerFormDots, usePlayerForm } from "./PlayerFormDots";
 import {
   DEFAULT_FORMATION,
   formationRows,
@@ -1022,6 +1023,15 @@ export function LockerTablet({
   /** Phone lands on Team after Matchday Gate — pitch first, Pick via + / tab. */
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
   const isNarrow = useIsNarrowTablet();
+  const form = usePlayerForm();
+  const formCopy = {
+    legend: pickCopy.formDotsLegend,
+    newestHint: pickCopy.formDotsNewestHint,
+    start: pickCopy.formDotsStart,
+    sub: pickCopy.formDotsSub,
+    out: pickCopy.formDotsOut,
+    gwLine: pickCopy.formDotsGwLine,
+  };
 
   useEffect(() => {
     if (!isNarrow) setMobileTab("pitch");
@@ -1824,6 +1834,11 @@ export function LockerTablet({
                 <p className="mt-0.5 text-[11px] font-medium text-[color:var(--lt-muted)]">
                   {pickCopy.playersSubtitle}
                 </p>
+                <p className="mt-1 text-[9px] font-medium leading-snug text-[color:var(--lt-muted)]/80">
+                  {pickCopy.formDotsLegend}
+                  <span className="mx-1 text-[color:var(--lt-muted)]/40">·</span>
+                  {pickCopy.formDotsNewestHint}
+                </p>
               </div>
               <span className="text-[10px] font-semibold tabular-nums text-[color:var(--lt-muted)]">
                 {pickCopy.playersFound(filtered.length)}
@@ -1913,7 +1928,7 @@ export function LockerTablet({
                       setFlashPickId(p.id);
                     }}
                     className={cn(
-                      "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [content-visibility:auto] [contain-intrinsic-size:auto_62px]",
+                      "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [content-visibility:auto] [contain-intrinsic-size:auto_74px]",
                       taken && "cursor-default opacity-40",
                       clubCapped &&
                         "cursor-default opacity-[0.48] saturate-[0.4]",
@@ -1946,6 +1961,13 @@ export function LockerTablet({
                       <p className="mt-0.5 text-[11px] font-semibold text-[color:var(--lt-muted)]">
                         {p.position} · {p.team}
                       </p>
+                      <PlayerFormDots
+                        statuses={
+                          form.byPlayer[String(p.fplId ?? p.id)] ?? null
+                        }
+                        gameweeks={form.gameweeks}
+                        copy={formCopy}
+                      />
                     </div>
                     {clubCapped ? (
                       <span className="flex shrink-0 flex-col items-end gap-0.5 self-center">
