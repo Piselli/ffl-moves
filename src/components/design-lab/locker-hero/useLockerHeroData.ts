@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { findOpenGameweek, getConfig } from "@/lib/chainClient";
 import type { Player } from "@/lib/types";
 
@@ -154,31 +154,44 @@ export function useLockerHeroData() {
   );
   const fixturesRef = useRef<LockerFixturesPayload | null>(null);
   fixturesRef.current = fixtures;
+  const chainEpochRef = useRef(0);
+
+  const applyOpenGw = (gw: OpenGwPayload | null) => {
+    if (!gw) {
+      setPrizePoolRaw(null);
+      setEntries(null);
+      setOpenGwId(null);
+      return;
+    }
+    setPrizePoolRaw(gw.prizePool);
+    setEntries(gw.totalEntries);
+    setOpenGwId(gw.id);
+  };
+
+  const refreshOpenGameweek = useCallback(async () => {
+    const epoch = ++chainEpochRef.current;
+    try {
+      const gw = await loadOpenGameweek();
+      if (epoch !== chainEpochRef.current) return;
+      applyOpenGw(gw);
+    } catch (e) {
+      console.error("locker-hero chain refresh:", e);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     let attempt = 0;
     const maxAttempts = 3;
 
-    const apply = (gw: OpenGwPayload | null) => {
-      if (cancelled) return;
-      if (!gw) {
-        setPrizePoolRaw(null);
-        setEntries(null);
-        setOpenGwId(null);
-        return;
-      }
-      setPrizePoolRaw(gw.prizePool);
-      setEntries(gw.totalEntries);
-      setOpenGwId(gw.id);
-    };
-
     const run = async () => {
       attempt += 1;
+      const epoch = ++chainEpochRef.current;
       try {
         const gw = await loadOpenGameweek();
-        apply(gw);
-        if (!cancelled) setChainLoading(false);
+        if (cancelled || epoch !== chainEpochRef.current) return;
+        applyOpenGw(gw);
+        setChainLoading(false);
       } catch (e) {
         console.error("locker-hero chain:", e);
         if (cancelled) return;
@@ -295,6 +308,7 @@ export function useLockerHeroData() {
     entries,
     openGwId,
     chainLoading,
+    refreshOpenGameweek,
     fixtures,
     fixturesLoading,
     players,

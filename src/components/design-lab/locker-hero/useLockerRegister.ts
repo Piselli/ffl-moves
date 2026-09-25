@@ -28,9 +28,17 @@ export function useLockerRegister(opts: {
   captainIndex: number | null;
   /** While true, `gameweekId` may still be null — don't flash "closed" yet. */
   chainLoading?: boolean;
+  /** Refetch prize pool / entries after a successful on-chain register. */
+  onRegistered?: () => void;
 }) {
-  const { starters, bench, gameweekId, captainIndex, chainLoading = false } =
-    opts;
+  const {
+    starters,
+    bench,
+    gameweekId,
+    captainIndex,
+    chainLoading = false,
+    onRegistered,
+  } = opts;
   const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
   const { openDeposit, refreshBalance } = useDeposit();
   const { openLogin } = useLogin();
@@ -181,6 +189,9 @@ export function useLockerRegister(opts: {
       setAlreadyRegistered(true);
       trackReferralConversion(account.address.toString());
       refreshBalance();
+      onRegistered?.();
+      // RPC can lag a beat after confirm — second pass picks up pool/entries.
+      window.setTimeout(() => onRegistered?.(), 1200);
     } catch (error: unknown) {
       if (isInsufficientFundsError(error)) {
         setInsufficientOpen(true);
@@ -205,6 +216,7 @@ export function useLockerRegister(opts: {
     hasExternalWallet,
     gameweekId,
     isReadyToRegister,
+    onRegistered,
     openLogin,
     refreshBalance,
     showError,

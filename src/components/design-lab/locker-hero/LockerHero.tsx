@@ -119,6 +119,7 @@ export function LockerHero({
     gameweekId: data.openGwId,
     captainIndex: squad.captainIndex,
     chainLoading: data.chainLoading,
+    onRegistered: data.refreshOpenGameweek,
   });
   const showRegisteredShare =
     register.alreadyRegistered || (previewRegistered && isLab);
