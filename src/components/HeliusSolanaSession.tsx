@@ -10,9 +10,9 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { useHeliusWallet } from "helius-wallet-kit";
+import { getConnection } from "@/lib/chainClient";
 import {
   fetchFeePayer,
   isForm8GameAction,
@@ -42,7 +42,6 @@ export function useHeliusSolanaSession(): HeliusSolanaSessionValue {
 function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
   const { address, status, signTransaction, signAndSendTransaction } =
     useHeliusWallet();
-  const { connection } = useConnection();
   const feePayerRef = useRef<string | null>(null);
   const [feePayer, setFeePayer] = useState<string | null>(null);
   const authenticated = status === "authenticated" && Boolean(address);
@@ -66,6 +65,7 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
       }
 
       const userKey = new PublicKey(address);
+      const connection = getConnection();
       const form8Sponsorable = isForm8Sponsorable(instructions);
 
       // —— Form8 server pays SOL fees (+ ATA rent + capped PDA rent top-up) ——
@@ -75,25 +75,20 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
         if (sponsor) setFeePayer(sponsor);
 
         if (sponsor) {
-          try {
-            return await submitSponsoredTransaction({
-              instructions,
-              userKey,
-              connection,
-              feePayer: sponsor,
-              signPartial: async (serialized) => {
-                const signed = await signTransaction(serialized);
-                return signed instanceof Uint8Array
-                  ? signed
-                  : new Uint8Array(signed);
-              },
-            });
-          } catch (sponsorError) {
-            console.warn(
-              "Form8 fee sponsorship failed, trying fallbacks:",
-              sponsorError,
-            );
-          }
+          // Email wallets have 0 SOL by design — sponsorship must succeed.
+          // Do not swallow failures into a fake "need SOL" message.
+          return await submitSponsoredTransaction({
+            instructions,
+            userKey,
+            connection,
+            feePayer: sponsor,
+            signPartial: async (serialized) => {
+              const signed = await signTransaction(serialized);
+              return signed instanceof Uint8Array
+                ? signed
+                : new Uint8Array(signed);
+            },
+          });
         }
       }
 
@@ -116,8 +111,8 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
       if (lamports < rentNeed) {
         throw new Error(
           isForm8GameAction(instructions)
-            ? "Registration needs a tiny bit of SOL for account rent, and sponsorship is unavailable right now. Try again in a moment, or connect a wallet extension."
-            : "This action needs a tiny bit of SOL for network fees, and sponsorship is unavailable right now. Try again in a moment, or connect a wallet extension.",
+            ? "Registration needs a tiny bit of SOL for account rent, and fee sponsorship is not configured on the server. Set SOLANA_FEE_SPONSOR_KEYPAIR (or ADMIN_KEYPAIR) with SOL."
+            : "This action needs a tiny bit of SOL for network fees, and fee sponsorship is not configured on the server.",
         );
       }
 
@@ -133,7 +128,7 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
         return connection.sendRawTransaction(raw, { skipPreflight: false });
       }
     },
-    [address, authenticated, connection, signAndSendTransaction, signTransaction],
+    [address, authenticated, signAndSendTransaction, signTransaction],
   );
 
   const value = useMemo<HeliusSolanaSessionValue>(

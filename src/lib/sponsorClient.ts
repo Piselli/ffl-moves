@@ -194,9 +194,47 @@ export async function submitSponsoredTransaction(opts: {
     requireAllSignatures: false,
     verifySignatures: false,
   });
-  const signed = await opts.signPartial(
-    serialized instanceof Uint8Array ? serialized : new Uint8Array(serialized),
-  );
+  if (serialized.length > 1232) {
+    throw new Error(
+      `Sponsored transaction is too large (${serialized.length} bytes; max 1232).`,
+    );
+  }
+
+  let signed: Uint8Array;
+  try {
+    signed = await opts.signPartial(
+      serialized instanceof Uint8Array ? serialized : new Uint8Array(serialized),
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Wallet could not co-sign the sponsored registration: ${msg}`);
+  }
+
+  // Ensure the player signature is present before asking the fee sponsor to finish.
+  try {
+    const signedTx = Transaction.from(signed);
+    const playerEntry = signedTx.signatures.find((s) =>
+      s.publicKey.equals(opts.userKey),
+    );
+    if (!playerEntry?.signature) {
+      throw new Error(
+        "Wallet signed the transaction but the player signature is missing. Try again, or reconnect email login.",
+      );
+    }
+    if (!signedTx.feePayer?.equals(sponsorKey)) {
+      throw new Error(
+        "Wallet changed the fee payer; sponsored registration requires the Form8 fee wallet.",
+      );
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("Wallet")) throw err;
+    throw new Error(
+      `Could not read the signed sponsored transaction: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+
   const res = await fetch("/api/solana/sponsor-send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -209,7 +247,7 @@ export async function submitSponsoredTransaction(opts: {
   if (!res.ok || !data.signature) {
     throw new Error(
       data.error ||
-        "Fee sponsorship failed. Top up the fee wallet with SOL, or try again.",
+        `Fee sponsorship failed (HTTP ${res.status}). Top up the fee wallet with SOL, or try again.`,
     );
   }
   return data.signature;

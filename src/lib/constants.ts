@@ -72,28 +72,29 @@ export const SOLANA_CLUSTER =
     ? "mainnet-beta"
     : "devnet";
 
-export const SOLANA_RPC_URL =
-  publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ?? clusterApiUrl(SOLANA_CLUSTER);
-
 /**
- * Helius "Allowed Domains" rejects server-side RPC that has no Origin
- * (Vercel / Node). Attach the public site origin so Config / sponsor-send
- * work the same as browser calls from form8.football.
+ * Browser: NEXT_PUBLIC_SOLANA_RPC_URL (Helius + Allowed Domains is fine).
+ * Server: prefer SOLANA_SERVER_RPC_URL — Node fetch strips `Origin`, so Helius
+ * domain ACL returns 403 for Vercel/cron. Use public mainnet or an unrestricted key.
  */
-export function solanaConnectionOptions(): {
-  commitment: "confirmed";
-  httpHeaders?: Record<string, string>;
-} {
-  if (typeof window !== "undefined") {
-    return { commitment: "confirmed" };
+export const SOLANA_RPC_URL = (() => {
+  const isServer = typeof window === "undefined";
+  if (isServer) {
+    return (
+      publicEnv(process.env.SOLANA_SERVER_RPC_URL) ??
+      publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ??
+      clusterApiUrl(SOLANA_CLUSTER)
+    );
   }
-  const origin =
-    publicEnv(process.env.NEXT_PUBLIC_SITE_URL)?.replace(/\/$/, "") ??
-    "https://form8.football";
-  return {
-    commitment: "confirmed",
-    httpHeaders: { Origin: origin },
-  };
+  return (
+    publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ??
+    clusterApiUrl(SOLANA_CLUSTER)
+  );
+})();
+
+/** Commitment for Connection; keep options object for call-site consistency. */
+export function solanaConnectionOptions(): { commitment: "confirmed" } {
+  return { commitment: "confirmed" };
 }
 
 export const MOVEMATCH_PROGRAM_ID =
