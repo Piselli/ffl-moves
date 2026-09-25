@@ -136,6 +136,8 @@ type Props = {
   /** When set, the lime CTA registers in-place instead of leaving the tablet. */
   onRegister?: () => void;
   registerLabel?: string;
+  /** Fee under Register team (title / subtitle), when ready to pay. */
+  registerSubline?: string | null;
   registerProgress?: string | null;
   registerBusy?: boolean;
   registerLocked?: boolean;
@@ -916,6 +918,7 @@ export function LockerTablet({
   onFormationChange,
   onRegister,
   registerLabel,
+  registerSubline = null,
   registerProgress = null,
   registerBusy = false,
   registerLocked = false,
@@ -1177,6 +1180,10 @@ export function LockerTablet({
       {registerHint || registerProgress ? (
         <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
           {registerHint ?? registerProgress}
+        </span>
+      ) : registerSubline ? (
+        <span className="text-[14px] font-black uppercase tracking-[0.04em]">
+          {registerSubline}
         </span>
       ) : null}
     </>

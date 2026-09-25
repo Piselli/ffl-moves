@@ -172,6 +172,12 @@ function resolveCaptureCard(element: HTMLElement): HTMLElement {
   throw new Error("No share card element found for capture");
 }
 
+/** Kill CSS filters — html-to-image stamps one filtered bust onto every chip. */
+function stripCaptureFilters(node: HTMLElement) {
+  node.style.setProperty("filter", "none", "important");
+  node.style.setProperty("-webkit-filter", "none", "important");
+}
+
 /**
  * Flatten capture-hostile styles.
  * CSS `filter` on cutout wrappers (brightness / drop-shadow) makes html-to-image
@@ -181,7 +187,7 @@ function prepareNodeForCapture(root: HTMLElement) {
   root.style.transform = "none";
   root.style.opacity = "1";
   root.style.visibility = "visible";
-  root.style.filter = "none";
+  stripCaptureFilters(root);
 
   if (root.dataset.shareCard != null) {
     root.style.background = "#000000";
@@ -205,6 +211,9 @@ function prepareNodeForCapture(root: HTMLElement) {
     node.style.fontKerning = "auto";
     node.style.textRendering = "geometricPrecision";
 
+    // Always clear — do not trust getComputedStyle in offscreen hosts.
+    stripCaptureFilters(node);
+
     if (cs.backdropFilter && cs.backdropFilter !== "none") {
       node.style.backdropFilter = "none";
       node.style.setProperty("-webkit-backdrop-filter", "none");
@@ -221,11 +230,6 @@ function prepareNodeForCapture(root: HTMLElement) {
       node.style.mixBlendMode = "normal";
     }
 
-    // Any non-none filter breaks cutout uniqueness in html-to-image.
-    if (cs.filter && cs.filter !== "none") {
-      node.style.filter = "none";
-    }
-
     node.style.userSelect = "none";
 
     if (node.tagName === "IMG") {
@@ -235,6 +239,57 @@ function prepareNodeForCapture(root: HTMLElement) {
   });
 }
 
+/**
+ * Bake each <img> to a unique data URL so foreignObject capture cannot
+ * reuse one decoded bitmap across every filtered chip.
+ */
+async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map(async (img) => {
+      img.style.opacity = "1";
+      img.style.visibility = "visible";
+      const src = img.currentSrc || img.src;
+      if (!src || src.startsWith("data:")) return;
+
+      try {
+        if (img.complete && img.naturalWidth > 0) {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL("image/png");
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error("data url image failed"));
+            img.src = dataUrl;
+          });
+          return;
+        }
+
+        const res = await fetch(src, { credentials: "same-origin" });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("data url image failed"));
+          img.src = dataUrl;
+        });
+      } catch {
+        /* keep original src — capture may still work without embed */
+      }
+    }),
+  );
+}
+
 /** Offscreen clone so we can strip filters without flashing the live poster. */
 function mountExportClone(cardEl: HTMLElement): {
   clone: HTMLElement;
@@ -242,8 +297,17 @@ function mountExportClone(cardEl: HTMLElement): {
 } {
   const host = document.createElement("div");
   host.setAttribute("data-share-export-host", "");
-  host.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:0;height:0;overflow:hidden;pointer-events:none;opacity:0;";
+  // Real card size — 0×0 hosts skip image decode and break getComputedStyle.
+  host.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
+    `width:${SQUAD_SHARE_CARD_WIDTH}px`,
+    `height:${SQUAD_SHARE_CARD_HEIGHT}px`,
+    "overflow:hidden",
+    "pointer-events:none",
+    "opacity:0",
+  ].join(";");
 
   const clone = cardEl.cloneNode(true) as HTMLElement;
   clone.style.width = `${SQUAD_SHARE_CARD_WIDTH}px`;
@@ -267,6 +331,8 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
 
   const { clone, host } = mountExportClone(cardEl);
   await waitForImages(clone);
+  await embedImagesAsDataUrls(clone);
+  prepareNodeForCapture(clone);
   await nextPaint();
 
   const filter = (node: HTMLElement) => {
@@ -278,7 +344,9 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
     try {
       const fontEmbedCSS = await getFontEmbedCSS(clone, { cacheBust: true });
       const blob = await toBlob(clone, {
-        cacheBust: true,
+        // Faces are already unique data URLs — cache-busting remote srcs
+        // reintroduces the shared-bitmap stamp bug.
+        cacheBust: false,
         pixelRatio: EXPORT_PIXEL_RATIO,
         backgroundColor: "#000000",
         width: SQUAD_SHARE_CARD_WIDTH,

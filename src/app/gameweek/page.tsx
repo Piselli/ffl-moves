@@ -43,6 +43,7 @@ import {
 } from "@/lib/registerPayment";
 import Link from "next/link";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
+import { formatFeeLabelShort } from "@/lib/entryFee";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
@@ -195,6 +196,10 @@ export default function GameweekPage() {
     if (!config) return "—";
     return prize.formatLabel(config.entryFee);
   }, [config, prize]);
+  const entryFeeShortLabel = useMemo(() => {
+    if (!config) return "—";
+    return formatFeeLabelShort(config.entryFee);
+  }, [config]);
 
   useEffect(() => {
     fetch("/api/players")
@@ -879,16 +884,25 @@ export default function GameweekPage() {
       onClick={handleSubmitTeam}
       disabled={!isTeamComplete || isSubmitting}
       className={cn(
-        "w-full py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-[background-color,color,transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
+        "flex w-full flex-col items-center justify-center gap-1 py-4 rounded-2xl font-display font-black text-base uppercase tracking-wide transition-[background-color,color,transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         isTeamComplete && !isSubmitting
           ? "bg-gradient-to-r from-emerald-500 to-[#00f948] text-black hover:brightness-110 shadow-[0_0_30px_rgba(0,249,72,0.25)]"
           : "bg-white/[0.05] border border-white/10 text-white/30 cursor-not-allowed",
         extraClass
       )}
     >
-      {isSubmitting ? g.submitRegistering : isTeamComplete
-        ? g.submitConfirm(entryFeeLabel)
-        : `${g.submitNeedPlayers(totalCount, FORMATION.TOTAL)} ${g.submitNeedProgress(totalCount, FORMATION.TOTAL)}`}
+      {isSubmitting ? (
+        g.submitRegistering
+      ) : isTeamComplete ? (
+        <>
+          <span>{g.submitRegister}</span>
+          <span className="text-[14px] font-black uppercase tracking-[0.04em]">
+            {entryFeeShortLabel}
+          </span>
+        </>
+      ) : (
+        `${g.submitNeedPlayers(totalCount, FORMATION.TOTAL)} ${g.submitNeedProgress(totalCount, FORMATION.TOTAL)}`
+      )}
     </button>
   );
 

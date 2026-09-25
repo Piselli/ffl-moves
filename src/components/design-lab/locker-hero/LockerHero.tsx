@@ -416,6 +416,7 @@ export function LockerHero({
       onFormationChange={squad.setFormationId}
       onRegister={register.register}
       registerLabel={register.ctaLabel}
+      registerSubline={register.ctaFeeSubline}
       registerProgress={register.ctaProgress}
       registerBusy={register.submitting || data.chainLoading}
       registerLocked={

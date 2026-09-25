@@ -117,12 +117,7 @@ export function SharePitchChipMuted({
 
   return (
     <div className="flex flex-col items-center">
-      <div
-        className="relative"
-        style={{
-          filter: "brightness(0.94) saturate(0.86) contrast(0.98)",
-        }}
-      >
+      <div className="relative">
         {captain ? (
           <span
             className={`absolute z-20 flex items-center justify-center rounded-full font-black leading-none bg-amber-400 text-black shadow-[0_0_0_1.5px_rgba(212,175,55,0.9),0_2px_8px_rgba(0,0,0,0.45)] ${badgeSize}`}

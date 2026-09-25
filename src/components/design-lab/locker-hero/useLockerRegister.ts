@@ -15,7 +15,7 @@ import {
   shouldOpenDepositBeforeRegister,
 } from "@/lib/registerPayment";
 import { FORMATION } from "@/lib/constants";
-import { formatFeeLabel } from "@/lib/entryFee";
+import { formatFeeLabel, formatFeeLabelShort } from "@/lib/entryFee";
 import { formatTxError, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -129,9 +129,16 @@ export function useLockerRegister(opts: {
           ? g.submitRegister
           : !hasCaptain
             ? g.submitNeedCaptain
-            : !connected
-              ? g.submitRegister
-              : g.submitConfirm(feeLabel);
+            : g.submitRegister;
+  /** Fee under the title only when the green CTA will actually take payment. */
+  const ctaFeeSubline =
+    !alreadyRegistered &&
+    !submitting &&
+    !registrationClosed &&
+    isReadyToRegister &&
+    connected
+      ? formatFeeLabelShort(entryFeeRaw)
+      : null;
   const ctaProgress = registrationClosed
     ? g.unavailableIntro
     : alreadyRegistered || submitting || isReadyToRegister || isComplete
@@ -227,6 +234,7 @@ export function useLockerRegister(opts: {
 
   return {
     ctaLabel,
+    ctaFeeSubline,
     ctaProgress,
     needsLogin: !connected && isReadyToRegister,
     register,

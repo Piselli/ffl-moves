@@ -24,6 +24,11 @@ export function formatFeeLabel(units: number | bigint): string {
   return `${formatFeeUnits(units)} ${ENTRY_FEE_SYMBOL}`;
 }
 
+/** CTA subline — drops trailing `.00` (`5 USDC`). */
+export function formatFeeLabelShort(units: number | bigint): string {
+  return `${formatPoolCompact(units)} ${ENTRY_FEE_SYMBOL}`;
+}
+
 export function formatPoolLabel(units: number | bigint): string {
   return formatFeeLabel(units);
 }

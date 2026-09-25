@@ -226,7 +226,6 @@ export type PagesMessages = {
     unavailableGwSuffix: (gw: number, statusLabel: string) => string;
     submitRegistering: string;
     submitRegister: string;
-    submitConfirm: (feeMove: string) => string;
     submitNeedPlayers: (picked: number, max: number) => string;
     submitNeedCaptain: string;
     submitNeedProgress: (picked: number, max: number) => string;
@@ -1023,7 +1022,6 @@ export const pagesEn: PagesMessages = {
     unavailableGwSuffix: (gw, statusLabel) => ` GW ${gw} — ${statusLabel}.`,
     submitRegistering: "Registering team…",
     submitRegister: "Register team",
-    submitConfirm: (feeLabel) => `Confirm squad · ${feeLabel}`,
     submitNeedPlayers: (_picked: number, max: number) => `Pick ${max} players`,
     submitNeedCaptain: "Pick your captain",
     submitNeedProgress: (picked: number, max: number) =>
@@ -2089,7 +2087,6 @@ export const pagesUk: PagesMessages = {
     unavailableGwSuffix: (gw, statusLabel) => ` Тур ${gw} — ${statusLabel}.`,
     submitRegistering: "Реєстрація складу...",
     submitRegister: "Зареєструвати склад",
-    submitConfirm: (feeLabel) => `Підтвердити склад · ${feeLabel}`,
     submitNeedPlayers: (_picked: number, max: number) => `Обери ${max} гравців`,
     submitNeedCaptain: "Обери капітана",
     submitNeedProgress: (picked: number, max: number) =>

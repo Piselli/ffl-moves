@@ -64,6 +64,7 @@ export function PitchChipCutout({
       style={{
         width: size,
         height: frameH,
+        // Stripped during PNG export — CSS filter + html-to-image stamps one face on all chips.
         filter:
           "drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 0.5px rgba(255,255,255,0.2))",
       }}
