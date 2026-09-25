@@ -11,11 +11,28 @@ type OpenGwPayload = {
 };
 
 /**
- * Prefer the server config route (same path as /admin) — browser→Helius
- * often flakes or is blocked, which left the homepage with openGwId=null
- * forever and made Confirm squad a silent no-op.
+ * Prefer browser→Helius (Allowed Domains / Origin) on the client.
+ * Fall back to `/api/solana/config` when direct RPC fails — server now
+ * sends Origin so Vercel is not 403'd by Helius domain ACL.
  */
 async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
+  if (typeof window !== "undefined") {
+    try {
+      await getConfig();
+      const gw = await findOpenGameweek();
+      if (gw) {
+        return {
+          id: gw.id,
+          prizePool: gw.prizePool,
+          totalEntries: gw.totalEntries,
+        };
+      }
+      return null;
+    } catch (e) {
+      console.warn("locker-hero direct RPC failed, trying server config:", e);
+    }
+  }
+
   try {
     const res = await fetch("/api/solana/config", { cache: "no-store" });
     if (res.ok) {
@@ -34,21 +51,24 @@ async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
           totalEntries: Number(gw.totalEntries ?? 0),
         };
       }
-      // Server answered: there is no open GW (not a transport failure).
       return null;
     }
   } catch {
-    /* fall through to browser RPC */
+    /* fall through */
   }
 
-  await getConfig();
-  const gw = await findOpenGameweek();
-  if (!gw) return null;
-  return {
-    id: gw.id,
-    prizePool: gw.prizePool,
-    totalEntries: gw.totalEntries,
-  };
+  if (typeof window === "undefined") {
+    await getConfig();
+    const gw = await findOpenGameweek();
+    if (!gw) return null;
+    return {
+      id: gw.id,
+      prizePool: gw.prizePool,
+      totalEntries: gw.totalEntries,
+    };
+  }
+
+  throw new Error("Could not load open gameweek from RPC or server.");
 }
 
 let playersCache: Player[] = [];

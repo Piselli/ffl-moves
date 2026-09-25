@@ -20,6 +20,7 @@ import {
   MOVEMATCH_PROGRAM_ID,
   SOLANA_RPC_URL,
   SOLANA_USDC_MINT,
+  solanaConnectionOptions,
 } from "@/lib/constants";
 import { isValidStarterFormation } from "@/lib/formation";
 import {
@@ -94,7 +95,7 @@ type AccountReader = {
 let connection: Connection | undefined;
 
 export function getConnection(): Connection {
-  connection ??= new Connection(SOLANA_RPC_URL, "confirmed");
+  connection ??= new Connection(SOLANA_RPC_URL, solanaConnectionOptions());
   return connection;
 }
 

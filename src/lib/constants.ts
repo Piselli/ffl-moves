@@ -75,6 +75,27 @@ export const SOLANA_CLUSTER =
 export const SOLANA_RPC_URL =
   publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ?? clusterApiUrl(SOLANA_CLUSTER);
 
+/**
+ * Helius "Allowed Domains" rejects server-side RPC that has no Origin
+ * (Vercel / Node). Attach the public site origin so Config / sponsor-send
+ * work the same as browser calls from form8.football.
+ */
+export function solanaConnectionOptions(): {
+  commitment: "confirmed";
+  httpHeaders?: Record<string, string>;
+} {
+  if (typeof window !== "undefined") {
+    return { commitment: "confirmed" };
+  }
+  const origin =
+    publicEnv(process.env.NEXT_PUBLIC_SITE_URL)?.replace(/\/$/, "") ??
+    "https://form8.football";
+  return {
+    commitment: "confirmed",
+    httpHeaders: { Origin: origin },
+  };
+}
+
 export const MOVEMATCH_PROGRAM_ID =
   publicEnv(process.env.NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID) ??
   "A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5";

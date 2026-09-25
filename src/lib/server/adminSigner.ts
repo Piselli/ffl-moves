@@ -8,7 +8,7 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
-import { SOLANA_RPC_URL } from "@/lib/constants";
+import { SOLANA_RPC_URL, solanaConnectionOptions } from "@/lib/constants";
 
 let cached: Keypair | null = null;
 
@@ -32,7 +32,7 @@ export function loadAdminKeypair(): Keypair {
 }
 
 export function getServerConnection(): Connection {
-  return new Connection(SOLANA_RPC_URL, "confirmed");
+  return new Connection(SOLANA_RPC_URL, solanaConnectionOptions());
 }
 
 export async function signAndSendAsAdmin(

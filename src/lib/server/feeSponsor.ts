@@ -18,7 +18,7 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { MOVEMATCH_PROGRAM_ID, SOLANA_RPC_URL, SOLANA_USDC_MINT } from "@/lib/constants";
+import { MOVEMATCH_PROGRAM_ID, SOLANA_RPC_URL, SOLANA_USDC_MINT, solanaConnectionOptions } from "@/lib/constants";
 
 const USDC_MINT = new PublicKey(SOLANA_USDC_MINT);
 const PROGRAM_ID = new PublicKey(MOVEMATCH_PROGRAM_ID);
@@ -68,7 +68,7 @@ export function loadFeeSponsorKeypair(): Keypair {
 }
 
 export function getFeeSponsorConnection(): Connection {
-  return new Connection(SOLANA_RPC_URL, "confirmed");
+  return new Connection(SOLANA_RPC_URL, solanaConnectionOptions());
 }
 
 function anchorDisc(name: string): string {
