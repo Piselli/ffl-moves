@@ -253,6 +253,7 @@ Env на **Vercel Production**:
 | `ADMIN_KEYPAIR` | JSON з `initializer.json` |
 | `AUTO_CLOSE_ENABLED` | `true` |
 | `AUTO_CLOSE_LEAD_MS` | `0` = на kickoff |
+| `SOLANA_SERVER_RPC_URL` | public / unrestricted RPC for cron. Helius Allowed Domains fails on Vercel (Node strips `Origin` → 403) |
 
 GitHub: Settings → Secrets → `CRON_SECRET` (той самий рядок, що в
 `solana/movematch/.keys/CRON_SECRET.txt`). Manual run: Actions → Auto-close gameweek → Run.

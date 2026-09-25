@@ -5,7 +5,10 @@
 #   CRON_SECRET — same value as Vercel Production CRON_SECRET
 #
 # Optional repo Variables:
-#   AUTO_CLOSE_URL — default https://www.movematch.xyz/api/cron/close-gameweek
+#   AUTO_CLOSE_URL — default https://www.form8.football/api/cron/close-gameweek
+#
+# Successful "nothing to close" runs return ok:true + action:skipped (green).
+# Failures (auth / RPC / close tx) are real — check the step log body.
 
 name: Auto-close gameweek
 
@@ -27,12 +30,13 @@ jobs:
       - name: Call close-gameweek cron
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: ${{ vars.AUTO_CLOSE_URL || 'https://www.movematch.xyz/api/cron/close-gameweek' }}
+          BASE_URL: ${{ vars.AUTO_CLOSE_URL || 'https://www.form8.football/api/cron/close-gameweek' }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "Missing GitHub secret CRON_SECRET"
+            echo "Add it under Settings → Secrets and variables → Actions"
             exit 1
           fi
           URL="$BASE_URL"
@@ -40,11 +44,26 @@ jobs:
             URL="${URL}?dryRun=1"
           fi
           echo "GET $URL"
-          curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" "$URL" | tee /tmp/auto-close.json
-          python3 - <<'PY'
-          import json
-          data = json.load(open("/tmp/auto-close.json"))
-          print("action:", data.get("action"), "ok:", data.get("ok"))
-          if data.get("ok") is False:
+          # Capture body even on non-2xx so logs show the API error.
+          HTTP=$(curl -sS -o /tmp/auto-close.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+          echo "HTTP $HTTP"
+          cat /tmp/auto-close.json || true
+          echo
+          HTTP_CODE="$HTTP" python3 - <<'PY'
+          import json, os
+          http = int(os.environ.get("HTTP_CODE") or "0")
+          raw = open("/tmp/auto-close.json").read().strip()
+          if not raw:
+            print("empty response body")
+            raise SystemExit(1)
+          try:
+            data = json.loads(raw)
+          except json.JSONDecodeError as e:
+            print("non-JSON response:", raw[:500])
+            raise SystemExit(1) from e
+          print("action:", data.get("action"), "ok:", data.get("ok"), "reason:", data.get("reason"))
+          if http >= 400 or data.get("ok") is False:
+            print("error:", data.get("error") or data)
             raise SystemExit(1)
           PY
