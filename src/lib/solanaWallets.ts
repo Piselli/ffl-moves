@@ -1,3 +1,5 @@
+import { isFirefoxBrowser } from "@/lib/browser";
+
 /** Wallets intentionally supported by the Solana integration. */
 export const SUPPORTED_SOLANA_WALLET_IDS = ["phantom", "solflare", "jupiter"] as const;
 export type SupportedSolanaWalletId = (typeof SUPPORTED_SOLANA_WALLET_IDS)[number];
@@ -99,7 +101,7 @@ export function isSafariBrowser(): boolean {
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|Brave|OPR|OPiOS|CriOS|FxiOS/i.test(ua);
 }
 
-export { isFirefoxBrowser } from "@/lib/browser";
+export { isFirefoxBrowser };
 
 function isIOSBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
