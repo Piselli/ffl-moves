@@ -1143,13 +1143,18 @@ export function LockerTablet({
   const shareCtaActive = registeredShare && Boolean(onShareClick);
   const squadIncomplete = filledCount < FORMATION.TOTAL;
   const primaryCtaOnClick = shareCtaActive ? onShareClick! : onRegisterClick;
-  /** Incomplete = disabled + progress subline (why Register won't go). Login/register stay tappable. */
+  /**
+   * Incomplete = disabled + progress subline (why Register won't go).
+   * Login/register stay tappable. Locked (no open GW) stays tappable so
+   * `register()` can surface the unavailable hint — native `disabled`
+   * previously ate the click with no feedback.
+   */
   const primaryCtaDisabled = shareCtaActive
     ? registerBusy
     : registerBusy ||
-      registerLocked ||
       !onRegister ||
       (squadIncomplete && !registerEntry);
+  const primaryCtaMuted = primaryCtaDisabled || registerLocked;
   const primaryCtaLabel = shareCtaActive
     ? (shareLabel ?? "Share")
     : (registerLabel ?? cta.label);
@@ -1169,9 +1174,9 @@ export function LockerTablet({
   ) : (
     <>
       <span>{primaryCtaLabel}</span>
-      {registerLocked && registerHint ? (
+      {registerLocked && (registerHint || registerProgress) ? (
         <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
-          {registerHint}
+          {registerHint ?? registerProgress}
         </span>
       ) : !registerLocked && registerProgress ? (
         <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
@@ -2229,8 +2234,8 @@ export function LockerTablet({
                 "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg px-5 text-[18px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
                 isMotionChrome &&
                   "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-                primaryCtaDisabled &&
-                  "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+                primaryCtaMuted &&
+                  "cursor-not-allowed opacity-55 hover:brightness-100 hover:shadow-none active:scale-100",
                 registerTourActive && "!opacity-100",
               )}
               style={primaryCtaStyle}
@@ -2258,8 +2263,8 @@ export function LockerTablet({
               "flex min-h-[3rem] w-full flex-col items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-[15px] font-black uppercase leading-none tracking-[0.04em] transition hover:brightness-[1.06] active:scale-[0.985]",
               isMotionChrome &&
                 "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,249,72,0.22)] active:scale-[0.97]",
-              primaryCtaDisabled &&
-                "cursor-default opacity-80 hover:brightness-100 hover:shadow-none active:scale-100",
+              primaryCtaMuted &&
+                "cursor-not-allowed opacity-55 hover:brightness-100 hover:shadow-none active:scale-100",
               registerTourActive && "!opacity-100",
             )}
             style={primaryCtaStyle}

@@ -1,8 +1,55 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getConfig, findOpenGameweek } from "@/lib/chainClient";
+import { findOpenGameweek, getConfig } from "@/lib/chainClient";
 import type { Player } from "@/lib/types";
+
+type OpenGwPayload = {
+  id: number;
+  prizePool: bigint;
+  totalEntries: number;
+};
+
+/**
+ * Prefer the server config route (same path as /admin) — browser→Helius
+ * often flakes or is blocked, which left the homepage with openGwId=null
+ * forever and made Confirm squad a silent no-op.
+ */
+async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
+  try {
+    const res = await fetch("/api/solana/config", { cache: "no-store" });
+    if (res.ok) {
+      const payload = (await res.json()) as {
+        openGameweek?: {
+          id?: number;
+          prizePool?: string | number;
+          totalEntries?: number;
+        } | null;
+      };
+      const gw = payload.openGameweek;
+      if (gw && typeof gw.id === "number" && gw.id > 0) {
+        return {
+          id: gw.id,
+          prizePool: BigInt(String(gw.prizePool ?? 0)),
+          totalEntries: Number(gw.totalEntries ?? 0),
+        };
+      }
+      // Server answered: there is no open GW (not a transport failure).
+      return null;
+    }
+  } catch {
+    /* fall through to browser RPC */
+  }
+
+  await getConfig();
+  const gw = await findOpenGameweek();
+  if (!gw) return null;
+  return {
+    id: gw.id,
+    prizePool: gw.prizePool,
+    totalEntries: gw.totalEntries,
+  };
+}
 
 let playersCache: Player[] = [];
 
@@ -90,26 +137,42 @@ export function useLockerHeroData() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    let attempt = 0;
+    const maxAttempts = 3;
+
+    const apply = (gw: OpenGwPayload | null) => {
+      if (cancelled) return;
+      if (!gw) {
+        setPrizePoolRaw(null);
+        setEntries(null);
+        setOpenGwId(null);
+        return;
+      }
+      setPrizePoolRaw(gw.prizePool);
+      setEntries(gw.totalEntries);
+      setOpenGwId(gw.id);
+    };
+
+    const run = async () => {
+      attempt += 1;
       try {
-        await getConfig();
-        const gw = await findOpenGameweek();
-        if (cancelled) return;
-        if (!gw) {
-          setPrizePoolRaw(null);
-          setEntries(null);
-          setOpenGwId(null);
-          return;
-        }
-        setPrizePoolRaw(gw.prizePool);
-        setEntries(gw.totalEntries);
-        setOpenGwId(gw.id);
+        const gw = await loadOpenGameweek();
+        apply(gw);
+        if (!cancelled) setChainLoading(false);
       } catch (e) {
         console.error("locker-hero chain:", e);
-      } finally {
-        if (!cancelled) setChainLoading(false);
+        if (cancelled) return;
+        if (attempt < maxAttempts) {
+          window.setTimeout(() => {
+            void run();
+          }, 600 * attempt);
+          return;
+        }
+        setChainLoading(false);
       }
-    })();
+    };
+
+    void run();
     return () => {
       cancelled = true;
     };

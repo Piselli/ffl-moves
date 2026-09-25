@@ -228,6 +228,8 @@ export type PagesMessages = {
     submitNeedPlayers: (picked: number, max: number) => string;
     submitNeedCaptain: string;
     submitNeedProgress: (picked: number, max: number) => string;
+    /** On-chain registration window closed / no open GW. */
+    submitUnavailable: string;
     submitRegistered: string;
     headerTitle: (gw: number) => string;
     pickPlayersHint: string;
@@ -1022,6 +1024,7 @@ export const pagesEn: PagesMessages = {
     submitNeedCaptain: "Pick your captain",
     submitNeedProgress: (picked: number, max: number) =>
       `${picked} of ${max} players`,
+    submitUnavailable: "Registration closed",
     submitRegistered: "Team registered",
     headerTitle: (gw) => `GW ${gw} · Squad selection`,
     pickPlayersHint: "Pick 11 players. Max 3 from the same club.",
@@ -2085,6 +2088,7 @@ export const pagesUk: PagesMessages = {
     submitNeedCaptain: "Обери капітана",
     submitNeedProgress: (picked: number, max: number) =>
       `${picked} з ${max} гравців`,
+    submitUnavailable: "Реєстрація закрита",
     submitRegistered: "Склад зареєстровано",
     headerTitle: (gw) => `Тур ${gw} · Вибір складу`,
     pickPlayersHint: "Обери 11 гравців. Максимум 3 з однієї команди.",

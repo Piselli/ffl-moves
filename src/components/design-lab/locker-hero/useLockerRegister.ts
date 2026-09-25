@@ -26,8 +26,11 @@ export function useLockerRegister(opts: {
   bench: (Player | null)[];
   gameweekId: number | null;
   captainIndex: number | null;
+  /** While true, `gameweekId` may still be null — don't flash "closed" yet. */
+  chainLoading?: boolean;
 }) {
-  const { starters, bench, gameweekId, captainIndex } = opts;
+  const { starters, bench, gameweekId, captainIndex, chainLoading = false } =
+    opts;
   const { connected, account, signAndSubmit, hasExternalWallet } = useWallet();
   const { openDeposit, refreshBalance } = useDeposit();
   const { openLogin } = useLogin();
@@ -59,12 +62,12 @@ export function useLockerRegister(opts: {
   );
 
   useEffect(() => {
-    if (gameweekId != null) {
+    if (chainLoading || gameweekId != null) {
       setHint(null);
       return;
     }
     setHint(g.unavailableIntro);
-  }, [gameweekId, g.unavailableIntro]);
+  }, [chainLoading, gameweekId, g.unavailableIntro]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,20 +100,26 @@ export function useLockerRegister(opts: {
     };
   }, [account?.address, connected, gameweekId]);
 
+  const registrationClosed =
+    !chainLoading && gameweekId == null && !alreadyRegistered;
+
   const ctaLabel = alreadyRegistered
     ? g.submitRegistered
     : submitting
       ? g.submitRegistering
-      : !isComplete
-        ? g.submitRegister
-        : !hasCaptain
-          ? g.submitNeedCaptain
-          : !connected
-            ? g.submitRegister
-            : g.submitConfirm(feeLabel);
+      : registrationClosed
+        ? g.submitUnavailable
+        : !isComplete
+          ? g.submitRegister
+          : !hasCaptain
+            ? g.submitNeedCaptain
+            : !connected
+              ? g.submitRegister
+              : g.submitConfirm(feeLabel);
   /** Subline under the CTA — only meaningful when a GW is open (locked hint wins in UI). */
-  const ctaProgress =
-    alreadyRegistered || submitting || isReadyToRegister || isComplete
+  const ctaProgress = registrationClosed
+    ? g.unavailableIntro
+    : alreadyRegistered || submitting || isReadyToRegister || isComplete
       ? null
       : g.submitNeedProgress(filledCount, FORMATION.TOTAL);
 
@@ -121,17 +130,29 @@ export function useLockerRegister(opts: {
       openLogin();
       return;
     }
-    if (alreadyRegistered || submitting || gameweekId == null) return;
-    if (!isReadyToRegister) return;
+    if (alreadyRegistered || submitting) return;
+    if (gameweekId == null) {
+      setHint(g.unavailableIntro);
+      return;
+    }
+    if (!isReadyToRegister) {
+      if (!hasCaptain) setHint(g.submitNeedCaptain);
+      return;
+    }
 
-    if (
-      await shouldOpenDepositBeforeRegister(
-        account.address.toString(),
-        entryFeeRaw,
-        hasExternalWallet,
-      )
-    ) {
-      setInsufficientOpen(true);
+    try {
+      if (
+        await shouldOpenDepositBeforeRegister(
+          account.address.toString(),
+          entryFeeRaw,
+          hasExternalWallet,
+        )
+      ) {
+        setInsufficientOpen(true);
+        return;
+      }
+    } catch (error: unknown) {
+      setHint(`${g.registerErrorPrefix} ${getErrorMessage(error)}`);
       return;
     }
 
@@ -171,9 +192,9 @@ export function useLockerRegister(opts: {
     bench,
     connected,
     entryFeeRaw,
-    filledCount,
     captainIndex,
     g,
+    hasCaptain,
     hasExternalWallet,
     gameweekId,
     isReadyToRegister,

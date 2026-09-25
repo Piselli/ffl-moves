@@ -117,6 +117,7 @@ export function LockerHero({
     bench: squad.bench,
     gameweekId: data.openGwId,
     captainIndex: squad.captainIndex,
+    chainLoading: data.chainLoading,
   });
   const showRegisteredShare =
     register.alreadyRegistered || (previewRegistered && isLab);
@@ -414,8 +415,12 @@ export function LockerHero({
       onRegister={register.register}
       registerLabel={register.ctaLabel}
       registerProgress={register.ctaProgress}
-      registerBusy={register.submitting}
-      registerLocked={data.openGwId == null && !register.alreadyRegistered}
+      registerBusy={register.submitting || data.chainLoading}
+      registerLocked={
+        !data.chainLoading &&
+        data.openGwId == null &&
+        !register.alreadyRegistered
+      }
       registerHint={register.hint}
       registerEntry={register.needsLogin}
       registeredShare={showRegisteredShare}

@@ -18,6 +18,18 @@ export async function shouldOpenDepositBeforeRegister(
 
 export function isInsufficientFundsError(error: unknown): boolean {
   const msg = `${getErrorMessage(error)}\n${formatTxError(error)}`.toLowerCase();
+  // SOL / network-fee shortfalls must NOT open the USDC deposit sheet —
+  // users with exact entry USDC and 0 SOL were bounced into a useless modal.
+  if (
+    msg.includes("lamport") ||
+    msg.includes("for rent") ||
+    msg.includes("network fee") ||
+    msg.includes("transaction fee") ||
+    msg.includes("fee sponsorship") ||
+    /\bsol\b/.test(msg)
+  ) {
+    return false;
+  }
   return (
     msg.includes("insufficient") ||
     msg.includes("found no record of a prior credit") ||
