@@ -53,6 +53,7 @@ import {
   type YouXiVariantId,
 } from "./youXiVariants";
 import type { useResultsRoomData } from "./useResultsRoomData";
+import type { LabLeaderboardSnapshot } from "./mockData";
 
 type RoomData = ReturnType<typeof useResultsRoomData>;
 type TabId = "board" | "you";
@@ -65,9 +66,11 @@ const DISPLAY: CSSProperties = {
 function GwStepper({
   room,
   displayGw,
+  status,
 }: {
   room: RoomData;
   displayGw: number;
+  status?: LabLeaderboardSnapshot["status"];
 }) {
   const gws = room.pickerGws;
   const gw = room.selectedGw > 0 ? room.selectedGw : displayGw;
@@ -82,57 +85,86 @@ function GwStepper({
     if (next != null && next !== gw) room.setGameweek(next);
   };
 
+  const statusLabel =
+    gw > 0 && status === "open"
+      ? "Open"
+      : gw > 0 && status === "closed"
+        ? "Closed"
+        : null;
+
   return (
-    <div
-      className="flex shrink-0 items-center rounded-[10px] p-0.5"
-      style={{
-        background: "#0a0a0a",
-        boxShadow:
-          "0 0 0 1px rgba(255,255,255,0.19), inset 0 1px 0 rgba(255,255,255,0.11)",
-      }}
-      role="group"
-      aria-label="Select gameweek"
-    >
-      <button
-        type="button"
-        aria-label="Previous gameweek"
-        disabled={!canPrev}
-        onClick={() => step(-1)}
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-lg text-[18px] leading-none text-white transition",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
-          canPrev
-            ? "hover:bg-white/10 active:scale-95"
-            : "cursor-default text-white/25",
-        )}
-      >
-        ‹
-      </button>
+    <div className="flex shrink-0 items-center gap-2">
+      {statusLabel ? (
+        <span
+          className={cn(
+            "hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] sm:inline-flex",
+            status === "open"
+              ? "bg-emerald-400/15 text-emerald-300"
+              : "bg-amber-400/15 text-amber-300",
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              status === "open"
+                ? "animate-pulse bg-emerald-400"
+                : "bg-amber-400",
+            )}
+          />
+          {statusLabel}
+        </span>
+      ) : null}
       <div
-        className={cn(
-          "min-w-[3.4rem] px-1.5 text-center text-[12px] font-black tabular-nums tracking-wide text-white",
-          room.loading && "opacity-55",
-        )}
-        style={DISPLAY}
-        aria-live="polite"
+        className="flex shrink-0 items-center rounded-[10px] p-0.5"
+        style={{
+          background: "#0a0a0a",
+          boxShadow:
+            "0 0 0 1px rgba(255,255,255,0.19), inset 0 1px 0 rgba(255,255,255,0.11)",
+        }}
+        role="group"
+        aria-label="Select gameweek"
       >
-        GW {gw || "—"}
+        <button
+          type="button"
+          aria-label="Previous gameweek"
+          disabled={!canPrev}
+          onClick={() => step(-1)}
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg text-[18px] leading-none text-white transition",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+            canPrev
+              ? "hover:bg-white/10 active:scale-95"
+              : "cursor-default text-white/25",
+          )}
+        >
+          ‹
+        </button>
+        <div
+          className={cn(
+            "min-w-[3.4rem] px-1.5 text-center text-[12px] font-black tabular-nums tracking-wide text-white",
+            room.loading && "opacity-55",
+          )}
+          style={DISPLAY}
+          aria-live="polite"
+        >
+          GW {gw || "—"}
+        </div>
+        <button
+          type="button"
+          aria-label="Next gameweek"
+          disabled={!canNext}
+          onClick={() => step(1)}
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg text-[18px] leading-none text-white transition",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+            canNext
+              ? "hover:bg-white/10 active:scale-95"
+              : "cursor-default text-white/25",
+          )}
+        >
+          ›
+        </button>
       </div>
-      <button
-        type="button"
-        aria-label="Next gameweek"
-        disabled={!canNext}
-        onClick={() => step(1)}
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-lg text-[18px] leading-none text-white transition",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
-          canNext
-            ? "hover:bg-white/10 active:scale-95"
-            : "cursor-default text-white/25",
-        )}
-      >
-        ›
-      </button>
     </div>
   );
 }
@@ -194,9 +226,12 @@ export function ResultsTablet({
   const cta = getCtaStyle(chrome.ctaId);
   const s = useTeamSheetSelection(room.tablet, {
     onClaim: room.claimPrize,
-    loadXi: room.loadXiForOwner,
+    // Open/closed: registered list only — no XI until results publish.
+    loadXi:
+      room.tablet.status === "resolved" ? room.loadXiForOwner : undefined,
     claiming: room.claiming,
   });
+  const registrationBoard = room.tablet.status !== "resolved";
   const typeface = getTypeface();
   const tabletRootRef = useLocalWheelScroll();
   const [tab, setTab] = useState<TabId>("board");
@@ -239,7 +274,8 @@ export function ResultsTablet({
 
   const onSelectManager = (owner: string) => {
     s.select(owner);
-    if (flatShell) setBoardPane("xi");
+    // Registration list — no XI pane on phone.
+    if (flatShell && !registrationBoard) setBoardPane("xi");
   };
 
   const d = chrome.details;
@@ -276,7 +312,21 @@ export function ResultsTablet({
       rows={s.data.rows}
       openOwner={s.openOwner}
       onSelect={onSelectManager}
-      sectionLabel="This gameweek"
+      sectionLabel={
+        registrationBoard
+          ? s.data.status === "closed"
+            ? "Registered · awaiting results"
+            : "Registered"
+          : "This gameweek"
+      }
+      emptyHint={
+        room.loading
+          ? "Loading managers…"
+          : registrationBoard
+            ? "No managers registered yet"
+            : undefined
+      }
+      registrationMode={registrationBoard}
       dense={d.denseTable}
       condensed={d.condensedBoard}
       scrollToYou={d.scrollToYou}
@@ -289,14 +339,19 @@ export function ResultsTablet({
 
   const boardPitch = (
     <TeamSheetPitch
-      manager={s.open}
+      manager={registrationBoard ? undefined : s.open}
       landKey={s.landKey}
-      loadingXi={s.loadingXi}
+      loadingXi={registrationBoard ? false : s.loadingXi}
       pitchStyleId={pitchStyleId}
       onPitchStyleChange={onPitchStyleChange}
       fillPlate
       plateClassName={plateRadiusClass}
       showHeader={false}
+      emptyMessage={
+        registrationBoard
+          ? "XI unlocks after results"
+          : "Select a manager to see XI"
+      }
       className="h-full min-h-0"
     />
   );
@@ -438,8 +493,12 @@ export function ResultsTablet({
         </div>
 
         {/* Native <select> fails inside drei Html (transform + overflow) —
-            stepper walks resolved EPL GWs on the shipping tablet. */}
-        <GwStepper room={room} displayGw={s.data.gameweek} />
+            stepper walks EPL GWs (resolved + live open/closed). */}
+        <GwStepper
+          room={room}
+          displayGw={s.data.gameweek}
+          status={s.data.status}
+        />
       </header>
 
       {d.topMarquee ? (
@@ -565,6 +624,7 @@ export function ResultsTablet({
           counterPts={d.counterPts}
           pressClaim={d.pressClaim}
           claimStyle={d.whiteClaim ? undefined : cta.style}
+          loading={room.loading}
           onClaim={
             s.you && s.you.prizeAmount > 0 && !s.you.claimed
               ? () => setClaimOpen(true)

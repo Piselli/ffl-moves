@@ -2030,26 +2030,59 @@ export function LockerTablet({
             <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               Prize pool
             </p>
-            <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-2.5">
+              <div className="flex min-w-0 items-baseline justify-between gap-3">
+                <p
+                  className={cn(
+                    "min-w-0 truncate text-[26px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                    chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+                  )}
+                  style={DISPLAY}
+                >
+                  {chainLoading
+                    ? "…"
+                    : prizePoolRaw == null
+                      ? "—"
+                      : (
+                          <>
+                            {prize.formatHero(
+                              prizePoolRaw,
+                              locale === "uk" ? "uk" : "en",
+                            )}
+                            <span className="ml-1.5 text-[18px] font-black tracking-tight text-[color:var(--lt-ink)]">
+                              {prize.symbol}
+                            </span>
+                          </>
+                        )}
+                </p>
+                <p
+                  className={cn(
+                    "shrink-0 text-[15px] font-bold leading-none tabular-nums text-[color:var(--lt-ink)]",
+                    chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+                  )}
+                  style={DISPLAY}
+                >
+                  <span className="mr-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)]">
+                    1st
+                  </span>
+                  {chainLoading || firstRaw == null
+                    ? "—"
+                    : (
+                        <>
+                          {prize.formatCompact(firstRaw)}
+                          <span className="ml-1 text-[12px] font-bold tracking-tight text-[color:var(--lt-ink)]">
+                            {prize.symbol}
+                          </span>
+                        </>
+                      )}
+                </p>
+              </div>
               <p
                 className={cn(
-                  "text-[22px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                  "text-[15px] font-bold leading-none text-[color:var(--lt-ink)]",
                   chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
                 )}
-                style={DISPLAY}
               >
-                {chainLoading
-                  ? "…"
-                  : prizePoolRaw == null
-                    ? "—"
-                    : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
-              </p>
-              <p className="text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
-                1st{" "}
-                {chainLoading || firstRaw == null
-                  ? "—"
-                  : prize.formatCompact(firstRaw)}
-                <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
                 {managersLockedLabel}
               </p>
             </div>

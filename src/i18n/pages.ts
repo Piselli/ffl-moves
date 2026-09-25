@@ -1786,8 +1786,9 @@ export const pagesEn: PagesMessages = {
     setCaptainLabel: "Set as captain",
     removePlayerLabel: "Remove player",
     close: "Close",
-    managersLockedIn: (n) => `${n} already locked in`,
-    managersInHint: "locked in",
+    managersLockedIn: (n) =>
+      n === 1 ? "1 manager registered" : `${n} managers registered`,
+    managersInHint: "registered",
     managersLabel: "Managers",
     deadlineLabel: "Deadline",
     untilLock: "until lock",
@@ -2861,8 +2862,9 @@ export const pagesUk: PagesMessages = {
     setCaptainLabel: "Зробити капітаном",
     removePlayerLabel: "Прибрати гравця",
     close: "Закрити",
-    managersLockedIn: (n) => `${n} уже в грі`,
-    managersInHint: "уже в грі",
+    managersLockedIn: (n) =>
+      n === 1 ? "1 менеджер зареєстровано" : `${n} менеджерів зареєстровано`,
+    managersInHint: "зареєстровано",
     managersLabel: "Менеджери",
     deadlineLabel: "Дедлайн",
     untilLock: "до блокування",

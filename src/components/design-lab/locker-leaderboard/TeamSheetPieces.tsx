@@ -204,6 +204,8 @@ export function TeamSheetTable({
   selectPulse = false,
   layoutSelect = false,
   sectionLabel,
+  emptyHint,
+  registrationMode = false,
   className,
 }: {
   rows: readonly LabLeaderboardRow[];
@@ -218,6 +220,10 @@ export function TeamSheetTable({
   layoutSelect?: boolean;
   /** Section title aligned to the same gutter as Pos / Manager */
   sectionLabel?: string;
+  /** Shown when the board has no rows (e.g. open GW before results). */
+  emptyHint?: string;
+  /** Open/closed registration list — hide points & prize until resolve. */
+  registrationMode?: boolean;
   className?: string;
 }) {
   const youRef = useRef<HTMLButtonElement>(null);
@@ -278,6 +284,19 @@ export function TeamSheetTable({
         <span className="text-right">Prize</span>
       </div>
       <div className="relative min-h-0 flex-1">
+        {list.length === 0 ? (
+          <div
+            className={cn(
+              "flex h-full min-h-[8rem] flex-col items-center justify-center gap-1.5 px-6 text-center",
+              padX,
+            )}
+          >
+            <p className="text-[13px] font-semibold text-white/50">
+              {emptyHint ?? "No rankings yet"}
+            </p>
+          </div>
+        ) : (
+        <>
         <LayoutGroup id="rt-board-select">
           <div
             ref={scrollerRef}
@@ -366,17 +385,25 @@ export function TeamSheetTable({
                     className={cn(
                       "relative text-right font-display font-black tabular-nums",
                       dense ? "text-xs" : "text-sm sm:text-base",
+                      registrationMode && "text-white/25",
                     )}
                   >
-                    {row.finalPoints}
+                    {registrationMode ? "—" : row.finalPoints}
                   </span>
                   <span
                     className={cn(
-                      "relative text-right font-display font-black tabular-nums text-[#00f948]/90",
+                      "relative text-right font-display font-black tabular-nums",
                       dense ? "text-xs" : "text-sm sm:text-base",
+                      registrationMode
+                        ? "text-white/25"
+                        : "text-[#00f948]/90",
                     )}
                   >
-                    {row.prizeAmount > 0 ? row.prizeAmount : "—"}
+                    {registrationMode
+                      ? "—"
+                      : row.prizeAmount > 0
+                        ? row.prizeAmount
+                        : "—"}
                   </span>
                 </button>
               );
@@ -409,6 +436,8 @@ export function TeamSheetTable({
             <span className="h-1 w-1 rounded-full bg-white/20" />
           </div>
         ) : null}
+        </>
+        )}
       </div>
       {stagger || selectPulse ? (
         <style>{`
@@ -590,6 +619,7 @@ export function TeamSheetPitch({
   pts,
   formationId = DEFAULT_FORMATION,
   orientation = "portrait",
+  emptyMessage = "Select a manager to see XI",
   className,
 }: {
   manager?: LabLeaderboardRow;
@@ -607,6 +637,7 @@ export function TeamSheetPitch({
   formationId?: FormationId;
   /** Landscape pitch: GK left, attack right — fits wide tablet panels. */
   orientation?: "portrait" | "horizontal";
+  emptyMessage?: string;
   className?: string;
 }) {
   const reduceMotion = useReducedMotion();
@@ -747,7 +778,7 @@ export function TeamSheetPitch({
         ) : players.length === 0 ? (
           <div className="relative z-10 flex h-full items-center justify-center px-4">
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/30">
-              Select a manager to see XI
+              {emptyMessage}
             </p>
           </div>
         ) : isHorizontal ? (
@@ -1006,6 +1037,7 @@ export function ClaimFascia({
   counterPts = false,
   pressClaim = false,
   claimStyle,
+  loading = false,
   className,
   style,
 }: {
@@ -1022,10 +1054,12 @@ export function ClaimFascia({
   pressClaim?: boolean;
   /** Homepage convex-green / other CTA fills */
   claimStyle?: CSSProperties;
+  loading?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
   const canClaim = Boolean(you && you.prizeAmount > 0 && !you.claimed && onClaim);
+  const pending = loading && data.gameweek <= 0;
 
   return (
     <div
@@ -1044,9 +1078,29 @@ export function ClaimFascia({
         <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">
           {wallet ? "Prize wallet" : "Prize pool"}
         </p>
-        <p className="font-display text-2xl font-black tabular-nums sm:text-3xl">
-          {data.prizePoolLabel}
-          <span className="ml-1 text-xs text-white/40">{data.prizeSymbol}</span>
+        <p
+          className={cn(
+            "font-display text-2xl font-black tabular-nums sm:text-3xl",
+            pending && "animate-pulse text-white/35",
+          )}
+        >
+          {pending ? "…" : data.prizePoolLabel}
+          {!pending ? (
+            <span className="ml-1 text-xs text-white/40">{data.prizeSymbol}</span>
+          ) : null}
+        </p>
+      </div>
+      <div>
+        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">
+          Managers
+        </p>
+        <p
+          className={cn(
+            "font-display text-2xl font-black tabular-nums sm:text-3xl",
+            pending && "animate-pulse text-white/35",
+          )}
+        >
+          {pending ? "…" : data.entries}
         </p>
       </div>
       {you ? (

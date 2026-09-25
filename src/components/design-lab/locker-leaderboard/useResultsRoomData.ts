@@ -9,8 +9,8 @@ import {
   getGameweek,
   getUserTeam,
   getGameweekStats,
-  findHighestGameweekId,
   getGameweekResults,
+  getGameweekEntrants,
   buildClaimPrize,
   type GameweekSummary,
 } from "@/lib/chainClient";
@@ -54,6 +54,84 @@ type XiPayload = {
   bench: LabSquadPlayer[];
   formationId: FormationId;
 };
+
+type ConfigBundle = {
+  currentId: number;
+  /** Current GW account when not resolved (open or closed). */
+  live: GameweekSummary | null;
+  /** Owners already registered for `live` (from config API). */
+  registrations: string[];
+};
+
+function parseGwPayload(raw: unknown): GameweekSummary | null {
+  if (!raw || typeof raw !== "object") return null;
+  const g = raw as Record<string, unknown>;
+  const id = Number(g.id);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const status = g.status;
+  if (status !== "open" && status !== "closed" && status !== "resolved") {
+    return null;
+  }
+  return {
+    id,
+    status,
+    prizePool: BigInt(String(g.prizePool ?? 0)),
+    totalEntries: Number(g.totalEntries ?? 0),
+    resultsRoot:
+      typeof g.resultsRoot === "string" ? g.resultsRoot : null,
+    prizeAllocated: BigInt(String(g.prizeAllocated ?? 0)),
+    prizeClaimed: BigInt(String(g.prizeClaimed ?? 0)),
+  };
+}
+
+/**
+ * Prefer `/api/solana/config` (server RPC) — browser→Helius often fails.
+ * Fall back to direct chain reads.
+ */
+async function loadConfigBundle(): Promise<ConfigBundle | null> {
+  try {
+    const res = await fetch("/api/solana/config", { cache: "no-store" });
+    if (res.ok) {
+      const payload = (await res.json()) as {
+        config?: { currentGameweek?: number };
+        currentGameweek?: unknown;
+        openGameweek?: unknown;
+        registrations?: unknown;
+      };
+      const currentId = Number(payload.config?.currentGameweek ?? 0);
+      const open = parseGwPayload(payload.openGameweek);
+      const current = parseGwPayload(payload.currentGameweek);
+      const live =
+        open ??
+        (current && current.status !== "resolved" ? current : null);
+      const registrations = Array.isArray(payload.registrations)
+        ? payload.registrations.filter((o): o is string => typeof o === "string")
+        : [];
+      return {
+        currentId: currentId || live?.id || 0,
+        live,
+        registrations,
+      };
+    }
+  } catch (e) {
+    console.warn("Results room config API failed, trying direct RPC:", e);
+  }
+
+  try {
+    const config = await getConfig();
+    if (!config) return null;
+    const current = await getGameweek(config.currentGameweek);
+    const live =
+      current && current.status !== "resolved" ? current : null;
+    const registrations = live
+      ? await getGameweekEntrants(live.id).catch(() => [] as string[])
+      : [];
+    return { currentId: config.currentGameweek, live, registrations };
+  } catch (e) {
+    console.error("Results room direct config failed", e);
+    return null;
+  }
+}
 
 let playerCatalogPromise: Promise<Player[]> | null = null;
 
@@ -100,11 +178,31 @@ export type ResultsRoomData = {
   loadXiForOwner: (owner: string) => Promise<XiPayload | null>;
   selectedGw: number;
   setGameweek: (gwId: number) => void;
-  /** Resolved EPL GWs ascending — stepper walks this list only. */
+  /** EPL GWs ascending (resolved + live open/closed) — stepper walks this list. */
   pickerGws: readonly number[];
   pickerMaxGw: number;
   pickerMinGw: number;
 };
+
+/** Live (open/closed) current EPL GW id, or null if none / WC tour. */
+function liveEplIdFrom(gw: GameweekSummary | null): number | null {
+  if (!gw) return null;
+  if (
+    gw.id < MIN_PUBLIC_LEADERBOARD_GW ||
+    isWorldCupTour(gw.id) ||
+    gw.status === "resolved"
+  ) {
+    return null;
+  }
+  return gw.id;
+}
+
+/** Merge resolved ids with a live open/closed GW; return ascending unique. */
+function mergePickerGws(resolvedDesc: number[], liveId: number | null): number[] {
+  const set = new Set(resolvedDesc);
+  if (liveId != null) set.add(liveId);
+  return [...set].sort((a, b) => a - b);
+}
 
 async function findResolvedIds(highestId: number, count: number): Promise<number[]> {
   const ceiling = eplScanCeiling(highestId);
@@ -146,16 +244,60 @@ function snapshotFromGw(
   rows: LabLeaderboardRow[],
   prizePoolLabel: string,
   prizeSymbol: string,
+  opts?: { isPreview?: boolean; entries?: number },
 ): LabLeaderboardSnapshot {
   return {
     gameweek: gw.id,
     status: gw.status,
     prizePoolLabel,
     prizeSymbol,
-    entries: gw.totalEntries,
-    isPreview: false,
+    entries: opts?.entries ?? gw.totalEntries,
+    isPreview: opts?.isPreview ?? false,
     rows,
   };
+}
+
+/** Owners registered for a GW — API first (browser RPC often fails), then chain. */
+async function fetchEntrantOwners(gwId: number): Promise<string[]> {
+  try {
+    const res = await fetch(`/api/registrations?gw=${gwId}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = (await res.json()) as { registrations?: unknown };
+      if (Array.isArray(data.registrations)) {
+        return data.registrations.filter((o): o is string => typeof o === "string");
+      }
+    }
+  } catch (e) {
+    console.warn("Registrations API failed, trying direct RPC:", e);
+  }
+  try {
+    return await getGameweekEntrants(gwId);
+  } catch (e) {
+    console.error("getGameweekEntrants failed", e);
+    return [];
+  }
+}
+
+function entrantsToRows(
+  owners: string[],
+  getNickname: (addr: string) => string,
+  wallet?: string | null,
+): LabLeaderboardRow[] {
+  return [...owners]
+    .sort((a, b) =>
+      getNickname(a).localeCompare(getNickname(b), undefined, {
+        sensitivity: "base",
+      }),
+    )
+    .map((owner, i) => ({
+      rank: i + 1,
+      owner,
+      nickname: getNickname(owner),
+      finalPoints: 0,
+      prizeAmount: 0,
+      claimed: false,
+      isYou: wallet ? tourOwnersMatch(owner, wallet) : false,
+    }));
 }
 
 function seasonToHighlights(
@@ -212,7 +354,12 @@ export function useResultsRoomData(): ResultsRoomData {
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const xiCache = useRef(new Map<string, XiPayload>());
-  const bootstrapped = useRef(false);
+  /** Seeded open/closed GW from config API — used when direct getGameweek fails. */
+  const liveGwRef = useRef<GameweekSummary | null>(null);
+  /** Skip one tablet refetch after bootstrap already painted this GW. */
+  const skipTabletLoadGwRef = useRef<number | null>(null);
+  const tabletRef = useRef(tablet);
+  tabletRef.current = tablet;
 
   const formatHumanPrize = useCallback(
     (raw: bigint) => {
@@ -224,8 +371,27 @@ export function useResultsRoomData(): ResultsRoomData {
 
   const fetchGwBoard = useCallback(
     async (gwId: number): Promise<LabLeaderboardSnapshot | null> => {
-      const gw = await getGameweek(gwId);
-      if (!gw || gw.status !== "resolved") return null;
+      // Prefer seeded live summary — avoids a slow failing browser RPC.
+      let gw =
+        liveGwRef.current?.id === gwId
+          ? liveGwRef.current
+          : await getGameweek(gwId).catch(() => null);
+      if (!gw && liveGwRef.current?.id === gwId) {
+        gw = liveGwRef.current;
+      }
+      if (!gw) return null;
+      const poolLabel = prize.formatUnits(gw.prizePool);
+
+      // Open / closed: list registered managers (no points / no XI) until resolve.
+      if (gw.status !== "resolved") {
+        const owners = await fetchEntrantOwners(gwId);
+        const rows = entrantsToRows(owners, getNickname, wallet);
+        return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
+          isPreview: true,
+          entries: owners.length || gw.totalEntries,
+        });
+      }
+
       const results = await getGameweekResults(gwId);
       const valid = [...results].sort((a, b) => {
         if (a.rank !== b.rank) return a.rank - b.rank;
@@ -233,7 +399,7 @@ export function useResultsRoomData(): ResultsRoomData {
         return a.owner.localeCompare(b.owner);
       });
       const rows = resultsToRows(valid, getNickname, wallet, formatHumanPrize);
-      return snapshotFromGw(gw, rows, prize.formatUnits(gw.prizePool), prize.symbol);
+      return snapshotFromGw(gw, rows, poolLabel, prize.symbol);
     },
     [formatHumanPrize, getNickname, prize, wallet],
   );
@@ -260,40 +426,69 @@ export function useResultsRoomData(): ResultsRoomData {
     };
   }, [getNickname, wallet]);
 
-  // Bootstrap once: resolve latest GWs + season highlights
+  // Bootstrap once: config (+ registrations) → paint live board in one shot
   useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       try {
-        const config = await getConfig();
-        if (!config || cancelled) {
-          if (!cancelled) setLoading(false);
+        const bundle = await loadConfigBundle();
+        if (cancelled) return;
+        if (!bundle) {
+          setLoading(false);
           return;
         }
 
-        const highestId = await findHighestGameweekId();
-        const eplCeiling = eplScanCeiling(
-          Math.max(Number(config.currentGameweek) || 0, highestId),
-        );
-        // First two resolved boards are enough to paint the tablet; the
-        // stepper list fills in the background so we never wait on 40 RPCs.
-        const firstPair = await findResolvedIds(eplCeiling, 2);
-        if (cancelled) return;
+        const liveId = liveEplIdFrom(bundle.live);
+        liveGwRef.current = bundle.live;
 
-        setPickerGws([...firstPair].reverse());
-        setResolvedPair(firstPair);
-        const primary = firstPair[0] ?? 0;
-        if (primary > 0) setSelectedGw(primary);
-        setLoading(false);
+        const highestId = Math.max(bundle.currentId, liveId ?? 0);
+        const eplCeiling = eplScanCeiling(highestId);
+
+        // Paint live open/closed GW fully (pool + managers) before showing UI.
+        if (bundle.live && liveId != null) {
+          const owners =
+            bundle.registrations.length > 0
+              ? bundle.registrations
+              : await fetchEntrantOwners(liveId);
+          if (cancelled) return;
+          const rows = entrantsToRows(owners, getNickname, wallet);
+          const snap = snapshotFromGw(
+            bundle.live,
+            rows,
+            prize.formatUnits(bundle.live.prizePool),
+            prize.symbol,
+            {
+              isPreview: true,
+              entries: owners.length || bundle.live.totalEntries,
+            },
+          );
+          setTablet(snap);
+          setSource(rows.length ? "live" : "empty");
+          setPickerGws([liveId]);
+          setSelectedGw(liveId);
+          skipTabletLoadGwRef.current = liveId;
+          setLoading(false);
+        }
+
+        // Stepper list fills in parallel / after paint — never blocks first paint.
+        void findResolvedIds(eplCeiling, 2).then((firstPair) => {
+          if (cancelled) return;
+          setPickerGws(mergePickerGws(firstPair, liveId));
+          setResolvedPair(firstPair);
+          if (liveId == null) {
+            const primary = firstPair[0] ?? 0;
+            if (primary > 0) setSelectedGw(primary);
+          }
+          setLoading(false);
+        });
+
         void loadPlayerCatalog();
 
         void findResolvedIds(eplCeiling, 40).then((resolvedDesc) => {
           if (cancelled) return;
-          setPickerGws([...resolvedDesc].reverse());
+          setPickerGws(mergePickerGws(resolvedDesc, liveId));
           setResolvedPair(resolvedDesc.slice(0, 2));
         });
 
@@ -305,7 +500,6 @@ export function useResultsRoomData(): ResultsRoomData {
           });
       } catch (e) {
         console.error("Results room bootstrap failed", e);
-      } finally {
         if (!cancelled) setLoading(false);
       }
     })();
@@ -319,46 +513,57 @@ export function useResultsRoomData(): ResultsRoomData {
   // Load tablet board when selected GW changes; wall uses next-oldest resolved
   const loadBoards = useCallback(async () => {
     if (selectedGw <= 0) return;
-    setLoading(true);
+
+    const skipTablet = skipTabletLoadGwRef.current === selectedGw;
+    if (skipTablet) skipTabletLoadGwRef.current = null;
+
+    // Bootstrap already painted this live board — only refresh the wall.
+    const tabletAlready =
+      skipTablet ||
+      (tabletRef.current.gameweek === selectedGw &&
+        tabletRef.current.rows.length > 0 &&
+        tabletRef.current.status !== "resolved");
+
     setClaimError(null);
-    xiCache.current.clear();
+    if (!tabletAlready) {
+      setLoading(true);
+      xiCache.current.clear();
+    }
+
     try {
       const prevId =
         resolvedPair.find((id) => id !== selectedGw) ??
         (selectedGw > MIN_PUBLIC_LEADERBOARD_GW ? selectedGw - 1 : 0);
 
       const [tabletSnap, prevSnap] = await Promise.all([
-        fetchGwBoard(selectedGw),
+        tabletAlready ? Promise.resolve(null) : fetchGwBoard(selectedGw),
         prevId > 0 ? fetchGwBoard(prevId) : Promise.resolve(null),
       ]);
 
-      if (tabletSnap?.rows.length) {
-        setTablet(tabletSnap);
-        setSource("live");
-      } else {
-        setSource("empty");
-        setTablet(
-          tabletSnap
-            ? { ...tabletSnap, rows: [] }
-            : {
-                ...EMPTY_BOARD,
-                gameweek: selectedGw || 0,
-              },
-        );
+      if (tabletSnap) {
+        if (tabletSnap.rows.length) {
+          setTablet(tabletSnap);
+          setSource("live");
+        } else {
+          setSource("empty");
+          setTablet({ ...tabletSnap, rows: [] });
+        }
       }
 
       if (prevSnap) {
         setWallPrev(prevSnap);
       } else if (tabletSnap) {
         setWallPrev(tabletSnap);
-      } else {
+      } else if (!tabletAlready) {
         setWallPrev(EMPTY_BOARD);
       }
     } catch (e) {
       console.error("Results room board load failed", e);
-      setSource("empty");
-      setTablet(EMPTY_BOARD);
-      setWallPrev(EMPTY_BOARD);
+      if (!tabletAlready) {
+        setSource("empty");
+        setTablet(EMPTY_BOARD);
+        setWallPrev(EMPTY_BOARD);
+      }
     } finally {
       setLoading(false);
     }
@@ -444,6 +649,9 @@ export function useResultsRoomData(): ResultsRoomData {
 
   const loadXiForOwner = useCallback(
     async (owner: string): Promise<XiPayload | null> => {
+      // Registration board (open/closed) — no squad peek until results.
+      if (tablet.status !== "resolved") return null;
+
       const gwId = tablet.gameweek;
       const cacheKey = `${gwId}:${owner.toLowerCase()}`;
       const cached = xiCache.current.get(cacheKey);
@@ -514,7 +722,7 @@ export function useResultsRoomData(): ResultsRoomData {
         return null;
       }
     },
-    [source, tablet.gameweek, tablet.rows],
+    [source, tablet.gameweek, tablet.rows, tablet.status],
   );
 
   return {

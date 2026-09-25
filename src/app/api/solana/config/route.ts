@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findOpenGameweek, getConfig, getGameweek } from "@/lib/chainClient";
+import { getConfig, getGameweek, getGameweekEntrants } from "@/lib/chainClient";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,8 @@ function serializeGameweek(
 /**
  * Server-side Config + open gameweek. Prefer this from the browser when
  * client→Helius is blocked (extensions, stale allowlists, etc.).
+ * Also returns current-GW registrations when the tour is still open/closed
+ * so the leaderboard can paint managers in one round-trip.
  */
 export async function GET() {
   try {
@@ -29,12 +31,21 @@ export async function GET() {
       );
     }
 
-    const [currentGameweek, openGameweek] = await Promise.all([
+    const [currentGameweek, registrations] = await Promise.all([
       config.currentGameweek
         ? getGameweek(config.currentGameweek).catch(() => null)
         : Promise.resolve(null),
-      findOpenGameweek().catch(() => null),
+      config.currentGameweek
+        ? getGameweekEntrants(config.currentGameweek).catch(() => [] as string[])
+        : Promise.resolve([] as string[]),
     ]);
+
+    const openGameweek =
+      currentGameweek?.status === "open" ? currentGameweek : null;
+    const liveRegs =
+      currentGameweek && currentGameweek.status !== "resolved"
+        ? registrations
+        : [];
 
     return NextResponse.json({
       config: {
@@ -44,6 +55,7 @@ export async function GET() {
       },
       currentGameweek: serializeGameweek(currentGameweek),
       openGameweek: serializeGameweek(openGameweek),
+      registrations: liveRegs,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to read Config";
