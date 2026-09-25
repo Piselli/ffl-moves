@@ -18,6 +18,11 @@ export const IPAD_FRAME_SIZE =
 
 /** Match ResponsiveCamera targetWidthFill / heightFill so Dom ≈ final WebGL size. */
 export const DOM_MATCH_WEBGL_SCALE = 0.82;
+/**
+ * Permanent Firefox Dom on the desk plate — width-fill is ~0.78 and the CSS
+ * frame must clear the nav; 0.82 still clips the bottom on short viewports.
+ */
+export const DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK = 0.72;
 
 type Props = {
   raised: boolean;
@@ -30,14 +35,17 @@ type Props = {
    * Without this, Dom fills the full CSS box and looks oversized until WebGL.
    */
   matchWebglScale?: boolean;
+  /** Override fill when matchWebglScale (Firefox desk Dom-only). */
+  webglScaleFill?: number;
 };
 
 function domTabletTransform(
   placement: Placement,
   raised: boolean,
   matchWebgl: boolean,
+  scaleFill: number,
 ): string {
-  const fill = matchWebgl ? DOM_MATCH_WEBGL_SCALE : 1;
+  const fill = matchWebgl ? scaleFill : 1;
   const loweredScale = 0.9 * fill;
   if (placement === "desk") {
     return raised
@@ -57,7 +65,13 @@ export function TabletDomFrame({
   onPointerInsideChange,
   placement = "locker",
   matchWebglScale = false,
+  webglScaleFill = DOM_MATCH_WEBGL_SCALE,
 }: Props) {
+  const deskCompact =
+    matchWebglScale &&
+    placement === "desk" &&
+    webglScaleFill <= DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK + 0.001;
+
   return (
     <div
       className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
@@ -71,11 +85,21 @@ export function TabletDomFrame({
       <div
         className={IPAD_FRAME_SIZE}
         style={{
-          transform: domTabletTransform(placement, raised, matchWebglScale),
+          transform: domTabletTransform(
+            placement,
+            raised,
+            matchWebglScale,
+            webglScaleFill,
+          ),
           transition: reduceMotion
             ? "none"
             : `transform ${TABLET_MOTION_MS}ms ${TABLET_EASE}`,
-          transformOrigin: placement === "desk" ? "50% 85%" : "50% 50%",
+          /* Centered origin keeps a permanent Dom desk tablet from sitting low. */
+          transformOrigin: deskCompact
+            ? "50% 50%"
+            : placement === "desk"
+              ? "50% 85%"
+              : "50% 50%",
         }}
       >
         <IpadFrame onPointerInsideChange={onPointerInsideChange}>

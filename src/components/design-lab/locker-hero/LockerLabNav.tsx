@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -16,6 +16,7 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
+import { isFirefoxBrowser } from "@/lib/browser";
 import { cn, shortenAddress } from "@/lib/utils";
 import {
   NAV_TRAY_BTN,
@@ -211,6 +212,15 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   const links = primarySiteNavLinks(m);
   const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
   const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
+  /**
+   * Firefox: absolute FAQ + locale sits on top of Log in / X.
+   * Keep them in the utilities row there; other browsers keep the float.
+   * useLayoutEffect so SSR hydrate (false) flips before paint on Firefox.
+   */
+  const [firefoxNav, setFirefoxNav] = useState(false);
+  useLayoutEffect(() => {
+    setFirefoxNav(isFirefoxBrowser());
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -308,20 +318,34 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 className="!inline-flex !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white"
               />
               <Right />
+              {firefoxNav ? (
+                <>
+                  <Link
+                    href="/faq"
+                    onClick={liveLinks ? undefined : (e) => e.preventDefault()}
+                    className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
+                  >
+                    {m.nav.faq}
+                  </Link>
+                  <LanguageSwitcher embedded />
+                </>
+              ) : null}
             </div>
           </div>
 
           {/* FAQ + locale — outside the content row so L/R insets stay equal */}
-          <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
-            <Link
-              href="/faq"
-              onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-              className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
-            >
-              {m.nav.faq}
-            </Link>
-            <LanguageSwitcher embedded />
-          </div>
+          {!firefoxNav ? (
+            <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
+              <Link
+                href="/faq"
+                onClick={liveLinks ? undefined : (e) => e.preventDefault()}
+                className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
+              >
+                {m.nav.faq}
+              </Link>
+              <LanguageSwitcher embedded />
+            </div>
+          ) : null}
         </div>
       </div>
 

@@ -99,10 +99,7 @@ export function isSafariBrowser(): boolean {
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|Brave|OPR|OPiOS|CriOS|FxiOS/i.test(ua);
 }
 
-export function isFirefoxBrowser(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /Firefox\//i.test(navigator.userAgent);
-}
+export { isFirefoxBrowser } from "@/lib/browser";
 
 function isIOSBrowser(): boolean {
   if (typeof navigator === "undefined") return false;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { isFirefoxBrowser } from "@/lib/browser";
 import { cn } from "@/lib/utils";
 
 /** Real ~8.4mm bezel as % of body — uniform absolute width. */
@@ -24,6 +25,8 @@ type Props = {
 export function IpadFrame({ children, className, onPointerInsideChange }: Props) {
   const screenRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0);
+  /** Firefox: CSS zoom inside a transformed ancestor paints blank. Use scale. */
+  const [useScale] = useState(() => isFirefoxBrowser());
 
   useEffect(() => {
     const el = screenRef.current;
@@ -38,6 +41,8 @@ export function IpadFrame({ children, className, onPointerInsideChange }: Props)
     apply(el.getBoundingClientRect().width);
     return () => ro.disconnect();
   }, []);
+
+  const screenScale = scale || 0.001;
 
   return (
     <div
@@ -63,7 +68,9 @@ export function IpadFrame({ children, className, onPointerInsideChange }: Props)
           style={{
             width: SCREEN_CANVAS.w,
             height: SCREEN_CANVAS.h,
-            zoom: scale || 0.001,
+            ...(useScale
+              ? { transform: `scale(${screenScale})` }
+              : { zoom: screenScale }),
             opacity: scale ? 1 : 0.001,
           }}
         >

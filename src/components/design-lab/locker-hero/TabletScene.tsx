@@ -20,11 +20,14 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera as ThreePerspectiveCamera,
 } from "three";
+import { isFirefoxBrowser } from "@/lib/browser";
 import { IPAD_BODY_H, IPAD_BODY_W, IpadMesh } from "./IpadMesh";
 import {
   IPAD_FRAME_SIZE,
   TABLET_MOTION_MS,
   TabletDomFrame,
+  DOM_MATCH_WEBGL_SCALE,
+  DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK,
 } from "./TabletDomFrame";
 import { HERO_BOOT_WEBGL_SOFT_MS } from "./heroReveal";
 
@@ -326,7 +329,9 @@ function StaticFallback({
   onPointerInsideChange,
   onModelReady,
   placement = "locker",
-}: Props) {
+  matchWebglScale = false,
+  webglScaleFill,
+}: Props & { matchWebglScale?: boolean; webglScaleFill?: number }) {
   useEffect(() => {
     onModelReady?.();
   }, [onModelReady]);
@@ -337,6 +342,8 @@ function StaticFallback({
       reduceMotion={reduceMotion}
       onPointerInsideChange={onPointerInsideChange}
       placement={placement}
+      matchWebglScale={matchWebglScale}
+      webglScaleFill={webglScaleFill}
     >
       {children}
     </TabletDomFrame>
@@ -419,6 +426,12 @@ export function TabletScene(props: Props) {
   const deferReady = props.deferReadyUntilWebgl === true;
   /** Legacy: hide Dom until WebGL — only when not using fast preview. */
   const waitForWebgl = !fastPreview && props.skipDomFallback !== false;
+  /**
+   * Firefox: drei `<Html transform>` + CSS zoom paints a blank screen.
+   * Dom-only from the first client frame (TabletScene is ssr:false) —
+   * never gate other browsers behind a pending Dom remount.
+   */
+  const [firefoxDomOnly] = useState(() => isFirefoxBrowser());
 
   const [modelReady, setModelReady] = useState(false);
   /** Mesh + camera settled; Html may mount under opacity 0. */
@@ -538,6 +551,28 @@ export function TabletScene(props: Props) {
       {props.children}
     </StaticFallback>
   );
+
+  if (firefoxDomOnly) {
+    return (
+      <StaticFallback
+        raised={props.raised}
+        reduceMotion={props.reduceMotion}
+        onPointerInsideChange={props.onPointerInsideChange}
+        onModelReady={props.onModelReady}
+        placement={placement}
+        /* Always match WebGL fill — leaderboard has no fastDomPreview, but
+         * Dom at scale(1) overflows the desk scene vs Chrome’s 3D iPad. */
+        matchWebglScale
+        webglScaleFill={
+          placement === "desk"
+            ? DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK
+            : DOM_MATCH_WEBGL_SCALE
+        }
+      >
+        {props.children}
+      </StaticFallback>
+    );
+  }
 
   return (
     <SceneErrorBoundary fallback={fallback}>

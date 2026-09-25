@@ -1,8 +1,10 @@
 "use client";
 
+import { useLayoutEffect, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
 import type { SiteLocale } from "@/i18n/types";
+import { isFirefoxBrowser } from "@/lib/browser";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { code: SiteLocale; short: string }[] = [
@@ -19,6 +21,11 @@ export function LanguageSwitcher({ embedded = false }: { embedded?: boolean }) {
   const aria = useSiteMessages().pages.languageSwitcherAria;
   const reduce = useReducedMotion() ?? false;
   const uk = locale === "uk";
+  /** Firefox mis-applies percentage `x` on the absolute pill inside overflow/grid. */
+  const [firefoxPill, setFirefoxPill] = useState(false);
+  useLayoutEffect(() => {
+    setFirefoxPill(isFirefoxBrowser());
+  }, []);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -36,7 +43,11 @@ export function LanguageSwitcher({ embedded = false }: { embedded?: boolean }) {
           aria-hidden
           className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-white"
           initial={false}
-          animate={{ x: uk ? "100%" : "0%" }}
+          animate={
+            firefoxPill
+              ? { left: uk ? "calc(50%)" : "0.125rem", x: 0 }
+              : { x: uk ? "100%" : "0%" }
+          }
           transition={reduce ? { duration: 0 } : PILL_SPRING}
         />
         {OPTIONS.map(({ code, short }) => {
