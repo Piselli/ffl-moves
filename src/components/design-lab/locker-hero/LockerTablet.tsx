@@ -1174,13 +1174,9 @@ export function LockerTablet({
   ) : (
     <>
       <span>{primaryCtaLabel}</span>
-      {registerHint ? (
+      {registerHint || registerProgress ? (
         <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
-          {registerHint}
-        </span>
-      ) : registerProgress ? (
-        <span className="max-w-full px-1 text-[10px] font-semibold normal-case leading-snug tracking-normal opacity-90 md:text-[11px]">
-          {registerProgress}
+          {registerHint ?? registerProgress}
         </span>
       ) : null}
     </>

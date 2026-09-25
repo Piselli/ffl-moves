@@ -16,7 +16,7 @@ import {
 } from "@/lib/registerPayment";
 import { FORMATION } from "@/lib/constants";
 import { formatFeeLabel } from "@/lib/entryFee";
-import { getErrorMessage } from "@/lib/utils";
+import { formatTxError, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { Player } from "@/lib/types";
@@ -41,6 +41,9 @@ export function useLockerRegister(opts: {
   const [submitting, setSubmitting] = useState(false);
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  /** Soft CTA subline only (locked / need captain) — never dump tx logs here. */
   const [hint, setHint] = useState<string | null>(null);
 
   const filledCount = useMemo(
@@ -60,6 +63,11 @@ export function useLockerRegister(opts: {
     () => bench.filter((p): p is Player => p != null),
     [bench],
   );
+
+  const showError = useCallback((error: unknown) => {
+    setErrorMessage(formatTxError(error) || getErrorMessage(error));
+    setErrorOpen(true);
+  }, []);
 
   useEffect(() => {
     if (chainLoading || gameweekId != null) {
@@ -116,7 +124,6 @@ export function useLockerRegister(opts: {
             : !connected
               ? g.submitRegister
               : g.submitConfirm(feeLabel);
-  /** Subline under the CTA — only meaningful when a GW is open (locked hint wins in UI). */
   const ctaProgress = registrationClosed
     ? g.unavailableIntro
     : alreadyRegistered || submitting || isReadyToRegister || isComplete
@@ -125,6 +132,7 @@ export function useLockerRegister(opts: {
 
   const register = useCallback(async () => {
     setHint(null);
+    setErrorOpen(false);
 
     if (!connected || !account) {
       openLogin();
@@ -152,7 +160,7 @@ export function useLockerRegister(opts: {
         return;
       }
     } catch (error: unknown) {
-      setHint(`${g.registerErrorPrefix} ${getErrorMessage(error)}`);
+      showError(error);
       return;
     }
 
@@ -177,12 +185,11 @@ export function useLockerRegister(opts: {
       if (isInsufficientFundsError(error)) {
         setInsufficientOpen(true);
       } else if (!isWalletUserRejection(error)) {
-        setHint(`${g.registerErrorPrefix} ${getErrorMessage(error)}`);
+        showError(error);
       }
     } finally {
       setSubmitting(false);
       if (registeredOk) {
-        // Wait for wallet UI to dismiss, then open the same share modal as the CTA.
         window.setTimeout(() => setShareOpen(true), 400);
       }
     }
@@ -200,6 +207,7 @@ export function useLockerRegister(opts: {
     isReadyToRegister,
     openLogin,
     refreshBalance,
+    showError,
     signAndSubmit,
     starters,
     submitting,
@@ -216,6 +224,9 @@ export function useLockerRegister(opts: {
     feeLabel,
     insufficientOpen,
     setInsufficientOpen,
+    errorOpen,
+    errorMessage,
+    setErrorOpen,
     openDeposit,
     shareOpen,
     setShareOpen,

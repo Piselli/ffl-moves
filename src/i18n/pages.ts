@@ -210,6 +210,8 @@ export type PagesMessages = {
   };
   gameweek: {
     registerErrorPrefix: string;
+    registerErrorTitle: string;
+    registerErrorDismiss: string;
     connectTitle: string;
     connectDesc: string;
     gwWord: string;
@@ -1005,6 +1007,8 @@ export const pagesEn: PagesMessages = {
   },
   gameweek: {
     registerErrorPrefix: "Registration error:",
+    registerErrorTitle: "Registration failed",
+    registerErrorDismiss: "Got it",
     connectTitle: "Pick your squad",
     connectDesc: "Connect your wallet to select your squad for the current gameweek.",
     gwWord: "GW",
@@ -2069,6 +2073,8 @@ export const pagesUk: PagesMessages = {
   },
   gameweek: {
     registerErrorPrefix: "Помилка реєстрації:",
+    registerErrorTitle: "Реєстрація не вдалася",
+    registerErrorDismiss: "Зрозуміло",
     connectTitle: "Вибір складу",
     connectDesc: "Підключи гаманець щоб вибрати свій склад на поточний тур.",
     gwWord: "Тур",

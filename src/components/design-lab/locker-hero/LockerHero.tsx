@@ -23,6 +23,7 @@ import { useLockerHeroData } from "./useLockerHeroData";
 import { useSquadPick } from "./useSquadPick";
 import { useLockerRegister } from "./useLockerRegister";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
+import { RegisterErrorModal } from "@/components/RegisterErrorModal";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
@@ -631,6 +632,11 @@ export function LockerHero({
           register.setInsufficientOpen(false);
           register.openDeposit();
         }}
+      />
+      <RegisterErrorModal
+        open={register.errorOpen}
+        message={register.errorMessage}
+        onClose={() => register.setErrorOpen(false)}
       />
       <ShareSquadOnXModal
         open={register.shareOpen}

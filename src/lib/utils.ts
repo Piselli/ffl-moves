@@ -30,14 +30,27 @@ export function toU64Stat(v: unknown): number {
 /**
  * Best-effort text for wallet / RPC errors. Anchor puts the useful part in
  * simulation `logs`, which most wallets drop from `message`.
+ * Keeps the string short so UI never dumps raw Solana log spam.
  */
 export function formatTxError(error: unknown): string {
   if (error == null) return "Unknown error";
-  if (typeof error === "string") return error;
+  if (typeof error === "string") return truncate(error, 280);
 
   const e = error as Record<string, unknown>;
   const logs = Array.isArray(e.logs) ? (e.logs as unknown[]).map(String) : null;
-  const programError = logs?.find((l) => l.includes("Error Message:"));
+  const programError = logs?.find((l) => /Error Message:/i.test(l));
+  const rentFail = logs?.some(
+    (l) => /InsufficientFundsForRent/i.test(l),
+  )
+    || /InsufficientFundsForRent/i.test(String(e.message ?? ""))
+    || (e.err != null && /InsufficientFundsForRent/i.test(JSON.stringify(e.err)));
+
+  if (rentFail) {
+    return "Account rent top-up was short. Please try Confirm again.";
+  }
+  if (programError) {
+    return programError.replace(/^.*Error Message:\s*/i, "").trim();
+  }
 
   const base =
     error instanceof Error && error.message
@@ -46,7 +59,17 @@ export function formatTxError(error: unknown): string {
         ? e.message
         : safeStringify(error);
 
-  return programError ? `${base}\n\n— ${programError.trim()}` : base;
+  return truncate(
+    base
+      .split(/Logs:\s*\[/i)[0]
+      .replace(/\s*Catch the 'SendTransactionError'[\s\S]*$/i, "")
+      .trim(),
+    280,
+  );
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
 function safeStringify(value: unknown): string {

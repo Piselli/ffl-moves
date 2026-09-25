@@ -119,11 +119,18 @@ export async function prepareSponsoredInstructions(
 
   if (isForm8GameAction(prepared)) {
     const space = pdaSpaceForGameAction(prepared);
-    const rent = await connection.getMinimumBalanceForRentExemption(space);
+    // Entry/claim PDA rent is paid by the player (`init, payer = owner`).
+    // Top up entry rent PLUS the empty-wallet rent floor — otherwise the
+    // player account is left with dust and simulation fails
+    // `InsufficientFundsForRent` (account still below rent-exempt).
+    const [entryRent, walletFloor] = await Promise.all([
+      connection.getMinimumBalanceForRentExemption(space),
+      connection.getMinimumBalanceForRentExemption(0),
+    ]);
     const balance = await connection.getBalance(userKey, "confirmed");
-    const need = rent;
+    const need = entryRent + walletFloor;
     if (balance < need) {
-      const topUp = Math.min(need - balance, MAX_RENT_TOPUP_LAMPORTS);
+      const topUp = Math.min(need - balance, Number(MAX_RENT_TOPUP_LAMPORTS));
       if (topUp > 0) {
         prepared = [
           SystemProgram.transfer({
