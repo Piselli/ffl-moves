@@ -39,6 +39,24 @@ function normAddr(a: string | undefined | null): string {
   return (a ?? "").toLowerCase();
 }
 
+function reviveConfig(raw: Record<string, unknown>): ChainConfig {
+  return {
+    ...(raw as unknown as ChainConfig),
+    entryFee: BigInt(String(raw.entryFee)),
+    totalPrizeObligation: BigInt(String(raw.totalPrizeObligation)),
+  };
+}
+
+function reviveGameweek(raw: Record<string, unknown> | null): GameweekSummary | null {
+  if (!raw) return null;
+  return {
+    ...(raw as unknown as GameweekSummary),
+    prizePool: BigInt(String(raw.prizePool)),
+    prizeAllocated: BigInt(String(raw.prizeAllocated)),
+    prizeClaimed: BigInt(String(raw.prizeClaimed)),
+  };
+}
+
 /** Accepts a base58 Solana address; returns null when it is not a valid pubkey. */
 function normalizeSolanaAddress(raw: string): string | null {
   const trimmed = raw.trim();
@@ -90,6 +108,7 @@ export default function AdminPage() {
   /** Фактичний OPEN-тур на ланцюгу (скан) — саме його треба закривати для зупинки реєстрації. */
   const [openGameweek, setOpenGameweek] = useState<GameweekSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states
@@ -117,27 +136,51 @@ export default function AdminPage() {
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const configData = await getConfig();
+      // Prefer server route — avoids browser→Helius blocks (extensions, stale ACLs).
+      const res = await fetch("/api/solana/config", { cache: "no-store" });
+      const payload = (await res.json()) as {
+        error?: string;
+        config?: Record<string, unknown>;
+        currentGameweek?: Record<string, unknown> | null;
+        openGameweek?: Record<string, unknown> | null;
+      };
+      if (!res.ok || !payload.config) {
+        throw new Error(payload.error || `Config HTTP ${res.status}`);
+      }
+
+      const configData = reviveConfig(payload.config);
+      const pointerGw = reviveGameweek(payload.currentGameweek ?? null);
+      const openGw = reviveGameweek(payload.openGameweek ?? null);
       setConfig(configData);
-      setCurrentGameweek(null);
-      setOpenGameweek(null);
-      if (configData) {
-        const [pointerGw, openGw] = await Promise.all([
-          configData.currentGameweek
-            ? getGameweek(configData.currentGameweek).catch(() => null)
-            : Promise.resolve(null),
-          findOpenGameweek(),
-        ]);
-        setCurrentGameweek(pointerGw);
-        setOpenGameweek(openGw);
-        if (
-          pointerGw &&
-          (pointerGw.status === "closed" || pointerGw.status === "resolved") &&
-          !reopenTargetId
-        ) {
-          setReopenTargetId(String(pointerGw.id));
+      setCurrentGameweek(pointerGw);
+      setOpenGameweek(openGw);
+    } catch (err: unknown) {
+      // Fallback: direct RPC (works when server route is old, but browser RPC is fine).
+      try {
+        const configData = await getConfig();
+        setConfig(configData);
+        setCurrentGameweek(null);
+        setOpenGameweek(null);
+        if (configData) {
+          const [pointerGw, openGw] = await Promise.all([
+            configData.currentGameweek
+              ? getGameweek(configData.currentGameweek).catch(() => null)
+              : Promise.resolve(null),
+            findOpenGameweek().catch(() => null),
+          ]);
+          setCurrentGameweek(pointerGw);
+          setOpenGameweek(openGw);
+          setLoadError(null);
+        } else {
+          setLoadError(getErrorMessage(err));
         }
+      } catch (fallbackErr: unknown) {
+        setConfig(null);
+        setCurrentGameweek(null);
+        setOpenGameweek(null);
+        setLoadError(getErrorMessage(fallbackErr) || getErrorMessage(err));
       }
     } finally {
       setIsLoading(false);
@@ -670,7 +713,12 @@ export default function AdminPage() {
       <SitePageShell centered width="lg">
         <div className="glass-card rounded-2xl p-12 text-center w-full max-w-lg">
           <h1 className="text-2xl font-bold text-white mb-3">{ad.loadFailedTitle}</h1>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">{ad.loadFailedBody}</p>
+          <p className="text-muted-foreground mb-4 max-w-md mx-auto">{ad.loadFailedBody}</p>
+          {loadError ? (
+            <p className="mb-6 max-w-md mx-auto break-words rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 font-mono text-xs text-rose-200">
+              {loadError}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={() => void loadChainConfig()}

@@ -1372,18 +1372,15 @@ export function LockerTablet({
                   "transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105",
               )}
             />
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-col justify-center md:h-9">
               <p
                 className="truncate text-[14px] font-black leading-none text-[color:var(--lt-ink)] md:text-[17px]"
                 style={DISPLAY}
               >
                 Pick your team
               </p>
-              <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:mt-1 md:text-[10px]">
-                <span className="md:hidden">
-                  {`GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
-                </span>
-                <span className="hidden md:inline">{pickCopy.headerJob}</span>
+              <p className="mt-0.5 truncate text-[9px] font-semibold text-[color:var(--lt-muted)] md:hidden">
+                {`GW ${gwId ?? "—"} · ${filledCount}/${FORMATION.TOTAL}`}
               </p>
             </div>
           </div>
@@ -1831,14 +1828,6 @@ export function LockerTablet({
                 <p className="text-[14px] font-bold text-[color:var(--lt-ink)]">
                   {pickCopy.playersTitle}
                 </p>
-                <p className="mt-0.5 text-[11px] font-medium text-[color:var(--lt-muted)]">
-                  {pickCopy.playersSubtitle}
-                </p>
-                <p className="mt-1 text-[9px] font-medium leading-snug text-[color:var(--lt-muted)]/80">
-                  {pickCopy.formDotsLegend}
-                  <span className="mx-1 text-[color:var(--lt-muted)]/40">·</span>
-                  {pickCopy.formDotsNewestHint}
-                </p>
               </div>
               <span className="text-[10px] font-semibold tabular-nums text-[color:var(--lt-muted)]">
                 {pickCopy.playersFound(filtered.length)}
@@ -2020,82 +2009,86 @@ export function LockerTablet({
 
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.footer)}
-          className="order-4 max-md:hidden md:order-none md:col-start-1 md:row-start-2"
+          className="order-4 h-full max-md:hidden md:order-none md:col-start-1 md:row-start-2"
         >
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "flex h-full flex-col justify-between px-3.5 py-3",
+              "flex h-full flex-col px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
             )}
           >
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
+            <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               Prize pool
             </p>
-            <p
-              className={cn(
-                "text-[22px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
-                chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
-              )}
-              style={DISPLAY}
-            >
-              {chainLoading
-                ? "…"
-                : prizePoolRaw == null
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+              <p
+                className={cn(
+                  "text-[22px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                  chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
+                )}
+                style={DISPLAY}
+              >
+                {chainLoading
+                  ? "…"
+                  : prizePoolRaw == null
+                    ? "—"
+                    : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
+              </p>
+              <p className="text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
+                1st{" "}
+                {chainLoading || firstRaw == null
                   ? "—"
-                  : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")}
-            </p>
-            <p className="text-[11px] font-semibold leading-snug text-[color:var(--lt-soft)]">
-              1st{" "}
-              {chainLoading || firstRaw == null
-                ? "—"
-                : prize.formatCompact(firstRaw)}
-              <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
-              {managersLockedLabel}
-            </p>
+                  : prize.formatCompact(firstRaw)}
+                <span className="mx-1.5 text-[color:var(--lt-ink)]/50">·</span>
+                {managersLockedLabel}
+              </p>
+            </div>
           </Panel>
         </motion.div>
 
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.footer)}
-          className="order-5 grid grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2"
+          className="order-5 grid h-full grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2"
         >
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "flex h-full flex-col justify-between px-3.5 py-3",
+              "flex h-full flex-col px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
               deadlineUrgent &&
                 "ring-1 ring-[color:var(--lt-accent)]/40 shadow-[0_0_18px_rgba(0,249,72,0.12)]",
             )}
           >
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
+            <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--lt-muted)]">
               {pickCopy.deadlineLabel}
             </p>
-            <p
-              className={cn(
-                "text-[22px] font-black leading-none tabular-nums",
-                isGlass && "text-white",
-                fixturesLoading && "animate-pulse",
-                deadlineUrgent && !reduceMotion && "animate-pulse",
-              )}
-              style={
-                isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }
-              }
-            >
-              {fixturesLoading || !deadline
-                ? "…"
-                : !deadlineParts
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+              <p
+                className={cn(
+                  "text-[22px] font-black leading-none tabular-nums",
+                  isGlass && "text-white",
+                  fixturesLoading && "animate-pulse",
+                  deadlineUrgent && !reduceMotion && "animate-pulse",
+                )}
+                style={
+                  isGlass ? DISPLAY : { ...DISPLAY, color: "var(--lt-accent)" }
+                }
+              >
+                {fixturesLoading || !deadline
                   ? "…"
-                  : deadlineParts.expired
-                    ? m.home.deadlinePassed
-                    : formatDeadlineClock(deadlineParts)}
-            </p>
-            <p className="text-[11px] font-semibold text-[color:var(--lt-soft)]">
-              {deadlineSubline}
-            </p>
+                  : !deadlineParts
+                    ? "…"
+                    : deadlineParts.expired
+                      ? m.home.deadlinePassed
+                      : formatDeadlineClock(deadlineParts)}
+              </p>
+              <p className="text-[11px] font-semibold text-[color:var(--lt-soft)]">
+                {deadlineSubline}
+              </p>
+            </div>
           </Panel>
 
           <Panel
