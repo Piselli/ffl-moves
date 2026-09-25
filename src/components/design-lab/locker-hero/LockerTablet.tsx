@@ -2063,7 +2063,7 @@ export function LockerTablet({
                   style={DISPLAY}
                 >
                   <span className="mr-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)]">
-                    1st
+                    1st place
                   </span>
                   {chainLoading || firstRaw == null
                     ? "—"
