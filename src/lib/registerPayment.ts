@@ -1,5 +1,23 @@
-import { getUsdcBalance } from "@/lib/chainClient";
 import { formatTxError, getErrorMessage } from "@/lib/utils";
+
+async function fetchUsdcBalanceRaw(owner: string): Promise<bigint> {
+  if (typeof window === "undefined") {
+    const { getUsdcBalance } = await import("@/lib/chainClient");
+    return getUsdcBalance(owner);
+  }
+  const res = await fetch(
+    `/api/solana/balance?owner=${encodeURIComponent(owner)}`,
+    { cache: "no-store" },
+  );
+  const data = (await res.json().catch(() => ({}))) as {
+    amount?: string;
+    error?: string;
+  };
+  if (!res.ok || data.amount == null) {
+    throw new Error(data.error || `Balance HTTP ${res.status}`);
+  }
+  return BigInt(data.amount);
+}
 
 /**
  * Email sessions spend USDC from the Helius embedded address — gate on
@@ -12,7 +30,7 @@ export async function shouldOpenDepositBeforeRegister(
   hasExternalWallet: boolean,
 ): Promise<boolean> {
   if (hasExternalWallet) return false;
-  const balance = await getUsdcBalance(owner);
+  const balance = await fetchUsdcBalanceRaw(owner);
   return balance < requiredRaw;
 }
 

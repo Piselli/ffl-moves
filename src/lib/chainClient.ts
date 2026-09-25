@@ -22,6 +22,7 @@ import {
   SOLANA_USDC_MINT,
   solanaConnectionOptions,
 } from "@/lib/constants";
+import { resolveBrowserSolanaRpcUrl } from "@/lib/solanaRpc";
 import { isValidStarterFormation } from "@/lib/formation";
 import {
   buildResultsTree,
@@ -93,10 +94,20 @@ type AccountReader = {
 };
 
 let connection: Connection | undefined;
+let browserConnection: Connection | undefined;
+let browserEndpoint: string | undefined;
 
 export function getConnection(): Connection {
-  connection ??= new Connection(SOLANA_RPC_URL, solanaConnectionOptions());
-  return connection;
+  if (typeof window === "undefined") {
+    connection ??= new Connection(SOLANA_RPC_URL, solanaConnectionOptions());
+    return connection;
+  }
+  const endpoint = resolveBrowserSolanaRpcUrl();
+  if (!browserConnection || browserEndpoint !== endpoint) {
+    browserEndpoint = endpoint;
+    browserConnection = new Connection(endpoint, solanaConnectionOptions());
+  }
+  return browserConnection;
 }
 
 function u8(value: number): Uint8Array {

@@ -10,7 +10,6 @@ import {
 } from "react";
 import { DepositContext } from "@/components/depositContext";
 import { useWallet } from "@/hooks/useSolanaWallet";
-import { getUsdcBalance } from "@/lib/chainClient";
 import { formatFeeUnits } from "@/lib/entryFee";
 
 const DepositModal = dynamic(
@@ -25,6 +24,21 @@ const WithdrawModal = dynamic(
 
 export { useDeposit } from "@/components/depositContext";
 
+async function fetchUsdcBalanceRaw(owner: string): Promise<bigint> {
+  const res = await fetch(
+    `/api/solana/balance?owner=${encodeURIComponent(owner)}`,
+    { cache: "no-store" },
+  );
+  const data = (await res.json().catch(() => ({}))) as {
+    amount?: string;
+    error?: string;
+  };
+  if (!res.ok || data.amount == null) {
+    throw new Error(data.error || `Balance HTTP ${res.status}`);
+  }
+  return BigInt(data.amount);
+}
+
 export function DepositProvider({ children }: PropsWithChildren) {
   const { address, connected } = useWallet();
   const [depositOpen, setDepositOpen] = useState(false);
@@ -38,12 +52,13 @@ export function DepositProvider({ children }: PropsWithChildren) {
       return;
     }
     const id = ++requestId.current;
-    getUsdcBalance(address)
+    fetchUsdcBalanceRaw(address)
       .then((raw) => {
         if (id === requestId.current) setBalanceLabel(formatFeeUnits(raw));
       })
-      .catch(() => {
-        if (id === requestId.current) setBalanceLabel(null);
+      .catch((err) => {
+        console.warn("USDC balance refresh failed:", err);
+        // Never replace a known balance with a fake empty state on RPC blips.
       });
   }, [address, connected]);
 
@@ -80,10 +95,16 @@ export function DepositProvider({ children }: PropsWithChildren) {
   }, [refreshBalance]);
 
   return (
-    <DepositContext.Provider value={{ openDeposit, openWithdraw, balanceLabel, refreshBalance }}>
+    <DepositContext.Provider
+      value={{ openDeposit, openWithdraw, balanceLabel, refreshBalance }}
+    >
       {children}
-      {depositOpen ? <DepositModal open={depositOpen} onClose={closeDeposit} /> : null}
-      {withdrawOpen ? <WithdrawModal open={withdrawOpen} onClose={closeWithdraw} /> : null}
+      {depositOpen ? (
+        <DepositModal open={depositOpen} onClose={closeDeposit} />
+      ) : null}
+      {withdrawOpen ? (
+        <WithdrawModal open={withdrawOpen} onClose={closeWithdraw} />
+      ) : null}
     </DepositContext.Provider>
   );
 }

@@ -1,4 +1,4 @@
-import { clusterApiUrl } from "@solana/web3.js";
+import { resolveServerSolanaRpcUrl } from "@/lib/solanaRpc";
 
 /** Trims; returns undefined if missing/blank (so ?? fallback works). */
 function publicEnv(s: string | undefined): string | undefined {
@@ -73,24 +73,16 @@ export const SOLANA_CLUSTER =
     : "devnet";
 
 /**
- * Browser: NEXT_PUBLIC_SOLANA_RPC_URL (Helius + Allowed Domains is fine).
- * Server: prefer SOLANA_SERVER_RPC_URL — Node fetch strips `Origin`, so Helius
- * domain ACL returns 403 for Vercel/cron. Use public mainnet or an unrestricted key.
+ * Server-side RPC (API routes, sponsor, cron). Defaults to the public cluster
+ * endpoint so Helius Allowed Domains / IPs cannot 403 Node.
+ * Prefer setting SOLANA_SERVER_RPC_URL to a dedicated unrestricted Helius key.
+ *
+ * Browser traffic must use `/api/solana/rpc` (see WalletProvider + getConnection).
  */
-export const SOLANA_RPC_URL = (() => {
-  const isServer = typeof window === "undefined";
-  if (isServer) {
-    return (
-      publicEnv(process.env.SOLANA_SERVER_RPC_URL) ??
-      publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ??
-      clusterApiUrl(SOLANA_CLUSTER)
-    );
-  }
-  return (
-    publicEnv(process.env.NEXT_PUBLIC_SOLANA_RPC_URL) ??
-    clusterApiUrl(SOLANA_CLUSTER)
-  );
-})();
+export { resolveServerSolanaRpcUrl, resolveBrowserSolanaRpcUrl } from "@/lib/solanaRpc";
+
+/** Server default; browser code should call resolveBrowserSolanaRpcUrl(). */
+export const SOLANA_RPC_URL = resolveServerSolanaRpcUrl();
 
 /** Commitment for Connection; keep options object for call-site consistency. */
 export function solanaConnectionOptions(): { commitment: "confirmed" } {
