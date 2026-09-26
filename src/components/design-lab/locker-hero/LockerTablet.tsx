@@ -1552,7 +1552,7 @@ export function LockerTablet({
               {gwId == null ? "—" : gwId}
             </p>
             <p className="text-[10px] font-bold tabular-nums text-[color:var(--lt-muted)]">
-              {shownMatchCount} matches
+              {fixturesLoading ? "…" : `${shownMatchCount} matches`}
             </p>
           </div>
 
@@ -1561,7 +1561,7 @@ export function LockerTablet({
             className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-0.5 py-0.5"
             style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
           >
-            {fixturesLoading || dayGroups.length === 0 ? (
+            {fixturesLoading ? (
               <div className="flex flex-col gap-2 px-0.5" aria-hidden>
                 {Array.from({ length: 3 }).map((_, gi) => (
                   <div key={gi} className="flex flex-col gap-1">
@@ -1580,6 +1580,18 @@ export function LockerTablet({
                     ))}
                   </div>
                 ))}
+              </div>
+            ) : dayGroups.length === 0 ? (
+              <div className="flex flex-1 flex-col items-start justify-center gap-1 px-1 py-4">
+                <p
+                  className="text-[12px] font-bold leading-snug text-[color:var(--lt-ink)]"
+                  style={DISPLAY}
+                >
+                  Fixtures unavailable
+                </p>
+                <p className="text-[10px] font-semibold leading-snug text-[color:var(--lt-muted)]">
+                  Schedule will appear when the feed connects.
+                </p>
               </div>
             ) : (
               dayGroups.map((group) => (

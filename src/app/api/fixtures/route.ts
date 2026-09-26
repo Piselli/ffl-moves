@@ -239,27 +239,81 @@ async function fetchFplFixtureRows(url: string): Promise<FplFixtureRaw[] | null>
   }
 }
 
-/** Prefer next GW, then current — matches shipped bootstrap for `/fixtures/?event=` fallback. */
-function bootstrapPriorityEventIds(): number[] {
+/**
+ * Event ids to probe when the full `/fixtures/` feed fails.
+ * Prefer deadlines relative to now over shipped `is_next`/`is_current` flags —
+ * those go stale between bootstrap refreshes and were pinning the hero on an
+ * empty past GW (e.g. GW4 with 0 matches).
+ */
+function bootstrapPriorityEventIds(registrationGw: number | null = null): number[] {
+  const now = Date.now();
+  const timed = bootstrapLite.events
+    .map((e) => {
+      const raw = e.deadline_time as string | null | undefined;
+      const ms = typeof raw === "string" && raw.length > 0 ? Date.parse(raw) : NaN;
+      return { id: e.id, ms, finished: Boolean(e.finished), isNext: Boolean(e.is_next), isCurrent: Boolean(e.is_current) };
+    })
+    .filter((e) => Number.isFinite(e.id) && e.id > 0);
+
+  const upcoming = timed
+    .filter((e) => Number.isFinite(e.ms) && (e.ms as number) > now)
+    .sort((a, b) => (a.ms as number) - (b.ms as number));
+  const past = timed
+    .filter((e) => Number.isFinite(e.ms) && (e.ms as number) <= now)
+    .sort((a, b) => (b.ms as number) - (a.ms as number));
+  const firstOpen = timed.find((e) => !e.finished);
+
   const raw = [
-    bootstrapLite.events.find((e) => e.is_next)?.id,
-    bootstrapLite.events.find((e) => e.is_current)?.id,
-  ].filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+    registrationGw,
+    upcoming[0]?.id,
+    upcoming[1]?.id,
+    past[0]?.id,
+    firstOpen?.id,
+    timed.find((e) => e.isNext)?.id,
+    timed.find((e) => e.isCurrent)?.id,
+  ].filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id >= 1);
+
   const seen = new Set<number>();
   return raw.filter((id) => (seen.has(id) ? false : (seen.add(id), true)));
+}
+
+/** Pick bootstrap event meta when the live fixtures feed is unreachable. */
+function pickBootstrapFallbackEvent(registrationGw: number | null): EventMeta | undefined {
+  const events = bootstrapLite.events;
+  if (registrationGw != null) {
+    const hinted = resolveEventMeta(events, registrationGw);
+    if (hinted) return hinted;
+  }
+  const now = Date.now();
+  const upcoming = events
+    .map((e) => {
+      const raw = e.deadline_time as string | null | undefined;
+      const ms = typeof raw === "string" && raw.length > 0 ? Date.parse(raw) : NaN;
+      return { e, ms };
+    })
+    .filter((x) => Number.isFinite(x.ms) && (x.ms as number) > now)
+    .sort((a, b) => (a.ms as number) - (b.ms as number));
+  if (upcoming[0]) return upcoming[0].e;
+
+  return (
+    events.find((e) => e.is_next) ??
+    events.find((e) => !e.finished) ??
+    events.find((e) => e.is_current) ??
+    events[events.length - 1]
+  );
 }
 
 /**
  * Full `/fixtures/` sometimes fails from serverless (timeouts / transient blocks). Retry once, then
  * smaller `?event=id` responses (same endpoint pattern as `/api/fpl-live`).
  */
-async function loadLiveFixtureRows(): Promise<FplFixtureRaw[] | null> {
+async function loadLiveFixtureRows(registrationGw: number | null = null): Promise<FplFixtureRaw[] | null> {
   let rows = await fetchFplFixtureRows(FPL_FIXTURES_ALL);
   if (rows) return rows;
   await new Promise((r) => setTimeout(r, 400));
   rows = await fetchFplFixtureRows(FPL_FIXTURES_ALL);
   if (rows) return rows;
-  for (const eid of bootstrapPriorityEventIds()) {
+  for (const eid of bootstrapPriorityEventIds(registrationGw)) {
     rows = await fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${eid}`);
     if (rows) return rows;
   }
@@ -275,11 +329,8 @@ function noStoreJson(body: unknown) {
 }
 
 /** Last resort when the live FPL fixtures feed is unreachable — deadline/name from shipped bootstrap; fixtures empty. */
-function bootstrapFallbackSchedule(): NextResponse {
-  const ev =
-    bootstrapLite.events.find((e) => e.is_next) ??
-    bootstrapLite.events.find((e) => e.is_current) ??
-    bootstrapLite.events[bootstrapLite.events.length - 1];
+function bootstrapFallbackSchedule(registrationGw: number | null = null): NextResponse {
+  const ev = pickBootstrapFallbackEvent(registrationGw);
   if (!ev) {
     return NextResponse.json({ error: "Season metadata missing" }, { status: 500 });
   }
@@ -304,10 +355,10 @@ export async function GET(request: Request) {
   const parsedReg = regRaw != null ? parseInt(regRaw, 10) : NaN;
   const registrationGw = Number.isFinite(parsedReg) && parsedReg >= 1 ? parsedReg : null;
 
-  const allRaw = await loadLiveFixtureRows();
+  const allRaw = await loadLiveFixtureRows(registrationGw);
 
   if (!allRaw) {
-    return bootstrapFallbackSchedule();
+    return bootstrapFallbackSchedule(registrationGw);
   }
 
   try {
@@ -321,8 +372,11 @@ export async function GET(request: Request) {
       registrationGw > fplPick &&
       hintedId === registrationGw;
 
+    // If the registration GW has no rows yet (kickoffs unpublished), fall through to the
+    // normal FPL slate instead of returning an empty "0 matches" panel.
     const resolved = chainAhead
-      ? resolveFormattedFixturesForRegistrationGw(allRaw, teamMap, bootstrapLite.events, hintedId)
+      ? resolveFormattedFixturesForRegistrationGw(allRaw, teamMap, bootstrapLite.events, hintedId) ??
+        resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, fplPick)
       : resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, hintedId);
 
     let targetMeta: EventMeta;
@@ -335,7 +389,7 @@ export async function GET(request: Request) {
       const meta = resolveEventMeta(bootstrapLite.events, hintedId);
       if (!meta) {
         console.error("fixtures: unknown event id", hintedId, "- refresh src/data/fpl-bootstrap-lite.json");
-        return bootstrapFallbackSchedule();
+        return bootstrapFallbackSchedule(registrationGw);
       }
       targetMeta = meta;
       formattedFixtures = [];
