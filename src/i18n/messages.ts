@@ -964,12 +964,12 @@ const en: SiteMessages = {
 
 export const messages: Record<SiteLocale, SiteMessages> = { uk, en };
 
-/** Ukrainian ordinal place label (1-ше … n-те). */
+/** Ukrainian ordinal rank label (1-ше … n-те). */
 export function formatRewardPlaceUk(rank: number): string {
-  if (rank === 1) return "1-ше місце";
-  if (rank === 2) return "2-ге місце";
-  if (rank === 3) return "3-тє місце";
-  return `${rank}-те місце`;
+  if (rank === 1) return "1-ше";
+  if (rank === 2) return "2-ге";
+  if (rank === 3) return "3-тє";
+  return `${rank}-те`;
 }
 
 export function formatRewardPlaceEn(rank: number): string {
@@ -981,5 +981,5 @@ export function formatRewardPlaceEn(rank: number): string {
     else if (mod10 === 2) suf = "nd";
     else if (mod10 === 3) suf = "rd";
   }
-  return `${rank}${suf} place`;
+  return `${rank}${suf}`;
 }

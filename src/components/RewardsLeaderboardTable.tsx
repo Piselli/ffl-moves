@@ -22,7 +22,7 @@ const VIP_STYLES = {
     textLabel: "text-yellow-400/70",
     glow: "shadow-[inset_4px_0_0_#FACC15]",
     icon: "🥇",
-    label: "1-ШЕ МІСЦЕ",
+    label: "1-ШЕ",
   },
   2: {
     bg: "bg-gradient-to-r from-gray-300/15 via-gray-300/5 to-transparent",
@@ -31,7 +31,7 @@ const VIP_STYLES = {
     textLabel: "text-gray-300/60",
     glow: "shadow-[inset_4px_0_0_#D1D5DB]",
     icon: "🥈",
-    label: "2-ГЕ МІСЦЕ",
+    label: "2-ГЕ",
   },
   3: {
     bg: "bg-gradient-to-r from-amber-600/20 via-amber-600/5 to-transparent",
@@ -40,7 +40,7 @@ const VIP_STYLES = {
     textLabel: "text-amber-500/60",
     glow: "shadow-[inset_4px_0_0_#D97706]",
     icon: "🥉",
-    label: "3-ТЄ МІСЦЕ",
+    label: "3-ТЄ",
   },
 } as const;
 
