@@ -8,6 +8,13 @@ type Props = {
   /** Starter slot (0–10) — bench slots never show captain affordance. */
   isStarter: boolean;
   isCaptain: boolean;
+  /**
+   * Squad is full (11 + bench) — keep C visible on every starter so captain
+   * pick does not depend on hover discovery.
+   */
+  showCaptainPick?: boolean;
+  /** Full squad, no captain yet — soft pulse so the C targets read as the next step. */
+  needsCaptain?: boolean;
   onSetCaptain: () => void;
   onRemove: () => void;
   captainLabel: string;
@@ -23,6 +30,8 @@ export function PitchFilledSlot({
   children,
   isStarter,
   isCaptain,
+  showCaptainPick = false,
+  needsCaptain = false,
   onSetCaptain,
   onRemove,
   captainLabel,
@@ -30,6 +39,7 @@ export function PitchFilledSlot({
   compact = false,
 }: Props) {
   const btnSize = compact ? "h-[18px] w-[18px] text-[8px]" : "h-5 w-5 text-[9px]";
+  const captainAlwaysVisible = isCaptain || showCaptainPick;
 
   return (
     <span className="group/slot relative flex flex-col items-center">
@@ -37,16 +47,22 @@ export function PitchFilledSlot({
         <button
           type="button"
           className={cn(
-            "absolute z-20 flex items-center justify-center rounded-full font-black leading-none transition-[opacity,transform,box-shadow] duration-150",
-            "hover:scale-105 active:scale-95",
+            "absolute z-20 flex items-center justify-center rounded-full font-black leading-none outline-none transition-[opacity,transform,box-shadow] duration-150",
+            "hover:scale-105 active:scale-95 focus-visible:outline-none",
             btnSize,
             isCaptain
-              ? "opacity-100 bg-amber-400 text-black shadow-[0_0_0_1.5px_rgba(212,175,55,0.9),0_2px_8px_rgba(0,0,0,0.45)]"
-              : cn(
-                  "bg-black/80 text-amber-200/95 shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
-                  "opacity-0 group-hover/slot:opacity-100",
-                  "[@media(hover:none)]:opacity-85",
-                ),
+              ? "opacity-100 bg-amber-400 text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]"
+              : needsCaptain
+                ? cn(
+                    "captain-pick-pulse bg-transparent text-amber-300",
+                    "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                  )
+                : cn(
+                    "bg-black/80 text-amber-200/95 shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
+                    captainAlwaysVisible
+                      ? "opacity-100"
+                      : "opacity-0 group-hover/slot:opacity-100 [@media(hover:none)]:opacity-85",
+                  ),
             compact ? "-right-0.5 -top-0.5" : "-right-1 -top-1",
           )}
           aria-label={captainLabel}
@@ -54,6 +70,7 @@ export function PitchFilledSlot({
           onClick={(e) => {
             e.stopPropagation();
             onSetCaptain();
+            e.currentTarget.blur();
           }}
         >
           C

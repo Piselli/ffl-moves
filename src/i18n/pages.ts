@@ -1781,7 +1781,7 @@ export const pagesEn: PagesMessages = {
     ],
     /** CTA under the visual how-to — opens the 5-step coachmark tour. */
     howToPlayContinue: "Show me how",
-    chooseCaptainHint: "Hover a starter · tap C for captain",
+    chooseCaptainHint: "Tap C on a starter for captain",
     chooseCaptainBanner: "Squad complete — pick your captain for double points",
     setCaptainLabel: "Set as captain",
     removePlayerLabel: "Remove player",
@@ -2857,7 +2857,7 @@ export const pagesUk: PagesMessages = {
       },
     ],
     howToPlayContinue: "Покажи як",
-    chooseCaptainHint: "Наведи на гравця в основі · C — капітан",
+    chooseCaptainHint: "Натисни C біля гравця в основі — капітан",
     chooseCaptainBanner: "Склад готовий — обери капітана (подвійні очки)",
     setCaptainLabel: "Зробити капітаном",
     removePlayerLabel: "Прибрати гравця",

@@ -1059,6 +1059,8 @@ export function LockerTablet({
         <PitchFilledSlot
           isStarter
           isCaptain={isCaptain}
+          showCaptainPick={needsCaptain}
+          needsCaptain={needsCaptain}
           onSetCaptain={() => onSetCaptain(slotIndex)}
           onRemove={() => onClearSlot(slotIndex)}
           captainLabel={pickCopy.setCaptainLabel}
@@ -1069,7 +1071,14 @@ export function LockerTablet({
         </PitchFilledSlot>
       );
     },
-    [captainIndex, onClearSlot, onSetCaptain, pickCopy.removePlayerLabel, pickCopy.setCaptainLabel],
+    [
+      captainIndex,
+      needsCaptain,
+      onClearSlot,
+      onSetCaptain,
+      pickCopy.removePlayerLabel,
+      pickCopy.setCaptainLabel,
+    ],
   );
 
   const handleSlotClick = useCallback(
