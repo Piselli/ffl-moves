@@ -351,6 +351,8 @@ export type PagesMessages = {
     ruleStreakHeaderEpl: string;
     ruleStreak: (n: number) => string;
     ruleClaim: string;
+    ruleInviteReferrer: string;
+    ruleInviteReferee: string;
     rulesFootnote: string;
     rulesFootnoteEpl: string;
     campaignEarnHint: string;
@@ -409,6 +411,7 @@ export type PagesMessages = {
     breakdownStreak: string;
     breakdownClaim: string;
     breakdownFirst: string;
+    breakdownInvite: string;
     breakdownSkipped: string;
     loadError: (msg: string) => string;
     footerNote: string;
@@ -459,6 +462,10 @@ export type PagesMessages = {
     railNotOnBoard: string;
     railTop10Finishes: (n: number) => string;
     railEarnTitle: string;
+    railInviteTitle: string;
+    railInviteHint: string;
+    railInviteCopyLink: string;
+    railInviteCopied: string;
     railStreakTitle: string;
     railStreakOneGw: string;
     railStreakNone: string;
@@ -540,6 +547,15 @@ export type PagesMessages = {
     later: string;
     save: string;
   };
+  inviteEntry: {
+    haveCode: string;
+    label: string;
+    placeholder: string;
+    save: string;
+    change: string;
+    applied: (code: string) => string;
+    invitedVia: (code: string) => string;
+  };
   squadShare: {
     modalEyebrow: string;
     modalTitle: string;
@@ -548,6 +564,8 @@ export type PagesMessages = {
     copyButton: string;
     copyButtonCopied: string;
     copyButtonBusy: string;
+    copyInviteButton: string;
+    copyInviteButtonCopied: string;
     downloadButton: string;
     downloadButtonDone: string;
     downloadButtonBusy: string;
@@ -562,6 +580,7 @@ export type PagesMessages = {
     cardLocked: string;
     /** v13 classic left rail — under manager nickname */
     cardFantasyLineup: string;
+    cardInviteCode: (code: string) => string;
     tweetXiLabel: string;
     tweetBenchLabel: string;
     tweetHeaderGw: (gwLabel: string) => string;
@@ -1146,6 +1165,8 @@ export const pagesEn: PagesMessages = {
     ruleStreakHeaderEpl: "Registration streak (per GW)",
     ruleStreak: (n) => `${n}+ GWs in a row`,
     ruleClaim: "Prize claimed",
+    ruleInviteReferrer: "Invite a friend (first season lock)",
+    ruleInviteReferee: "Join via invite (first season lock)",
     rulesFootnote:
       "One season: WC tours then EPL gameweeks. Streak continues across the handoff. Only resolved events count. Ranks 11+ earn no SP.",
     rulesFootnoteEpl:
@@ -1207,6 +1228,7 @@ export const pagesEn: PagesMessages = {
     breakdownStreak: "streak",
     breakdownClaim: "claim",
     breakdownFirst: "first",
+    breakdownInvite: "invite",
     breakdownSkipped: "not registered",
     loadError: (msg) => `Could not load season standings: ${msg}`,
     footerNote: "SP is computed from on-chain registration and results · cached ~2 min",
@@ -1261,6 +1283,10 @@ export const pagesEn: PagesMessages = {
     railNotOnBoard: "Register to appear on the season board",
     railTop10Finishes: (n) => (n === 1 ? "1 top-10 finish" : `${n} top-10 finishes`),
     railEarnTitle: "How XP is earned",
+    railInviteTitle: "Your invite",
+    railInviteHint: "+50 XP each on their first season lock",
+    railInviteCopyLink: "Copy invite link",
+    railInviteCopied: "Link copied",
     railStreakTitle: "Your streak",
     railStreakOneGw: "Register next GW",
     railStreakNone: "No streak",
@@ -1343,6 +1369,15 @@ export const pagesEn: PagesMessages = {
     later: "Later",
     save: "Save",
   },
+  inviteEntry: {
+    haveCode: "Have an invite code?",
+    label: "Invite code",
+    placeholder: "e.g. a1b2c3d4",
+    save: "Save",
+    change: "Change",
+    applied: (code) => `Invite ${code} saved`,
+    invitedVia: (code) => `Invited via ${code}`,
+  },
   squadShare: {
     modalEyebrow: "Squad locked",
     modalTitle: "Copy squad poster",
@@ -1351,6 +1386,8 @@ export const pagesEn: PagesMessages = {
     copyButton: "Copy image",
     copyButtonCopied: "Copied",
     copyButtonBusy: "Copying…",
+    copyInviteButton: "Copy invite link",
+    copyInviteButtonCopied: "Invite link copied",
     downloadButton: "Download",
     downloadButtonDone: "Saved",
     downloadButtonBusy: "Saving…",
@@ -1364,6 +1401,7 @@ export const pagesEn: PagesMessages = {
     cardHeadline: "Squad Locked",
     cardLocked: "Locked",
     cardFantasyLineup: "my fantasy lineup",
+    cardInviteCode: (code) => `INVITE ${code.toUpperCase()}`,
     tweetXiLabel: "XI",
     tweetBenchLabel: "Bench",
     tweetHeaderGw: (gw) => `My ${gw} squad on @Form8HQ ⚽`,
@@ -2223,6 +2261,8 @@ export const pagesUk: PagesMessages = {
     ruleStreakHeaderEpl: "Стрік реєстрацій (за тур)",
     ruleStreak: (n) => `${n}+ тури поспіль`,
     ruleClaim: "Клейм призу",
+    ruleInviteReferrer: "Запроси друга (перший лок сезону)",
+    ruleInviteReferee: "Вхід за інвайтом (перший лок сезону)",
     rulesFootnote:
       "Один сезон: тури ЧС, потім EPL. Стрік триває через перехід. Рахуються лише завершені події. 11-е місце і нижче — 0 SP.",
     rulesFootnoteEpl:
@@ -2284,6 +2324,7 @@ export const pagesUk: PagesMessages = {
     breakdownStreak: "стрік",
     breakdownClaim: "клейм",
     breakdownFirst: "перша",
+    breakdownInvite: "інвайт",
     breakdownSkipped: "без участі",
     loadError: (msg) => `Не вдалось завантажити сезонний рейтинг: ${msg}`,
     footerNote: "SP рахуються з on-chain реєстрацій і результатів · кеш ~2 хв",
@@ -2338,6 +2379,10 @@ export const pagesUk: PagesMessages = {
     railNotOnBoard: "Зареєструй склад, щоб з’явитись у таблиці",
     railTop10Finishes: (n) => (n === 1 ? "1 фініш у топ-10" : `${n} фінішів у топ-10`),
     railEarnTitle: "Як заробити XP",
+    railInviteTitle: "Твій інвайт",
+    railInviteHint: "+50 XP кожному за перший лок сезону",
+    railInviteCopyLink: "Копіювати інвайт-лінк",
+    railInviteCopied: "Лінк скопійовано",
     railStreakTitle: "Твій стрік",
     railStreakOneGw: "Зареєструй наступний тур",
     railStreakNone: "Без стріку",
@@ -2420,6 +2465,15 @@ export const pagesUk: PagesMessages = {
     later: "Пізніше",
     save: "Зберегти",
   },
+  inviteEntry: {
+    haveCode: "Є інвайт-код?",
+    label: "Інвайт-код",
+    placeholder: "напр. a1b2c3d4",
+    save: "Зберегти",
+    change: "Змінити",
+    applied: (code) => `Інвайт ${code} збережено`,
+    invitedVia: (code) => `Запрошено за кодом ${code}`,
+  },
   squadShare: {
     modalEyebrow: "Склад зареєстровано",
     modalTitle: "Копіювати постер",
@@ -2428,6 +2482,8 @@ export const pagesUk: PagesMessages = {
     copyButton: "Копіювати зображення",
     copyButtonCopied: "Скопійовано",
     copyButtonBusy: "Копіюємо…",
+    copyInviteButton: "Копіювати інвайт-лінк",
+    copyInviteButtonCopied: "Інвайт-лінк скопійовано",
     downloadButton: "Завантажити",
     downloadButtonDone: "Збережено",
     downloadButtonBusy: "Зберігаємо…",
@@ -2441,6 +2497,7 @@ export const pagesUk: PagesMessages = {
     cardHeadline: "Склад зареєстровано",
     cardLocked: "Зареєстровано",
     cardFantasyLineup: "мій фентезі склад",
+    cardInviteCode: (code) => `INVITE ${code.toUpperCase()}`,
     tweetXiLabel: "Основа",
     tweetBenchLabel: "Запас",
     tweetHeaderGw: (gw) => `Мій склад ${gw} на @Form8HQ ⚽`,

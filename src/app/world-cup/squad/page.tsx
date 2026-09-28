@@ -35,6 +35,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { formatFeeLabelShort } from "@/lib/entryFee";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
+import { claimInviteConversion } from "@/lib/inviteClient";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { enrichSquadFromCatalog, squadPlayersFromChain } from "@/lib/fplSquadResolve";
@@ -601,6 +602,11 @@ export default function WorldCupSquadPage() {
 
       // Attribute this registration to the referral code the visitor arrived with.
       trackReferralConversion(account?.address?.toString() ?? null);
+      claimInviteConversion(account?.address?.toString() ?? null);
+      window.setTimeout(
+        () => claimInviteConversion(account?.address?.toString() ?? null),
+        2500,
+      );
     } catch (error: unknown) {
       const msg = getErrorMessage(error);
       if (isInsufficientFundsError(error)) {

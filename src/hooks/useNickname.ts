@@ -23,8 +23,16 @@ function readAll(): Record<string, string> {
   }
 }
 
+/** Sync read — safe for welcome auto-open before React nick state settles. */
+export function hasStoredNickname(address: string): boolean {
+  const key = addressKey(address);
+  if (!key) return false;
+  return Boolean(readAll()[key]);
+}
+
 export function useNickname(address?: string | null) {
-  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  // Hydrate synchronously so first paint knows stored nicks (avoids false welcome).
+  const [nicknames, setNicknames] = useState<Record<string, string>>(readAll);
 
   useEffect(() => {
     const sync = () => setNicknames(readAll());

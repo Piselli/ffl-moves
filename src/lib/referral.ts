@@ -11,10 +11,12 @@
  *   ref:codes                  SET    — every referral code we've seen
  *   ref:clicks:<code>          STRING — total link clicks (INCR)
  *   ref:wallets:<code>         SET    — wallets that converted (dedupe → unique signups)
+ *   ref:fees:<code>            STRING — estimated USDC fee volume (INCRBYFLOAT)
  *   ref:last:<code>            STRING — last activity timestamp (ms)
  *   ref:firstseen:<code>       STRING — first activity timestamp (ms)
  */
 import { Redis } from "@upstash/redis";
+import { normalizeWallet } from "@/lib/walletNormalize";
 
 export type ReferralStat = {
   code: string;
@@ -23,6 +25,8 @@ export type ReferralStat = {
   conversionRate: number; // signups / clicks, 0..1
   firstSeen: number | null;
   lastActivity: number | null;
+  /** Estimated entry-fee volume in USDC (signups × fee), for manual partner payouts. */
+  estimatedFeeVolumeUsdc: number;
 };
 
 const hasUpstash =
@@ -80,19 +84,18 @@ export function normalizeCode(raw: unknown): string | null {
   return code.length >= 1 ? code : null;
 }
 
-function normalizeWallet(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const w = raw.trim().toLowerCase();
-  if (!/^0x[0-9a-f]{1,64}$/.test(w)) return null;
-  return w;
-}
-
 // ── In-memory fallback ──────────────────────────────────────────────────────
 // Stored on `globalThis` so it's shared across Next.js route bundles within the
 // same Node process (each API route is its own bundle and would otherwise get a
 // separate module instance). Still NOT durable across serverless cold starts —
 // set the Upstash env vars in production.
-type MemEntry = { clicks: number; wallets: Set<string>; first: number; last: number };
+type MemEntry = {
+  clicks: number;
+  wallets: Set<string>;
+  first: number;
+  last: number;
+  feeVolumeUsdc: number;
+};
 const globalForRef = globalThis as unknown as { __fflRefMem?: Map<string, MemEntry> };
 const mem: Map<string, MemEntry> = globalForRef.__fflRefMem ?? new Map<string, MemEntry>();
 globalForRef.__fflRefMem = mem;
@@ -100,7 +103,7 @@ globalForRef.__fflRefMem = mem;
 function memEntry(code: string): MemEntry {
   let e = mem.get(code);
   if (!e) {
-    e = { clicks: 0, wallets: new Set(), first: Date.now(), last: Date.now() };
+    e = { clicks: 0, wallets: new Set(), first: Date.now(), last: Date.now(), feeVolumeUsdc: 0 };
     mem.set(code, e);
   }
   return e;
@@ -112,7 +115,11 @@ const k = {
   wallets: (c: string) => `ref:wallets:${c}`,
   last: (c: string) => `ref:last:${c}`,
   first: (c: string) => `ref:firstseen:${c}`,
+  fees: (c: string) => `ref:fees:${c}`,
 };
+
+/** Default entry fee in USDC when on-chain config is unavailable (display only). */
+export const REFERRAL_DEFAULT_ENTRY_FEE_USDC = 1;
 
 /** Record a link click for `code`. Falls back to in-memory if Redis fails. */
 export async function recordClick(code: string): Promise<void> {
@@ -134,21 +141,39 @@ export async function recordClick(code: string): Promise<void> {
 /**
  * Record a conversion (successful on-chain registration) attributed to `code`.
  * Deduped per wallet, so re-registering the same wallet doesn't inflate signups.
+ * Optionally accumulates estimated fee volume for partner commission tracking.
  */
-export async function recordConversion(code: string, wallet: string | null): Promise<void> {
+export async function recordConversion(
+  code: string,
+  wallet: string | null,
+  opts?: { entryFeeUsdc?: number },
+): Promise<void> {
   const now = Date.now();
   const w = normalizeWallet(wallet) ?? `anon:${now}`;
+  const fee =
+    typeof opts?.entryFeeUsdc === "number" && Number.isFinite(opts.entryFeeUsdc)
+      ? Math.max(0, opts.entryFeeUsdc)
+      : REFERRAL_DEFAULT_ENTRY_FEE_USDC;
+
   const r = await tryRedis(async () => {
+    const before = await redis!.scard(k.wallets(code));
     const p = redis!.pipeline();
     p.sadd(CODES_KEY, code);
     p.sadd(k.wallets(code), w);
     p.set(k.last(code), now);
     p.setnx(k.first(code), now);
     await p.exec();
+    const after = await redis!.scard(k.wallets(code));
+    // Only add fee when this wallet is newly attributed.
+    if (after > before) {
+      await redis!.incrbyfloat(k.fees(code), fee);
+    }
   });
   if (r.ok) return;
   const e = memEntry(code);
+  const sizeBefore = e.wallets.size;
   e.wallets.add(w);
+  if (e.wallets.size > sizeBefore) e.feeVolumeUsdc += fee;
   e.last = now;
 }
 
@@ -160,6 +185,7 @@ function memStats(): ReferralStat[] {
     conversionRate: e.clicks > 0 ? e.wallets.size / e.clicks : 0,
     firstSeen: e.first,
     lastActivity: e.last,
+    estimatedFeeVolumeUsdc: e.feeVolumeUsdc,
   }));
 }
 
@@ -175,6 +201,7 @@ export async function deleteCode(code: string): Promise<boolean> {
     p.del(k.wallets(normalized));
     p.del(k.last(normalized));
     p.del(k.first(normalized));
+    p.del(k.fees(normalized));
     await p.exec();
   });
   if (r.ok) {
@@ -200,11 +227,16 @@ export async function getStats(): Promise<ReferralStat[]> {
         p.scard(k.wallets(code));
         p.get<number>(k.first(code));
         p.get<number>(k.last(code));
-        const [clicksRaw, signupsRaw, firstRaw, lastRaw] = await p.exec<
-          [number | null, number | null, number | null, number | null]
+        p.get<number | string>(k.fees(code));
+        const [clicksRaw, signupsRaw, firstRaw, lastRaw, feesRaw] = await p.exec<
+          [number | null, number | null, number | null, number | null, number | string | null]
         >();
         const clicks = Number(clicksRaw ?? 0);
         const signups = Number(signupsRaw ?? 0);
+        const feeStored = Number(feesRaw ?? 0);
+        const estimatedFeeVolumeUsdc = Number.isFinite(feeStored)
+          ? feeStored
+          : signups * REFERRAL_DEFAULT_ENTRY_FEE_USDC;
         return {
           code,
           clicks,
@@ -212,6 +244,7 @@ export async function getStats(): Promise<ReferralStat[]> {
           conversionRate: clicks > 0 ? signups / clicks : 0,
           firstSeen: firstRaw != null ? Number(firstRaw) : null,
           lastActivity: lastRaw != null ? Number(lastRaw) : null,
+          estimatedFeeVolumeUsdc,
         };
       }),
     );

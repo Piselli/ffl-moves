@@ -15,7 +15,7 @@ import { WC_TOUR_ID_BASE, WC_TOUR_IDS, getWorldCupRound, isWorldCupTour } from "
  *   eplEndGw:   0    → open-ended
  *   eplEndGw:   M    → season ends after EPL GW M is resolved
  */
-export const SEASON_POINTS_RULES_VERSION = 3;
+export const SEASON_POINTS_RULES_VERSION = 4;
 
 /** First WC tour in the SP timeline (R32). Group stage MD1–MD3 are excluded. */
 export const SP_WC_START_TOUR_ID = WC_TOUR_ID_BASE + 4;
@@ -75,6 +75,12 @@ export const SP_FIRST_REGISTRATION = 50;
 
 /** Bonus for claiming a tour prize (encourages completing the payout loop). */
 export const SP_CLAIM_BONUS = 10;
+
+/** Inviter SP per qualified invitee (first season registration via `?inv=`). */
+export const SP_INVITE_REFERRER = 50;
+
+/** Invitee SP for first season registration when attributed to a player invite. */
+export const SP_INVITE_REFEREE = 50;
 
 /**
  * Top-10 placement awards — ranks 11+ earn nothing.
@@ -235,4 +241,6 @@ export const SEASON_POINTS_RULE_ROWS = [
   { key: "streak3", points: SP_STREAK_TIERS[1].bonus, labelEn: "3-event streak (per event)", labelUk: "Стрік 3 події (за кожну)" },
   { key: "streak4", points: SP_STREAK_CAP, labelEn: "4+ event streak — flat cap (per event)", labelUk: "Стрік 4+ події — стеля (за кожну)" },
   { key: "claim", points: SP_CLAIM_BONUS, labelEn: "Prize claimed (per event)", labelUk: "Клейм призу (за подію)" },
+  { key: "inviteReferrer", points: SP_INVITE_REFERRER, labelEn: "Invite a friend (per first season lock)", labelUk: "Запроси друга (за перший лок сезону)" },
+  { key: "inviteReferee", points: SP_INVITE_REFEREE, labelEn: "Join via invite (first season lock, one-time)", labelUk: "Вхід за інвайтом (перший лок сезону, одноразово)" },
 ] as const;

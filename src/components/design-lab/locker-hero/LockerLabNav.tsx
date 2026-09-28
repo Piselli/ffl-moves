@@ -14,6 +14,7 @@ import { useLogin } from "@/components/LoginProvider";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
+import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
 import { isFirefoxBrowser } from "@/lib/browser";
@@ -93,13 +94,18 @@ function Links({
   );
 }
 
-function Right({ compact = false }: { compact?: boolean }) {
+function Right({
+  compact = false,
+  onOpenNickname,
+}: {
+  compact?: boolean;
+  onOpenNickname: () => void;
+}) {
   const m = useSiteMessages();
   const { connected, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
-  const { setNickname, myNickname } = useNickname(address);
-  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const { myNickname } = useNickname(address);
 
   return (
     <div className="relative z-10 flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
@@ -131,7 +137,7 @@ function Right({ compact = false }: { compact?: boolean }) {
             <button
               type="button"
               onClick={() => {
-                if (address) setShowNicknameModal(true);
+                if (address) onOpenNickname();
               }}
               disabled={!address}
               title={myNickname ? m.nav.changeNickname : m.nav.setNickname}
@@ -160,18 +166,6 @@ function Right({ compact = false }: { compact?: boolean }) {
               />
             </svg>
           </button>
-          {address ? (
-            <NicknameModal
-              open={showNicknameModal}
-              address={address}
-              currentNickname={myNickname}
-              onSave={(name) => {
-                setNickname(address, name);
-                setShowNicknameModal(false);
-              }}
-              onClose={() => setShowNicknameModal(false)}
-            />
-          ) : null}
         </>
       ) : (
         <div className="inline-flex items-center">
@@ -205,17 +199,25 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
-  const { connected, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, address, disconnect, walletName } = useWallet();
   const { openDeposit, balanceLabel } = useDeposit();
   const { openLogin } = useLogin();
   const { setNickname, myNickname } = useNickname(address);
+  const openNickname = () => setShowNicknameModal(true);
+
+  useWelcomeModalAutoOpen({
+    connected,
+    connecting,
+    address,
+    onOpen: openNickname,
+  });
+
   const links = primarySiteNavLinks(m);
   const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
   const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
   /**
    * Firefox: absolute FAQ + locale sits on top of Log in / X.
    * Keep them in the utilities row there; other browsers keep the float.
-   * useLayoutEffect so SSR hydrate (false) flips before paint on Firefox.
    */
   const [firefoxNav, setFirefoxNav] = useState(false);
   useLayoutEffect(() => {
@@ -280,7 +282,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             linkClassName="relative z-10 justify-self-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
           />
 
-          <Right compact />
+          <Right compact onOpenNickname={openNickname} />
         </div>
 
         {/* —— Desktop / tablet scene —— */}
@@ -317,7 +319,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 variant="icon"
                 className="!inline-flex !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white"
               />
-              <Right />
+              <Right onOpenNickname={openNickname} />
               {firefoxNav ? (
                 <>
                   <Link
@@ -333,7 +335,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
             </div>
           </div>
 
-          {/* FAQ + locale — outside the content row so L/R insets stay equal */}
+          {/* FAQ + locale — viewport edge so L/R content insets stay equal */}
           {!firefoxNav ? (
             <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
               <Link
@@ -486,7 +488,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 <button
                   type="button"
                   onClick={() => {
-                    if (address) setShowNicknameModal(true);
+                    if (address) openNickname();
                     setMobileOpen(false);
                   }}
                   className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"

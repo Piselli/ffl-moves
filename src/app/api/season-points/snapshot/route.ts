@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const walletsRepeated = searchParams.getAll("wallets").flatMap((v) => splitCsv(v));
     const walletFilter = new Set([...walletsCsv, ...walletsRepeated]);
 
-    const cached = unstable_cache(() => buildSeasonLeaderboard(), ["season-points-snapshot-v3"], {
+    const cached = unstable_cache(() => buildSeasonLeaderboard(), ["season-points-snapshot-v4"], {
       revalidate: 120,
     });
     const board = await cached();
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
         address: e.owner,
         rank: e.rank,
         seasonPoints: e.totalPoints,
+        invitePoints: e.invitePoints,
         registrations: e.registrations,
         top10Finishes: e.top10Finishes,
         bestRank: e.bestRank,

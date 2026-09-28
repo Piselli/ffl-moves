@@ -122,6 +122,7 @@ function toEntry(spec: MockRowSpec): SeasonLeaderboardEntry {
     owner: spec.owner,
     rank: spec.rank,
     totalPoints: spec.totalPoints,
+    invitePoints: 0,
     registrations: spec.registrations,
     top10Finishes: spec.top10Finishes,
     bestRank: spec.bestRank,

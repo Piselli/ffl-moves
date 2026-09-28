@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { cn, shortenAddress } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
+import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUtilityCluster } from "@/components/NavUtilityCluster";
@@ -61,7 +62,7 @@ export function Navbar() {
         ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
-  const { connected, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -74,14 +75,13 @@ export function Navbar() {
   const hideNav = HIDE_NAV_PATHS.has(pathname);
   const reduceMotion = useReducedMotion() ?? false;
 
-  // Auto-open nickname modal on first connection
-  useEffect(() => {
-    if (hideNav) return;
-    if (connected && address && mounted && !hasNickname(address)) {
-      const timer = setTimeout(() => setShowNicknameModal(true), 600);
-      return () => clearTimeout(timer);
-    }
-  }, [hideNav, connected, address, mounted, hasNickname]);
+  useWelcomeModalAutoOpen({
+    connected,
+    connecting,
+    address,
+    enabled: !hideNav && mounted,
+    onOpen: () => setShowNicknameModal(true),
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -383,6 +383,20 @@ export function Navbar() {
               </span>
               <XLogo className="h-4 w-4 shrink-0 opacity-70" />
             </a>
+            <Link
+              href="/faq"
+              prefetch={!HEAVY_ROUTES.has("/faq")}
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-0.5 flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest text-white/60 hover:bg-white/[0.05] hover:text-white transition-colors"
+            >
+              {m.nav.faq}
+            </Link>
+            <div className="flex items-center justify-between rounded-xl px-4 py-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                {m.nav.language}
+              </span>
+              <LanguageSwitcher embedded />
+            </div>
           </div>
         </motion.div>
       ) : null}

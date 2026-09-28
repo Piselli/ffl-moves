@@ -40,9 +40,10 @@ export async function GET(req: NextRequest) {
     (acc, s) => {
       acc.clicks += s.clicks;
       acc.signups += s.signups;
+      acc.estimatedFeeVolumeUsdc += s.estimatedFeeVolumeUsdc;
       return acc;
     },
-    { clicks: 0, signups: 0 },
+    { clicks: 0, signups: 0, estimatedFeeVolumeUsdc: 0 },
   );
 
   return NextResponse.json(
@@ -54,6 +55,8 @@ export async function GET(req: NextRequest) {
         conversionRate: totals.clicks > 0 ? totals.signups / totals.clicks : 0,
       },
       codes: stats,
+      note:
+        "Partner ?ref= links do not award Season Points. Use estimated fee volume for manual commission payouts.",
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );

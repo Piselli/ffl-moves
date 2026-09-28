@@ -46,6 +46,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { formatFeeLabelShort } from "@/lib/entryFee";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
+import { claimInviteConversion } from "@/lib/inviteClient";
 import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
@@ -651,6 +652,11 @@ export default function GameweekPage() {
 
       // Attribute this registration to the referral code the visitor arrived with.
       trackReferralConversion(account?.address?.toString() ?? null);
+      claimInviteConversion(account?.address?.toString() ?? null);
+      window.setTimeout(
+        () => claimInviteConversion(account?.address?.toString() ?? null),
+        2500,
+      );
     } catch (error: unknown) {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Error type:", typeof error);

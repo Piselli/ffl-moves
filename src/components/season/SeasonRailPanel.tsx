@@ -12,6 +12,8 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 import {
   SP_CLAIM_BONUS,
   SP_FIRST_REGISTRATION,
+  SP_INVITE_REFEREE,
+  SP_INVITE_REFERRER,
   SP_REGISTRATION,
   SP_STREAK_TIERS,
   SP_TOP_RANK,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/season-points-rules";
 import { LOCKER_CTA } from "@/components/design-lab/locker-hero/ctaStyles";
 import { computeNextEventId } from "./seasonActionShared";
+import { SeasonInviteActions } from "./SeasonInviteBlock";
 import type { SeasonLeaderboardPayload } from "@/lib/seasonPoints";
 import type { SeasonEntry } from "./seasonStandingsShared";
 
@@ -137,6 +140,14 @@ function EarnRulesList({
         <span>{m.ruleClaim}</span>
         <span className="tabular-nums text-white/75">+{SP_CLAIM_BONUS}</span>
       </li>
+      <li className="flex justify-between gap-3">
+        <span>{m.ruleInviteReferrer}</span>
+        <span className="shrink-0 tabular-nums text-white/75">+{SP_INVITE_REFERRER}</span>
+      </li>
+      <li className="flex justify-between gap-3">
+        <span>{m.ruleInviteReferee}</span>
+        <span className="shrink-0 tabular-nums text-white/75">+{SP_INVITE_REFEREE}</span>
+      </li>
     </ul>
   );
 }
@@ -168,20 +179,21 @@ export function SeasonRailPanel({
         </div>
       </section>
 
-      {canRegister ? (
-        <div className={cn("shrink-0 pb-4", PAD)}>
-          {!connected ? (
-            <p className="mb-3 text-[13px] leading-snug text-white/45">{m.actionConnectHook}</p>
-          ) : null}
-          <Link href="/" className={REGISTER_CLASS} style={LOCKER_CTA.style}>
-            {m.actionRegisterCta}
-          </Link>
-        </div>
-      ) : data.status === "ended" ? (
-        <div className={cn("shrink-0 pb-4", PAD)}>
+      <div className={cn("shrink-0 space-y-2.5 pb-4", PAD)}>
+        {connected ? <SeasonInviteActions /> : null}
+        {canRegister ? (
+          <>
+            {!connected ? (
+              <p className="text-[13px] leading-snug text-white/45">{m.actionConnectHook}</p>
+            ) : null}
+            <Link href="/" className={REGISTER_CLASS} style={LOCKER_CTA.style}>
+              {m.actionRegisterCta}
+            </Link>
+          </>
+        ) : data.status === "ended" ? (
           <p className="text-sm leading-relaxed text-white/45">{m.seasonEndedHint}</p>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </GlassPanel>
   );
 }

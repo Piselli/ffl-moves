@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { SquadLockShareCard } from "@/components/SquadLockShareCard";
@@ -14,6 +14,7 @@ import { modalOverlayMotion } from "@/lib/uiMotion";
 import {
   copySquadImage,
   downloadSquadImage,
+  shareSiteUrl,
   type SquadShareContext,
 } from "@/lib/shareSquadOnX";
 import type { Player } from "@/lib/types";
@@ -136,16 +137,21 @@ export function ShareSquadOnXModal({
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const copiedTimerRef = useRef<number | null>(null);
   const downloadedTimerRef = useRef<number | null>(null);
+  const inviteTimerRef = useRef<number | null>(null);
+
+  const wallet = account?.address?.toString() ?? null;
 
   const managerLabel = useMemo(() => {
     if (managerLabelOverride) return managerLabelOverride;
-    const addr = account?.address?.toString();
-    if (!addr) return "—";
-    return getNickname(addr);
-  }, [account?.address, getNickname, managerLabelOverride]);
+    if (!wallet) return "—";
+    return getNickname(wallet);
+  }, [getNickname, managerLabelOverride, wallet]);
 
   const cardProps = {
     starters,
@@ -167,10 +173,31 @@ export function ShareSquadOnXModal({
   }, []);
 
   useEffect(() => {
+    if (!open || !wallet) {
+      setInviteCode(null);
+      setInviteLink(null);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/invite/me?wallet=${encodeURIComponent(wallet)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((body: { ok?: boolean; code?: string; link?: string; linkPath?: string }) => {
+        if (cancelled || !body?.ok || !body.code) return;
+        setInviteCode(body.code);
+        setInviteLink(body.link ?? shareSiteUrl(body.linkPath || `/?inv=${body.code}`));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, wallet]);
+
+  useEffect(() => {
     if (!open) return;
     setCopied(false);
     setDownloaded(false);
-    for (const ref of [copiedTimerRef, downloadedTimerRef]) {
+    setInviteCopied(false);
+    for (const ref of [copiedTimerRef, downloadedTimerRef, inviteTimerRef]) {
       if (ref.current != null) {
         window.clearTimeout(ref.current);
         ref.current = null;
@@ -180,7 +207,7 @@ export function ShareSquadOnXModal({
 
   useEffect(() => {
     return () => {
-      for (const ref of [copiedTimerRef, downloadedTimerRef]) {
+      for (const ref of [copiedTimerRef, downloadedTimerRef, inviteTimerRef]) {
         if (ref.current != null) window.clearTimeout(ref.current);
       }
     };
@@ -200,21 +227,21 @@ export function ShareSquadOnXModal({
     };
   }, [open, onClose, busy]);
 
+  const flashDone = useCallback(
+    (setter: (v: boolean) => void, timerRef: React.MutableRefObject<number | null>) => {
+      setter(true);
+      if (timerRef.current != null) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => {
+        setter(false);
+        timerRef.current = null;
+      }, 2200);
+    },
+    [],
+  );
+
   if (!portalRoot) return null;
 
   const getExportEl = () => exportRef.current;
-
-  const flashDone = (
-    setter: (v: boolean) => void,
-    timerRef: React.MutableRefObject<number | null>,
-  ) => {
-    setter(true);
-    if (timerRef.current != null) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
-      setter(false);
-      timerRef.current = null;
-    }, 2200);
-  };
 
   const handleCopy = async () => {
     const exportEl = getExportEl();
@@ -241,6 +268,16 @@ export function ShareSquadOnXModal({
       console.error("Download squad image failed:", err);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleCopyInvite = async () => {
+    if (!inviteLink || busy) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      flashDone(setInviteCopied, inviteTimerRef);
+    } catch {
+      /* ignore */
     }
   };
 
@@ -328,6 +365,19 @@ export function ShareSquadOnXModal({
                 disabled={busy}
               />
             </div>
+            {inviteLink ? (
+              <div className="mx-auto mt-2 w-full max-w-md">
+                <ActionButton
+                  variant="secondary"
+                  busy={false}
+                  done={inviteCopied}
+                  label={ss.copyInviteButton}
+                  doneLabel={ss.copyInviteButtonCopied}
+                  onClick={handleCopyInvite}
+                  disabled={busy}
+                />
+              </div>
+            ) : null}
           </motion.div>
         </div>
       ) : null}

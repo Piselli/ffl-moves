@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
+import {
+  dismissInviteWelcome,
+  getStoredInviteCode,
+  normalizeInviteCode,
+  storeInviteCode,
+} from "@/lib/inviteClient";
 import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -36,12 +42,25 @@ export function NicknameModal({
   onClose,
 }: NicknameModalProps) {
   const nn = useSiteMessages().pages.nickname;
+  const inv = useSiteMessages().pages.inviteEntry;
   const m = useSiteMessages();
   const reduce = Boolean(useReducedMotion());
   const [value, setValue] = useState(currentNickname ?? "");
+  const [inviteCode, setInviteCode] = useState("");
+  const [savedInvite, setSavedInvite] = useState<string | null>(null);
+  const [canEnterInvite, setCanEnterInvite] = useState(false);
   const [error, setError] = useState("");
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const markInviteStepDone = useCallback(() => {
+    dismissInviteWelcome(address);
+  }, [address]);
+
+  const handleDismiss = useCallback(() => {
+    if (currentNickname) markInviteStepDone();
+    onClose();
+  }, [currentNickname, markInviteStepDone, onClose]);
 
   useEffect(() => {
     setPortalRoot(document.body);
@@ -51,7 +70,27 @@ export function NicknameModal({
     if (!open) return;
     setValue(currentNickname ?? "");
     setError("");
+    const existing = getStoredInviteCode();
+    setSavedInvite(existing);
+    setInviteCode(existing ?? "");
+    // Optimistic: show invite field immediately; API may hide if ineligible.
+    setCanEnterInvite(!existing);
   }, [open, currentNickname]);
+
+  useEffect(() => {
+    if (!open || !address) return;
+    let cancelled = false;
+    void fetch(`/api/invite/me?wallet=${encodeURIComponent(address)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((body: { ok?: boolean; canEnterInviteCode?: boolean }) => {
+        if (cancelled || !body?.ok) return;
+        setCanEnterInvite(body.canEnterInviteCode === true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, address]);
 
   useEffect(() => {
     if (!open || !portalRoot) return;
@@ -65,7 +104,7 @@ export function NicknameModal({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleDismiss();
     };
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -74,7 +113,15 @@ export function NicknameModal({
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose]);
+  }, [open, handleDismiss]);
+
+  const persistInviteIfAny = () => {
+    const code = normalizeInviteCode(inviteCode);
+    if (!code) return null;
+    const stored = storeInviteCode(code, { overwrite: true });
+    if (stored) setSavedInvite(stored);
+    return stored;
+  };
 
   const handleSave = () => {
     const trimmed = value.trim();
@@ -86,11 +133,15 @@ export function NicknameModal({
       setError(nn.errMin);
       return;
     }
+    persistInviteIfAny();
+    markInviteStepDone();
     onSave(trimmed);
     onClose();
   };
 
   const shortAddr = address.slice(0, 6) + "..." + address.slice(-4);
+  const showInviteField = canEnterInvite && !savedInvite;
+  const showInviteStatus = Boolean(savedInvite);
 
   if (!portalRoot) return null;
 
@@ -111,7 +162,7 @@ export function NicknameModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduce ? 0.12 : 0.22 }}
-            onClick={onClose}
+            onClick={handleDismiss}
           />
           <motion.div
             className="relative z-10 w-full max-w-md"
@@ -174,18 +225,49 @@ export function NicknameModal({
                       : "border-white/20 focus:border-white/40",
                   )}
                 />
-                <div className="mt-1.5 flex items-center justify-between">
-                  <p className="text-[12px] font-medium text-rose-400">{error}</p>
+                <div
+                  className={cn(
+                    "mt-1.5 flex items-center",
+                    error ? "justify-between" : "justify-end",
+                  )}
+                >
+                  {error ? (
+                    <p className="text-[12px] font-medium text-rose-400">{error}</p>
+                  ) : null}
                   <p className="text-[11px] font-medium tabular-nums text-white/35">
                     {value.length}/20
                   </p>
                 </div>
               </div>
 
+              {showInviteField ? (
+                <div className="mt-2.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                    {inv.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.slice(0, 40))}
+                    placeholder={inv.placeholder}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="mt-1.5 w-full rounded-xl border border-white/20 bg-black/35 px-3.5 py-3 text-[15px] font-medium text-white outline-none placeholder:text-white/25 transition-[border-color] duration-150 focus:border-white/40"
+                  />
+                </div>
+              ) : null}
+
+              {showInviteStatus && savedInvite ? (
+                <p className="mt-2 text-[13px] font-medium text-white/55">
+                  {inv.invitedVia(savedInvite.toUpperCase())}
+                </p>
+              ) : null}
+
               <div className="mt-5 flex gap-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleDismiss}
                   className="flex-1 rounded-xl border border-white/20 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-white/70 transition-[transform,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-white/35 hover:text-white active:scale-[0.98]"
                 >
                   {nn.later}
@@ -200,14 +282,14 @@ export function NicknameModal({
                 </button>
               </div>
             </GlassPanel>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label={m.nav.menuClose}
-                className="absolute right-1.5 top-1.5 z-30 grid h-8 w-8 place-items-center rounded-lg text-white/45 transition-[transform,background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.06] hover:text-white/85 active:scale-[0.96]"
-              >
-                <CloseIcon />
-              </button>
+            <button
+              type="button"
+              onClick={handleDismiss}
+              aria-label={m.nav.menuClose}
+              className="absolute right-1.5 top-1.5 z-30 grid h-8 w-8 place-items-center rounded-lg text-white/45 transition-[transform,background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.06] hover:text-white/85 active:scale-[0.96]"
+            >
+              <CloseIcon />
+            </button>
           </motion.div>
         </div>
       ) : null}

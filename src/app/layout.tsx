@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { InviteCapture } from "@/components/InviteCapture";
 import { PrizeAssetProvider } from "@/components/PrizeAssetProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -80,6 +81,7 @@ export default function RootLayout({
               <DepositProvider>
               <LoginProvider>
               <ReferralCapture />
+              <InviteCapture />
               <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
               <main className="relative z-10 min-h-0">{children}</main>

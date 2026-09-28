@@ -7,6 +7,7 @@ import {
   findHighestGameweekId,
   findLatestResolvedGameweekId,
 } from "@/lib/chainClient";
+import { getSeasonInviteBonuses, inviteBonusForOwner } from "@/lib/invite";
 import {
   CURRENT_SEASON,
   SEASON_POINTS_RULES_VERSION,
@@ -22,6 +23,8 @@ export type SeasonLeaderboardEntry = {
   owner: string;
   rank: number;
   totalPoints: number;
+  /** Off-chain invite SP (referrer + referee bonuses). */
+  invitePoints: number;
   registrations: number;
   top10Finishes: number;
   bestRank: number;
@@ -220,14 +223,36 @@ export async function buildSeasonLeaderboard(): Promise<SeasonLeaderboardPayload
   }
 
   if (eventIds.length === 0) {
-    return emptyPayload({
-      eplStartGw,
-      eplEndGw,
-      resolvedEplThroughGw,
-      resolvedWcTourCount,
-      status,
-      eventIds: [],
+    const inviteBonuses = await getSeasonInviteBonuses(CURRENT_SEASON.id);
+    const inviteEntries: SeasonLeaderboardEntry[] = Object.entries(inviteBonuses)
+      .filter(([, pts]) => pts > 0)
+      .map(([owner, invitePoints]) => ({
+        owner,
+        rank: 0,
+        totalPoints: invitePoints,
+        invitePoints,
+        registrations: 0,
+        top10Finishes: 0,
+        bestRank: 0,
+        maxStreak: 0,
+        currentStreak: 0,
+        breakdown: [],
+      }));
+    inviteEntries.sort((a, b) => b.totalPoints - a.totalPoints || a.owner.localeCompare(b.owner));
+    inviteEntries.forEach((e, i) => {
+      e.rank = i + 1;
     });
+    return {
+      ...emptyPayload({
+        eplStartGw,
+        eplEndGw,
+        resolvedEplThroughGw,
+        resolvedWcTourCount,
+        status,
+        eventIds: [],
+      }),
+      entries: inviteEntries,
+    };
   }
 
   const ownerCanonical = new Map<string, string>();
@@ -241,8 +266,17 @@ export async function buildSeasonLeaderboard(): Promise<SeasonLeaderboardPayload
   });
 
   const owners = Array.from(ownerCanonical.values());
+  const inviteBonuses = await getSeasonInviteBonuses(CURRENT_SEASON.id);
 
-  const entries: SeasonLeaderboardEntry[] = await mapInBatches(owners, 6, async (owner) => {
+  // Invite-only wallets (earned SP via referring others, never registered this season).
+  for (const [wallet, pts] of Object.entries(inviteBonuses)) {
+    if (!pts || pts <= 0) continue;
+    const key = wallet.toLowerCase();
+    if (!ownerCanonical.has(key)) ownerCanonical.set(key, wallet);
+  }
+  const allOwners = Array.from(ownerCanonical.values());
+
+  const entries: SeasonLeaderboardEntry[] = await mapInBatches(allOwners, 6, async (owner) => {
     const eventData = await loadOwnerDataForEvents(owner, eventIds);
     const slices = eventIds.map((eventId, i) => ({
       gameweekId: eventId,
@@ -251,10 +285,12 @@ export async function buildSeasonLeaderboard(): Promise<SeasonLeaderboardPayload
       claimed: eventData[i].claimed,
     }));
     const totals = computeSeasonPointsFromSlices(slices);
+    const invitePoints = inviteBonusForOwner(inviteBonuses, owner);
     return {
       owner,
       rank: 0,
-      totalPoints: totals.totalPoints,
+      totalPoints: totals.totalPoints + invitePoints,
+      invitePoints,
       registrations: totals.registrations,
       top10Finishes: totals.top10Finishes,
       bestRank: totals.bestRank,

@@ -11,13 +11,21 @@ type ReferralStat = {
   conversionRate: number;
   firstSeen: number | null;
   lastActivity: number | null;
+  estimatedFeeVolumeUsdc: number;
 };
 
 type StatsResponse = {
   durable: boolean;
   health?: { configured: boolean; reachable: boolean; error: string | null };
-  totals: { clicks: number; signups: number; conversionRate: number };
+  totals: {
+    clicks: number;
+    signups: number;
+    conversionRate: number;
+    estimatedFeeVolumeUsdc: number;
+  };
   codes: ReferralStat[];
+  /** Note: partner refs do not award Season Points — fee share is manual. */
+  note?: string;
 };
 
 const KEY_STORAGE = "fflmove_ref_admin_key";
@@ -152,7 +160,11 @@ export default function ReferralDashboardPage() {
           Referrals
         </h1>
         <p className="text-white/40 text-sm mt-1">
-          Реферальні посилання та статистика кліків / реєстрацій.
+          Partner <code className="text-white/55">?ref=</code> links — clicks / registrations /
+          estimated fee volume for manual commission. No Season Points.
+        </p>
+        <p className="text-white/30 text-xs mt-2">
+          Player invites use <code className="text-white/45">?inv=</code> and award SP separately.
         </p>
       </header>
 
@@ -235,6 +247,12 @@ export default function ReferralDashboardPage() {
               <span className="text-white/50">
                 CR: <span className="text-white font-bold">{pct(data.totals.conversionRate)}</span>
               </span>
+              <span className="text-white/50">
+                Fee vol:{" "}
+                <span className="text-white font-bold">
+                  ~{Number(data.totals.estimatedFeeVolumeUsdc ?? 0).toFixed(2)} USDC
+                </span>
+              </span>
             </div>
           </div>
 
@@ -275,6 +293,7 @@ export default function ReferralDashboardPage() {
                     <th className="py-2 pr-4 font-medium">Код</th>
                     <th className="py-2 px-4 font-medium text-right">Кліки</th>
                     <th className="py-2 px-4 font-medium text-right">Реєстрації</th>
+                    <th className="py-2 px-4 font-medium text-right">Fee vol</th>
                     <th className="py-2 px-4 font-medium text-right">CR</th>
                     <th className="py-2 px-4 font-medium text-right">Перший</th>
                     <th className="py-2 pl-4 font-medium text-right">Останній</th>
@@ -289,6 +308,9 @@ export default function ReferralDashboardPage() {
                       </td>
                       <td className="py-2.5 px-4 text-right text-white/80">{s.clicks}</td>
                       <td className="py-2.5 px-4 text-right text-white font-semibold">{s.signups}</td>
+                      <td className="py-2.5 px-4 text-right text-emerald-300/90 tabular-nums">
+                        ~{Number(s.estimatedFeeVolumeUsdc ?? 0).toFixed(2)}
+                      </td>
                       <td className="py-2.5 px-4 text-right text-white/80">{pct(s.conversionRate)}</td>
                       <td className="py-2.5 px-4 text-right text-white/40">{fmtDate(s.firstSeen)}</td>
                       <td className="py-2.5 pl-4 text-right text-white/40">{fmtDate(s.lastActivity)}</td>

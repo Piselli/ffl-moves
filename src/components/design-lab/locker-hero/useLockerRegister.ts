@@ -18,6 +18,7 @@ import { FORMATION } from "@/lib/constants";
 import { formatFeeLabel, formatFeeLabelShort } from "@/lib/entryFee";
 import { formatTxError, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
+import { claimInviteConversion } from "@/lib/inviteClient";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { Player } from "@/lib/types";
 
@@ -195,6 +196,9 @@ export function useLockerRegister(opts: {
       registeredOk = true;
       setAlreadyRegistered(true);
       trackReferralConversion(account.address.toString());
+      claimInviteConversion(account.address.toString());
+      // RPC may lag — retry claim once so first-season check sees the Entry.
+      window.setTimeout(() => claimInviteConversion(account.address.toString()), 2500);
       refreshBalance();
       onRegistered?.();
       // RPC can lag a beat after confirm — second pass picks up pool/entries.

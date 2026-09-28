@@ -35,6 +35,8 @@ export type SquadShareCardProps = {
   headline: string;
   lockedLabel: string;
   siteUrl?: string;
+  /** Player invite code shown on the poster (e.g. INVITE ABC12XYZ). */
+  inviteCode?: string | null;
   formationId?: FormationId;
   className?: string;
   /** Optional bench for plaque layouts (up to 3 shown). */

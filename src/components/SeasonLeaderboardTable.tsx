@@ -134,6 +134,7 @@ export function SeasonLeaderboardTable({
     streak: m.breakdownStreak,
     claim: m.breakdownClaim,
     first: m.breakdownFirst,
+    invite: m.breakdownInvite,
     noParticipation: m.breakdownSkipped,
   };
 
@@ -168,7 +169,8 @@ export function SeasonLeaderboardTable({
               !!currentUser && currentUser.toLowerCase() === entry.owner.toLowerCase();
             const isOpen = expanded === entry.owner;
             const canExpand =
-              showBreakdown && !!entry.breakdown && entry.breakdown.length > 0;
+              showBreakdown &&
+              ((!!entry.breakdown && entry.breakdown.length > 0) || entry.invitePoints > 0);
 
             return (
               <Fragment key={entry.owner}>
@@ -235,16 +237,22 @@ export function SeasonLeaderboardTable({
                     {entry.totalPoints}
                   </span>
                 </div>
-                {isOpen && entry.breakdown ? (
+                {isOpen && (entry.breakdown?.length || entry.invitePoints > 0) ? (
                   <div className="border-b border-white/[0.06] bg-white/[0.015] px-3 py-2 pl-14">
                     <div className="space-y-0.5">
-                      {entry.breakdown.map((slice) => (
+                      {entry.breakdown?.map((slice) => (
                         <BreakdownRow
                           key={slice.gameweekId}
                           slice={slice}
                           labels={breakdownLabels}
                         />
                       ))}
+                      {entry.invitePoints > 0 ? (
+                        <div className="flex justify-between gap-3 py-0.5 text-[11px]">
+                          <span className="text-white/40">{breakdownLabels.invite}</span>
+                          <span className="tabular-nums text-white/55">+{entry.invitePoints}</span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -323,7 +331,8 @@ export function SeasonLeaderboardTable({
             currentUser.toLowerCase() === entry.owner.toLowerCase();
           const isOpen = expanded === entry.owner;
           const canExpand =
-            showBreakdown && !!entry.breakdown && entry.breakdown.length > 0;
+            showBreakdown &&
+            ((!!entry.breakdown && entry.breakdown.length > 0) || entry.invitePoints > 0);
 
           return (
             <li key={entry.owner} id={isMe ? "season-you" : undefined}>
@@ -429,15 +438,21 @@ export function SeasonLeaderboardTable({
                 </div>
               </button>
 
-              {isOpen && entry.breakdown ? (
+              {isOpen && (entry.breakdown?.length || entry.invitePoints > 0) ? (
                 <div className="space-y-0.5 border-t border-white/[0.04] bg-white/[0.015] px-1 py-2 pl-11">
-                  {entry.breakdown.map((slice) => (
+                  {entry.breakdown?.map((slice) => (
                     <BreakdownRow
                       key={slice.gameweekId}
                       slice={slice}
                       labels={breakdownLabels}
                     />
                   ))}
+                  {entry.invitePoints > 0 ? (
+                    <div className="flex justify-between gap-3 py-0.5 text-[11px]">
+                      <span className="text-white/40">{breakdownLabels.invite}</span>
+                      <span className="tabular-nums text-white/55">+{entry.invitePoints}</span>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </li>
