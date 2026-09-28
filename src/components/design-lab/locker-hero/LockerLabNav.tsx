@@ -199,7 +199,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
-  const { connected, connecting, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, authReady, address, disconnect, walletName } = useWallet();
   const { openDeposit, balanceLabel } = useDeposit();
   const { openLogin } = useLogin();
   const { setNickname, myNickname } = useNickname(address);
@@ -208,6 +208,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   useWelcomeModalAutoOpen({
     connected,
     connecting,
+    authReady,
     address,
     onOpen: openNickname,
   });

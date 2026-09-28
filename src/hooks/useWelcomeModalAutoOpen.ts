@@ -1,27 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { hasStoredNickname } from "@/hooks/useNickname";
 import {
   dismissInviteWelcome,
   getStoredInviteCode,
   isInviteWelcomeDismissed,
 } from "@/lib/inviteClient";
+import { consumeLoginIntent } from "@/lib/loginIntent";
 
 /**
- * Auto-open welcome ONLY on a real login (disconnected → connected),
- * never when the session was already restored on page load / navigation.
+ * Auto-open welcome ONLY after the user explicitly opened Login and then
+ * connected — never on session restore / refresh / navigation.
  */
 export function useWelcomeModalAutoOpen({
   connected,
   connecting = false,
+  authReady = true,
   address,
   enabled = true,
   onOpen,
 }: {
   connected: boolean;
-  /** Wallet adapter / email still resolving — wait before taking a baseline. */
   connecting?: boolean;
+  /** Helius (and similar) finished loading cached session. */
+  authReady?: boolean;
   address: string | null | undefined;
   /** @deprecated ignored */
   hasNickname?: (addr: string) => boolean;
@@ -31,25 +34,14 @@ export function useWelcomeModalAutoOpen({
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
 
-  /**
-   * Auto-connect often starts as connected=false for a frame.
-   * Wait out that race before locking a baseline.
-   */
-  const [bootstrapped, setBootstrapped] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setBootstrapped(true), 900);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  /** null = no baseline yet; then tracks settled connected flag */
+  /** null = no baseline yet */
   const baselineRef = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (!enabled || !bootstrapped || connecting) return;
+    if (!enabled || !authReady || connecting) return;
 
     const prev = baselineRef.current;
 
-    // First settled state after boot — if already in, stay silent forever for this mount cycle.
     if (prev === null) {
       baselineRef.current = connected;
       return;
@@ -59,6 +51,10 @@ export function useWelcomeModalAutoOpen({
     baselineRef.current = connected;
 
     if (!justLoggedIn || !address) return;
+
+    // Session restore also goes false→true on slow prod hydrations.
+    // Only continue if this connect followed an explicit Login open.
+    if (!consumeLoginIntent()) return;
 
     const needsNick = !hasStoredNickname(address);
     const hasInvite = Boolean(getStoredInviteCode());
@@ -71,7 +67,6 @@ export function useWelcomeModalAutoOpen({
 
     const openSoon = () => {
       if (cancelled) return;
-      // Site is already up when the user just clicked login — short beat only.
       timer = setTimeout(() => {
         if (!cancelled) onOpenRef.current();
       }, 450);
@@ -103,5 +98,5 @@ export function useWelcomeModalAutoOpen({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [enabled, bootstrapped, connecting, connected, address]);
+  }, [enabled, authReady, connecting, connected, address]);
 }

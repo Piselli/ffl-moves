@@ -38,6 +38,8 @@ export function useWallet() {
   const connected = Boolean(adapter.connected || heliusAuth.authenticated);
   const connecting =
     adapter.connecting || Boolean(heliusAuth.authenticated && !address);
+  /** False while Helius is still resolving a cached email/passkey session. */
+  const authReady = heliusAuth.ready;
 
   const signAndSubmit = useCallback(
     async (instructions: TransactionInstruction[]) => {
@@ -109,6 +111,7 @@ export function useWallet() {
       account: address ? { address } : null,
       connected,
       connecting,
+      authReady,
       disconnect,
       connect: adapter.connect,
       walletName:
@@ -141,6 +144,7 @@ export function useWallet() {
       adapter.connecting,
       adapter.connect,
       adapter.wallet,
+      authReady,
       connected,
       connecting,
       disconnect,

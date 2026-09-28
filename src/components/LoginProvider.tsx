@@ -11,6 +11,10 @@ import {
   type PropsWithChildren,
 } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import {
+  clearLoginIntent,
+  markLoginIntent,
+} from "@/lib/loginIntent";
 
 const LoginModal = dynamic(
   () => import("@/components/LoginModal").then((m) => m.LoginModal),
@@ -36,8 +40,17 @@ export function useLogin(): LoginContextValue {
 export function LoginProvider({ children }: PropsWithChildren) {
   const [open, setOpen] = useState(false);
   const { connected } = useWallet();
-  const openLogin = useCallback(() => setOpen(true), []);
-  const closeLogin = useCallback(() => setOpen(false), []);
+
+  const openLogin = useCallback(() => {
+    markLoginIntent();
+    setOpen(true);
+  }, []);
+
+  const closeLogin = useCallback(() => {
+    setOpen(false);
+    // Dismissed without a session — don't treat a later restore as this login.
+    if (!connected) clearLoginIntent();
+  }, [connected]);
 
   useEffect(() => {
     if (connected) setOpen(false);

@@ -62,7 +62,7 @@ export function Navbar() {
         ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
-  const { connected, connecting, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, authReady, address, disconnect, walletName } = useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,6 +78,7 @@ export function Navbar() {
   useWelcomeModalAutoOpen({
     connected,
     connecting,
+    authReady,
     address,
     enabled: !hideNav && mounted,
     onOpen: () => setShowNicknameModal(true),
