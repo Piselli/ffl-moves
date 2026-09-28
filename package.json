@@ -12,6 +12,7 @@
     "gw:recap": "node scripts/generate-gw-recap.mjs",
     "fpl:gw": "node scripts/fpl-oracle-gw.mjs",
     "fpl:bootstrap-lite": "node scripts/refresh-fpl-bootstrap-lite.mjs",
+    "fpl:fixtures-snapshot": "node scripts/refresh-fpl-fixtures-snapshot.mjs",
     "wc:players": "node scripts/fetch-wc-players.mjs",
     "move:compile": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move compile --dev || aptos move compile --dev)'",
     "move:test": "bash -lc 'cd move/fantasy-epl-contract && (command -v movement >/dev/null 2>&1 && movement move test --dev || aptos move test --dev)'",

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import bootstrapLite from "@/data/fpl-bootstrap-lite.json";
+import fixturesSnapshot from "@/data/fpl-fixtures-snapshot.json";
 
 const FPL_FIXTURES_ALL = "https://fantasy.premierleague.com/api/fixtures/";
 const BADGE_BASE = "https://resources.premierleague.com/premierleague/badges/70/t";
+/** Full season feed is large and often blocked from US serverless — don't hang on it. */
+const FULL_FEED_TIMEOUT_MS = 3500;
 
 /** London-first egress often works better with FPL than default US regions. */
-export const preferredRegion = "lhr1";
+export const preferredRegion = ["lhr1", "iad1"];
 export const maxDuration = 30;
 
 /** Never cache this handler’s JSON at the edge — stale kickoff/deadline breaks the hero countdown. */
@@ -226,9 +229,16 @@ function resolveFormattedFixturesForRegistrationGw(
   return fixtures.length > 0 ? { eventId: registrationEventId, meta, fixtures } : null;
 }
 
-async function fetchFplFixtureRows(url: string): Promise<FplFixtureRaw[] | null> {
+async function fetchFplFixtureRows(
+  url: string,
+  timeoutMs: number | null = null,
+): Promise<FplFixtureRaw[] | null> {
   try {
-    const fixturesRes = await fetch(url, FETCH_INIT);
+    const init: RequestInit =
+      timeoutMs != null && timeoutMs > 0
+        ? { ...FETCH_INIT, signal: AbortSignal.timeout(timeoutMs) }
+        : FETCH_INIT;
+    const fixturesRes = await fetch(url, init);
     if (!fixturesRes.ok) return null;
     const parsed = (await fixturesRes.json()) as unknown;
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
@@ -237,6 +247,38 @@ async function fetchFplFixtureRows(url: string): Promise<FplFixtureRaw[] | null>
     console.warn("fixtures: fetch failed", url, e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+function mergeFixtureRows(batches: Array<FplFixtureRaw[] | null>): FplFixtureRaw[] {
+  const byId = new Map<number, FplFixtureRaw>();
+  for (const batch of batches) {
+    if (!batch) continue;
+    for (const row of batch) {
+      if (!row || !Number.isFinite(row.id)) continue;
+      byId.set(row.id, row);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+/** Shipped season slate — keeps the hero populated when live FPL is unreachable. */
+function snapshotFixtureRows(): FplFixtureRaw[] | null {
+  const rows = (fixturesSnapshot as { fixtures?: FplFixtureRaw[] }).fixtures;
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return rows;
+}
+
+/**
+ * Small `?event=` probes first — same pattern as `/api/fpl-live`, reliably reaches FPL
+ * from serverless when the full `/fixtures/` payload is blocked or times out.
+ */
+async function fetchPriorityEventRows(eventIds: number[]): Promise<FplFixtureRaw[] | null> {
+  if (eventIds.length === 0) return null;
+  const batches = await Promise.all(
+    eventIds.slice(0, 4).map((eid) => fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${eid}`, 6000)),
+  );
+  const merged = mergeFixtureRows(batches);
+  return merged.length > 0 ? merged : null;
 }
 
 /**
@@ -304,18 +346,23 @@ function pickBootstrapFallbackEvent(registrationGw: number | null): EventMeta | 
 }
 
 /**
- * Full `/fixtures/` sometimes fails from serverless (timeouts / transient blocks). Retry once, then
- * smaller `?event=id` responses (same endpoint pattern as `/api/fpl-live`).
+ * Prefer small `?event=` probes (work on Vercel), then a bounded full-feed attempt,
+ * then the shipped season snapshot so the tablet never shows an empty open GW.
  */
 async function loadLiveFixtureRows(registrationGw: number | null = null): Promise<FplFixtureRaw[] | null> {
-  let rows = await fetchFplFixtureRows(FPL_FIXTURES_ALL);
-  if (rows) return rows;
-  await new Promise((r) => setTimeout(r, 400));
-  rows = await fetchFplFixtureRows(FPL_FIXTURES_ALL);
-  if (rows) return rows;
-  for (const eid of bootstrapPriorityEventIds(registrationGw)) {
-    rows = await fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${eid}`);
-    if (rows) return rows;
+  const priorityIds = bootstrapPriorityEventIds(registrationGw);
+  // Small probes first — do NOT wait on the full season feed when these succeed
+  // (full `/fixtures/` is often blocked/slow from US serverless and would add seconds).
+  const eventRows = await fetchPriorityEventRows(priorityIds);
+  if (eventRows?.length) return eventRows;
+
+  const full = await fetchFplFixtureRows(FPL_FIXTURES_ALL, FULL_FEED_TIMEOUT_MS);
+  if (full) return full;
+
+  const snapshot = snapshotFixtureRows();
+  if (snapshot) {
+    console.warn("fixtures: using shipped snapshot", (fixturesSnapshot as { fetchedAt?: string }).fetchedAt ?? "");
+    return snapshot;
   }
   return null;
 }
@@ -328,24 +375,45 @@ function noStoreJson(body: unknown) {
   });
 }
 
-/** Last resort when the live FPL fixtures feed is unreachable — deadline/name from shipped bootstrap; fixtures empty. */
+/**
+ * Last resort when even the snapshot is missing — still prefer snapshot rows for the
+ * picked GW so the tablet is not stuck on "0 matches".
+ */
 function bootstrapFallbackSchedule(registrationGw: number | null = null): NextResponse {
   const ev = pickBootstrapFallbackEvent(registrationGw);
   if (!ev) {
     return NextResponse.json({ error: "Season metadata missing" }, { status: 500 });
   }
-  const rawDeadline = ev.deadline_time as string | null | undefined;
-  const ms = typeof rawDeadline === "string" && rawDeadline.length > 0 ? Date.parse(rawDeadline) : NaN;
+  const teamMap = buildTeamMap(bootstrapLite.teams);
+  const snap = snapshotFixtureRows();
+  const formatted = snap ? formatFixturesForEvent(snap, ev.id, teamMap) : [];
+  const firstKick = formatted.find((f) => typeof f.kickoffTime === "string" && f.kickoffTime.length > 0)
+    ?.kickoffTime;
+  let deadlineTime: string | null = null;
+  let deadlineEpochMs: number | null = null;
+  if (typeof firstKick === "string" && firstKick.length > 0) {
+    const kickMs = Date.parse(firstKick);
+    if (Number.isFinite(kickMs)) {
+      deadlineTime = firstKick;
+      deadlineEpochMs = kickMs;
+    }
+  }
+  if (deadlineTime == null) {
+    const rawDeadline = ev.deadline_time as string | null | undefined;
+    const ms = typeof rawDeadline === "string" && rawDeadline.length > 0 ? Date.parse(rawDeadline) : NaN;
+    deadlineTime = rawDeadline ?? null;
+    deadlineEpochMs = Number.isFinite(ms) ? ms : null;
+  }
   return noStoreJson({
     gameweek: {
       id: ev.id,
       name: ev.name,
-      deadlineTime: rawDeadline ?? null,
-      deadlineEpochMs: Number.isFinite(ms) ? ms : null,
+      deadlineTime,
+      deadlineEpochMs,
       isCurrent: Boolean(ev.is_current),
       isNext: Boolean(ev.is_next),
     },
-    fixtures: [],
+    fixtures: formatted,
   });
 }
 
@@ -396,9 +464,16 @@ export async function GET(request: Request) {
     }
 
     if (formattedFixtures.length === 0) {
-      const rescue = await fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${targetMeta.id}`);
+      const rescue = await fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${targetMeta.id}`, 6000);
       if (rescue?.length) {
         const retry = formatFixturesForEvent(rescue, targetMeta.id, teamMap);
+        if (retry.length > 0) formattedFixtures = retry;
+      }
+    }
+    if (formattedFixtures.length === 0) {
+      const snap = snapshotFixtureRows();
+      if (snap) {
+        const retry = formatFixturesForEvent(snap, targetMeta.id, teamMap);
         if (retry.length > 0) formattedFixtures = retry;
       }
     }
@@ -437,6 +512,6 @@ export async function GET(request: Request) {
     return noStoreJson(payload);
   } catch (e) {
     console.error("Fixtures API processing error:", e instanceof Error ? e.message : e);
-    return bootstrapFallbackSchedule();
+    return bootstrapFallbackSchedule(registrationGw);
   }
 }
