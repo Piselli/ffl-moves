@@ -44,7 +44,7 @@ function nextStep(current: PickTourStepId): PickTourStepId | null {
 
 /**
  * Action-triggered guided pick tour.
- * Gate / How to play → always start at formation (1/5), manual Next through all steps.
+ * First visit / Gate / How to play → visual How-to plaque, then formation (1/5).
  */
 export function usePickTour({
   enabled,
@@ -55,7 +55,8 @@ export function usePickTour({
   const forceRef = useRef(false);
   /** When true, don't auto-skip steps just because the squad is already filled. */
   const manualOnlyRef = useRef(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  /** First visit: open the illustrated How to play plaque (not the old 1-2-3 sheet). */
+  const [needsHowtoIntro, setNeedsHowtoIntro] = useState(false);
   const [tourActive, setTourActive] = useState(false);
   const [step, setStep] = useState<PickTourStepId | null>(null);
   const kickedRef = useRef(false);
@@ -67,13 +68,12 @@ export function usePickTour({
     markPickWelcomeSeen();
     forceRef.current = true;
     manualOnlyRef.current = true;
-    setWelcomeOpen(false);
+    setNeedsHowtoIntro(false);
     setStep("formation");
     setTourActive(true);
   }, []);
 
-  // Gate dismiss → welcome skipped; How to play plaque opens in LockerTablet.
-  // Coachmarks start only after that plaque continues / closes (beginGuidedTour).
+  // Gate dismiss → How to play plaque opens in LockerTablet; coachmarks after it.
   useEffect(() => {
     if (!enabled || !kickTour || kickedRef.current) return;
     kickedRef.current = true;
@@ -90,7 +90,7 @@ export function usePickTour({
     const { forceTour } = consumeTourQueryFlags();
     forceRef.current = forceTour;
     if (shouldShowPickWelcome(forceTour)) {
-      setWelcomeOpen(true);
+      setNeedsHowtoIntro(true);
     } else if (shouldStartPickTour(forceTour)) {
       manualOnlyRef.current = false;
       setStep(resolveStartStep(filledCount, hasCaptain));
@@ -99,20 +99,6 @@ export function usePickTour({
     // Intentionally once on mount for this surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, kickTour]);
-
-  const dismissWelcome = useCallback(() => {
-    markPickWelcomeSeen();
-    setWelcomeOpen(false);
-    if (shouldStartPickTour(forceRef.current)) {
-      manualOnlyRef.current = forceRef.current;
-      setStep(
-        forceRef.current
-          ? "formation"
-          : resolveStartStep(filledCount, hasCaptain),
-      );
-      setTourActive(true);
-    }
-  }, [filledCount, hasCaptain]);
 
   const completeTour = useCallback(() => {
     markPickTourDone();
@@ -165,10 +151,9 @@ export function usePickTour({
   }, [tourActive, hasCaptain, step]);
 
   return {
-    welcomeOpen,
+    needsHowtoIntro,
     tourActive,
     step,
-    dismissWelcome,
     skipTour,
     goNext,
     completeTour,

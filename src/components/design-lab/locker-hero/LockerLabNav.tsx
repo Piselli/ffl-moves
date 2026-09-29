@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { BrandLockup, BRAND_LOCKUP_NAV_INNER } from "@/components/BrandLockup";
+import { BrandLockup } from "@/components/BrandLockup";
 import { SiteBackHomeFloat } from "@/components/SiteBackHome";
 import { useDeposit } from "@/components/DepositProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -17,7 +17,6 @@ import { useNickname } from "@/hooks/useNickname";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
-import { isFirefoxBrowser } from "@/lib/browser";
 import { cn, shortenAddress } from "@/lib/utils";
 import {
   NAV_TRAY_BTN,
@@ -25,6 +24,9 @@ import {
   navWhiteCtaStyle,
 } from "@/components/navUtilityStyles";
 import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
+
+const NAV_META_LINK =
+  "inline-flex h-8 shrink-0 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]";
 
 type Props = {
   /** When true, nav links navigate (site). Lab keeps preventDefault for mock. */
@@ -187,10 +189,9 @@ function Right({
 /**
  * Locked top menu — lit type: no bar, letters lit by room spots.
  *
- * Desktop: logo · equal spacer · links · equal spacer · utilities
- * inside a symmetric max-width row (same inset L/R as each other — aligns
- * with the centered tablet). FAQ + locale float in the viewport corner and
- * must NOT add extra padding that pulls utilities inward.
+ * Desktop: [logo · spacers · links · X/login] flex-1 | [FAQ · locale] pinned
+ * to the viewport-right corner. Meta is its own shrink-0 column so utilities
+ * can never paint over it on mid-width laptops.
  */
 export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) {
   const m = useSiteMessages();
@@ -216,14 +217,6 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   const links = primarySiteNavLinks(m);
   const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
   const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
-  /**
-   * Firefox: absolute FAQ + locale sits on top of Log in / X.
-   * Keep them in the utilities row there; other browsers keep the float.
-   */
-  const [firefoxNav, setFirefoxNav] = useState(false);
-  useLayoutEffect(() => {
-    setFirefoxNav(isFirefoxBrowser());
-  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -288,67 +281,56 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
 
         {/* —— Desktop / tablet scene —— */}
         <div className="relative hidden md:block">
-          <div
-            className={cn(
-              BRAND_LOCKUP_NAV_INNER,
-              "!flex gap-0",
-            )}
-          >
-            <BrandLockup
-              priority
-              className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
-              linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-            />
-
-            <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
-
-            <Links
-              liveLinks={liveLinks}
-              className="relative z-10 shrink-0"
-              linkClassName={cn(
-                "text-white",
-                "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
-                "hover:text-[#00f948]",
+          <div className="flex h-[4.25rem] w-full items-center sm:h-[4.5rem] pr-3 sm:pr-4 lg:pr-5">
+            {/* Main row — takes remaining width; never paints into the corner column */}
+            <div
+              className={cn(
+                "mx-auto flex min-w-0 flex-1 items-center gap-0",
+                "max-w-[1400px] pl-6 sm:pl-8 lg:pl-10",
               )}
-            />
-
-            <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
-
-            <div className="relative z-20 flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-2.5">
-              <SocialLinkX
-                ariaLabel={m.nav.socialXAria}
-                variant="icon"
-                className="!inline-flex !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white"
+            >
+              <BrandLockup
+                priority
+                className="max-md:h-9 max-md:gap-2.5 max-md:[&_span:last-child]:text-[18px]/none sm:max-md:[&_span:last-child]:text-[20px]/none"
+                linkClassName="relative z-10 shrink-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
               />
-              <Right onOpenNickname={openNickname} />
-              {firefoxNav ? (
-                <>
-                  <Link
-                    href="/faq"
-                    onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-                    className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
-                  >
-                    {m.nav.faq}
-                  </Link>
-                  <LanguageSwitcher embedded />
-                </>
-              ) : null}
-            </div>
-          </div>
 
-          {/* FAQ + locale — viewport edge so L/R content insets stay equal */}
-          {!firefoxNav ? (
-            <div className="pointer-events-auto absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 sm:right-4 sm:gap-2 lg:right-5">
+              <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
+
+              <Links
+                liveLinks={liveLinks}
+                className="relative z-10 shrink-0"
+                linkClassName={cn(
+                  "text-white",
+                  "drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]",
+                  "hover:text-[#00f948]",
+                )}
+              />
+
+              <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
+
+              <div className="relative z-20 flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-2.5">
+                <SocialLinkX
+                  ariaLabel={m.nav.socialXAria}
+                  variant="icon"
+                  className="!inline-flex !h-9 !w-9 !rounded-xl !border-white/12 !bg-black/40 !text-white/70 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] hover:!border-white/25 hover:!bg-white/[0.08] hover:!text-white"
+                />
+                <Right onOpenNickname={openNickname} />
+              </div>
+            </div>
+
+            {/* Viewport-right corner — own column so login/X cannot overlap */}
+            <div className="relative z-30 ml-3 flex shrink-0 items-center gap-1.5 sm:ml-4 sm:gap-2 md:ml-5">
               <Link
                 href="/faq"
                 onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-                className="inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]"
+                className={NAV_META_LINK}
               >
                 {m.nav.faq}
               </Link>
               <LanguageSwitcher embedded />
             </div>
-          ) : null}
+          </div>
         </div>
       </div>
 

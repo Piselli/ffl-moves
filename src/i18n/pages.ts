@@ -554,7 +554,8 @@ export type PagesMessages = {
     save: string;
     change: string;
     applied: (code: string) => string;
-    invitedVia: (code: string) => string;
+    /** Status chip label when a link invite is already captured. */
+    invitedViaLabel: string;
   };
   squadShare: {
     modalEyebrow: string;
@@ -1376,7 +1377,7 @@ export const pagesEn: PagesMessages = {
     save: "Save",
     change: "Change",
     applied: (code) => `Invite ${code} saved`,
-    invitedVia: (code) => `Invited via ${code}`,
+    invitedViaLabel: "Invited via",
   },
   squadShare: {
     modalEyebrow: "Squad locked",
@@ -2472,7 +2473,7 @@ export const pagesUk: PagesMessages = {
     save: "Зберегти",
     change: "Змінити",
     applied: (code) => `Інвайт ${code} збережено`,
-    invitedVia: (code) => `Запрошено за кодом ${code}`,
+    invitedViaLabel: "Запрошено за кодом",
   },
   squadShare: {
     modalEyebrow: "Склад зареєстровано",

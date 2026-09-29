@@ -54,7 +54,6 @@ import { HERO_REVEAL, heroPanelReveal } from "./heroReveal";
 import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import { PickHelpOverlay } from "./PickHelpOverlay";
 import { PickTourCoachmark } from "./PickTourCoachmark";
-import { PickWelcomeOverlay } from "./PickWelcomeOverlay";
 import { usePickTour } from "./usePickTour";
 import { PitchFilledSlot } from "./PitchFilledSlot";
 import { PitchFringeBar } from "./PitchFringeBar";
@@ -1000,28 +999,28 @@ export function LockerTablet({
     kickTour,
   });
 
-  // Gate → visual How to play first; coachmarks follow when plaque finishes.
+  // First visit / Gate → visual How to play first; coachmarks after plaque finishes.
   useEffect(() => {
-    if (!kickTour) return;
+    if (!kickTour && !pickTour.needsHowtoIntro) return;
     pendingTourAfterHowtoRef.current = true;
     setHowtoOpen(true);
-  }, [kickTour]);
+  }, [kickTour, pickTour.needsHowtoIntro]);
 
   const finishHowto = useCallback(
     (startTour: boolean) => {
       setHowtoOpen(false);
-      const fromGate = pendingTourAfterHowtoRef.current;
+      const fromIntro = pendingTourAfterHowtoRef.current;
       pendingTourAfterHowtoRef.current = false;
-      if (fromGate || startTour) {
+      if (fromIntro || startTour) {
         pickTour.beginGuidedTour();
       }
     },
     [pickTour],
   );
   const scoringTourActive =
-    pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "scoring";
+    pickTour.tourActive && !howtoOpen && pickTour.step === "scoring";
   const registerTourActive =
-    pickTour.tourActive && !pickTour.welcomeOpen && pickTour.step === "register";
+    pickTour.tourActive && !howtoOpen && pickTour.step === "register";
   const lastGw = useLastGwPreview(starters, bench, captainIndex ?? null);
   /** Phone lands on Team after Matchday Gate — pitch first, Pick via + / tab. */
   const [mobileTab, setMobileTab] = useState<MobileTab>("pitch");
@@ -1093,12 +1092,6 @@ export function LockerTablet({
   useEffect(() => {
     if (filledCount > 0) setGuidePulseSlot(null);
   }, [filledCount]);
-
-  const dismissWelcome = useCallback(() => {
-    pickTour.dismissWelcome();
-    if (filledCount > 0) return;
-    // Leave pitch visible for formation step; don't auto-open a slot.
-  }, [filledCount, pickTour.dismissWelcome]);
 
   // Keep the right mobile tab visible for the active tour step.
   useEffect(() => {
@@ -2423,14 +2416,9 @@ export function LockerTablet({
         </div>
       </div>
 
-      <PickWelcomeOverlay
-        open={pickTour.welcomeOpen}
-        onStart={dismissWelcome}
-        messages={m}
-      />
       <PickTourCoachmark
         step={pickTour.step}
-        open={pickTour.tourActive && !pickTour.welcomeOpen}
+        open={pickTour.tourActive && !howtoOpen}
         onNext={() => {
           if (pickTour.step === "scoring") setScoringOpen(false);
           pickTour.goNext();
