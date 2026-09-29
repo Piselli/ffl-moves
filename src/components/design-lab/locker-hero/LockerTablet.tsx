@@ -21,7 +21,12 @@ import { Form8Mark } from "@/components/Form8Mark";
 import type { PrizeAssetContextValue } from "@/components/PrizeAssetProvider";
 import type { SiteMessages } from "@/i18n/messages";
 import type { SiteLocale } from "@/i18n/types";
-import { DEFAULT_PRIZE_TIERS } from "@/lib/prize-distribution";
+import { getPrizeTiers } from "@/lib/prize-distribution";
+import {
+  formatKickoffTimeUtc,
+  formatMatchDayUtc,
+  utcDayKey,
+} from "@/lib/kickoffFormat";
 import { cn } from "@/lib/utils";
 import type {
   LockerFixture,
@@ -205,26 +210,15 @@ function formatDeadlineClock(parts: DeadlineParts): string {
 }
 
 function dayKey(iso: string | null): string {
-  if (!iso || !Number.isFinite(Date.parse(iso))) return "tbc";
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return utcDayKey(iso);
 }
 
 function formatMatchDay(iso: string | null, locale: SiteLocale): string {
-  if (!iso || !Number.isFinite(Date.parse(iso))) return "TBC";
-  return new Intl.DateTimeFormat(locale === "uk" ? "uk-UA" : "en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(iso));
+  return formatMatchDayUtc(iso, locale);
 }
 
 function formatKickoffTime(iso: string | null, locale: SiteLocale): string {
-  if (!iso || !Number.isFinite(Date.parse(iso))) return "TBC";
-  return new Intl.DateTimeFormat(locale === "uk" ? "uk-UA" : "en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
+  return formatKickoffTimeUtc(iso, locale);
 }
 
 type MatchDayGroup = {
@@ -1230,9 +1224,14 @@ export function LockerTablet({
   const shownMatchCount = dayGroups.reduce((n, g) => n + g.matches.length, 0);
   const deadlineParts = useDeadlineParts(deadline);
 
-  const firstPct = DEFAULT_PRIZE_TIERS[0]?.pct ?? 30;
+  // Live 1st projection: with N < 10 the unpaid tail is folded back into paid ranks
+  // (same rule allocatePrizes uses at settlement). At 10+ managers the 30% grid locks.
+  const firstPct =
+    entries != null && entries > 0
+      ? (getPrizeTiers(gwId ?? 0, entries)[0]?.pct ?? 30)
+      : null;
   const firstRaw =
-    prizePoolRaw != null
+    prizePoolRaw != null && firstPct != null
       ? (prizePoolRaw * BigInt(firstPct)) / 100n
       : null;
 

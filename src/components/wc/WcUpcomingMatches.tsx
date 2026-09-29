@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useSiteMessages, useSiteLocale } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
+import { formatKickoffTimeUtcLabeled, formatKickoffDateUtc } from "@/lib/kickoffFormat";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
@@ -23,10 +24,6 @@ interface ApiFixture {
   scoreH: number | null;
   scoreA: number | null;
   group: string | null;
-}
-
-function localeTag(locale: string): string {
-  return locale === "uk" ? "uk-UA" : "en-GB";
 }
 
 function Crest({ url, code }: { url: string | null; code: string | null }) {
@@ -58,12 +55,7 @@ function TeaserCard({ f, locale, delay }: { f: ApiFixture; locale: string; delay
   const live = f.started && !f.finished;
   const hasScore = (f.finished || live) && f.scoreH != null && f.scoreA != null;
   const time = f.kickoffTime && Number.isFinite(Date.parse(f.kickoffTime))
-    ? new Intl.DateTimeFormat(localeTag(locale), {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(f.kickoffTime))
+    ? `${formatKickoffDateUtc(f.kickoffTime, locale)} · ${formatKickoffTimeUtcLabeled(f.kickoffTime, locale)}`
     : "TBC";
 
   return (

@@ -8,6 +8,10 @@ import { useSiteMessages, useSiteLocale } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
 import { WcSectionEyebrow } from "@/components/wc/WcSectionEyebrow";
 import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
+import {
+  formatKickoffDateUtc,
+  formatKickoffTimeUtcLabeled,
+} from "@/lib/kickoffFormat";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
@@ -50,19 +54,13 @@ function isTbd(f: ApiFixture): boolean {
   return f.home === "TBD" && f.away === "TBD";
 }
 
-function localeTag(locale: string): string {
-  return locale === "uk" ? "uk-UA" : "en-GB";
-}
-
 function formatKickoff(iso: string | null, locale: string): { date: string; time: string } | null {
   if (!iso) return null;
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return null;
-  const d = new Date(ms);
-  const tag = localeTag(locale);
   return {
-    date: new Intl.DateTimeFormat(tag, { day: "2-digit", month: "short" }).format(d),
-    time: new Intl.DateTimeFormat(tag, { hour: "2-digit", minute: "2-digit" }).format(d),
+    date: formatKickoffDateUtc(iso, locale),
+    time: formatKickoffTimeUtcLabeled(iso, locale),
   };
 }
 

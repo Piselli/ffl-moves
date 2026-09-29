@@ -1560,9 +1560,9 @@ export const pagesEn: PagesMessages = {
     clearSearch: "Clear search",
     backToTop: "Back to top",
     contactTitle: "Still have a question?",
-    contactBody: "Support on Telegram @movematch · updates on X.",
+    contactBody: "Support on Telegram @form8football · updates on X.",
     contactCta: "Message us on",
-    contactHref: "https://t.me/movematch",
+    contactHref: "https://t.me/form8football",
     replayGuideTitle: "New here?",
     replayGuideBody:
       "Replay the short home-screen guide — what fantasy is, how to pick a squad, and how prizes work.",
@@ -1589,7 +1589,7 @@ export const pagesEn: PagesMessages = {
                 type: "ul",
                 items: [
                   "Log in with Google, email, or a Solana wallet (Phantom / Solflare / Jupiter).",
-                  "Get USDC for the entry fee (shown on the home screen) plus a little SOL for fees.",
+                  "Get USDC for the entry fee (shown on the home screen). Network fees are sponsored — you do not need SOL to register.",
                   "On the home screen pick 11 starters + 3 bench. Max 3 players from the same club.",
                   "Confirm squad and sign. After the deadline your squad is locked.",
                 ],
@@ -1600,7 +1600,7 @@ export const pagesEn: PagesMessages = {
             id: "entry-cost",
             q: "How much does one gameweek entry cost?",
             a: [
-              { type: "p", text: "The exact fee is shown when you register — currently 5 USDC per gameweek. Entry fees fund that round’s prize pool (minus a small technical share)." },
+              { type: "p", text: "The exact fee is shown when you register — currently 5 USDC per gameweek. 80% ($4) goes into that round’s prize pool; 20% ($1) is the platform fee." },
             ],
           },
           {
@@ -1662,8 +1662,9 @@ export const pagesEn: PagesMessages = {
             id: "how-much-can-i-win",
             q: "How is the prize pool split?",
             a: [
-              { type: "p", text: "Prize pool = entry fees for the round (minus a small technical share). Top 10 split it: 1st 30%, 2nd 20%, 3rd 15%, then 8% → 2% down to 10th." },
-              { type: "p", text: "Live pool size is on the home pick screen; claim is on the Leaderboard after resolve." },
+              { type: "p", text: "Prize pool = 80% of entry fees for the round. With 10+ managers, top 10 split it: 1st 30%, 2nd 20%, 3rd 15%, then 8% → 2% down to 10th." },
+              { type: "p", text: "With fewer than 10 managers, a rounded share table pays out the full pool (e.g. 3 managers → 50/30/20). At 10 managers the standard grid locks in and does not change." },
+              { type: "p", text: "Live pool size and projected 1st are on the home pick screen; claim is on the Leaderboard after resolve." },
             ],
           },
           {
@@ -1729,7 +1730,7 @@ export const pagesEn: PagesMessages = {
             id: "is-it-scam",
             q: "How do I know this is not a scam?",
             a: [
-              { type: "p", text: "Squads, pool, points, and payouts are recorded on Solana and verifiable in a public explorer. The admin cannot rewrite your locked squad or silently drain the prize pool." },
+              { type: "p", text: "Squads, pool, points, and payouts are recorded on Solana. Program ID: A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5 — verify on Solscan (solscan.io). The admin cannot rewrite your locked squad; prize claims settle from the on-chain treasury against a published results root, not an open admin withdraw of winners’ share." },
             ],
           },
           {
@@ -1743,7 +1744,7 @@ export const pagesEn: PagesMessages = {
             id: "what-if-bug",
             q: "What if there is a bug and I lose my entry fee?",
             a: [
-              { type: "p", text: "Only play with amounts you are willing to risk. Confirmed bugs in our logic — we refund. Contact: Telegram @movematch." },
+              { type: "p", text: "Only play with amounts you are willing to risk. Confirmed bugs in our logic — we refund. Contact: Telegram @form8football." },
             ],
           },
           {
@@ -2656,9 +2657,9 @@ export const pagesUk: PagesMessages = {
     clearSearch: "Очистити пошук",
     backToTop: "Нагору",
     contactTitle: "Залишилось питання?",
-    contactBody: "Підтримка в Telegram @movematch · новини в X.",
+    contactBody: "Підтримка в Telegram @form8football · новини в X.",
     contactCta: "Написати в",
-    contactHref: "https://t.me/movematch",
+    contactHref: "https://t.me/form8football",
     replayGuideTitle: "Вперше тут?",
     replayGuideBody:
       "Увімкни коротку інструкцію на головній — що таке фентезі, як зібрати склад і як працюють призи.",
@@ -2685,7 +2686,7 @@ export const pagesUk: PagesMessages = {
                 type: "ul",
                 items: [
                   "Увійди через Google, email або Solana-гаманець (Phantom / Solflare / Jupiter).",
-                  "Підготуй USDC на внесок (сума на головному екрані) і трохи SOL на комісії.",
+                  "Підготуй USDC на внесок (сума на головному екрані). Мережеві комісії спонсоруються — SOL для реєстрації не потрібен.",
                   "На головному екрані обери 11 в основі + 3 запасних. Максимум 3 з однієї команди.",
                   "Підтверди склад і підпиши. Після дедлайну склад заблоковано.",
                 ],
@@ -2696,7 +2697,7 @@ export const pagesUk: PagesMessages = {
             id: "entry-cost",
             q: "Скільки коштує участь у турі?",
             a: [
-              { type: "p", text: "Точна сума видно при реєстрації — зараз 5 USDC за тур. Внески формують призовий фонд туру (мінус невелика технічна частка)." },
+              { type: "p", text: "Точна сума видно при реєстрації — зараз 5 USDC за тур. 80% ($4) йде в призовий фонд туру; 20% ($1) — комісія платформи." },
             ],
           },
           {
@@ -2758,8 +2759,9 @@ export const pagesUk: PagesMessages = {
             id: "how-much-can-i-win",
             q: "Як ділиться призовий фонд?",
             a: [
-              { type: "p", text: "Фонд = внески туру (мінус невелика технічна частка). Топ-10 ділять: 1 місце 30%, 2 — 20%, 3 — 15%, далі 8% → 2% до 10-го." },
-              { type: "p", text: "Живий розмір фонду — на екрані піку; клейм — на Лідерборді після резолву." },
+              { type: "p", text: "Фонд = 80% внесків туру. При 10+ менеджерах топ-10 ділять: 1 місце 30%, 2 — 20%, 3 — 15%, далі 8% → 2% до 10-го." },
+              { type: "p", text: "Якщо менеджерів менше ніж 10, діє округлена таблиця часток на весь фонд (наприклад 3 менеджери → 50/30/20). З 10 менеджерів стандартна сітка фіксується і більше не змінюється." },
+              { type: "p", text: "Живий розмір фонду й прогноз на 1 місце — на екрані піку; клейм — на Лідерборді після резолву." },
             ],
           },
           {
@@ -2825,7 +2827,7 @@ export const pagesUk: PagesMessages = {
             id: "is-it-scam",
             q: "Як зрозуміти, що це не шахрайство?",
             a: [
-              { type: "p", text: "Склади, фонд, очки й виплати фіксуються в Solana і перевіряються в публічному експлорері. Адмін не може переписати заблокований склад чи тихо забрати фонд." },
+              { type: "p", text: "Склади, фонд, очки й виплати фіксуються в Solana. Program ID: A8UiSCd5yzhpZZwmop6k5upLVxUhDZq3x9pq7SfwoKN5 — перевіряй на Solscan (solscan.io). Адмін не може переписати заблокований склад; клейми йдуть з ончейн treasury за опублікованим results root, а не як вільне зняття частки переможців." },
             ],
           },
           {
@@ -2839,7 +2841,7 @@ export const pagesUk: PagesMessages = {
             id: "what-if-bug",
             q: "Що якщо баг і я втрачу внесок?",
             a: [
-              { type: "p", text: "Грай на суми, які готовий ризикнути. Підтверджений баг у нашій логіці — повертаємо. Контакт: Telegram @movematch." },
+              { type: "p", text: "Грай на суми, які готовий ризикнути. Підтверджений баг у нашій логіці — повертаємо. Контакт: Telegram @form8football." },
             ],
           },
           {

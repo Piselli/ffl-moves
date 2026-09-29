@@ -144,8 +144,11 @@ export function LeaderboardTable({
   }, [gameweekId, isPreview]);
 
   const colCount = showSquadView ? 6 : 5;
-  const prizeRankCap = gameweekId > 0 ? getPrizeRankCount(gameweekId) : DEFAULT_PRIZE_TIERS.length;
-  const prizeTiers = gameweekId > 0 ? getPrizeTiers(gameweekId) : DEFAULT_PRIZE_TIERS;
+  const entryCount = results.length;
+  const prizeRankCap =
+    gameweekId > 0 ? getPrizeRankCount(gameweekId, entryCount) : DEFAULT_PRIZE_TIERS.length;
+  const prizeTiers =
+    gameweekId > 0 ? getPrizeTiers(gameweekId, entryCount) : DEFAULT_PRIZE_TIERS;
 
   const canExpandRow = (rank: number, owner: string) =>
     showSquadView &&

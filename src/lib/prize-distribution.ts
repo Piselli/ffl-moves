@@ -60,23 +60,77 @@ const TOUR_PRIZE_OVERRIDES: Readonly<Record<number, readonly PrizeTier[]>> = {
   [WC_QF_TOUR_ID]: WC_QF_PRIZE_TIERS,
 };
 
-export function getPrizeTiers(gameweekId: number): readonly PrizeTier[] {
-  return TOUR_PRIZE_OVERRIDES[gameweekId] ?? DEFAULT_PRIZE_TIERS;
+/** Default top-10 grid locks once this many managers have entered (EPL only). */
+export const PRIZE_TIER_LOCK_ENTRIES = DEFAULT_PRIZE_TIERS.length;
+
+export function hasFixedPrizeTiers(gameweekId: number): boolean {
+  return Object.prototype.hasOwnProperty.call(TOUR_PRIZE_OVERRIDES, gameweekId);
 }
 
-export function getPrizeRankCount(gameweekId: number): number {
-  return getPrizeTiers(gameweekId).length;
+/**
+ * Rounded EPL share tables for N &lt; 10 (multiples of 5 where possible, sum 100).
+ * Avoids fractional renormalization like 46/31/23 → ugly $5.52 payouts.
+ * At N ≥ 10 the locked {@link DEFAULT_PRIZE_TIERS} grid is used.
+ */
+const ROUNDED_TIERS_BY_ENTRY_COUNT: Readonly<Record<number, readonly number[]>> = {
+  1: [100],
+  2: [75, 25],
+  3: [50, 30, 20],
+  4: [50, 25, 15, 10],
+  5: [40, 25, 15, 10, 10],
+  6: [35, 25, 15, 10, 10, 5],
+  7: [30, 25, 15, 10, 10, 5, 5],
+  8: [30, 20, 15, 10, 10, 5, 5, 5],
+  9: [30, 20, 15, 10, 5, 5, 5, 5, 5],
+};
+
+function tiersFromPercents(pcts: readonly number[]): readonly PrizeTier[] {
+  return pcts.map((pct, i) => ({ rank: i + 1, pct }));
 }
 
-export function isRankInPrizeZone(rank: number, gameweekId: number): boolean {
-  return rank >= 1 && rank <= getPrizeRankCount(gameweekId);
+/**
+ * When fewer than {@link PRIZE_TIER_LOCK_ENTRIES} managers enter, use a rounded
+ * share table so the full pool is paid out without fractional % like 46/31/23.
+ * At N ≥ 10 the default top-10 grid is returned unchanged.
+ */
+export function scaleDefaultTiersToEntryCount(entryCount: number): readonly PrizeTier[] {
+  const n = Math.min(Math.max(0, Math.floor(entryCount)), DEFAULT_PRIZE_TIERS.length);
+  if (n <= 0) return [];
+  if (n >= DEFAULT_PRIZE_TIERS.length) return DEFAULT_PRIZE_TIERS;
+  const pcts = ROUNDED_TIERS_BY_ENTRY_COUNT[n];
+  return pcts ? tiersFromPercents(pcts) : DEFAULT_PRIZE_TIERS.slice(0, n);
 }
 
-export function getPrizeRecalcArgs(gameweekId: number): {
+/**
+ * Settlement / UI prize grid for a tour.
+ * WC tours with fixed overrides ignore `entryCount`.
+ * EPL (default grid): pass live entry count so N &lt; 10 uses rounded tables; omit it to show the locked top-10 table.
+ */
+export function getPrizeTiers(gameweekId: number, entryCount?: number): readonly PrizeTier[] {
+  const override = TOUR_PRIZE_OVERRIDES[gameweekId];
+  if (override) return override;
+  if (entryCount != null && entryCount > 0) {
+    return scaleDefaultTiersToEntryCount(entryCount);
+  }
+  return DEFAULT_PRIZE_TIERS;
+}
+
+export function getPrizeRankCount(gameweekId: number, entryCount?: number): number {
+  return getPrizeTiers(gameweekId, entryCount).length;
+}
+
+export function isRankInPrizeZone(rank: number, gameweekId: number, entryCount?: number): boolean {
+  return rank >= 1 && rank <= getPrizeRankCount(gameweekId, entryCount);
+}
+
+export function getPrizeRecalcArgs(
+  gameweekId: number,
+  entryCount?: number,
+): {
   prizeRanks: number[];
   prizePercentages: number[];
 } {
-  const tiers = getPrizeTiers(gameweekId);
+  const tiers = getPrizeTiers(gameweekId, entryCount);
   return {
     prizeRanks: tiers.map((t) => t.rank),
     prizePercentages: tiers.map((t) => t.pct),
@@ -120,7 +174,8 @@ export function allocatePrizes<Owner>(
   standings: readonly Standing<Owner>[],
   gameweekId: number,
 ): PrizeAward<Owner>[] {
-  const tiers = getPrizeTiers(gameweekId);
+  // Entry count drives EPL renormalization when N < 10; WC overrides ignore it.
+  const tiers = getPrizeTiers(gameweekId, standings.length);
   const sorted = [...standings].sort((a, b) => b.finalPoints - a.finalPoints);
   const awards: PrizeAward<Owner>[] = [];
 

@@ -444,7 +444,7 @@ const uk: SiteMessages = {
     failed: "Не вдалося вивести. Перевір баланс і спробуй ще раз.",
   },
   footer: {
-    socialHint: "Питання й баги — у Telegram @movematch. Новини туру та оновлення — у X.",
+    socialHint: "Питання й баги — у Telegram @form8football. Новини туру та оновлення — у X.",
     socialHintShort: "Питання в Telegram · новини в X",
     socialAria: "FORM8 на X (Twitter)",
   },
@@ -774,7 +774,7 @@ const en: SiteMessages = {
     failed: "Withdraw failed. Check your balance and try again.",
   },
   footer: {
-    socialHint: "Questions and bugs — Telegram @movematch. Gameweek news and updates — on X.",
+    socialHint: "Questions and bugs — Telegram @form8football. Gameweek news and updates — on X.",
     socialHintShort: "Questions on Telegram · news on X",
     socialAria: "FORM8 on X (Twitter)",
   },

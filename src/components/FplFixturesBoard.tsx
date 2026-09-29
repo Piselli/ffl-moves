@@ -7,6 +7,10 @@ import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
 import type { PagesMessages } from "@/i18n/pages";
 import type { SiteLocale } from "@/i18n/types";
+import {
+  formatKickoffTimeUtcLabeled,
+  formatMatchDayLongUtc,
+} from "@/lib/kickoffFormat";
 import { cn } from "@/lib/utils";
 
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -42,16 +46,8 @@ function fixtureStatus(f: FplFixture): Status {
   return "upcoming";
 }
 
-function localeTag(locale: SiteLocale): string {
-  return locale === "uk" ? "uk-UA" : "en-GB";
-}
-
 function formatKickoffTime(iso: string | null, locale: SiteLocale): string {
-  if (!iso || !Number.isFinite(Date.parse(iso))) return "TBC";
-  return new Intl.DateTimeFormat(localeTag(locale), {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
+  return formatKickoffTimeUtcLabeled(iso, locale);
 }
 
 function TeamCrest({
@@ -134,7 +130,7 @@ function MatchRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] items-center gap-x-4 px-4 py-3.5 sm:gap-x-5 sm:px-5",
+        "grid grid-cols-[minmax(0,1fr)_5.75rem_minmax(0,1fr)] items-center gap-x-4 px-4 py-3.5 sm:gap-x-5 sm:px-5",
         status === "live" && "bg-white/[0.025]",
       )}
     >
@@ -281,18 +277,13 @@ export function FplFixturesBoard({
 
   if (!data) return null;
 
-  const localeTagStr = localeTag(locale);
   const groups: { date: string; matches: FplFixture[] }[] = [];
   const groupIndex = new Map<string, FplFixture[]>();
 
   for (const fxMatch of data.fixtures) {
     const key =
       fxMatch.kickoffTime != null
-        ? new Date(fxMatch.kickoffTime).toLocaleDateString(localeTagStr, {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })
+        ? formatMatchDayLongUtc(fxMatch.kickoffTime, locale)
         : fx.dateTbc;
     const bucket = groupIndex.get(key);
     if (bucket) bucket.push(fxMatch);

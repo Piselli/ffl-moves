@@ -63,8 +63,8 @@ export const SOCIAL_X_URL = "https://x.com/Form8HQ";
 export const SOCIAL_X_HANDLE = "@Form8HQ";
 
 /** Official Telegram channel — questions, bugs, support. */
-export const SOCIAL_TG_URL = "https://t.me/movematch";
-export const SOCIAL_TG_HANDLE = "@movematch";
+export const SOCIAL_TG_URL = "https://t.me/form8football";
+export const SOCIAL_TG_HANDLE = "@form8football";
 
 /** Solana deployment settings. Only public values belong in NEXT_PUBLIC_* variables. */
 export const SOLANA_CLUSTER =

@@ -32,17 +32,20 @@ export function deadlineRawToUtcMs(raw: string | number): number {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
-/** Same wall-clock line as the matches header; locale picks formatting. */
+/** Same wall-clock line as the matches header; always UTC with an explicit zone label. */
 export function formatFplDeadlineLocale(raw: string | number, locale: "en" | "uk"): string {
   const ms = deadlineRawToUtcMs(raw);
   if (!Number.isFinite(ms)) return "—";
   const tag = locale === "uk" ? "uk-UA" : "en-GB";
-  return new Date(ms).toLocaleString(tag, {
+  const stamp = new Date(ms).toLocaleString(tag, {
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
   });
+  return `${stamp} UTC`;
 }
 
 /** @deprecated Use `formatFplDeadlineLocale(raw, "uk")` */
