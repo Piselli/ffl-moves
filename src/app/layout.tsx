@@ -20,6 +20,7 @@ const siteDescription =
   "Build your EPL squad from live gameweek stats, compete for the top 10, and earn USDC prizes on Solana.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.form8.football"),
   title: {
     default: siteTitle,
     template: "%s · FORM8",
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     alternateLocale: ["uk_UA"],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
     site: "@Form8HQ",

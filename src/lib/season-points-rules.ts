@@ -236,7 +236,7 @@ export const SEASON_POINTS_RULE_ROWS = [
   { key: "rank1", points: SP_TOP_RANK[1], labelEn: "1st place finish", labelUk: "1-ше місце" },
   { key: "rank2", points: SP_TOP_RANK[2], labelEn: "2nd place finish", labelUk: "2-ге місце" },
   { key: "rank3", points: SP_TOP_RANK[3], labelEn: "3rd place finish", labelUk: "3-тє місце" },
-  { key: "rank4_10", points: null, labelEn: "4th–10th place (25–100 SP by rank)", labelUk: "4–10 місце (25–100 SP залежно від місця)" },
+  { key: "rank4_10", points: null, labelEn: "4th–10th place (25–100 XP by rank)", labelUk: "4–10 місце (25–100 XP залежно від місця)" },
   { key: "streak2", points: SP_STREAK_TIERS[2].bonus, labelEn: "2-event streak (per event)", labelUk: "Стрік 2 події (за кожну)" },
   { key: "streak3", points: SP_STREAK_TIERS[1].bonus, labelEn: "3-event streak (per event)", labelUk: "Стрік 3 події (за кожну)" },
   { key: "streak4", points: SP_STREAK_CAP, labelEn: "4+ event streak — flat cap (per event)", labelUk: "Стрік 4+ події — стеля (за кожну)" },

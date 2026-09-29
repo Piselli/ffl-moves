@@ -30,20 +30,33 @@ export function toU64Stat(v: unknown): number {
 /**
  * Best-effort text for wallet / RPC errors. Anchor puts the useful part in
  * simulation `logs`, which most wallets drop from `message`.
- * Keeps the string short so UI never dumps raw Solana log spam.
+ * Never dumps stacks or raw JSON at users.
  */
 export function formatTxError(error: unknown): string {
-  if (error == null) return "Unknown error";
-  if (typeof error === "string") return truncate(error, 280);
+  if (error == null) return "Something went wrong. Please try again.";
+  if (typeof error === "string") {
+    return humanizeTxMessage(truncate(error, 280));
+  }
 
   const e = error as Record<string, unknown>;
+  const name = String(
+    (error instanceof Error ? error.name : "") || e.name || e.code || "",
+  );
+  const rawMessage =
+    error instanceof Error && error.message
+      ? error.message
+      : typeof e.message === "string"
+        ? e.message
+        : typeof e.error === "string"
+          ? e.error
+          : "";
+
   const logs = Array.isArray(e.logs) ? (e.logs as unknown[]).map(String) : null;
   const programError = logs?.find((l) => /Error Message:/i.test(l));
-  const rentFail = logs?.some(
-    (l) => /InsufficientFundsForRent/i.test(l),
-  )
-    || /InsufficientFundsForRent/i.test(String(e.message ?? ""))
-    || (e.err != null && /InsufficientFundsForRent/i.test(JSON.stringify(e.err)));
+  const rentFail =
+    logs?.some((l) => /InsufficientFundsForRent/i.test(l)) ||
+    /InsufficientFundsForRent/i.test(rawMessage) ||
+    (e.err != null && /InsufficientFundsForRent/i.test(JSON.stringify(e.err)));
 
   if (rentFail) {
     return "Account rent top-up was short. Please try Confirm again.";
@@ -52,31 +65,57 @@ export function formatTxError(error: unknown): string {
     return programError.replace(/^.*Error Message:\s*/i, "").trim();
   }
 
-  const base =
-    error instanceof Error && error.message
-      ? error.message
-      : typeof e.message === "string" && e.message
-        ? e.message
-        : safeStringify(error);
-
-  return truncate(
-    base
+  const blob = `${name}\n${rawMessage}`.toLowerCase();
+  if (
+    /user rejected|user denied|rejected the request|cancelled|canceled|approval.*denied/i.test(
+      blob,
+    )
+  ) {
+    return "Transaction cancelled in your wallet.";
+  }
+  if (/insufficient|not enough|0x1\b/i.test(blob)) {
+    return "Not enough USDC for the entry fee. Deposit and try again.";
+  }
+  if (/blockhash|expired|timed out|timeout|network|fetch failed|429|503/i.test(blob)) {
+    return "Network hiccup — wait a moment and try again.";
+  }
+  if (/WalletSendTransactionError|SendTransactionError|WalletSign/i.test(name + rawMessage)) {
+    // Prefer a short wallet message when present; otherwise a calm fallback.
+    const cleaned = rawMessage
       .split(/Logs:\s*\[/i)[0]
       .replace(/\s*Catch the 'SendTransactionError'[\s\S]*$/i, "")
-      .trim(),
-    280,
-  );
+      .replace(/^WalletSendTransactionError:?\s*/i, "")
+      .trim();
+    if (cleaned && cleaned.length < 160 && !/^\s*\{/.test(cleaned) && !/at\s+\w+/.test(cleaned)) {
+      return humanizeTxMessage(cleaned);
+    }
+    return "Wallet couldn’t send the transaction.\nCheck the wallet popup, then try again.";
+  }
+
+  if (rawMessage) {
+    const cleaned = rawMessage
+      .split(/Logs:\s*\[/i)[0]
+      .replace(/\s*Catch the 'SendTransactionError'[\s\S]*$/i, "")
+      .trim();
+    // Never surface stack traces / stringified error objects.
+    if (/^\s*\{/.test(cleaned) || /\n\s*at\s+/.test(cleaned) || /"stack"\s*:/.test(cleaned)) {
+      return "Registration failed. Please try again.";
+    }
+    return humanizeTxMessage(truncate(cleaned, 220));
+  }
+
+  return "Registration failed. Please try again.";
+}
+
+function humanizeTxMessage(msg: string): string {
+  const m = msg.trim();
+  if (!m) return "Registration failed. Please try again.";
+  if (/user rejected|user denied|rejected the request/i.test(m)) {
+    return "Transaction cancelled in your wallet.";
+  }
+  return m;
 }
 
 function truncate(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max)}…` : s;
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    const s = JSON.stringify(value, Object.getOwnPropertyNames(value as object), 2);
-    return s.length > 1800 ? `${s.slice(0, 1800)}…` : s;
-  } catch {
-    return String(value);
-  }
 }

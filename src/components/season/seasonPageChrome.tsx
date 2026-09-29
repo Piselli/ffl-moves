@@ -56,7 +56,7 @@ export function SeasonPageHeader({
         {myEntry && !compact ? (
           <p className="hidden text-right text-[11px] tabular-nums text-white/45 sm:block">
             <span className="font-display text-lg font-black text-white">{myEntry.totalPoints}</span>
-            <span className="text-white/30"> SP · </span>#{myEntry.rank}
+            <span className="text-white/30"> XP · </span>#{myEntry.rank}
           </p>
         ) : null}
 

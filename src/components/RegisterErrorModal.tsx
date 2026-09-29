@@ -85,6 +85,7 @@ export function RegisterErrorModal({
             animate={reduce ? { opacity: 1 } : { y: 0 }}
             exit={reduce ? { opacity: 0 } : { y: "110%" }}
             transition={reduce ? { duration: 0.16 } : SHEET_SPRING}
+            onWheel={(e) => e.stopPropagation()}
           >
             <div className="rounded-2xl bg-[#080a0e]">
               <GlassPanel
@@ -100,7 +101,10 @@ export function RegisterErrorModal({
                 >
                   {g.registerErrorTitle}
                 </h2>
-                <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed text-white/55">
+                <p
+                  className="mt-2 max-h-40 overflow-y-auto overscroll-contain whitespace-pre-line text-sm leading-relaxed text-white/55"
+                  onWheel={(e) => e.stopPropagation()}
+                >
                   {message}
                 </p>
                 <motion.button

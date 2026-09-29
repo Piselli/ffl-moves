@@ -17,6 +17,7 @@ import { useNickname } from "@/hooks/useNickname";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
+import { LegalMicroStrip } from "@/components/legal/LegalMicroStrip";
 import { cn, shortenAddress } from "@/lib/utils";
 import {
   NAV_TRAY_BTN,
@@ -446,6 +447,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 {m.nav.language}
               </span>
               <LanguageSwitcher embedded />
+            </div>
+            <div className="mt-1 border-t border-white/10 px-2 pb-1 pt-3">
+              <LegalMicroStrip compact />
             </div>
             {connected ? (
               <>

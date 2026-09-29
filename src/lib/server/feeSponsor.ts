@@ -81,8 +81,22 @@ const ALLOWED_MOVEMATCH_IX = new Set([
   anchorDisc("claim_prize"),
 ]);
 
+const REGISTER_TEAM_DISC = anchorDisc("register_team");
+
 function discHex(data: Uint8Array): string {
   return Buffer.from(data.slice(0, 8)).toString("hex");
+}
+
+/** Wallets signing a sponsored `register_team` (empty if claim-only / other). */
+export function findRegisterTeamOwners(tx: Transaction): string[] {
+  const owners: string[] = [];
+  for (const ix of tx.instructions) {
+    if (!ix.programId.equals(PROGRAM_ID)) continue;
+    if (discHex(ix.data) !== REGISTER_TEAM_DISC) continue;
+    const owner = ix.keys[2]?.pubkey;
+    if (owner) owners.push(owner.toBase58());
+  }
+  return owners;
 }
 
 /**

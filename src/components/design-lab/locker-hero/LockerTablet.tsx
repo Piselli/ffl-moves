@@ -1702,18 +1702,6 @@ export function LockerTablet({
                   className="absolute bottom-0 left-1/2 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-t-2"
                   style={{ borderColor: pitch.chalk }}
                 />
-                <div
-                  className="absolute left-1/2 top-[14%] h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                  style={{ background: pitch.chalk }}
-                />
-                <div
-                  className="absolute bottom-[14%] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                  style={{ background: pitch.chalk }}
-                />
-                <div
-                  className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                  style={{ background: pitch.chalk }}
-                />
                 {/* corner arcs (approx) */}
                 <div
                   className="absolute left-0 top-0 h-3 w-3 rounded-br-full border-b-2 border-r-2"

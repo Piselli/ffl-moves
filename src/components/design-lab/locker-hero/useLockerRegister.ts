@@ -21,6 +21,7 @@ import { trackReferralConversion } from "@/lib/referralClient";
 import { claimInviteConversion } from "@/lib/inviteClient";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { Player } from "@/lib/types";
+import { useLegalAttestation } from "@/hooks/useLegalAttestation";
 
 export function useLockerRegister(opts: {
   starters: (Player | null)[];
@@ -44,6 +45,8 @@ export function useLockerRegister(opts: {
   const { openDeposit, refreshBalance } = useDeposit();
   const { openLogin } = useLogin();
   const g = useSiteMessages().pages.gameweek;
+  const legal = useLegalAttestation(connected ? account?.address ?? null : null);
+  const [attestOpen, setAttestOpen] = useState(false);
 
   const [entryFeeRaw, setEntryFeeRaw] = useState<bigint>(5_000_000n);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -146,7 +149,7 @@ export function useLockerRegister(opts: {
       ? null
       : g.submitNeedProgress(filledCount, FORMATION.TOTAL);
 
-  const register = useCallback(async () => {
+  const register = useCallback(async (opts?: { attested?: boolean }) => {
     setHint(null);
     setErrorOpen(false);
 
@@ -161,6 +164,11 @@ export function useLockerRegister(opts: {
     }
     if (!isReadyToRegister) {
       if (!hasCaptain) setHint(g.submitNeedCaptain);
+      return;
+    }
+
+    if (legal.needsAttest && !opts?.attested) {
+      setAttestOpen(true);
       return;
     }
 
@@ -227,6 +235,7 @@ export function useLockerRegister(opts: {
     hasExternalWallet,
     gameweekId,
     isReadyToRegister,
+    legal.needsAttest,
     onRegistered,
     openLogin,
     refreshBalance,
@@ -236,13 +245,21 @@ export function useLockerRegister(opts: {
     submitting,
   ]);
 
+  const confirmAttestation = useCallback(async () => {
+    if (!legal.checked) return;
+    const ok = await legal.ensureAccepted();
+    if (!ok) return;
+    setAttestOpen(false);
+    await register({ attested: true });
+  }, [legal, register]);
+
   return {
     ctaLabel,
     ctaFeeSubline,
     ctaProgress,
     needsLogin: !connected && isReadyToRegister,
     register,
-    submitting,
+    submitting: submitting || legal.saving,
     alreadyRegistered,
     hint,
     feeLabel,
@@ -257,5 +274,11 @@ export function useLockerRegister(opts: {
     registeredStarters,
     registeredBench,
     gameweekId,
+    attestOpen,
+    setAttestOpen,
+    legalChecked: legal.checked,
+    setLegalChecked: legal.setChecked,
+    confirmAttestation,
+    legalSaving: legal.saving,
   };
 }

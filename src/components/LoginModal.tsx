@@ -342,11 +342,21 @@ function LoginPlaqueBody({
       ) : null}
 
       <p className={cn("mt-8 text-center", theme.footerClass)}>
-        <Link href="/faq" className="transition-colors hover:text-white">
+        <Link
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-white"
+        >
           {m.nav.loginTerms}
         </Link>
         <span className="mx-1.5 opacity-50">•</span>
-        <Link href="/faq" className="transition-colors hover:text-white">
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-white"
+        >
           {m.nav.loginPrivacy}
         </Link>
       </p>

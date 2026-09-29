@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { Transaction } from "@solana/web3.js";
 import {
   completeSponsoredSend,
+  findRegisterTeamOwners,
   isFeeSponsorConfigured,
 } from "@/lib/server/feeSponsor";
+import { hasAcceptedCurrentLegal } from "@/lib/legal/acceptanceStore";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -51,6 +54,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const tx = Transaction.from(bytes);
+    const registerOwners = findRegisterTeamOwners(tx);
+    for (const wallet of registerOwners) {
+      if (!(await hasAcceptedCurrentLegal(wallet))) {
+        return NextResponse.json(
+          {
+            error: "Legal attestation required before entry.",
+            code: "LEGAL_NOT_ACCEPTED",
+          },
+          { status: 403 },
+        );
+      }
+    }
+
     const result = await completeSponsoredSend(bytes);
     return NextResponse.json(result);
   } catch (err) {

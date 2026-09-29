@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MOVEMATCH_PROGRAM_ID, SOLANA_CLUSTER, SOLANA_RPC_URL } from "@/lib/constants";
 
-/** Shows effective chain env in dev so misconfigured .env.local is obvious. */
+/** Shows effective chain env in local `next dev` only — never ships in production builds. */
 export function DevChainBanner() {
   if (process.env.NODE_ENV !== "development") return null;
 

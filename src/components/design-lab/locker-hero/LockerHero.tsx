@@ -25,6 +25,8 @@ import { useLockerRegister } from "./useLockerRegister";
 import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { RegisterErrorModal } from "@/components/RegisterErrorModal";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
+import { LegalMicroStrip } from "@/components/legal/LegalMicroStrip";
+import { LegalAttestModal } from "@/components/legal/LegalAttestModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
 import { FPL_SPRITE_URL } from "@/lib/fpl-photo-atlas";
@@ -343,6 +345,18 @@ export function LockerHero({
   }, [data.players, data.playersLoading, squad.filledCount, squad.randomize]);
 
   useEffect(() => {
+    if (!isSite) return;
+    try {
+      if (new URLSearchParams(window.location.search).has("attest")) {
+        register.setAttestOpen(true);
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot preview via ?attest=1
+  }, [isSite]);
+
+  useEffect(() => {
     if (layoutMode !== "flat") return;
     setTabletReady(true);
   }, [layoutMode]);
@@ -350,6 +364,8 @@ export function LockerHero({
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (flatPicker || pointerInTablet) return;
+      // Modals (register error, legal attest, etc.) — don't lower the iPad.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       if (Math.abs(e.deltaY) < 6) return;
       if (e.deltaY > 0) {
         setTabletRaised(false);
@@ -640,6 +656,14 @@ export function LockerHero({
         message={register.errorMessage}
         onClose={() => register.setErrorOpen(false)}
       />
+      <LegalAttestModal
+        open={register.attestOpen}
+        checked={register.legalChecked}
+        onCheckedChange={register.setLegalChecked}
+        onConfirm={() => void register.confirmAttestation()}
+        onClose={() => register.setAttestOpen(false)}
+        busy={register.legalSaving}
+      />
       <ShareSquadOnXModal
         open={register.shareOpen}
         onClose={() => register.setShareOpen(false)}
@@ -658,6 +682,12 @@ export function LockerHero({
           reduceMotion={Boolean(reduceMotion)}
           onFadeComplete={() => setBootMounted(false)}
         />
+      ) : null}
+
+      {isSite && !flatPicker ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[55] hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent md:block">
+          <LegalMicroStrip className="pointer-events-auto mx-auto max-w-3xl drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]" />
+        </div>
       ) : null}
     </div>
   );

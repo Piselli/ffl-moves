@@ -11,6 +11,7 @@ import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { SeasonPageWash } from "@/components/season/seasonPageChrome";
 import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
 import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
+import { LegalMicroStrip } from "@/components/legal/LegalMicroStrip";
 import type { FaqAnswerBlock, FaqCategory, FaqCategoryId, FaqItem } from "@/i18n/pages";
 
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -377,6 +378,7 @@ export default function FaqPage() {
           </GlassPanel>
         </div>
 
+        <LegalMicroStrip className="mt-10 pb-2" />
       </main>
 
       <AnimatePresence>
