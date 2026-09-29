@@ -52,15 +52,12 @@ const META: Record<
 export function buildLegalMetadata(slug: LegalSlug): Metadata {
   const en = META[slug].en;
   const path = `/${slug}`;
+  const ogImage = `${LEGAL_SITE_URL}/opengraph-image`;
   return {
     title: en.title,
     description: en.description,
     alternates: {
       canonical: `${LEGAL_SITE_URL}${path}`,
-      languages: {
-        en: `${LEGAL_SITE_URL}${path}`,
-        uk: `${LEGAL_SITE_URL}${path}`,
-      },
     },
     openGraph: {
       title: `${en.title} — Form8`,
@@ -69,13 +66,14 @@ export function buildLegalMetadata(slug: LegalSlug): Metadata {
       siteName: "FORM8",
       type: "website",
       locale: "en_US",
-      alternateLocale: ["uk_UA"],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: "FORM8" }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${en.title} — Form8`,
       description: en.description,
       site: "@Form8HQ",
+      images: [ogImage],
     },
   };
 }

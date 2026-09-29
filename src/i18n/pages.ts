@@ -1706,7 +1706,7 @@ export const pagesEn: PagesMessages = {
             ],
           },
           {
-            id: "what-is-movement",
+            id: "what-is-solana",
             q: "What is Solana and what is USDC?",
             a: [
               { type: "p", text: "Solana is the network FORM8 runs on — fast, with tiny fees. USDC is a dollar stablecoin (~$1). Entry fees and prizes are in USDC." },
@@ -2803,7 +2803,7 @@ export const pagesUk: PagesMessages = {
             ],
           },
           {
-            id: "what-is-movement",
+            id: "what-is-solana",
             q: "Що таке Solana і USDC?",
             a: [
               { type: "p", text: "Solana — мережа, на якій працює FORM8: швидко й з мізерними комісіями. USDC — стейблкоїн ≈ $1. Внески й призи — в USDC." },

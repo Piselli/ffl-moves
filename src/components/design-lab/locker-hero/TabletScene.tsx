@@ -584,11 +584,7 @@ export function TabletScene(props: Props) {
             transition: props.reduceMotion
               ? "none"
               : `opacity ${CROSSFADE_MS}ms ease-out`,
-            pointerEvents: webglLive
-              ? "none"
-              : props.raised
-                ? "auto"
-                : "none",
+            pointerEvents: "none",
             zIndex: canvasVisible ? 1 : 2,
           }}
         >
@@ -614,8 +610,9 @@ export function TabletScene(props: Props) {
           transition: props.reduceMotion
             ? "none"
             : `opacity ${CROSSFADE_MS}ms ease-out`,
-          pointerEvents:
-            !canvasVisible || !props.raised ? "none" : "auto",
+          // Full-viewport shell never captures clicks — only the iPad frame does.
+          // Otherwise transparent empty space blocks LegalMicroStrip / room scroll.
+          pointerEvents: "none",
           perspective: "1400px",
           perspectiveOrigin: placement === "desk" ? "50% 58%" : "50% 38%",
           zIndex: 2,
@@ -625,6 +622,8 @@ export function TabletScene(props: Props) {
         <div
           className={`relative ${IPAD_FRAME_SIZE}`}
           style={{
+            pointerEvents:
+              !canvasVisible || !props.raised ? "none" : "auto",
             transform: canvasTabletTransform(placement, props.raised),
             transformOrigin: placement === "desk" ? "50% 85%" : "50% 50%",
             // Never animate transform on first reveal — only on raise/lower after live.

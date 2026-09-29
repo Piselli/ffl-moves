@@ -167,7 +167,9 @@ export function useLockerRegister(opts: {
       return;
     }
 
-    if (legal.needsAttest && !opts?.attested) {
+    // Wait for Redis check — never let payment race past an unfinished lookup.
+    if (legal.loading) return;
+    if ((!legal.accepted || legal.needsAttest) && !opts?.attested) {
       setAttestOpen(true);
       return;
     }
@@ -235,6 +237,8 @@ export function useLockerRegister(opts: {
     hasExternalWallet,
     gameweekId,
     isReadyToRegister,
+    legal.accepted,
+    legal.loading,
     legal.needsAttest,
     onRegistered,
     openLogin,
@@ -259,7 +263,10 @@ export function useLockerRegister(opts: {
     ctaProgress,
     needsLogin: !connected && isReadyToRegister,
     register,
-    submitting: submitting || legal.saving,
+    submitting:
+      submitting ||
+      legal.saving ||
+      (connected && legal.loading && !legal.accepted),
     alreadyRegistered,
     hint,
     feeLabel,

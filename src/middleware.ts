@@ -4,7 +4,6 @@ import {
   isDesignLabPublic,
   isDesignPreviewPublic,
   isLocalPreviewHost,
-  isPublicFlagEnabled,
 } from "@/lib/localPreviewAccess";
 
 function localOnlyRedirect(request: NextRequest): NextResponse | null {
@@ -15,6 +14,21 @@ function localOnlyRedirect(request: NextRequest): NextResponse | null {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Legacy World Cup promo — permanently gone (404 via rewrite to not-found).
+  if (pathname === "/world-cup" || pathname.startsWith("/world-cup/")) {
+    return NextResponse.rewrite(new URL("/not-found-wc", request.url));
+  }
+
+  if (pathname === "/risk-disclosure" || pathname.startsWith("/risk-disclosure/")) {
+    return NextResponse.redirect(new URL("/risk", request.url), 308);
+  }
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const blocked = localOnlyRedirect(request);
+    if (blocked) return blocked;
+    return NextResponse.next();
+  }
 
   if (pathname === "/design-lab" || pathname.startsWith("/design-lab/")) {
     const last = pathname.split("/").pop() ?? "";
@@ -34,14 +48,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/world-cup" || pathname.startsWith("/world-cup/")) {
-    if (!isPublicFlagEnabled("NEXT_PUBLIC_WC_PUBLIC_ENABLED")) {
-      const blocked = localOnlyRedirect(request);
-      if (blocked) return blocked;
-    }
-    return NextResponse.next();
-  }
-
   return NextResponse.next();
 }
 
@@ -49,6 +55,10 @@ export const config = {
   matcher: [
     "/world-cup",
     "/world-cup/:path*",
+    "/risk-disclosure",
+    "/risk-disclosure/:path*",
+    "/admin",
+    "/admin/:path*",
     "/design-lab",
     "/design-lab/:path*",
     "/design-preview",

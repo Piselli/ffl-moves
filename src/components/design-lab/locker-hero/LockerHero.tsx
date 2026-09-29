@@ -684,11 +684,7 @@ export function LockerHero({
         />
       ) : null}
 
-      {isSite && !flatPicker ? (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[55] hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent md:block">
-          <LegalMicroStrip className="pointer-events-auto mx-auto max-w-3xl drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]" />
-        </div>
-      ) : null}
+      {isSite && !flatPicker ? <LegalMicroStrip portal /> : null}
     </div>
   );
 }

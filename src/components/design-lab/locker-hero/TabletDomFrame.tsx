@@ -76,7 +76,8 @@ export function TabletDomFrame({
     <div
       className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[4vh]"
       style={{
-        pointerEvents: raised ? "auto" : "none",
+        // Shell stays inert — only the iPad frame receives clicks.
+        pointerEvents: "none",
         // Match TabletScene canvas wrapper so Dom↔WebGL crossfade doesn't jump.
         perspective: "1400px",
         perspectiveOrigin: placement === "desk" ? "50% 58%" : "50% 38%",
@@ -85,6 +86,7 @@ export function TabletDomFrame({
       <div
         className={IPAD_FRAME_SIZE}
         style={{
+          pointerEvents: raised ? "auto" : "none",
           transform: domTabletTransform(
             placement,
             raised,

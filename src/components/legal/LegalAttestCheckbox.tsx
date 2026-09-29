@@ -45,14 +45,16 @@ export function LegalAttestCheckbox({ checked, onChange, className }: Props) {
       <span className="text-[11px] font-medium leading-snug text-white/60">
         {uk ? (
           <>
-            Мені 18+ (21+ де вимагається, зокрема в Україні), я не в обмеженій країні і
+            Мені 18+ (21+ де вимагається, зокрема в Україні), я не в{" "}
+            <DocLink href="/terms#3-restricted-jurisdictions">обмеженій країні</DocLink> і
             погоджуюсь з <DocLink href="/terms">Умовами</DocLink>,{" "}
             <DocLink href="/privacy">Політикою конфіденційності</DocLink> та{" "}
             <DocLink href="/risk">Розкриттям ризиків</DocLink>.
           </>
         ) : (
           <>
-            I&apos;m 18+ (21+ where required, incl. Ukraine), not in a restricted country, and I
+            I&apos;m 18+ (21+ where required, incl. Ukraine), not in a{" "}
+            <DocLink href="/terms#3-restricted-jurisdictions">restricted country</DocLink>, and I
             agree to the <DocLink href="/terms">Terms</DocLink>,{" "}
             <DocLink href="/privacy">Privacy Policy</DocLink> and{" "}
             <DocLink href="/risk">Risk Disclosure</DocLink>.

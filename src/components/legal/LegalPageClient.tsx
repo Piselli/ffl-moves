@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useSiteLocale } from "@/i18n/LocaleProvider";
 import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
@@ -62,6 +63,15 @@ export function LegalPageClient({ slug, markdownByLocale }: Props) {
   const loc = locale === "uk" ? "uk" : "en";
   const copy = PAGE[loc];
   const markdown = markdownByLocale[loc] || markdownByLocale.en;
+
+  useEffect(() => {
+    const id = window.location.hash.replace(/^#/, "");
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [markdown, slug]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#0D0F12] text-white">

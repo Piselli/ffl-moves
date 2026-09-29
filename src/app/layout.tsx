@@ -26,19 +26,32 @@ export const metadata: Metadata = {
     template: "%s · FORM8",
   },
   description: siteDescription,
+  icons: {
+    icon: [{ url: "/favicon.ico" }, { url: "/brand/form8-mark.png", type: "image/png" }],
+    apple: "/brand/form8-mark.png",
+  },
   openGraph: {
     title: siteTitle,
     description: siteDescription,
+    url: "https://www.form8.football",
     siteName: "FORM8",
     type: "website",
     locale: "en_US",
-    alternateLocale: ["uk_UA"],
+    images: [
+      {
+        url: "https://www.form8.football/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "FORM8 — Premier League fantasy on Solana",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
     site: "@Form8HQ",
+    images: ["https://www.form8.football/opengraph-image"],
   },
 };
 

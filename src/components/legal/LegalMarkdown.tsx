@@ -5,10 +5,30 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 /** Page chrome already shows the document title — drop the leading `# …` from the MD body. */
 function stripLeadingH1(markdown: string): string {
   return markdown.replace(/^#[^\n]*\n+/, "");
+}
+
+function textFromChildren(children: ReactNode): string {
+  if (children == null || typeof children === "boolean") return "";
+  if (typeof children === "string" || typeof children === "number") return String(children);
+  if (Array.isArray(children)) return children.map(textFromChildren).join("");
+  if (typeof children === "object" && "props" in children) {
+    return textFromChildren((children as { props?: { children?: ReactNode } }).props?.children);
+  }
+  return "";
+}
+
+/** GitHub-style slug for deep links (e.g. #3-restricted-jurisdictions). */
+function headingId(children: ReactNode): string {
+  return textFromChildren(children)
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
 }
 
 const components: Components = {
@@ -34,22 +54,34 @@ const components: Components = {
     );
   },
   h1({ children }) {
+    const id = headingId(children);
     return (
-      <h2 className="mt-8 border-t border-white/[0.06] pt-5 font-display text-[13px] font-black uppercase tracking-[0.08em] text-white/80 first:mt-0 first:border-t-0 first:pt-0 sm:text-sm">
+      <h2
+        id={id || undefined}
+        className="mt-8 scroll-mt-24 border-t border-white/[0.06] pt-5 font-display text-[13px] font-black uppercase tracking-[0.08em] text-white/80 first:mt-0 first:border-t-0 first:pt-0 sm:text-sm"
+      >
         {children}
       </h2>
     );
   },
   h2({ children }) {
+    const id = headingId(children);
     return (
-      <h2 className="mt-8 border-t border-white/[0.06] pt-5 font-display text-[13px] font-black uppercase tracking-[0.08em] text-white/80 first:mt-0 first:border-t-0 first:pt-0 sm:text-sm">
+      <h2
+        id={id || undefined}
+        className="mt-8 scroll-mt-24 border-t border-white/[0.06] pt-5 font-display text-[13px] font-black uppercase tracking-[0.08em] text-white/80 first:mt-0 first:border-t-0 first:pt-0 sm:text-sm"
+      >
         {children}
       </h2>
     );
   },
   h3({ children }) {
+    const id = headingId(children);
     return (
-      <h3 className="mt-5 text-[13px] font-bold uppercase tracking-[0.06em] text-white/70">
+      <h3
+        id={id || undefined}
+        className="mt-5 scroll-mt-24 text-[13px] font-bold uppercase tracking-[0.06em] text-white/70"
+      >
         {children}
       </h3>
     );
