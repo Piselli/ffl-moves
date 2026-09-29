@@ -1588,7 +1588,7 @@ export const pagesEn: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Log in with Google, email, or a Solana wallet (Phantom / Solflare / Jupiter).",
+                  "Log in with email or a Solana wallet (Phantom / Solflare / Jupiter).",
                   "Get USDC for the entry fee (shown on the home screen). Network fees are sponsored — you do not need SOL to register.",
                   "On the home screen pick 11 starters + 3 bench. Max 3 players from the same club.",
                   "Confirm squad and sign. After the deadline your squad is locked.",
@@ -1694,7 +1694,7 @@ export const pagesEn: PagesMessages = {
             q: "What is a crypto wallet and why do I need one?",
             a: [
               { type: "p", text: "A wallet holds your crypto and signs actions on-chain. On FORM8 it is your account: login, entry fee, and prize claim." },
-              { type: "p", text: "You can also enter with Google or email — a wallet is still used under the hood for payments." },
+              { type: "p", text: "You can also enter with email — a wallet is still used under the hood for payments." },
             ],
           },
           {
@@ -1811,10 +1811,10 @@ export const pagesEn: PagesMessages = {
         art: "entry",
       },
       {
-        title: "Top 10 split the pool",
+        title: "Prize pool — live 1st on home",
         body: [
-          "Ranks lock in after the gameweek.",
-          "Top 10 claim on the leaderboard.",
+          "At 10+ managers: 30 / 20 / 15 … down to 10th.",
+          "Fewer managers → rounded shares so 1st stays ahead of the $5 entry.",
         ],
         art: "split",
       },
@@ -2685,7 +2685,7 @@ export const pagesUk: PagesMessages = {
               {
                 type: "ul",
                 items: [
-                  "Увійди через Google, email або Solana-гаманець (Phantom / Solflare / Jupiter).",
+                  "Увійди через email або Solana-гаманець (Phantom / Solflare / Jupiter).",
                   "Підготуй USDC на внесок (сума на головному екрані). Мережеві комісії спонсоруються — SOL для реєстрації не потрібен.",
                   "На головному екрані обери 11 в основі + 3 запасних. Максимум 3 з однієї команди.",
                   "Підтверди склад і підпиши. Після дедлайну склад заблоковано.",
@@ -2791,7 +2791,7 @@ export const pagesUk: PagesMessages = {
             q: "Що таке криптогаманець і навіщо він?",
             a: [
               { type: "p", text: "Гаманець тримає крипту і підписує дії в мережі. У FORM8 це твій акаунт: логін, внесок і отримання призу." },
-              { type: "p", text: "Можна увійти через Google або email — для платежів гаманець усе одно використовується." },
+              { type: "p", text: "Можна увійти через email — для платежів гаманець усе одно використовується." },
             ],
           },
           {
@@ -2908,10 +2908,10 @@ export const pagesUk: PagesMessages = {
         art: "entry",
       },
       {
-        title: "Топ-10 ділять пул",
+        title: "Пул — живе 1 місце на головній",
         body: [
-          "Місця фіксуються після туру.",
-          "Топ-10 забирають з лідерборду.",
+          "При 10+ менеджерах: 30 / 20 / 15 … до 10-го.",
+          "Менше менеджерів — округлені частки, щоб 1 місце було вище за внесок $5.",
         ],
         art: "split",
       },

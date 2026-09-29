@@ -82,12 +82,12 @@ function WalletLogo({
       ? def.fallbackIcon
       : row.icon || def.fallbackIcon;
   const className = cn(
-    "grid place-items-center bg-transparent transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
-    "hover:scale-[1.06] hover:brightness-110 active:scale-[0.96]",
+    "flex w-[4.5rem] flex-col items-center gap-1.5 bg-transparent transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+    "hover:scale-[1.04] hover:brightness-110 active:scale-[0.96]",
     "disabled:opacity-50",
     missing && "opacity-80",
   );
-  const inner = icon ? (
+  const iconBox = icon ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={icon}
@@ -98,9 +98,20 @@ function WalletLogo({
       )}
     />
   ) : (
-    <span className="text-[15px] font-bold text-white/70">
+    <span className="grid h-16 w-16 place-items-center rounded-[14px] bg-white/10 text-[15px] font-bold text-white/70">
       {row.displayName.slice(0, 1)}
     </span>
+  );
+  const label = (
+    <span className="max-w-[4.5rem] truncate text-center text-[10px] font-semibold leading-tight text-white/50">
+      {row.displayName}
+    </span>
+  );
+  const inner = (
+    <>
+      {iconBox}
+      {label}
+    </>
   );
 
   const motionProps = reduce
@@ -270,7 +281,7 @@ function LoginPlaqueBody({
   const demoteWallets = mobile || inApp;
 
   const walletLogos = (
-    <div className="flex items-center justify-center gap-9">
+    <div className="flex items-start justify-center gap-6 sm:gap-8">
       {walletRows.map((row, i) => (
         <WalletLogo
           key={row.walletId}

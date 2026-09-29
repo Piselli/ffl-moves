@@ -438,7 +438,7 @@ export function LockerHero({
   const gatePrizeLabel =
     data.chainLoading || data.prizePoolRaw == null
       ? "—"
-      : prize.formatHero(data.prizePoolRaw, locale === "uk" ? "uk" : "en");
+      : `${prize.formatHero(data.prizePoolRaw, locale === "uk" ? "uk" : "en")} ${prize.symbol}`;
   const gateCopy = messages.pages.lockerPick.matchdayGate;
 
   return (

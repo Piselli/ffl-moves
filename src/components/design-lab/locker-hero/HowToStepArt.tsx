@@ -289,7 +289,8 @@ function ArtEntry() {
 }
 
 /**
- * Real DEFAULT_PRIZE_TIERS — #1 #2 #3 … #10, flat (no neon podium glow).
+ * Locked top-10 grid (10+ managers). Early rounds use a rounded table —
+ * live 1st is on the home screen; this tile is the destination split.
  */
 function ArtSplit() {
   const t = DEFAULT_PRIZE_TIERS;
@@ -309,15 +310,26 @@ function ArtSplit() {
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect width="64" height="64" fill="#0a0c10" />
+      <text
+        x="32"
+        y="9"
+        textAnchor="middle"
+        fontSize="5"
+        fontWeight="700"
+        fill="rgba(255,255,255,0.4)"
+        fontFamily="system-ui,sans-serif"
+      >
+        10+ managers
+      </text>
       {rows.map((row, i) => {
-        const y = 3 + i * 11.5;
+        const y = 12 + i * 10;
         return (
           <g key={`${row.label}-${i}`}>
             <rect
               x="5"
               y={y}
               width="54"
-              height="10"
+              height="9"
               rx="2"
               fill="rgba(255,255,255,0.04)"
               stroke="rgba(255,255,255,0.1)"
@@ -325,8 +337,8 @@ function ArtSplit() {
             />
             <text
               x="10"
-              y={y + 7.2}
-              fontSize="6.5"
+              y={y + 6.5}
+              fontSize="6"
               fontWeight="700"
               fill={
                 row.dim ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.7)"
@@ -338,9 +350,9 @@ function ArtSplit() {
             {row.share ? (
               <text
                 x="54"
-                y={y + 7.2}
+                y={y + 6.5}
                 textAnchor="end"
-                fontSize="6.5"
+                fontSize="6"
                 fontWeight="700"
                 fill="rgba(255,255,255,0.85)"
                 fontFamily="system-ui,sans-serif"

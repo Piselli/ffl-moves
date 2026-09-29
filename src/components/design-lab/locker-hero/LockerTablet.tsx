@@ -1290,7 +1290,7 @@ export function LockerTablet({
   const prizeLabel =
     chainLoading || prizePoolRaw == null
       ? "—"
-      : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en");
+      : `${prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")} ${prize.symbol}`;
   const deadlineExpired = Boolean(deadlineParts?.expired);
   const deadlineUrgent = Boolean(
     deadlineParts &&
