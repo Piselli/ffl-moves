@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { claimInviteAward } from "@/lib/invite";
+import { clientIp } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,13 @@ const CORS_HEADERS = {
  */
 export async function POST(req: NextRequest) {
   try {
+    const gate = await rateLimit(`invite:claim:${clientIp(req)}`, 20, 60);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { ok: false, reason: "rate_limited" },
+        { status: 429, headers: { ...CORS_HEADERS, "Retry-After": String(gate.retryAfterSec) } },
+      );
+    }
     const body = (await req.json().catch(() => ({}))) as {
       invitee?: string;
       code?: string;

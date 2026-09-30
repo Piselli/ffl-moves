@@ -1,3 +1,5 @@
+import { clientIp, safeEqual } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import {
   deleteCode,
@@ -21,6 +23,8 @@ export const dynamic = "force-dynamic";
  * disabled (returns 503) to avoid leaking data with a default secret.
  */
 export async function GET(req: NextRequest) {
+  const gate = await rateLimit(`admin:referral:${clientIp(req)}`, 30, 60);
+  if (!gate.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } });
   const expected = process.env.REFERRAL_ADMIN_KEY;
   if (!expected) {
     return NextResponse.json(
@@ -31,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const provided = req.headers.get("x-referral-key") ?? searchParams.get("key") ?? "";
-  if (provided !== expected) {
+  if (!safeEqual(provided, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -68,6 +72,8 @@ export async function GET(req: NextRequest) {
  * Removes a referral code and its click/signup counters from storage.
  */
 export async function DELETE(req: NextRequest) {
+  const gate = await rateLimit(`admin:referral:${clientIp(req)}`, 30, 60);
+  if (!gate.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } });
   const expected = process.env.REFERRAL_ADMIN_KEY;
   if (!expected) {
     return NextResponse.json(
@@ -78,7 +84,7 @@ export async function DELETE(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const provided = req.headers.get("x-referral-key") ?? searchParams.get("key") ?? "";
-  if (provided !== expected) {
+  if (!safeEqual(provided, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 

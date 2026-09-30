@@ -591,12 +591,62 @@ export default function AdminPage() {
       const { previewTourPointsFromRegisteredTeam } = await import("@/lib/chainAlignedScoring");
 
       const addresses = await getGameweekEntrants(gw);
-      const teams = await Promise.all(
+      const loadedTeams = await Promise.all(
         addresses.map(async (addr) => {
           const team = await getUserTeam(addr, gw);
           return { addr, team };
         })
       );
+
+      // Integrity audit (EPL gameweeks only — World Cup tours use a different catalog).
+      // The program stores whatever positions/clubs the client sent and has no deadline,
+      // so flag late registrations, >3 per club and position/club labels that contradict
+      // the catalog. Scoring then uses the catalog's real positions.
+      let teams = loadedTeams;
+      if (gw >= 1 && gw <= 38) {
+        const { auditEntry, buildCatalogIndex, correctedPositions, summarizeIssues } = await import(
+          "@/lib/entryAudit"
+        );
+        let catalog = new Map<number, { id: number; teamId: number; positionId: number }>();
+        try {
+          const res = await fetch("/api/players", { cache: "no-store" });
+          if (res.ok) catalog = buildCatalogIndex(await res.json());
+        } catch {
+          /* handled below */
+        }
+        if (catalog.size === 0) {
+          if (!window.confirm("Player catalog is unavailable, so entries cannot be audited. Continue WITHOUT the integrity audit?")) {
+            return;
+          }
+        } else {
+          let deadlineSec: number | null = null;
+          try {
+            const res = await fetch(`/api/registration-deadline?gameweek=${gw}`, { cache: "no-store" });
+            if (res.ok) {
+              const d = (await res.json()) as { deadlineEpochMs: number | null };
+              deadlineSec = d.deadlineEpochMs != null ? Math.floor(d.deadlineEpochMs / 1000) : null;
+            }
+          } catch {
+            /* deadline unknown → late-registration check skipped */
+          }
+          const issues = loadedTeams.flatMap(({ addr, team }) =>
+            team ? auditEntry(addr, team, catalog, deadlineSec) : [],
+          );
+          if (issues.length > 0) {
+            const proceed = window.confirm(
+              `Integrity audit found ${issues.length} issue(s):\n\n${summarizeIssues(issues)}\n\n` +
+                "OK = score with catalog positions and continue.\n" +
+                "Cancel = stop (refund offending entries with close_entry while the gameweek is CLOSED, then run again).",
+            );
+            if (!proceed) return;
+          }
+          teams = loadedTeams.map(({ addr, team }) => {
+            if (!team) return { addr, team };
+            const positions = correctedPositions(team, catalog);
+            return { addr, team: { ...team, positions, playerPositions: positions } };
+          });
+        }
+      }
 
       const allPlayerIds = Array.from(new Set(teams.flatMap((t) => t.team?.playerIds ?? [])));
       const statsMap = await getGameweekStats(gw, allPlayerIds);

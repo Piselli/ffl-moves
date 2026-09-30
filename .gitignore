@@ -74,3 +74,6 @@ solana/movematch/target/
 solana/movematch/.anchor/
 solana/movematch/.test-ledger/
 solana/movematch/target/
+
+# Playwright MCP artifacts
+.playwright-mcp/

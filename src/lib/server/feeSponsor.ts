@@ -1,9 +1,13 @@
 /**
  * Server-only Solana fee sponsor (pays network fees + own-wallet USDC ATA rent +
- * capped PDA rent top-ups for Helius embedded register/claim).
- * Env (first match wins):
- *   SOLANA_FEE_SPONSOR_KEYPAIR — dedicated fee wallet (preferred)
- *   ADMIN_KEYPAIR              — fallback for local/ops
+ * justified PDA rent top-ups for Helius embedded register/claim).
+ *
+ * Env:
+ *   SOLANA_FEE_SPONSOR_KEYPAIR — dedicated, low-balance fee wallet (REQUIRED).
+ *                                There is deliberately NO fallback to ADMIN_KEYPAIR:
+ *                                the admin key controls the program and must never
+ *                                be exposed to the public sponsor relay.
+ *   SOLANA_FEE_SPONSOR_PUBKEY  — optional pin; the loaded key must match it.
  *
  * Security: never pay ATA rent for arbitrary recipients. Dust USDC transfers to
  * fresh wallets previously drained the sponsor (~0.002 SOL per createIdempotent).
@@ -33,6 +37,17 @@ export const MAX_RENT_TOPUP_LAMPORTS = 10_000_000n; // 0.01 SOL
 export const MAX_SPONSOR_CU_PRICE_MICRO_LAMPORTS = 25_000n;
 /** Max compute-unit limit in a sponsored tx. */
 export const MAX_SPONSOR_CU_LIMIT = 400_000;
+/** Max signatures (fee payer + player co-signers) in one sponsored tx. */
+export const MAX_SPONSOR_SIGNATURES = 4;
+/** Slack on the justified rent top-up (covers tiny balance changes between build and send). */
+const TOPUP_SLACK_LAMPORTS = 20_000;
+/** Matches on-chain `Entry::SPACE` / `ClaimReceipt::SPACE` (upper bound across program versions). */
+const ENTRY_ACCOUNT_SPACE = 168;
+const CLAIM_ACCOUNT_SPACE = 65;
+const USDC_DECIMALS = 6;
+/** Approximate rent-exempt minimum of an SPL token account (165 bytes). */
+const ATA_RENT_LAMPORTS = 2_039_280;
+const LAMPORTS_PER_SIGNATURE = 5_000;
 
 const SYSTEM_TRANSFER_IX = 2;
 
@@ -57,27 +72,44 @@ function parseKeypairJson(raw: string, label: string): Keypair {
 }
 
 export function isFeeSponsorConfigured(): boolean {
-  return Boolean(
-    process.env.SOLANA_FEE_SPONSOR_KEYPAIR?.trim() ||
-      process.env.ADMIN_KEYPAIR?.trim(),
-  );
+  return Boolean(process.env.SOLANA_FEE_SPONSOR_KEYPAIR?.trim());
 }
 
 export function loadFeeSponsorKeypair(): Keypair {
   if (cached) return cached;
   const dedicated = process.env.SOLANA_FEE_SPONSOR_KEYPAIR?.trim();
-  if (dedicated) {
-    cached = parseKeypairJson(dedicated, "SOLANA_FEE_SPONSOR_KEYPAIR");
-    return cached;
+  if (!dedicated) {
+    throw new Error("Fee sponsor not configured (set SOLANA_FEE_SPONSOR_KEYPAIR).");
   }
-  const admin = process.env.ADMIN_KEYPAIR?.trim();
-  if (admin) {
-    cached = parseKeypairJson(admin, "ADMIN_KEYPAIR");
-    return cached;
+  const kp = parseKeypairJson(dedicated, "SOLANA_FEE_SPONSOR_KEYPAIR");
+
+  // Hard separation: the public relay must never sign with the program admin key.
+  const adminRaw = process.env.ADMIN_KEYPAIR?.trim();
+  if (adminRaw) {
+    try {
+      const admin = parseKeypairJson(adminRaw, "ADMIN_KEYPAIR");
+      if (admin.publicKey.equals(kp.publicKey)) {
+        throw new Error(
+          "SOLANA_FEE_SPONSOR_KEYPAIR must not be the same key as ADMIN_KEYPAIR.",
+        );
+      }
+    } catch (err) {
+      // A malformed ADMIN_KEYPAIR is not the sponsor's problem; a key clash is.
+      if (err instanceof Error && err.message.includes("must not be the same key")) {
+        throw err;
+      }
+    }
   }
-  throw new Error(
-    "Fee sponsor not configured (set SOLANA_FEE_SPONSOR_KEYPAIR or ADMIN_KEYPAIR).",
-  );
+
+  const pinned = process.env.SOLANA_FEE_SPONSOR_PUBKEY?.trim();
+  if (pinned && pinned !== kp.publicKey.toBase58()) {
+    throw new Error(
+      `SOLANA_FEE_SPONSOR_KEYPAIR (${kp.publicKey.toBase58()}) does not match SOLANA_FEE_SPONSOR_PUBKEY.`,
+    );
+  }
+
+  cached = kp;
+  return cached;
 }
 
 export function getFeeSponsorConnection(): Connection {
@@ -148,7 +180,7 @@ export function findSponsoredCoSigners(tx: Transaction): string[] {
 
 /**
  * Allowlist for fee-sponsored txs:
- * - USDC transfer / transferChecked (authority must co-sign)
+ * - USDC transferChecked only (USDC mint, 6 decimals, authority must co-sign)
  * - USDC ATA create only for that same co-signer (never for arbitrary recipients —
  *   otherwise dust USDC → fresh wallets drains sponsor SOL as ATA rent)
  * - movematch register_team / claim_prize (owner signer required)
@@ -164,6 +196,10 @@ export function assertSponsorableTransaction(
   }
   if (tx.instructions.length === 0 || tx.instructions.length > 10) {
     throw new Error("Transaction instruction count is out of range.");
+  }
+  // Every extra signature is another 5000 lamports the sponsor pays.
+  if (tx.signatures.length > MAX_SPONSOR_SIGNATURES) {
+    throw new Error("Sponsored transaction has too many signers.");
   }
 
   // Pass 1: collect player owners from allowed movematch ixs (rent top-up may precede them).
@@ -221,14 +257,22 @@ export function assertSponsorableTransaction(
         throw new Error("Invalid token instruction in sponsored tx.");
       }
       const tag = ix.data[0]!;
-      if (tag !== TOKEN_IX_TRANSFER && tag !== TOKEN_IX_TRANSFER_CHECKED) {
+      // Only TransferChecked: it binds the mint + decimals into the instruction, so
+      // the USDC-mint check below cannot be faked with a decoy account on a plain Transfer.
+      if (tag !== TOKEN_IX_TRANSFER_CHECKED) {
         throw new Error(
           `Disallowed token instruction in sponsored tx (tag ${tag}).`,
         );
       }
-      // Transfer / TransferChecked: amount is u64 LE at offset 1.
-      if (ix.data.length < 9) {
+      // TransferChecked: amount is u64 LE at offset 1, decimals u8 at offset 9.
+      if (ix.data.length < 10) {
         throw new Error("Invalid sponsored USDC transfer (missing amount).");
+      }
+      if (ix.data[9] !== USDC_DECIMALS) {
+        throw new Error("Sponsored USDC transfer must use 6 decimals.");
+      }
+      if (!ix.keys[1]?.pubkey.equals(USDC_MINT)) {
+        throw new Error("Sponsored token ops must use Form8 USDC mint.");
       }
       const amountView = new DataView(
         ix.data.buffer,
@@ -240,14 +284,17 @@ export function assertSponsorableTransaction(
         // Blocks "create own ATA + transfer 0" fee grief without real USDC move.
         throw new Error("Sponsored USDC transfer amount must be positive.");
       }
-      const touchesUsdc = ix.keys.some((k) => k.pubkey.equals(USDC_MINT));
-      if (!touchesUsdc) {
-        throw new Error("Sponsored token ops must use Form8 USDC mint.");
-      }
       continue;
     }
 
     if (ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)) {
+      // Only `Create` (empty data or 0) and `CreateIdempotent` (1). Never RecoverNested etc.
+      if (ix.data.length > 1 || (ix.data.length === 1 && ix.data[0]! > 1)) {
+        throw new Error("Disallowed associated-token instruction in sponsored tx.");
+      }
+      if (ix.keys.length < 6) {
+        throw new Error("Invalid ATA instruction in sponsored tx.");
+      }
       const payerMeta = ix.keys[0];
       const payer = payerMeta?.pubkey;
       const ataOwner = ix.keys[2]?.pubkey;
@@ -397,13 +444,153 @@ export function assertSponsorableTransaction(
   }
 }
 
+/**
+ * Cryptographically verify every signature that is already present (the sponsor's
+ * own is added later). Without this, a forged "signature" from a victim wallet
+ * would pass the presence check and could be used to burn that wallet's rate limits.
+ */
+export function assertPresentSignaturesValid(tx: Transaction): void {
+  if (!tx.verifySignatures(false)) {
+    throw new Error("Transaction contains an invalid signature.");
+  }
+}
+
+/** Gameweek ids of every `register_team` in the tx (u32 LE right after the discriminator). */
+export function findRegisterTeamGameweeks(tx: Transaction): number[] {
+  const out: number[] = [];
+  for (const ix of tx.instructions) {
+    if (!ix.programId.equals(PROGRAM_ID)) continue;
+    if (discHex(ix.data) !== REGISTER_TEAM_DISC) continue;
+    if (ix.data.length < 12) continue;
+    const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+    out.push(view.getUint32(8, true));
+  }
+  return out;
+}
+
+export type SponsorTxAnalysis = {
+  /** Upper-bound estimate of what this tx costs the sponsor (fee + ATA rent + top-up). */
+  costLamports: number;
+  /** SOL moved sponsor → player (PDA rent). */
+  topUpLamports: number;
+};
+
+/** Must run after `assertSponsorableTransaction`. */
+export function analyzeSponsoredTransaction(
+  tx: Transaction,
+  sponsor: PublicKey,
+): SponsorTxAnalysis {
+  let topUp = 0n;
+  let sponsorAtas = 0;
+  let cuLimit = 0;
+  let cuPrice = 0n;
+
+  for (const ix of tx.instructions) {
+    if (ix.programId.equals(SystemProgram.programId) && ix.data.length >= 12) {
+      const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+      if (view.getUint32(0, true) === SYSTEM_TRANSFER_IX && ix.keys[0]?.pubkey.equals(sponsor)) {
+        topUp += view.getBigUint64(4, true);
+      }
+    } else if (ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)) {
+      if (ix.keys[0]?.pubkey.equals(sponsor)) sponsorAtas += 1;
+    } else if (ix.programId.equals(ComputeBudgetProgram.programId)) {
+      const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+      if (ix.data[0] === CU_IX_SET_COMPUTE_UNIT_LIMIT && ix.data.length >= 5) {
+        cuLimit = view.getUint32(1, true);
+      } else if (ix.data[0] === CU_IX_SET_COMPUTE_UNIT_PRICE && ix.data.length >= 9) {
+        cuPrice = view.getBigUint64(1, true);
+      }
+    }
+  }
+
+  const effectiveLimit = cuLimit > 0 ? cuLimit : 200_000;
+  const priority = Number((cuPrice * BigInt(effectiveLimit) + 999_999n) / 1_000_000n);
+  const base = Math.max(1, tx.signatures.length) * LAMPORTS_PER_SIGNATURE;
+  const topUpNum = Number(topUp);
+  return {
+    costLamports: base + priority + sponsorAtas * ATA_RENT_LAMPORTS + topUpNum,
+    topUpLamports: topUpNum,
+  };
+}
+
+/**
+ * The client only tops a player up by what their Entry / Claim PDA + rent floor
+ * actually needs. A hostile client could ask for the maximum every time, so the
+ * server re-derives the justified amount from the player's live balance.
+ */
+export async function assertRentTopUpJustified(
+  tx: Transaction,
+  sponsor: PublicKey,
+  connection: Connection,
+): Promise<void> {
+  const topUps = new Map<string, bigint>();
+  for (const ix of tx.instructions) {
+    if (!ix.programId.equals(SystemProgram.programId) || ix.data.length < 12) continue;
+    const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+    if (view.getUint32(0, true) !== SYSTEM_TRANSFER_IX) continue;
+    if (!ix.keys[0]?.pubkey.equals(sponsor)) continue;
+    const to = ix.keys[1]?.pubkey.toBase58();
+    if (!to) continue;
+    topUps.set(to, (topUps.get(to) ?? 0n) + view.getBigUint64(4, true));
+  }
+  if (topUps.size === 0) return;
+
+  let space = 0;
+  for (const ix of tx.instructions) {
+    if (!ix.programId.equals(PROGRAM_ID)) continue;
+    const d = discHex(ix.data);
+    if (d === REGISTER_TEAM_DISC) space = Math.max(space, ENTRY_ACCOUNT_SPACE);
+    else if (d === anchorDisc("claim_prize")) space = Math.max(space, CLAIM_ACCOUNT_SPACE);
+  }
+  const [pdaRent, walletFloor] = await Promise.all([
+    connection.getMinimumBalanceForRentExemption(space),
+    connection.getMinimumBalanceForRentExemption(0),
+  ]);
+
+  for (const [to, amount] of topUps) {
+    const balance = await connection.getBalance(new PublicKey(to), "confirmed");
+    const needed = Math.max(0, pdaRent + walletFloor - balance);
+    if (amount > BigInt(needed + TOPUP_SLACK_LAMPORTS)) {
+      throw new Error("Rent top-up is larger than this wallet needs.");
+    }
+  }
+}
+
+async function waitForConfirmation(
+  connection: Connection,
+  signature: string,
+  timeoutMs = 45_000,
+): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const { value } = await connection.getSignatureStatuses([signature]);
+    const status = value[0];
+    if (status) {
+      if (status.err) {
+        throw new Error(`Transaction failed on-chain: ${JSON.stringify(status.err)}`);
+      }
+      if (status.confirmationStatus === "confirmed" || status.confirmationStatus === "finalized") {
+        return;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+  throw new Error(
+    `Transaction ${signature} was submitted but not confirmed in time; check the explorer before retrying.`,
+  );
+}
+
+/**
+ * Signs as fee payer and broadcasts an already-validated tx
+ * (`assertSponsorableTransaction` + `assertRentTopUpJustified` must have passed).
+ */
 export async function completeSponsoredSend(
-  serializedTx: Uint8Array,
+  tx: Transaction,
 ): Promise<{ signature: string; feePayer: string }> {
   const sponsor = loadFeeSponsorKeypair();
   const connection = getFeeSponsorConnection();
-  const tx = Transaction.from(serializedTx);
   assertSponsorableTransaction(tx, sponsor.publicKey);
+  await assertRentTopUpJustified(tx, sponsor.publicKey, connection);
 
   // User signature(s) must already be present; we add the fee payer (+ rent from).
   tx.partialSign(sponsor);
@@ -411,7 +598,8 @@ export async function completeSponsoredSend(
   const signature = await connection.sendRawTransaction(tx.serialize(), {
     skipPreflight: false,
     preflightCommitment: "confirmed",
+    maxRetries: 3,
   });
-  await connection.confirmTransaction(signature, "confirmed");
+  await waitForConfirmation(connection, signature);
   return { signature, feePayer: sponsor.publicKey.toBase58() };
 }

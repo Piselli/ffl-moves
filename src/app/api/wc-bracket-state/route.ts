@@ -1,3 +1,5 @@
+import { clientIp, safeEqual } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 import { NextResponse } from "next/server";
 import {
   parseBracketStatePayload,
@@ -17,7 +19,11 @@ function adminKey(): string {
   return process.env.WC_BRACKET_STATE_ADMIN_KEY ?? "";
 }
 
-function assertAdmin(request: Request): NextResponse | null {
+async function assertAdmin(request: Request): Promise<NextResponse | null> {
+  const gate = await rateLimit(`admin:wcbracket:${clientIp(request)}`, 30, 60);
+  if (!gate.ok) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429, ...NO_STORE });
+  }
   const expected = adminKey();
   if (!expected) {
     return NextResponse.json(
@@ -26,7 +32,7 @@ function assertAdmin(request: Request): NextResponse | null {
     );
   }
   const provided = request.headers.get("x-admin-key") ?? "";
-  if (provided !== expected) {
+  if (!safeEqual(provided, expected)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401, ...NO_STORE });
   }
   return null;
@@ -40,7 +46,7 @@ export async function GET() {
 
 /** Publish official state to public/data/wc-bracket-state.json. */
 export async function PUT(request: Request) {
-  const denied = assertAdmin(request);
+  const denied = await assertAdmin(request);
   if (denied) return denied;
 
   let body: unknown;
@@ -70,7 +76,7 @@ export async function PUT(request: Request) {
 
 /** Pull football-data.org results and merge into the posted base state (does not save). */
 export async function POST(request: Request) {
-  const denied = assertAdmin(request);
+  const denied = await assertAdmin(request);
   if (denied) return denied;
 
   let base = await loadWcBracketState();

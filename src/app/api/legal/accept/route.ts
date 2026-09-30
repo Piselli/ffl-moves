@@ -7,13 +7,23 @@ import {
   saveLegalAcceptance,
 } from "@/lib/legal/acceptanceStore";
 import { LEGAL_VERSION } from "@/lib/legal/version";
+import { clientIp as sharedClientIp } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 function clientIp(request: Request): string | undefined {
-  const xf = request.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0]?.trim();
-  return request.headers.get("x-real-ip")?.trim() || undefined;
+  const ip = sharedClientIp(request);
+  return ip && ip !== "unknown" ? ip : undefined;
+}
+
+async function tooMany(request: Request, scope: string, limit: number) {
+  const gate = await rateLimit(`legal:${scope}:${sharedClientIp(request)}`, limit, 60);
+  if (gate.ok) return null;
+  return NextResponse.json(
+    { error: "Too many requests." },
+    { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+  );
 }
 
 function normalizeWallet(raw: unknown): string | null {
@@ -25,6 +35,8 @@ function normalizeWallet(raw: unknown): string | null {
 
 /** GET ?wallet=… — whether current LEGAL_VERSION is accepted. */
 export async function GET(request: Request) {
+  const limited = await tooMany(request, "get", 120);
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const wallet = normalizeWallet(searchParams.get("wallet"));
   if (!wallet) {
@@ -41,6 +53,8 @@ export async function GET(request: Request) {
 
 /** POST { wallet, locale } — persist attestation for current LEGAL_VERSION. */
 export async function POST(request: Request) {
+  const limited = await tooMany(request, "post", 20);
+  if (limited) return limited;
   let body: { wallet?: string; locale?: string };
   try {
     body = (await request.json()) as { wallet?: string; locale?: string };

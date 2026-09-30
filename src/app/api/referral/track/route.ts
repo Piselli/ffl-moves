@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeCode, recordClick, recordConversion } from "@/lib/referral";
+import { clientIp } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,11 @@ const CORS_HEADERS = {
  */
 export async function POST(req: NextRequest) {
   try {
+    // Silent cap so click/conversion counters cannot be inflated in bulk.
+    const gate = await rateLimit(`referral:track:${clientIp(req)}`, 60, 60);
+    if (!gate.ok) {
+      return NextResponse.json({ ok: false, reason: "rate_limited" }, { status: 200, headers: CORS_HEADERS });
+    }
     const body = (await req.json().catch(() => ({}))) as {
       type?: string;
       code?: string;

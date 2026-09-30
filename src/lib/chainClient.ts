@@ -24,6 +24,7 @@ import {
 } from "@/lib/constants";
 import { resolveBrowserSolanaRpcUrl } from "@/lib/solanaRpc";
 import { isValidStarterFormation } from "@/lib/formation";
+import { base58Encode } from "@/lib/base58";
 import {
   buildResultsTree,
   verifyResultProof,
@@ -66,8 +67,10 @@ export type UserTeam = {
   positions: number[];
   playerPositions: number[];
   clubs: number[];
-  /** Starter index 0–10. */
+  /** Starter index 0–10; `NO_CAPTAIN_INDEX` (255) when the program never stored one. */
   captainIndex: number;
+  /** Unix seconds the entry was registered on-chain (used to audit late registrations). */
+  createdAt?: number;
 };
 
 export type TeamResult = {
@@ -218,7 +221,7 @@ function readString(reader: AccountReader): string {
 function decodeConfig(data: Uint8Array): ChainConfig {
   const reader = readAccount(data, "Config");
   const admins = Array.from({ length: 5 }, () => readPubkey(reader));
-  const adminCount = readU8(reader);
+  readU8(reader); // admin_count (slots are filtered below instead)
   const oracle = readPubkey(reader);
   const usdcMint = readPubkey(reader);
   const houseWallet = readPubkey(reader);
@@ -231,7 +234,9 @@ function decodeConfig(data: Uint8Array): ChainConfig {
   readU8(reader);
   readU8(reader);
   return {
-    admins: admins.slice(0, adminCount).map(String),
+    // Removed admins leave empty (default-pubkey) slots anywhere in the array, so filter
+    // rather than slice(0, adminCount) — otherwise a rotated-in admin (e.g. Squads) can vanish.
+    admins: admins.map(String).filter((a) => a !== PublicKey.default.toBase58()),
     oracle: String(oracle),
     usdcMint: String(usdcMint),
     houseWallet: String(houseWallet),
@@ -265,6 +270,12 @@ function decodeGameweek(data: Uint8Array): GameweekSummary {
   };
 }
 
+/** `Entry::SPACE` once `captain_index` exists; the original mainnet program used 167. */
+const ENTRY_ACCOUNT_LEN_WITH_CAPTAIN = 168;
+const ENTRY_ACCOUNT_LEN_LEGACY = 167;
+/** Out-of-range slot: no starter matches, so no captain bonus is applied. */
+export const NO_CAPTAIN_INDEX = 255;
+
 function decodeEntry(data: Uint8Array): UserTeam {
   const reader = readAccount(data, "Entry");
   readPubkey(reader);
@@ -272,8 +283,16 @@ function decodeEntry(data: Uint8Array): UserTeam {
   const playerIds = Array.from({ length: TEAM_SIZE }, () => readU32(reader));
   const positions = Array.from({ length: TEAM_SIZE }, () => readU8(reader));
   const clubs = Array.from({ length: TEAM_SIZE }, () => readU16(reader));
-  const captainIndex = readU8(reader);
-  return { playerIds, positions, playerPositions: positions, clubs, captainIndex };
+  // Programs deployed before `captain_index` (Entry = 167 bytes) have no captain byte:
+  // what follows `clubs` there is `fee_paid`. Reading a byte blindly would return garbage
+  // (the low byte of fee_paid), so decode by account length.
+  const hasCaptainByte = data.length >= ENTRY_ACCOUNT_LEN_WITH_CAPTAIN;
+  const captainIndex = hasCaptainByte ? readU8(reader) : NO_CAPTAIN_INDEX;
+  readU64(reader); // fee_paid
+  readU64(reader); // prize_contribution
+  const createdAtRaw = readU64(reader);
+  const createdAt = createdAtRaw <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(createdAtRaw) : undefined;
+  return { playerIds, positions, playerPositions: positions, clubs, captainIndex, createdAt };
 }
 
 function decodeStatsCommit(data: Uint8Array): StatsCommit {
@@ -397,11 +416,26 @@ export async function findLatestUserRegisteredGameweek(owner: string): Promise<n
 }
 
 export async function getGameweekEntrants(gameweekId: number): Promise<string[]> {
-  const accounts = await getConnection().getProgramAccounts(PROGRAM_ID, { filters: [{ dataSize: 167 }] });
-  return accounts.flatMap(({ account }) => {
+  // Filter on the account discriminator + gameweek id rather than on dataSize, so entries
+  // written by both the legacy (167-byte) and current (168-byte) program are found.
+  const connection = getConnection();
+  const gwBytes = new Uint8Array(4);
+  new DataView(gwBytes.buffer).setUint32(0, gameweekId, true);
+  const lengths = [ENTRY_ACCOUNT_LEN_LEGACY, ENTRY_ACCOUNT_LEN_WITH_CAPTAIN];
+  const batches = await Promise.all(
+    lengths.map((dataSize) =>
+      connection.getProgramAccounts(PROGRAM_ID, {
+        filters: [
+          { dataSize },
+          { memcmp: { offset: 0, bytes: base58Encode(discriminator("account", "Entry")) } },
+          { memcmp: { offset: 40, bytes: base58Encode(gwBytes) } },
+        ],
+      }),
+    ),
+  );
+  return batches.flat().flatMap(({ account }) => {
     const reader = readAccount(account.data, "Entry");
-    const owner = String(readPubkey(reader));
-    return readU32(reader) === gameweekId ? [owner] : [];
+    return [String(readPubkey(reader))];
   });
 }
 
@@ -612,6 +646,35 @@ export const getUserGuild = async (_owner: string) => null;
 export const hasTitle = async (_owner: string) => false;
 export const hasGuild = async (_owner: string) => false;
 
+/**
+ * Mirrors the program's `validate_team` so an invalid squad is rejected in the browser
+ * instead of reverting on-chain (which would still cost the fee sponsor a fee).
+ */
+export function assertSquadMatchesProgramRules(squad: Pick<UserTeam, "playerIds" | "positions" | "clubs">): void {
+  const seen = new Set<number>();
+  for (const id of squad.playerIds) {
+    if (!Number.isInteger(id) || id <= 0 || id > 0xffff_ffff) {
+      throw new Error("Squad contains an invalid player id.");
+    }
+    if (seen.has(id)) throw new Error("Squad contains the same player twice.");
+    seen.add(id);
+  }
+  const perClub = new Map<number, number>();
+  for (const club of squad.clubs) {
+    if (!Number.isInteger(club) || club < 0 || club > 0xffff) {
+      throw new Error("Squad contains an invalid club id.");
+    }
+    const n = (perClub.get(club) ?? 0) + 1;
+    if (n > 3) throw new Error("Squad has more than 3 players from one club.");
+    perClub.set(club, n);
+  }
+  for (const position of squad.positions.slice(11)) {
+    if (!Number.isInteger(position) || position < 0 || position > 3) {
+      throw new Error("Bench contains an invalid position.");
+    }
+  }
+}
+
 export async function buildRegisterTeam(
   owner: string,
   gameweekId: number,
@@ -630,6 +693,7 @@ export async function buildRegisterTeam(
   ) {
     throw new Error("Captain must be a starter slot index between 0 and 10.");
   }
+  assertSquadMatchesProgramRules(squad);
   const ownerKey = key(owner);
   const config = await getConfig();
   if (!config) throw new Error("FORM8 has not been initialized on this network.");

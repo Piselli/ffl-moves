@@ -178,14 +178,18 @@ Configuration увімкни **email** (± passkey); **external wallet** лиш�
 
 Налаштування Form8 fee sponsor (рекомендовано):
 
-1. Згенеруй / візьми гаманець лише під fees, поповни **~0.5–2 SOL** (mainnet).
+1. Згенеруй **окремий** гаманець лише під fees (не admin/oracle/house) і тримай на ньому
+   небагато (**~0.05–0.2 SOL**, поповнюй за потреби) — це hot key, який публічно доступний
+   через `/api/solana/sponsor-send`.
 2. У Vercel / `.env.local` додай секретний ключ (JSON-масив байтів):
 
 ```bash
-# preferred
 SOLANA_FEE_SPONSOR_KEYPAIR=[...]
-# або тимчасово той самий, що ADMIN_KEYPAIR (має мати SOL)
+SOLANA_FEE_SPONSOR_PUBKEY=<адреса цього гаманця>   # необовʼязково, але рекомендовано
 ```
+
+Фолбеку на `ADMIN_KEYPAIR` **немає** (і збіг ключів блокується кодом).
+Kill-switch: `SOLANA_FEE_SPONSOR_DISABLED=true` + redeploy. Ліміти й моніторинг — див. `.env.example`.
 
 3. Redeploy. Перевірка: `GET /api/solana/fee-payer` → `{ "configured": true, "feePayer": "…" }`.
 
@@ -197,9 +201,10 @@ SOLANA_FEE_SPONSOR_KEYPAIR=[...]
 | Register / claim (Helius email) | гравець (entry) | **FORM8 fee sponsor** (мережа + ATA + rent top-up для Entry/Claim PDA) |
 | Phantom / Solflare / Jupiter | гравець | гравець (у розширенні) |
 
-Sponsor також може переказати гравцю до **0.01 SOL** на rent PDA (`init` у програмі
-все ще списує rent з owner). Без `SOLANA_FEE_SPONSOR_KEYPAIR` на
-гаманці email-гравця має бути трохи SOL (~0.01).
+Sponsor також може переказати гравцю SOL на rent PDA (`init` у програмі все ще
+списує rent з owner): сервер дозволяє рівно стільки, скільки бракує гравцю за його
+живим балансом (макс. 0.01 SOL). Без `SOLANA_FEE_SPONSOR_KEYPAIR` на гаманці
+email-гравця має бути трохи SOL (~0.01).
 
 ### Імпорт ops-ключів (admin / house / oracle)
 

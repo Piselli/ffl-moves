@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runAutoCloseGameweek } from "@/lib/server/autoCloseGameweek";
+import { safeEqual } from "@/lib/server/clientIp";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -10,10 +11,13 @@ function authorize(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return false;
   const header = request.headers.get("authorization") ?? "";
-  if (header === `Bearer ${secret}`) return true;
-  // Manual ops / external cron
-  const url = new URL(request.url);
-  if (url.searchParams.get("secret") === secret) return true;
+  if (safeEqual(header, `Bearer ${secret}`)) return true;
+  // `?secret=` leaks into logs/Referer, so it is off unless explicitly re-enabled
+  // (only for an external cron service that cannot send headers).
+  if (process.env.CRON_ALLOW_QUERY_SECRET === "true") {
+    const provided = new URL(request.url).searchParams.get("secret") ?? "";
+    if (provided && safeEqual(provided, secret)) return true;
+  }
   return false;
 }
 

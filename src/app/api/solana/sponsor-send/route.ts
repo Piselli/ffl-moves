@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
 import { Transaction } from "@solana/web3.js";
 import {
+  analyzeSponsoredTransaction,
+  assertPresentSignaturesValid,
+  assertSponsorableTransaction,
   completeSponsoredSend,
+  findRegisterTeamGameweeks,
   findRegisterTeamOwners,
   findSponsoredCoSigners,
   isFeeSponsorConfigured,
   loadFeeSponsorKeypair,
 } from "@/lib/server/feeSponsor";
 import { hasAcceptedCurrentLegal } from "@/lib/legal/acceptanceStore";
-import { allowSponsoredSend } from "@/lib/server/sponsorRateLimit";
+import {
+  allowSponsorIpAttempt,
+  allowSponsorWalletAttempts,
+  checkSponsorBudgets,
+  isSponsorDisabled,
+  recordSponsorSpend,
+} from "@/lib/server/sponsorRateLimit";
+import { clientIp } from "@/lib/server/clientIp";
+import { isRegistrationClosed } from "@/lib/server/registrationWindow";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,30 +30,44 @@ type Body = {
   transaction?: string;
 };
 
-function clientIp(request: Request): string {
-  const xf = request.headers.get("x-forwarded-for");
-  if (xf) {
-    const first = xf.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+function tooMany(message: string, retryAfterSec: number) {
+  return NextResponse.json(
+    { error: message },
+    { status: 429, headers: { "Retry-After": String(retryAfterSec) } },
+  );
 }
 
 /**
  * Completes a player-signed tx by signing as fee payer and broadcasting.
  * Pays Solana network fee, the player's own USDC ATA rent when needed, and
- * (for register_team / claim_prize) a capped SOL rent top-up to the player.
+ * (for register_team / claim_prize) a justified SOL rent top-up to the player.
  * Does not create recipient ATAs for withdraws (see feeSponsor allowlist).
+ *
+ * Abuse controls, in order: kill switch → per-IP attempts → structural allowlist →
+ * signature validity → per-wallet attempts → legal gate → registration window →
+ * daily spend budgets → top-up justification (live balance) → send → record spend.
  */
 export async function POST(request: Request) {
+  if (isSponsorDisabled()) {
+    return NextResponse.json(
+      { error: "Fee sponsorship is temporarily disabled." },
+      { status: 503 },
+    );
+  }
   if (!isFeeSponsorConfigured()) {
     return NextResponse.json(
       {
         error:
-          "Fee sponsorship is not configured. Set SOLANA_FEE_SPONSOR_KEYPAIR (or ADMIN_KEYPAIR) with SOL.",
+          "Fee sponsorship is not configured. Set SOLANA_FEE_SPONSOR_KEYPAIR with SOL.",
       },
       { status: 503 },
     );
+  }
+
+  const ip = clientIp(request);
+  const ipGate = await allowSponsorIpAttempt(ip);
+  if (!ipGate.ok) {
+    return tooMany("Too many sponsored transactions. Try again shortly.", ipGate.retryAfterSec);
   }
 
   let body: Body;
@@ -68,17 +94,18 @@ export async function POST(request: Request) {
 
   try {
     const tx = Transaction.from(bytes);
-    const sponsorPk = loadFeeSponsorKeypair().publicKey.toBase58();
+    const sponsor = loadFeeSponsorKeypair();
+    const sponsorPk = sponsor.publicKey.toBase58();
+
+    // Structure + signatures first, so nothing below can be triggered (or blamed on
+    // a victim wallet) by an unsigned/forged payload.
+    assertSponsorableTransaction(tx, sponsor.publicKey);
+    assertPresentSignaturesValid(tx);
+
     const wallets = findSponsoredCoSigners(tx).filter((w) => w !== sponsorPk);
-    const limited = allowSponsoredSend({ ip: clientIp(request), wallets });
-    if (!limited.ok) {
-      return NextResponse.json(
-        { error: "Too many sponsored transactions. Try again shortly." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(limited.retryAfterSec) },
-        },
-      );
+    const walletGate = await allowSponsorWalletAttempts(wallets);
+    if (!walletGate.ok) {
+      return tooMany("Too many sponsored transactions. Try again shortly.", walletGate.retryAfterSec);
     }
 
     const registerOwners = findRegisterTeamOwners(tx);
@@ -94,7 +121,23 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await completeSponsoredSend(bytes);
+    for (const gameweekId of findRegisterTeamGameweeks(tx)) {
+      if (await isRegistrationClosed(gameweekId)) {
+        return NextResponse.json(
+          { error: "Registration for this gameweek is closed.", code: "REGISTRATION_CLOSED" },
+          { status: 403 },
+        );
+      }
+    }
+
+    const { costLamports, topUpLamports } = analyzeSponsoredTransaction(tx, sponsor.publicKey);
+    const budget = await checkSponsorBudgets({ ip, wallets, costLamports, topUpLamports });
+    if (!budget.ok) {
+      return tooMany(budget.error, budget.retryAfterSec);
+    }
+
+    const result = await completeSponsoredSend(tx);
+    await recordSponsorSpend({ ip, wallets, costLamports, topUpLamports });
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Sponsor send failed";

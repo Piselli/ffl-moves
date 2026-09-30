@@ -80,11 +80,7 @@ interface MatchesCacheEntry {
 let matchesCache: MatchesCacheEntry | null = null;
 
 function token(): string {
-  return (
-    process.env.FOOTBALL_DATA_TOKEN ||
-    process.env.NEXT_PUBLIC_FOOTBALL_DATA_TOKEN ||
-    ""
-  );
+  return process.env.FOOTBALL_DATA_TOKEN || "";
 }
 
 export function hasFootballDataToken(): boolean {

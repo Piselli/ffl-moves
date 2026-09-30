@@ -66,6 +66,13 @@ export function useWallet() {
                 },
               });
             } catch (sponsorError) {
+              // Rule rejections are final — paying the fee ourselves must not bypass them.
+              const msg = sponsorError instanceof Error ? sponsorError.message : "";
+              if (
+                /registration for this gameweek is closed|legal attestation required/i.test(msg)
+              ) {
+                throw sponsorError;
+              }
               console.warn(
                 "Form8 fee sponsorship failed for extension wallet, falling back:",
                 sponsorError,

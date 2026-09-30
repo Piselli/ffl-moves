@@ -1,0 +1,37 @@
+# Hourly balance / config health check for the hot keys (fee sponsor, admin cron, oracle).
+# The job FAILS when a balance is under its floor, so GitHub emails the repo owner.
+#
+# Required GitHub secret: CRON_SECRET (same value as Vercel Production CRON_SECRET)
+# Optional repo Variable: HEALTH_URL (default https://www.form8.football/api/cron/health)
+
+name: Health check
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call health endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          URL: ${{ vars.HEALTH_URL || 'https://www.form8.football/api/cron/health' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRON_SECRET"
+            exit 1
+          fi
+          HTTP=$(curl -sS -o /tmp/health.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+          echo "HTTP $HTTP"
+          cat /tmp/health.json || true
+          echo
+          if [ "$HTTP" != "200" ]; then
+            echo "Health check failed (low balance, misconfiguration or endpoint error)."
+            exit 1
+          fi

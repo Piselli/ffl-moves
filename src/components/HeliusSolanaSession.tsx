@@ -111,7 +111,7 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
       if (lamports < rentNeed) {
         throw new Error(
           isForm8GameAction(instructions)
-            ? "Registration needs a tiny bit of SOL for account rent, and fee sponsorship is not configured on the server. Set SOLANA_FEE_SPONSOR_KEYPAIR (or ADMIN_KEYPAIR) with SOL."
+            ? "Registration needs a tiny bit of SOL for account rent, and fee sponsorship is not configured on the server. Set SOLANA_FEE_SPONSOR_KEYPAIR with SOL."
             : "This action needs a tiny bit of SOL for network fees, and fee sponsorship is not configured on the server.",
         );
       }

@@ -11,8 +11,9 @@ import {
   buildSolTransfer,
   buildUsdcTransfer,
   getSolBalanceLamports,
+  getUsdcBalance,
 } from "@/lib/chainClient";
-import { displayAmountToRaw, ENTRY_FEE_SYMBOL, formatFeeUnits } from "@/lib/entryFee";
+import { ENTRY_FEE_SYMBOL, formatFeeUnits } from "@/lib/entryFee";
 import { cn, formatTxError } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -47,12 +48,39 @@ function formatSol(lamports: number): string {
   return sol.toFixed(6).replace(/\.?0+$/, "") || "0";
 }
 
+/** Exact decimal SOL string → lamports (no float rounding). Max 9 decimals. */
 function parseSolToLamports(raw: string): bigint | null {
-  const n = Number(raw.replace(",", ".").trim());
-  if (!Number.isFinite(n) || n <= 0) return null;
-  const lamports = Math.round(n * LAMPORTS_PER_SOL);
-  if (!Number.isFinite(lamports) || lamports <= 0) return null;
-  return BigInt(lamports);
+  const t = raw.replace(",", ".").trim();
+  if (!/^\d*\.?\d*$/.test(t) || t === "" || t === ".") return null;
+  const [whole = "0", frac = ""] = t.split(".");
+  if (frac.length > 9) return null;
+  const lamports = BigInt(whole || "0") * BigInt(LAMPORTS_PER_SOL) + BigInt(frac.padEnd(9, "0") || "0");
+  return lamports > BigInt(0) ? lamports : null;
+}
+
+/** Exact decimal USDC string → raw micro-USDC (6 decimals, no float rounding). */
+function parseUsdcToRaw(raw: string): bigint | null {
+  const t = raw.replace(",", ".").trim();
+  if (!/^\d*\.?\d*$/.test(t) || t === "" || t === ".") return null;
+  const [whole = "0", frac = ""] = t.split(".");
+  if (frac.length > 6) return null;
+  const value = BigInt(whole || "0") * BigInt(1_000_000) + BigInt(frac.padEnd(6, "0") || "0");
+  return value > BigInt(0) ? value : null;
+}
+
+function rawUsdcToInput(raw: bigint): string {
+  const unit = BigInt(1_000_000);
+  const frac = (raw % unit).toString().padStart(6, "0").replace(/0+$/, "");
+  return frac ? `${raw / unit}.${frac}` : (raw / unit).toString();
+}
+
+/** Exact lamports → decimal SOL string for the amount input (used by "Max"). */
+function lamportsToInput(lamports: number): string {
+  const l = BigInt(Math.max(0, Math.floor(lamports)));
+  const unit = BigInt(LAMPORTS_PER_SOL);
+  const whole = l / unit;
+  const frac = (l % unit).toString().padStart(9, "0").replace(/0+$/, "");
+  return frac ? `${whole}.${frac}` : whole.toString();
 }
 
 export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
@@ -162,13 +190,8 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
         void refreshSol();
         console.info("SOL withdraw tx", sig);
       } else {
-        const n = Number(amount.replace(",", ".").trim());
-        if (!Number.isFinite(n) || n <= 0) {
-          setError(w.invalidAmount);
-          return;
-        }
-        const raw = BigInt(displayAmountToRaw(n));
-        if (raw <= BigInt(0)) {
+        const raw = parseUsdcToRaw(amount);
+        if (raw === null) {
           setError(w.invalidAmount);
           return;
         }
@@ -303,10 +326,17 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
                     }
                     onClick={() => {
                       if (asset === "usdc") {
-                        if (balanceLabel && balanceLabel !== "—") setAmount(balanceLabel);
+                        // The label is rounded for display; ask the chain for the exact balance.
+                        if (address) {
+                          void getUsdcBalance(address)
+                            .then((raw) => setAmount(rawUsdcToInput(raw)))
+                            .catch(() => {
+                              if (balanceLabel && balanceLabel !== "—") setAmount(balanceLabel);
+                            });
+                        }
                       } else if (solBalanceLamports !== null && solBalanceLamports > 0) {
                         // Fee sponsor pays network fee → full balance can leave.
-                        setAmount(formatSol(solBalanceLamports));
+                        setAmount(lamportsToInput(solBalanceLamports));
                       }
                     }}
                     className="shrink-0 rounded-xl border border-white/20 px-3 text-[11px] font-bold uppercase tracking-wide text-white/80 hover:border-white/40 disabled:opacity-40"
