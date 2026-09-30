@@ -66,3 +66,26 @@ test("RPC proxy rejects non-allowlisted methods, foreign gPA, empty and oversize
   assert.equal((await rpc([{ id: 1, method: "getSlot" }, { id: 2, method: "getBlock" }])).status, 403);
   void MOVEMATCH_PROGRAM_ID;
 });
+
+import { topUpCandidates } from "../../src/lib/sponsorClient";
+
+test("topUpCandidates: exact rent for an empty wallet, cheapest first, safe fallback last", () => {
+  const floor = 650_240;
+  const c = topUpCandidates(0, [1_498_600, 1_503_680], floor);
+  assert.deepEqual(c, [1_498_600, 1_503_680, 1_503_680 + floor]);
+});
+
+test("topUpCandidates: never leaves a wallet with dust between 0 and the rent floor", () => {
+  const floor = 650_240;
+  const rent = 1_498_600;
+  for (const balance of [0, 1, 235_560, rent - 1, rent, rent + 1, rent + floor - 1, rent + floor, 5_000_000]) {
+    const [first] = topUpCandidates(balance, [rent], floor);
+    const end = balance + first! - rent;
+    assert.ok(end === 0 || end >= floor, `balance ${balance} ends at ${end}`);
+  }
+});
+
+test("topUpCandidates: funded wallet needs nothing; cap respected", () => {
+  assert.deepEqual(topUpCandidates(9_000_000, [1_498_600], 650_240), [0]);
+  assert.ok(topUpCandidates(0, [50_000_000], 650_240).every((x) => x <= 10_000_000));
+});

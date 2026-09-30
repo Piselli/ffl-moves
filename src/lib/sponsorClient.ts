@@ -13,12 +13,18 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
+  VersionedTransaction,
   type Connection,
 } from "@solana/web3.js";
 import { MOVEMATCH_PROGRAM_ID } from "@/lib/constants";
 
 /** Matches on-chain `Entry::SPACE` (TEAM_SIZE = 14). */
 const ENTRY_ACCOUNT_SPACE = 168;
+/**
+ * The program deployed on mainnet predates `captain_index`: its Entry is 167 bytes.
+ * Both sizes are tried until the program is upgraded.
+ */
+const ENTRY_ACCOUNT_SPACE_LEGACY = 167;
 /** Matches on-chain `ClaimReceipt::SPACE`. */
 const CLAIM_ACCOUNT_SPACE = 65;
 /** Same cap as server `MAX_RENT_TOPUP_LAMPORTS`. */
@@ -105,15 +111,89 @@ function rewriteAtaPayer(
   });
 }
 
-function pdaSpaceForGameAction(instructions: TransactionInstruction[]): number {
-  let space = 0;
+/** Account sizes the game action may create (several while the program is mid-migration). */
+function pdaSpacesForGameAction(instructions: TransactionInstruction[]): number[] {
+  const spaces = new Set<number>();
   for (const ix of instructions) {
     if (!ix.programId.equals(PROGRAM_ID) || ix.data.length < 8) continue;
     const d = discHex(ix.data);
-    if (d === REGISTER_TEAM_DISC) space = Math.max(space, ENTRY_ACCOUNT_SPACE);
-    else if (d === CLAIM_PRIZE_DISC) space = Math.max(space, CLAIM_ACCOUNT_SPACE);
+    if (d === REGISTER_TEAM_DISC) {
+      spaces.add(ENTRY_ACCOUNT_SPACE_LEGACY);
+      spaces.add(ENTRY_ACCOUNT_SPACE);
+    } else if (d === CLAIM_PRIZE_DISC) {
+      spaces.add(CLAIM_ACCOUNT_SPACE);
+    }
   }
-  return space || ENTRY_ACCOUNT_SPACE;
+  if (spaces.size === 0) {
+    spaces.add(ENTRY_ACCOUNT_SPACE_LEGACY);
+    spaces.add(ENTRY_ACCOUNT_SPACE);
+  }
+  return [...spaces];
+}
+
+/**
+ * Possible sponsor → player top-ups, cheapest first.
+ *
+ * Solana only checks rent state at the end of a transaction: a wallet may end at
+ * exactly 0 lamports (non-existent) or at >= the empty-account minimum, but never in
+ * between. So:
+ *  - balance < rent:               top up exactly `rent - balance`  (ends at 0)
+ *  - rent <= balance < rent+floor: top up to `rent + floor`         (ends at floor)
+ *  - balance >= rent + floor:      no top-up
+ * The last candidate (largest rent + floor) is always valid, which is the old behaviour.
+ */
+export function topUpCandidates(
+  balance: number,
+  rents: number[],
+  floor: number,
+  cap: number = MAX_RENT_TOPUP_LAMPORTS,
+): number[] {
+  const out: number[] = [];
+  const push = (v: number) => {
+    const c = Math.min(Math.max(Math.floor(v), 0), cap);
+    if (!out.includes(c)) out.push(c);
+  };
+  const sorted = [...new Set(rents)].sort((a, b) => a - b);
+  for (const r of sorted) {
+    if (balance >= r + floor) push(0);
+    else if (balance < r) push(r - balance);
+    else push(r + floor - balance);
+  }
+  push(sorted[sorted.length - 1]! + floor - balance);
+  return out;
+}
+
+/** Dry-run (no signatures) — does the runtime accept this tx, rent-state checks included? */
+async function simulationPasses(
+  connection: Connection,
+  instructions: TransactionInstruction[],
+  sponsor: PublicKey,
+): Promise<boolean> {
+  try {
+    const tx = new Transaction().add(...instructions);
+    tx.feePayer = sponsor;
+    tx.recentBlockhash = PublicKey.default.toBase58();
+    const res = await connection.simulateTransaction(
+      new VersionedTransaction(tx.compileMessage()),
+      { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed" },
+    );
+    return res.value.err === null;
+  } catch {
+    return false;
+  }
+}
+
+function withTopUp(
+  instructions: TransactionInstruction[],
+  sponsor: PublicKey,
+  userKey: PublicKey,
+  lamports: number,
+): TransactionInstruction[] {
+  if (lamports <= 0) return instructions;
+  return [
+    SystemProgram.transfer({ fromPubkey: sponsor, toPubkey: userKey, lamports }),
+    ...instructions,
+  ];
 }
 
 export async function prepareSponsoredInstructions(
@@ -122,38 +202,29 @@ export async function prepareSponsoredInstructions(
   userKey: PublicKey,
   connection: Connection,
 ): Promise<TransactionInstruction[]> {
-  let prepared = instructions.map((ix) =>
+  const prepared = instructions.map((ix) =>
     rewriteAtaPayer(ix, sponsor, userKey),
   );
+  if (!isForm8GameAction(prepared)) return prepared;
 
-  if (isForm8GameAction(prepared)) {
-    const space = pdaSpaceForGameAction(prepared);
-    // Entry/claim PDA rent is paid by the player (`init, payer = owner`).
-    // Top up entry rent PLUS the empty-wallet rent floor — otherwise the
-    // player account is left with dust and simulation fails
-    // `InsufficientFundsForRent` (account still below rent-exempt).
-    const [entryRent, walletFloor] = await Promise.all([
-      connection.getMinimumBalanceForRentExemption(space),
-      connection.getMinimumBalanceForRentExemption(0),
-    ]);
-    const balance = await connection.getBalance(userKey, "confirmed");
-    const need = entryRent + walletFloor;
-    if (balance < need) {
-      const topUp = Math.min(need - balance, Number(MAX_RENT_TOPUP_LAMPORTS));
-      if (topUp > 0) {
-        prepared = [
-          SystemProgram.transfer({
-            fromPubkey: sponsor,
-            toPubkey: userKey,
-            lamports: topUp,
-          }),
-          ...prepared,
-        ];
-      }
-    }
+  // Entry/claim PDA rent is paid by the player (`init, payer = owner`), and the
+  // sponsor funds exactly that. The server re-checks the amount against the live balance.
+  const spaces = pdaSpacesForGameAction(prepared);
+  const [rents, floor, balance] = await Promise.all([
+    Promise.all(spaces.map((sp) => connection.getMinimumBalanceForRentExemption(sp))),
+    connection.getMinimumBalanceForRentExemption(0),
+    connection.getBalance(userKey, "confirmed"),
+  ]);
+  const candidates = topUpCandidates(balance, rents, floor);
+  const fallback = candidates[candidates.length - 1]!;
+
+  // Cheapest candidate that the runtime accepts wins; if nothing simulates cleanly
+  // (RPC hiccup, unrelated program error) use the always-valid largest top-up.
+  for (const lamports of candidates.slice(0, -1)) {
+    const attempt = withTopUp(prepared, sponsor, userKey, lamports);
+    if (await simulationPasses(connection, attempt, sponsor)) return attempt;
   }
-
-  return prepared;
+  return withTopUp(prepared, sponsor, userKey, fallback);
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
