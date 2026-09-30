@@ -1,9 +1,12 @@
 /**
- * Server-only Solana fee sponsor (pays network fees + ATA rent + capped PDA rent
- * top-ups for Helius embedded register/claim).
+ * Server-only Solana fee sponsor (pays network fees + own-wallet USDC ATA rent +
+ * capped PDA rent top-ups for Helius embedded register/claim).
  * Env (first match wins):
  *   SOLANA_FEE_SPONSOR_KEYPAIR — dedicated fee wallet (preferred)
  *   ADMIN_KEYPAIR              — fallback for local/ops
+ *
+ * Security: never pay ATA rent for arbitrary recipients. Dust USDC transfers to
+ * fresh wallets previously drained the sponsor (~0.002 SOL per createIdempotent).
  */
 import { sha256 } from "@noble/hashes/sha2.js";
 import {
@@ -99,9 +102,15 @@ export function findRegisterTeamOwners(tx: Transaction): string[] {
   return owners;
 }
 
+/** SPL Token ix tags we allow under sponsorship (must touch USDC mint). */
+const TOKEN_IX_TRANSFER = 3;
+const TOKEN_IX_TRANSFER_CHECKED = 12;
+
 /**
  * Allowlist for fee-sponsored txs:
- * - USDC token / ATA (ATA payer = sponsor) / compute budget
+ * - USDC transfer / transferChecked (authority must co-sign)
+ * - USDC ATA create only for that same co-signer (never for arbitrary recipients —
+ *   otherwise dust USDC → fresh wallets drains sponsor SOL as ATA rent)
  * - movematch register_team / claim_prize (owner signer required)
  * - SystemProgram.transfer sponsor → that owner, amount ≤ MAX_RENT_TOPUP_LAMPORTS (rent)
  * - SystemProgram.transfer player → recipient (SOL withdraw; player must have signed)
@@ -135,6 +144,27 @@ export function assertSponsorableTransaction(
 
   const requiredSigners = new Set<string>(playerOwners);
 
+  // Pass 1b: USDC token authorities (withdraw path has no movematch ix).
+  for (const ix of tx.instructions) {
+    if (!ix.programId.equals(TOKEN_PROGRAM_ID) || ix.data.length < 1) continue;
+    const tag = ix.data[0]!;
+    if (tag === TOKEN_IX_TRANSFER) {
+      const authority = ix.keys[2];
+      if (!authority?.isSigner) {
+        throw new Error("Sponsored USDC transfer requires the token authority as signer.");
+      }
+      requiredSigners.add(authority.pubkey.toBase58());
+    } else if (tag === TOKEN_IX_TRANSFER_CHECKED) {
+      const authority = ix.keys[3];
+      if (!authority?.isSigner) {
+        throw new Error(
+          "Sponsored USDC transferChecked requires the token authority as signer.",
+        );
+      }
+      requiredSigners.add(authority.pubkey.toBase58());
+    }
+  }
+
   // Pass 2: allowlist every instruction.
   for (const ix of tx.instructions) {
     if (ix.programId.equals(PROGRAM_ID)) {
@@ -142,6 +172,15 @@ export function assertSponsorableTransaction(
     }
 
     if (ix.programId.equals(TOKEN_PROGRAM_ID)) {
+      if (ix.data.length < 1) {
+        throw new Error("Invalid token instruction in sponsored tx.");
+      }
+      const tag = ix.data[0]!;
+      if (tag !== TOKEN_IX_TRANSFER && tag !== TOKEN_IX_TRANSFER_CHECKED) {
+        throw new Error(
+          `Disallowed token instruction in sponsored tx (tag ${tag}).`,
+        );
+      }
       const touchesUsdc = ix.keys.some((k) => k.pubkey.equals(USDC_MINT));
       if (!touchesUsdc) {
         throw new Error("Sponsored token ops must use Form8 USDC mint.");
@@ -153,6 +192,13 @@ export function assertSponsorableTransaction(
       const payer = ix.keys[0]?.pubkey;
       if (!payer || !payer.equals(sponsor)) {
         throw new Error("ATA rent payer must be the Form8 fee sponsor.");
+      }
+      const ataOwner = ix.keys[2]?.pubkey;
+      if (!ataOwner || !requiredSigners.has(ataOwner.toBase58())) {
+        // Blocks dust-to-fresh-wallet drains: sponsor must not fund recipient ATAs.
+        throw new Error(
+          "Sponsored ATA create is only allowed for the co-signing player's own USDC account.",
+        );
       }
       const mint = ix.keys[3]?.pubkey;
       if (!mint || !mint.equals(USDC_MINT)) {
@@ -206,8 +252,17 @@ export function assertSponsorableTransaction(
     throw new Error(`Disallowed program in sponsored tx: ${ix.programId.toBase58()}`);
   }
 
+  if (requiredSigners.size === 0) {
+    throw new Error(
+      "Sponsored transaction requires a player co-signer (register, claim, or USDC/SOL send).",
+    );
+  }
+
   // Require player / SOL-sender signatures already present before sponsor completes.
   for (const signerB58 of requiredSigners) {
+    if (signerB58 === sponsor.toBase58()) {
+      throw new Error("Sponsor cannot be the only required signer.");
+    }
     const signer = new PublicKey(signerB58);
     const entry = tx.signatures.find((s) => s.publicKey.equals(signer));
     if (!entry?.signature) {

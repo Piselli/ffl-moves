@@ -83,11 +83,18 @@ export function isForm8Sponsorable(
   );
 }
 
+/**
+ * Sponsor may pay ATA rent only for the co-signing player's own USDC ATA.
+ * Never rewrite payer for a recipient ATA — that was the dust-drain vector.
+ */
 function rewriteAtaPayer(
   ix: TransactionInstruction,
   payer: PublicKey,
+  userKey: PublicKey,
 ): TransactionInstruction {
   if (!ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)) return ix;
+  const ataOwner = ix.keys[2]?.pubkey;
+  if (!ataOwner?.equals(userKey)) return ix;
   const keys = ix.keys.map((k, i) =>
     i === 0 ? { pubkey: payer, isSigner: true, isWritable: true } : k,
   );
@@ -115,7 +122,9 @@ export async function prepareSponsoredInstructions(
   userKey: PublicKey,
   connection: Connection,
 ): Promise<TransactionInstruction[]> {
-  let prepared = instructions.map((ix) => rewriteAtaPayer(ix, sponsor));
+  let prepared = instructions.map((ix) =>
+    rewriteAtaPayer(ix, sponsor, userKey),
+  );
 
   if (isForm8GameAction(prepared)) {
     const space = pdaSpaceForGameAction(prepared);

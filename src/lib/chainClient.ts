@@ -469,37 +469,37 @@ export async function getUsdcBalance(owner: string): Promise<bigint> {
 }
 
 /**
- * SPL USDC transfer from `owner` wallet to `recipient` wallet (owner ATAs).
- * Creates the recipient ATA idempotently when missing.
- * `ataPayer` pays ATA rent (defaults to owner; use fee sponsor for gasless UX).
+ * SPL USDC transfer from `owner` wallet to `recipient` wallet.
+ *
+ * Recipient must already have a USDC ATA. We deliberately do **not** create
+ * recipient ATAs under the fee sponsor — dust transfers to fresh wallets were
+ * used to drain sponsor SOL as ATA rent (~0.002 SOL each).
  */
 export async function buildUsdcTransfer(
   owner: string,
   recipient: string,
   amountRaw: bigint,
-  opts?: { ataPayer?: string },
 ): Promise<TransactionInstruction[]> {
   if (amountRaw <= BigInt(0)) throw new Error("Amount must be positive");
   const ownerKey = key(owner);
   const recipientKey = key(recipient);
-  const ataPayerKey = opts?.ataPayer ? key(opts.ataPayer) : ownerKey;
   const fromAta = getAssociatedTokenAddressSync(USDC_MINT, ownerKey);
   const toAta = getAssociatedTokenAddressSync(USDC_MINT, recipientKey);
   const connection = getConnection();
-  const balance = await connection.getTokenAccountBalance(fromAta).catch(() => null);
+  const [balance, toInfo] = await Promise.all([
+    connection.getTokenAccountBalance(fromAta).catch(() => null),
+    connection.getAccountInfo(toAta, "confirmed"),
+  ]);
   const available = balance ? BigInt(balance.value.amount) : BigInt(0);
   if (available < amountRaw) {
     throw new Error(`Insufficient USDC (have ${available}, need ${amountRaw})`);
   }
+  if (!toInfo) {
+    throw new Error(
+      "Recipient has no USDC account yet. Withdraw to a wallet that has already held USDC (or send a tiny USDC tip there first from a normal wallet).",
+    );
+  }
   return [
-    createAssociatedTokenAccountIdempotentInstruction(
-      ataPayerKey,
-      toAta,
-      recipientKey,
-      USDC_MINT,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-    ),
     createTransferCheckedInstruction(
       fromAta,
       USDC_MINT,

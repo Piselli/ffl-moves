@@ -58,7 +58,7 @@ function parseSolToLamports(raw: string): bigint | null {
 export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
   const w = useSiteMessages().withdraw;
   const reduce = Boolean(useReducedMotion());
-  const { account, connected, signAndSubmit, feePayer } = useWallet();
+  const { account, connected, signAndSubmit } = useWallet();
   const { balanceLabel, refreshBalance } = useDeposit();
   const address = account?.address ?? null;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
@@ -149,19 +149,6 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
     }
     setLoading(true);
     try {
-      let sponsor = feePayer;
-      if (!sponsor) {
-        try {
-          const res = await fetch("/api/solana/fee-payer", { cache: "no-store" });
-          const data = (await res.json()) as { feePayer?: string | null };
-          if (typeof data.feePayer === "string" && data.feePayer.length > 30) {
-            sponsor = data.feePayer;
-          }
-        } catch {
-          /* fall through — signAndSubmit will retry / surface error */
-        }
-      }
-
       if (asset === "sol") {
         const lamports = parseSolToLamports(amount);
         if (lamports === null) {
@@ -185,9 +172,7 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
           setError(w.invalidAmount);
           return;
         }
-        const ixs = await buildUsdcTransfer(address, to, raw, {
-          ataPayer: sponsor ?? undefined,
-        });
+        const ixs = await buildUsdcTransfer(address, to, raw);
         const sig = await signAndSubmit(ixs);
         setStatus(w.success(formatFeeUnits(raw), ENTRY_FEE_SYMBOL, to));
         setAmount("");
@@ -204,7 +189,6 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
     amount,
     asset,
     connected,
-    feePayer,
     recipient,
     refreshBalance,
     refreshSol,

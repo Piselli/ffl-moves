@@ -17,8 +17,9 @@ type Body = {
 
 /**
  * Completes a player-signed tx by signing as fee payer and broadcasting.
- * Pays Solana network fee, USDC ATA rent when create-ATA payer is the sponsor,
- * and (for register_team / claim_prize) a capped SOL rent top-up to the player.
+ * Pays Solana network fee, the player's own USDC ATA rent when needed, and
+ * (for register_team / claim_prize) a capped SOL rent top-up to the player.
+ * Does not create recipient ATAs for withdraws (see feeSponsor allowlist).
  */
 export async function POST(request: Request) {
   if (!isFeeSponsorConfigured()) {
