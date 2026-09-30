@@ -31,7 +31,7 @@ export const CURRENT_SEASON = {
    * First EPL gameweek in this season. `0` until EPL phase begins.
    * Set before or when EPL starts — same season, streak continues from WC.
    */
-  eplStartGw: 0,
+  eplStartGw: 6,
   /** Last EPL GW. `0` = no end date yet. */
   eplEndGw: 0,
 } as const;
