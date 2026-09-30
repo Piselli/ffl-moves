@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { clientIp } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
 
 const FPL_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const PHOTO_BASE =
@@ -26,7 +28,25 @@ interface FplBootstrapElement {
 }
 
 /** Same FPL fetch headers as `/api/players`. */
-async function fetchBootstrap() {
+type Bootstrap = {
+  teams: { id: number; name: string }[];
+  elements: FplBootstrapElement[];
+};
+
+/** The bootstrap payload is large; share one copy per warm instance for a minute. */
+let bootstrapCache: { at: number; data: Bootstrap } | null = null;
+const BOOTSTRAP_TTL_MS = 60_000;
+
+async function fetchBootstrap(): Promise<Bootstrap> {
+  if (bootstrapCache && Date.now() - bootstrapCache.at < BOOTSTRAP_TTL_MS) {
+    return bootstrapCache.data;
+  }
+  const data = await fetchBootstrapUncached();
+  bootstrapCache = { at: Date.now(), data };
+  return data;
+}
+
+async function fetchBootstrapUncached() {
   const res = await fetch(FPL_URL, {
     headers: {
       "User-Agent":
@@ -52,6 +72,13 @@ async function fetchBootstrap() {
  */
 export async function POST(req: Request) {
   try {
+    const gate = await rateLimit(`players-resolve:${clientIp(req)}`, 60, 60);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: "Too many requests." },
+        { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+      );
+    }
     const body = (await req.json()) as { ids?: unknown };
     const raw = Array.isArray(body.ids) ? body.ids : [];
     const seen = new Set<number>();

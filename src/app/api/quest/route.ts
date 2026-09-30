@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConfig, getGameweek, getTeamResult, hasRegisteredTeam } from "@/lib/chainClient";
+import { clientIp } from "@/lib/server/clientIp";
+import { rateLimit } from "@/lib/server/rateLimit";
+
+/** Each address fans out into several RPC reads, so keep the list small. */
+const MAX_ADDRESSES = 20;
+const MAX_ADDRESS_LEN = 64;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +58,12 @@ async function resolveParams(
   if (addresses.length === 0) {
     return NextResponse.json(
       { result: false, eligible: false, reason: "Missing required param: wallets (or address / addresses)" },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+  if (addresses.length > MAX_ADDRESSES || addresses.some((a) => typeof a !== "string" || a.length > MAX_ADDRESS_LEN)) {
+    return NextResponse.json(
+      { result: false, eligible: false, reason: `At most ${MAX_ADDRESSES} addresses per request.` },
       { status: 400, headers: CORS_HEADERS },
     );
   }
@@ -131,8 +143,19 @@ async function resolveParams(
  *
  * Reference: https://move-industries.notion.site/Parthenon-Onboarding-Guide-2fbca0320d868045b046ecf85aa9ec8c
  */
+async function limited(req: NextRequest): Promise<NextResponse | null> {
+  const gate = await rateLimit(`quest:${clientIp(req)}`, 60, 60);
+  if (gate.ok) return null;
+  return NextResponse.json(
+    { result: false, eligible: false, reason: "Too many requests." },
+    { status: 429, headers: { ...CORS_HEADERS, "Retry-After": String(gate.retryAfterSec) } },
+  );
+}
+
 export async function GET(req: NextRequest) {
   try {
+    const blocked = await limited(req);
+    if (blocked) return blocked;
     const { searchParams } = new URL(req.url);
     const quest = (searchParams.get("quest") ?? "registered") as QuestType;
     const gwParam = searchParams.get("gw");
@@ -166,6 +189,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await limited(req);
+    if (blocked) return blocked;
     const body = await req.json() as {
       address?: string;
       addresses?: string[];
