@@ -89,3 +89,9 @@ test("topUpCandidates: funded wallet needs nothing; cap respected", () => {
   assert.deepEqual(topUpCandidates(9_000_000, [1_498_600], 650_240), [0]);
   assert.ok(topUpCandidates(0, [50_000_000], 650_240).every((x) => x <= 10_000_000));
 });
+
+test("topUpCandidates: a refunded rent (balance == rent) needs no new top-up", () => {
+  assert.equal(topUpCandidates(1_498_600, [1_498_600], 650_240)[0], 0);
+  // after the program upgrade the new Entry is 5 080 lamports bigger: only the difference is topped up
+  assert.equal(topUpCandidates(1_498_600, [1_503_680], 650_240)[0], 5_080);
+});

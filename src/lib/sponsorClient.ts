@@ -137,8 +137,8 @@ function pdaSpacesForGameAction(instructions: TransactionInstruction[]): number[
  * Solana only checks rent state at the end of a transaction: a wallet may end at
  * exactly 0 lamports (non-existent) or at >= the empty-account minimum, but never in
  * between. So:
- *  - balance < rent:               top up exactly `rent - balance`  (ends at 0)
- *  - rent <= balance < rent+floor: top up to `rent + floor`         (ends at floor)
+ *  - balance <= rent:              top up exactly `rent - balance`  (ends at 0; none if equal)
+ *  - rent < balance < rent+floor:  top up to `rent + floor`         (ends at floor)
  *  - balance >= rent + floor:      no top-up
  * The last candidate (largest rent + floor) is always valid, which is the old behaviour.
  */
@@ -156,7 +156,7 @@ export function topUpCandidates(
   const sorted = [...new Set(rents)].sort((a, b) => a - b);
   for (const r of sorted) {
     if (balance >= r + floor) push(0);
-    else if (balance < r) push(r - balance);
+    else if (balance <= r) push(r - balance);
     else push(r + floor - balance);
   }
   push(sorted[sorted.length - 1]! + floor - balance);
