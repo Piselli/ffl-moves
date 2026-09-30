@@ -26,10 +26,20 @@ import { MOVEMATCH_PROGRAM_ID, SOLANA_RPC_URL, SOLANA_USDC_MINT, solanaConnectio
 const USDC_MINT = new PublicKey(SOLANA_USDC_MINT);
 const PROGRAM_ID = new PublicKey(MOVEMATCH_PROGRAM_ID);
 
-/** Cap on SystemProgram.transfer sponsor → player (PDA rent for Entry/Claim). */
+/** Cap on total SystemProgram.transfer sponsor → player per tx (PDA rent). */
 export const MAX_RENT_TOPUP_LAMPORTS = 10_000_000n; // 0.01 SOL
 
+/** Max compute-unit price the sponsor will pay (µ-lamports per CU). Client uses 1_000. */
+export const MAX_SPONSOR_CU_PRICE_MICRO_LAMPORTS = 25_000n;
+/** Max compute-unit limit in a sponsored tx. */
+export const MAX_SPONSOR_CU_LIMIT = 400_000;
+
 const SYSTEM_TRANSFER_IX = 2;
+
+/** ComputeBudgetProgram instruction tags (solana_sdk::compute_budget). */
+const CU_IX_REQUEST_HEAP_FRAME = 1;
+const CU_IX_SET_COMPUTE_UNIT_LIMIT = 2;
+const CU_IX_SET_COMPUTE_UNIT_PRICE = 3;
 
 let cached: Keypair | null = null;
 
@@ -106,6 +116,36 @@ export function findRegisterTeamOwners(tx: Transaction): string[] {
 const TOKEN_IX_TRANSFER = 3;
 const TOKEN_IX_TRANSFER_CHECKED = 12;
 
+/** Wallets that must co-sign a sponsored tx (owners / token authorities / SOL senders). */
+export function findSponsoredCoSigners(tx: Transaction): string[] {
+  const out = new Set<string>();
+  for (const ix of tx.instructions) {
+    if (ix.programId.equals(PROGRAM_ID)) {
+      const d = discHex(ix.data);
+      if (!ALLOWED_MOVEMATCH_IX.has(d)) continue;
+      const owner = ix.keys[2]?.pubkey;
+      if (owner) out.add(owner.toBase58());
+      continue;
+    }
+    if (ix.programId.equals(TOKEN_PROGRAM_ID) && ix.data.length >= 1) {
+      const tag = ix.data[0]!;
+      if (tag === TOKEN_IX_TRANSFER && ix.keys[2]?.pubkey) {
+        out.add(ix.keys[2]!.pubkey.toBase58());
+      } else if (tag === TOKEN_IX_TRANSFER_CHECKED && ix.keys[3]?.pubkey) {
+        out.add(ix.keys[3]!.pubkey.toBase58());
+      }
+      continue;
+    }
+    if (ix.programId.equals(SystemProgram.programId) && ix.data.length >= 12) {
+      const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+      if (view.getUint32(0, true) !== SYSTEM_TRANSFER_IX) continue;
+      const from = ix.keys[0]?.pubkey;
+      if (from) out.add(from.toBase58());
+    }
+  }
+  return [...out];
+}
+
 /**
  * Allowlist for fee-sponsored txs:
  * - USDC transfer / transferChecked (authority must co-sign)
@@ -165,6 +205,11 @@ export function assertSponsorableTransaction(
     }
   }
 
+  let sponsorRentTopUpTotal = 0n;
+  let ataCreates = 0;
+  let cuPriceCount = 0;
+  let cuLimitCount = 0;
+
   // Pass 2: allowlist every instruction.
   for (const ix of tx.instructions) {
     if (ix.programId.equals(PROGRAM_ID)) {
@@ -204,11 +249,56 @@ export function assertSponsorableTransaction(
       if (!mint || !mint.equals(USDC_MINT)) {
         throw new Error("Sponsored ATA create must be for Form8 USDC.");
       }
+      ataCreates += 1;
+      if (ataCreates > 1) {
+        throw new Error("Sponsored tx may create at most one USDC ATA.");
+      }
       continue;
     }
 
     if (ix.programId.equals(ComputeBudgetProgram.programId)) {
-      continue;
+      if (ix.data.length < 1) {
+        throw new Error("Invalid compute-budget instruction in sponsored tx.");
+      }
+      const tag = ix.data[0]!;
+      const view = new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
+      if (tag === CU_IX_SET_COMPUTE_UNIT_LIMIT) {
+        if (ix.data.length < 5) {
+          throw new Error("Invalid SetComputeUnitLimit in sponsored tx.");
+        }
+        const units = view.getUint32(1, true);
+        if (units === 0 || units > MAX_SPONSOR_CU_LIMIT) {
+          throw new Error(
+            `Sponsored compute-unit limit must be 1..${MAX_SPONSOR_CU_LIMIT}.`,
+          );
+        }
+        cuLimitCount += 1;
+        if (cuLimitCount > 1) {
+          throw new Error("Sponsored tx may set compute-unit limit at most once.");
+        }
+        continue;
+      }
+      if (tag === CU_IX_SET_COMPUTE_UNIT_PRICE) {
+        if (ix.data.length < 9) {
+          throw new Error("Invalid SetComputeUnitPrice in sponsored tx.");
+        }
+        const microLamports = view.getBigUint64(1, true);
+        if (microLamports > MAX_SPONSOR_CU_PRICE_MICRO_LAMPORTS) {
+          throw new Error(
+            `Sponsored compute-unit price exceeds max ${MAX_SPONSOR_CU_PRICE_MICRO_LAMPORTS} µ-lamports.`,
+          );
+        }
+        cuPriceCount += 1;
+        if (cuPriceCount > 1) {
+          throw new Error("Sponsored tx may set compute-unit price at most once.");
+        }
+        continue;
+      }
+      if (tag === CU_IX_REQUEST_HEAP_FRAME) {
+        // Rarely needed; reject to shrink fee-grief surface.
+        throw new Error("RequestHeapFrame is not allowed in sponsored txs.");
+      }
+      throw new Error(`Disallowed compute-budget instruction tag ${tag}.`);
     }
 
     if (ix.programId.equals(SystemProgram.programId)) {
@@ -232,15 +322,18 @@ export function assertSponsorableTransaction(
       }
 
       if (from.equals(sponsor)) {
-        // Rent top-up: sponsor → registering/claiming player, capped.
+        // Rent top-up: sponsor → registering/claiming player, capped in aggregate.
         if (playerOwners.size === 0) {
           throw new Error("Rent top-up requires a register_team or claim_prize instruction.");
         }
-        if (amount > MAX_RENT_TOPUP_LAMPORTS) {
-          throw new Error("Sponsored rent top-up amount is out of range.");
-        }
         if (!playerOwners.has(to.toBase58())) {
           throw new Error("Rent top-up recipient must be the registering/claiming player.");
+        }
+        sponsorRentTopUpTotal += amount;
+        if (sponsorRentTopUpTotal > MAX_RENT_TOPUP_LAMPORTS) {
+          throw new Error(
+            `Sponsored rent top-up total exceeds max ${MAX_RENT_TOPUP_LAMPORTS} lamports.`,
+          );
         }
       } else {
         // SOL withdraw: player sends their own lamports; sponsor only pays network fee.

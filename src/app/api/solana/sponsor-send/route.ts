@@ -3,9 +3,12 @@ import { Transaction } from "@solana/web3.js";
 import {
   completeSponsoredSend,
   findRegisterTeamOwners,
+  findSponsoredCoSigners,
   isFeeSponsorConfigured,
+  loadFeeSponsorKeypair,
 } from "@/lib/server/feeSponsor";
 import { hasAcceptedCurrentLegal } from "@/lib/legal/acceptanceStore";
+import { allowSponsoredSend } from "@/lib/server/sponsorRateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,6 +17,15 @@ type Body = {
   /** Base64-encoded partially signed legacy Transaction (user signatures present). */
   transaction?: string;
 };
+
+function clientIp(request: Request): string {
+  const xf = request.headers.get("x-forwarded-for");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return request.headers.get("x-real-ip")?.trim() || "unknown";
+}
 
 /**
  * Completes a player-signed tx by signing as fee payer and broadcasting.
@@ -56,6 +68,19 @@ export async function POST(request: Request) {
 
   try {
     const tx = Transaction.from(bytes);
+    const sponsorPk = loadFeeSponsorKeypair().publicKey.toBase58();
+    const wallets = findSponsoredCoSigners(tx).filter((w) => w !== sponsorPk);
+    const limited = allowSponsoredSend({ ip: clientIp(request), wallets });
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many sponsored transactions. Try again shortly." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limited.retryAfterSec) },
+        },
+      );
+    }
+
     const registerOwners = findRegisterTeamOwners(tx);
     for (const wallet of registerOwners) {
       if (!(await hasAcceptedCurrentLegal(wallet))) {
