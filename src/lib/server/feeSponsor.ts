@@ -226,6 +226,20 @@ export function assertSponsorableTransaction(
           `Disallowed token instruction in sponsored tx (tag ${tag}).`,
         );
       }
+      // Transfer / TransferChecked: amount is u64 LE at offset 1.
+      if (ix.data.length < 9) {
+        throw new Error("Invalid sponsored USDC transfer (missing amount).");
+      }
+      const amountView = new DataView(
+        ix.data.buffer,
+        ix.data.byteOffset,
+        ix.data.byteLength,
+      );
+      const tokenAmount = amountView.getBigUint64(1, true);
+      if (tokenAmount === 0n) {
+        // Blocks "create own ATA + transfer 0" fee grief without real USDC move.
+        throw new Error("Sponsored USDC transfer amount must be positive.");
+      }
       const touchesUsdc = ix.keys.some((k) => k.pubkey.equals(USDC_MINT));
       if (!touchesUsdc) {
         throw new Error("Sponsored token ops must use Form8 USDC mint.");
@@ -234,24 +248,43 @@ export function assertSponsorableTransaction(
     }
 
     if (ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)) {
-      const payer = ix.keys[0]?.pubkey;
-      if (!payer || !payer.equals(sponsor)) {
-        throw new Error("ATA rent payer must be the Form8 fee sponsor.");
-      }
+      const payerMeta = ix.keys[0];
+      const payer = payerMeta?.pubkey;
       const ataOwner = ix.keys[2]?.pubkey;
-      if (!ataOwner || !requiredSigners.has(ataOwner.toBase58())) {
-        // Blocks dust-to-fresh-wallet drains: sponsor must not fund recipient ATAs.
-        throw new Error(
-          "Sponsored ATA create is only allowed for the co-signing player's own USDC account.",
-        );
-      }
       const mint = ix.keys[3]?.pubkey;
-      if (!mint || !mint.equals(USDC_MINT)) {
+      if (!payer || !ataOwner || !mint) {
+        throw new Error("Invalid ATA instruction in sponsored tx.");
+      }
+      if (!mint.equals(USDC_MINT)) {
         throw new Error("Sponsored ATA create must be for Form8 USDC.");
       }
-      ataCreates += 1;
-      if (ataCreates > 1) {
-        throw new Error("Sponsored tx may create at most one USDC ATA.");
+
+      if (payer.equals(sponsor)) {
+        // Sponsor-funded ATA: only the co-signing player's own account, and only
+        // during register/claim (never bare withdraw / ATA grief).
+        if (playerOwners.size === 0) {
+          throw new Error(
+            "Sponsored ATA create is only allowed with register_team or claim_prize.",
+          );
+        }
+        if (!requiredSigners.has(ataOwner.toBase58())) {
+          throw new Error(
+            "Sponsored ATA create is only allowed for the co-signing player's own USDC account.",
+          );
+        }
+        ataCreates += 1;
+        if (ataCreates > 1) {
+          throw new Error("Sponsored tx may create at most one USDC ATA.");
+        }
+        continue;
+      }
+
+      // Player-funded ATA (e.g. idempotent house ATA create in register_team).
+      // Sponsor pays no rent; player must already be a required co-signer.
+      if (!payerMeta.isSigner || !requiredSigners.has(payer.toBase58())) {
+        throw new Error(
+          "Non-sponsor ATA payer must be a co-signing player.",
+        );
       }
       continue;
     }
