@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState, type CSSProperties } from "react";
+import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { getCtaStyle } from "@/components/design-lab/locker-hero/ctaStyles";
@@ -12,17 +12,6 @@ const docs = [
   { href: "/privacy", en: "Privacy Policy", uk: "Політика конфіденційності" },
   { href: "/risk", en: "Risk Disclosure", uk: "Розкриття ризиків" },
 ] as const;
-
-/** Same crystal tokens as the claim / insufficient-funds / register-error sheets. */
-const CRYSTAL_SHEET = {
-  ["--lt-glass-bg" as string]: "rgba(8,10,14,0.42)",
-  ["--lt-glass-blur" as string]: "48px",
-  ["--lt-glass-ring" as string]: "rgba(255,255,255,0.38)",
-  ["--lt-glass-shadow" as string]:
-    "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -20px 40px rgba(0,0,0,0.5), 0 18px 56px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)",
-  ["--lt-glass-sheen" as string]:
-    "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.08) 18%, transparent 42%), linear-gradient(320deg, rgba(120,180,255,0.08) 0%, transparent 35%)",
-} as CSSProperties;
 
 const DISPLAY = { fontFamily: "var(--font-display), sans-serif" };
 
@@ -40,8 +29,8 @@ type Props = {
  * No Framer Motion here: the homepage WebGL loop re-renders often; motion +
  * backdrop-blur over the canvas caused a visible flash on open.
  *
- * Visual language matches the other product modals (Nickname, Insufficient
- * funds, Register error): crystal sheet on a dark backplate, convex-green CTA.
+ * Look = the product's default obsidian glass (GlassPanel crystal), same as
+ * NicknameModal, with the convex-green "Registration" CTA.
  */
 export const LegalAttestModal = memo(function LegalAttestModal({
   open,
@@ -93,13 +82,8 @@ export const LegalAttestModal = memo(function LegalAttestModal({
         style={{ transform: "translateZ(0)" }}
         onWheel={(e) => e.stopPropagation()}
       >
-        {/* Dark backplate — crystal frost sits on solid void, not the locker photo. */}
-        <div className="rounded-2xl bg-[#080a0e]">
-          <GlassPanel
-            crystal
-            className="w-full !rounded-2xl p-5 sm:p-6"
-            style={CRYSTAL_SHEET}
-          >
+        <GlassPanel crystal className="relative w-full !rounded-2xl p-5 sm:p-6">
+          <div>
             <h2
               id="legal-attest-title"
               className="pr-8 text-[22px] font-black uppercase tracking-[-0.02em] text-white"
@@ -170,8 +154,8 @@ export const LegalAttestModal = memo(function LegalAttestModal({
                     : "Continue"}
               </button>
             </div>
-          </GlassPanel>
-        </div>
+          </div>
+        </GlassPanel>
 
         <button
           type="button"
