@@ -756,6 +756,7 @@ export type PagesMessages = {
     chooseCaptainHint: string;
     chooseCaptainBanner: string;
     setCaptainLabel: string;
+    clearCaptainLabel: string;
     removePlayerLabel: string;
     close: string;
     managersLockedIn: (n: number) => string;
@@ -1769,7 +1770,7 @@ export const pagesEn: PagesMessages = {
     lastGwLabel: (n) => `Last GW ${n}`,
     lastGwSampleLabel: "Sample score",
     lastGwPartial: (picked) => `${picked}/11`,
-    lastGwPickCaptain: "Pick C to double",
+    lastGwPickCaptain: "Tap a starter to double",
     formDotsLegend: "Green started · amber sub · red out",
     formDotsNewestHint: "Oldest left → newest right",
     formDotsStart: "Started",
@@ -1821,9 +1822,10 @@ export const pagesEn: PagesMessages = {
     ],
     /** CTA under the visual how-to — opens the 5-step coachmark tour. */
     howToPlayContinue: "Show me how",
-    chooseCaptainHint: "Tap C on a starter for captain",
+    chooseCaptainHint: "Tap a starter to pick captain",
     chooseCaptainBanner: "Squad complete — pick your captain for double points",
     setCaptainLabel: "Set as captain",
+    clearCaptainLabel: "Remove captain armband",
     removePlayerLabel: "Remove player",
     close: "Close",
     managersLockedIn: (n) =>
@@ -1875,7 +1877,7 @@ export const pagesEn: PagesMessages = {
       },
       captain: {
         title: "Captain",
-        lines: ["Tap C on a starter — their points count double."],
+        lines: ["Tap a starter — their points count double. × removes a player."],
       },
       scoring: {
         title: "Points",
@@ -2866,7 +2868,7 @@ export const pagesUk: PagesMessages = {
     lastGwLabel: (n) => `Минулий тур ${n}`,
     lastGwSampleLabel: "Приклад рахунку",
     lastGwPartial: (picked) => `${picked}/11`,
-    lastGwPickCaptain: "Обери C — подвоєння",
+    lastGwPickCaptain: "Натисни гравця — ×2",
     formDotsLegend: "Зелена — старт · жовта — з лави · червона — не грав",
     formDotsNewestHint: "Ліворуч старіше → праворуч останній тур",
     formDotsStart: "Старт",
@@ -2917,9 +2919,10 @@ export const pagesUk: PagesMessages = {
       },
     ],
     howToPlayContinue: "Покажи як",
-    chooseCaptainHint: "Натисни C біля гравця в основі — капітан",
+    chooseCaptainHint: "Натисни на гравця в основі — капітан",
     chooseCaptainBanner: "Склад готовий — обери капітана (подвійні очки)",
     setCaptainLabel: "Зробити капітаном",
+    clearCaptainLabel: "Зняти капітанську пов'язку",
     removePlayerLabel: "Прибрати гравця",
     close: "Закрити",
     managersLockedIn: (n) =>
@@ -2971,7 +2974,9 @@ export const pagesUk: PagesMessages = {
       },
       captain: {
         title: "Капітан",
-        lines: ["Натисни C біля гравця в основі — його очки ×2."],
+        lines: [
+          "Натисни на гравця в основі — його очки ×2. × прибирає зі складу.",
+        ],
       },
       scoring: {
         title: "Очки",

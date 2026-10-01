@@ -133,6 +133,7 @@ export function TabletStylesLab() {
               filledCount={squad.filledCount}
               captainIndex={squad.captainIndex}
               onSetCaptain={squad.setCaptain}
+              onTapStarter={squad.tapStarter}
               onSlotClick={squad.setActiveSlot}
               onClearSlot={squad.clearSlot}
               onPick={(p) => squad.pickPlayer(p)}

@@ -95,6 +95,8 @@ export function useSquadPick(opts?: {
   });
   const draftHydrateAttemptedRef = useRef(hydrateSettled);
   const skipEmptyPersistRef = useRef(false);
+  /** After clearing captain on a full squad, a second body-tap removes that player. */
+  const pendingRemoveAfterCaptainClearRef = useRef<number | null>(null);
   const lineupTouchedNonEmptySessionRef = useRef(
     starters.some(Boolean) || bench.some(Boolean),
   );
@@ -154,6 +156,7 @@ export function useSquadPick(opts?: {
   }, [starters, bench, gameweekId, captainIndexValid]);
 
   const setFormationId = useCallback((id: FormationId) => {
+    pendingRemoveAfterCaptainClearRef.current = null;
     setFormationIdState(id);
     saveFormationId(id);
     setStarters((prev) => {
@@ -186,10 +189,18 @@ export function useSquadPick(opts?: {
 
   const setCaptain = useCallback((index: number) => {
     if (index < 0 || index > 10) return;
-    setCaptainIndexState((prev) => (prev === index ? prev : index));
+    setCaptainIndexState((prev) => {
+      if (prev === index) {
+        pendingRemoveAfterCaptainClearRef.current = index;
+        return null;
+      }
+      pendingRemoveAfterCaptainClearRef.current = null;
+      return index;
+    });
   }, []);
 
   const clearSlot = useCallback((index: number) => {
+    pendingRemoveAfterCaptainClearRef.current = null;
     if (index < 11) {
       setStarters((prev) => {
         const next = [...prev];
@@ -207,6 +218,42 @@ export function useSquadPick(opts?: {
     }
     setActiveSlot(null);
   }, []);
+
+  /**
+   * Starter chip body tap:
+   * - Squad incomplete → remove player
+   * - Squad full → set / switch captain; tap current captain to clear armband;
+   *   tap that same player again to remove. × always removes via clearSlot.
+   */
+  const tapStarter = useCallback(
+    (index: number) => {
+      if (index < 0 || index > 10) return;
+
+      if (filledCount < FORMATION.TOTAL) {
+        clearSlot(index);
+        return;
+      }
+
+      if (captainIndexValid === index) {
+        pendingRemoveAfterCaptainClearRef.current = index;
+        setCaptainIndexState(null);
+        return;
+      }
+
+      if (
+        captainIndexValid == null &&
+        pendingRemoveAfterCaptainClearRef.current === index
+      ) {
+        pendingRemoveAfterCaptainClearRef.current = null;
+        clearSlot(index);
+        return;
+      }
+
+      pendingRemoveAfterCaptainClearRef.current = null;
+      setCaptainIndexState(index);
+    },
+    [captainIndexValid, clearSlot, filledCount],
+  );
 
   const pickPlayer = useCallback(
     (player: Player) => {
@@ -282,6 +329,7 @@ export function useSquadPick(opts?: {
   );
 
   const reset = useCallback(() => {
+    pendingRemoveAfterCaptainClearRef.current = null;
     setStarters(Array(11).fill(null));
     setBench(Array(FORMATION.BENCH).fill(null));
     setCaptainIndexState(null);
@@ -309,6 +357,7 @@ export function useSquadPick(opts?: {
     captainIndex: captainIndexValid,
     hasCaptain,
     setCaptain,
+    tapStarter,
     activeSlot,
     setActiveSlot,
     selectedIds,

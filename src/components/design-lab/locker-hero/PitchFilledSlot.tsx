@@ -15,6 +15,11 @@ type Props = {
   showCaptainPick?: boolean;
   /** Full squad, no captain yet — soft pulse so the C targets read as the next step. */
   needsCaptain?: boolean;
+  /**
+   * Full 14 — larger always-visible × so remove stays obvious while body tap
+   * is reserved for captain set / clear.
+   */
+  squadFull?: boolean;
   onSetCaptain: () => void;
   onRemove: () => void;
   captainLabel: string;
@@ -23,8 +28,9 @@ type Props = {
 };
 
 /**
- * Hover / touch affordances on a filled pitch slot — captain (C) without blocking remove.
- * Parent button still clears on tap; C and × stop propagation.
+ * Hover / touch affordances on a filled pitch slot.
+ * Body tap is handled by the parent (captain when full, remove when not).
+ * C toggles captain; × always removes (and stops propagation).
  */
 export function PitchFilledSlot({
   children,
@@ -32,14 +38,28 @@ export function PitchFilledSlot({
   isCaptain,
   showCaptainPick = false,
   needsCaptain = false,
+  squadFull = false,
   onSetCaptain,
   onRemove,
   captainLabel,
   removeLabel,
   compact = false,
 }: Props) {
-  const btnSize = compact ? "h-[18px] w-[18px] text-[8px]" : "h-5 w-5 text-[9px]";
   const captainAlwaysVisible = isCaptain || showCaptainPick;
+  const captainBtn = squadFull
+    ? compact
+      ? "h-5 w-5 text-[9px]"
+      : "h-6 w-6 text-[10px]"
+    : compact
+      ? "h-[18px] w-[18px] text-[8px]"
+      : "h-5 w-5 text-[9px]";
+  const removeBtn = squadFull
+    ? compact
+      ? "h-6 w-6 text-[14px]"
+      : "h-7 w-7 text-[16px]"
+    : compact
+      ? "h-[18px] w-[18px] text-[10px]"
+      : "h-5 w-5 text-[11px]";
 
   return (
     <span className="group/slot relative flex flex-col items-center">
@@ -49,7 +69,7 @@ export function PitchFilledSlot({
           className={cn(
             "absolute z-20 flex items-center justify-center rounded-full font-black leading-none outline-none transition-[opacity,transform,box-shadow] duration-150",
             "hover:scale-105 active:scale-95 focus-visible:outline-none",
-            btnSize,
+            captainBtn,
             isCaptain
               ? "opacity-100 bg-amber-400 text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]"
               : needsCaptain
@@ -81,10 +101,13 @@ export function PitchFilledSlot({
         <button
           type="button"
           className={cn(
-            "absolute z-20 hidden items-center justify-center rounded-full font-bold leading-none",
-            "bg-black/80 text-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
-            "opacity-0 transition-opacity duration-150 group-hover/slot:flex group-hover/slot:opacity-100",
-            btnSize,
+            "absolute z-20 flex items-center justify-center rounded-full font-bold leading-none",
+            "bg-black/80 text-white shadow-[0_1px_4px_rgba(0,0,0,0.55)]",
+            "transition-[opacity,transform] duration-150 hover:scale-105 active:scale-95",
+            removeBtn,
+            squadFull
+              ? "opacity-100"
+              : "opacity-0 group-hover/slot:opacity-100 [@media(hover:none)]:opacity-90",
             compact ? "-left-0.5 -top-0.5" : "-left-1 -top-1",
           )}
           aria-label={removeLabel}

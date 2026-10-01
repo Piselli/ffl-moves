@@ -125,6 +125,8 @@ type Props = {
   filledCount: number;
   captainIndex?: number | null;
   onSetCaptain?: (index: number) => void;
+  /** Full-squad body tap: set/clear captain or second-tap remove. */
+  onTapStarter?: (index: number) => void;
   onSlotClick: (index: number) => void;
   onClearSlot: (index: number) => void;
   onPick: (player: Player) => void;
@@ -898,6 +900,7 @@ export function LockerTablet({
   filledCount,
   captainIndex = null,
   onSetCaptain,
+  onTapStarter,
   onSlotClick,
   onClearSlot,
   onPick,
@@ -1048,15 +1051,19 @@ export function LockerTablet({
       const isCaptain = captainIndex === slotIndex;
       const chip = <PitchPlayerChip player={player} compact={compact} />;
       if (!onSetCaptain) return chip;
+      const squadFull = filledCount === FORMATION.TOTAL;
       return (
         <PitchFilledSlot
           isStarter
           isCaptain={isCaptain}
-          showCaptainPick={needsCaptain}
+          showCaptainPick={needsCaptain || (squadFull && Boolean(onSetCaptain))}
           needsCaptain={needsCaptain}
+          squadFull={squadFull}
           onSetCaptain={() => onSetCaptain(slotIndex)}
           onRemove={() => onClearSlot(slotIndex)}
-          captainLabel={pickCopy.setCaptainLabel}
+          captainLabel={
+            isCaptain ? pickCopy.clearCaptainLabel : pickCopy.setCaptainLabel
+          }
           removeLabel={pickCopy.removePlayerLabel}
           compact={compact}
         >
@@ -1066,12 +1073,25 @@ export function LockerTablet({
     },
     [
       captainIndex,
+      filledCount,
       needsCaptain,
       onClearSlot,
       onSetCaptain,
+      pickCopy.clearCaptainLabel,
       pickCopy.removePlayerLabel,
       pickCopy.setCaptainLabel,
     ],
+  );
+
+  const handleFilledStarterClick = useCallback(
+    (idx: number) => {
+      if (onTapStarter) {
+        onTapStarter(idx);
+        return;
+      }
+      onClearSlot(idx);
+    },
+    [onClearSlot, onTapStarter],
   );
 
   const handleSlotClick = useCallback(
@@ -1765,7 +1785,9 @@ export function LockerTablet({
                       key={idx}
                       type="button"
                       data-tour-anchor={captainAnchor ? "captain" : undefined}
-                      onClick={() => (p ? onClearSlot(idx) : handleSlotClick(idx))}
+                      onClick={() =>
+                        p ? handleFilledStarterClick(idx) : handleSlotClick(idx)
+                      }
                       className={cn(
                         "flex flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
                         "h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)]",
