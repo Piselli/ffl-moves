@@ -649,8 +649,10 @@ export function useResultsRoomData(): ResultsRoomData {
 
   const loadXiForOwner = useCallback(
     async (owner: string): Promise<XiPayload | null> => {
-      // Registration board (open/closed) — no squad peek until results.
-      if (tablet.status !== "resolved") return null;
+      // Anti-copy: while registration is open, only the connected wallet
+      // may load their own XI. After close (or resolve), any manager is fair game.
+      const isOwn = !!wallet && tourOwnersMatch(owner, wallet);
+      if (tablet.status === "open" && !isOwn) return null;
 
       const gwId = tablet.gameweek;
       const cacheKey = `${gwId}:${owner.toLowerCase()}`;
@@ -686,7 +688,11 @@ export function useResultsRoomData(): ResultsRoomData {
         );
         const starters = squad.slice(0, 11);
         const benchPlayers = squad.slice(11, 14);
-        const stats = await getGameweekStats(gwId, chainTeam.playerIds);
+        // Points only matter once the GW has results; open/closed still show XI.
+        const stats =
+          tablet.status === "resolved"
+            ? await getGameweekStats(gwId, chainTeam.playerIds)
+            : {};
 
         const toLab = (p: (typeof squad)[number], slotIndex: number): LabSquadPlayer => {
           const st = stats[p.id] as Record<string, unknown> | undefined;
@@ -722,7 +728,7 @@ export function useResultsRoomData(): ResultsRoomData {
         return null;
       }
     },
-    [source, tablet.gameweek, tablet.rows, tablet.status],
+    [source, tablet.gameweek, tablet.rows, tablet.status, wallet],
   );
 
   return {

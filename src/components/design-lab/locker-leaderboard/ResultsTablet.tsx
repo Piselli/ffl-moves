@@ -226,12 +226,16 @@ export function ResultsTablet({
   const cta = getCtaStyle(chrome.ctaId);
   const s = useTeamSheetSelection(room.tablet, {
     onClaim: room.claimPrize,
-    // Open/closed: registered list only — no XI until results publish.
-    loadXi:
-      room.tablet.status === "resolved" ? room.loadXiForOwner : undefined,
+    // Own XI always; rivals only after registration closes (see loadXiForOwner).
+    loadXi: room.loadXiForOwner,
     claiming: room.claiming,
   });
+  /** No points yet — open or closed registration list. */
   const registrationBoard = room.tablet.status !== "resolved";
+  /** Anti-copy: rival XIs stay hidden while registration is open. */
+  const squadsPublic = room.tablet.status !== "open";
+  const canShowOpenXi =
+    !!s.open && (Boolean(s.open.isYou) || squadsPublic);
   const typeface = getTypeface();
   const tabletRootRef = useLocalWheelScroll();
   const [tab, setTab] = useState<TabId>("board");
@@ -274,8 +278,11 @@ export function ResultsTablet({
 
   const onSelectManager = (owner: string) => {
     s.select(owner);
-    // Registration list — no XI pane on phone.
-    if (flatShell && !registrationBoard) setBoardPane("xi");
+    // Phone: open XI for own row anytime; rivals only after registration closes.
+    if (flatShell) {
+      const row = room.tablet.rows.find((r) => r.owner === owner);
+      if (row?.isYou || squadsPublic) setBoardPane("xi");
+    }
   };
 
   const d = chrome.details;
@@ -337,21 +344,23 @@ export function ResultsTablet({
     />
   );
 
+  const boardPitchEmpty = !s.open
+    ? "Select a manager to see XI"
+    : !canShowOpenXi
+      ? "Squads unlock after registration closes"
+      : "Select a manager to see XI";
+
   const boardPitch = (
     <TeamSheetPitch
-      manager={registrationBoard ? undefined : s.open}
+      manager={canShowOpenXi ? s.open : undefined}
       landKey={s.landKey}
-      loadingXi={registrationBoard ? false : s.loadingXi}
+      loadingXi={canShowOpenXi ? s.loadingXi : false}
       pitchStyleId={pitchStyleId}
       onPitchStyleChange={onPitchStyleChange}
       fillPlate
       plateClassName={plateRadiusClass}
       showHeader={false}
-      emptyMessage={
-        registrationBoard
-          ? "XI unlocks after results"
-          : "Select a manager to see XI"
-      }
+      emptyMessage={boardPitchEmpty}
       className="h-full min-h-0"
     />
   );

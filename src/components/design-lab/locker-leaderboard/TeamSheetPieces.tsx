@@ -54,8 +54,8 @@ export function useTeamSheetSelection(
   opts: SelectionOpts = {},
 ) {
   const data = snapshot;
-  const you = data.rows.find((r) => r.isYou);
-  const initial = you?.owner ?? data.rows[0]?.owner ?? "";
+  const youBase = data.rows.find((r) => r.isYou);
+  const initial = youBase?.owner ?? data.rows[0]?.owner ?? "";
   const [openOwner, setOpenOwner] = useState(initial);
   const [landKey, setLandKey] = useState(0);
   const [claimPulse, setClaimPulse] = useState(false);
@@ -86,8 +86,20 @@ export function useTeamSheetSelection(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: GW identity only
   }, [data.gameweek]);
 
+  const you: LabLeaderboardRow | undefined = youBase
+    ? {
+        ...youBase,
+        xi: xiByOwner[youBase.owner] ?? youBase.xi,
+        bench: benchByOwner[youBase.owner] ?? youBase.bench,
+        formationId:
+          formationByOwner[youBase.owner] ??
+          youBase.formationId ??
+          DEFAULT_FORMATION,
+      }
+    : undefined;
+
   const baseOpen =
-    data.rows.find((r) => r.owner === openOwner) ?? you ?? data.rows[0];
+    data.rows.find((r) => r.owner === openOwner) ?? youBase ?? data.rows[0];
   const open: LabLeaderboardRow | undefined = baseOpen
     ? {
         ...baseOpen,
@@ -126,10 +138,13 @@ export function useTeamSheetSelection(
     const loadXi = loadXiRef.current;
     if (loadXi && !xiByOwner[owner]) {
       setLoadingXi(true);
-      void loadXi(owner).then((res) => {
-        if (res?.xi?.length) applyXi(owner, res);
-        setLoadingXi(false);
-      });
+      void loadXi(owner)
+        .then((res) => {
+          if (res?.xi?.length) applyXi(owner, res);
+        })
+        .finally(() => {
+          setLoadingXi(false);
+        });
     }
   };
 
@@ -140,11 +155,14 @@ export function useTeamSheetSelection(
     if (xiByOwner[openOwner]) return;
     let cancelled = false;
     setLoadingXi(true);
-    void loadXi(openOwner).then((res) => {
-      if (cancelled) return;
-      if (res?.xi?.length) applyXi(openOwner, res);
-      setLoadingXi(false);
-    });
+    void loadXi(openOwner)
+      .then((res) => {
+        if (cancelled) return;
+        if (res?.xi?.length) applyXi(openOwner, res);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingXi(false);
+      });
     return () => {
       cancelled = true;
     };

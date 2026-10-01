@@ -16,11 +16,13 @@ import { groupSquadFormation } from "./xiBreakdownHelpers";
 function XiShell({
   loading,
   empty,
+  emptyMessage,
   children,
   className,
 }: {
   loading?: boolean;
   empty?: boolean;
+  emptyMessage?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -34,7 +36,9 @@ function XiShell({
   if (empty) {
     return (
       <div className={cn("flex h-full items-center justify-center px-6", className)}>
-        <p className="text-center text-[15px] text-white/45">Loading your squad…</p>
+        <p className="text-center text-[15px] text-white/45">
+          {emptyMessage ?? "Squad unavailable"}
+        </p>
       </div>
     );
   }
@@ -104,11 +108,19 @@ export function YouXiPanel({
   const loading = Boolean(loadingXi && starters.length === 0);
   const empty = !loading && starters.length === 0;
   const plate = resolveYouXiVariantId(variantId);
+  const emptyMessage = manager
+    ? "Couldn’t load this squad"
+    : "Select Find me after connecting";
 
   void landKey;
 
   return (
-    <XiShell loading={loading} empty={empty} className={className}>
+    <XiShell
+      loading={loading}
+      empty={empty}
+      emptyMessage={emptyMessage}
+      className={className}
+    >
       {manager ? (
         <div className="min-h-0 flex-1 px-2 pb-1 pt-0.5">
           <CrystalResultShare
