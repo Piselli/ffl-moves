@@ -20,6 +20,8 @@ type Props = {
    * is reserved for captain set / clear.
    */
   squadFull?: boolean;
+  /** Registered / frozen squad — captain badge only, no remove or retap. */
+  locked?: boolean;
   onSetCaptain: () => void;
   onRemove: () => void;
   captainLabel: string;
@@ -31,6 +33,7 @@ type Props = {
  * Hover / touch affordances on a filled pitch slot.
  * Body tap is handled by the parent (captain when full, remove when not).
  * C toggles captain; × always removes (and stops propagation).
+ * When locked, only the captain badge remains (non-interactive).
  */
 export function PitchFilledSlot({
   children,
@@ -39,6 +42,7 @@ export function PitchFilledSlot({
   showCaptainPick = false,
   needsCaptain = false,
   squadFull = false,
+  locked = false,
   onSetCaptain,
   onRemove,
   captainLabel,
@@ -63,41 +67,55 @@ export function PitchFilledSlot({
 
   return (
     <span className="group/slot relative flex flex-col items-center">
-      {isStarter ? (
-        <button
-          type="button"
-          className={cn(
-            "absolute z-20 flex items-center justify-center rounded-full font-black leading-none outline-none transition-[opacity,transform,box-shadow] duration-150",
-            "hover:scale-105 active:scale-95 focus-visible:outline-none",
-            captainBtn,
-            isCaptain
-              ? "opacity-100 bg-amber-400 text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]"
-              : needsCaptain
-                ? cn(
-                    "captain-pick-pulse bg-transparent text-amber-300",
-                    "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
-                  )
-                : cn(
-                    "bg-black/80 text-amber-200/95 shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
-                    captainAlwaysVisible
-                      ? "opacity-100"
-                      : "opacity-0 group-hover/slot:opacity-100 [@media(hover:none)]:opacity-85",
-                  ),
-            compact ? "-right-0.5 -top-0.5" : "-right-1 -top-1",
-          )}
-          aria-label={captainLabel}
-          aria-pressed={isCaptain}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSetCaptain();
-            e.currentTarget.blur();
-          }}
-        >
-          C
-        </button>
+      {isStarter && (locked ? isCaptain : true) ? (
+        locked ? (
+          <span
+            className={cn(
+              "absolute z-20 flex items-center justify-center rounded-full font-black leading-none",
+              captainBtn,
+              "opacity-100 bg-amber-400 text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
+              compact ? "-right-0.5 -top-0.5" : "-right-1 -top-1",
+            )}
+            aria-label={captainLabel}
+          >
+            C
+          </span>
+        ) : (
+          <button
+            type="button"
+            className={cn(
+              "absolute z-20 flex items-center justify-center rounded-full font-black leading-none outline-none transition-[opacity,transform,box-shadow] duration-150",
+              "hover:scale-105 active:scale-95 focus-visible:outline-none",
+              captainBtn,
+              isCaptain
+                ? "opacity-100 bg-amber-400 text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]"
+                : needsCaptain
+                  ? cn(
+                      "captain-pick-pulse bg-transparent text-amber-300",
+                      "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                    )
+                  : cn(
+                      "bg-black/80 text-amber-200/95 shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
+                      captainAlwaysVisible
+                        ? "opacity-100"
+                        : "opacity-0 group-hover/slot:opacity-100 [@media(hover:none)]:opacity-85",
+                    ),
+              compact ? "-right-0.5 -top-0.5" : "-right-1 -top-1",
+            )}
+            aria-label={captainLabel}
+            aria-pressed={isCaptain}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSetCaptain();
+              e.currentTarget.blur();
+            }}
+          >
+            C
+          </button>
+        )
       ) : null}
 
-      {isStarter ? (
+      {isStarter && !locked ? (
         <button
           type="button"
           className={cn(

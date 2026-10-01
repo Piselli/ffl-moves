@@ -152,6 +152,8 @@ type Props = {
   registerEntry?: boolean;
   /** Squad already on-chain — primary CTA opens share poster. */
   registeredShare?: boolean;
+  /** After on-chain register — pitch / pick / captain / reset are frozen. */
+  squadLocked?: boolean;
   onShareClick?: () => void;
   shareLabel?: string;
   shareSubline?: string;
@@ -659,11 +661,13 @@ function MobileBenchBar({
   activeSlot,
   onClearSlot,
   onSlotClick,
+  locked = false,
 }: {
   bench: (Player | null)[];
   activeSlot: number | null;
   onClearSlot: (index: number) => void;
   onSlotClick: (index: number) => void;
+  locked?: boolean;
 }) {
   return (
     <div className="order-2 flex shrink-0 flex-col gap-1 md:hidden">
@@ -678,14 +682,18 @@ function MobileBenchBar({
             <button
               key={i}
               type="button"
-              onClick={() =>
-                p ? onClearSlot(slotIndex) : onSlotClick(slotIndex)
-              }
+              onClick={() => {
+                if (locked) return;
+                if (p) onClearSlot(slotIndex);
+                else onSlotClick(slotIndex);
+              }}
+              disabled={locked && Boolean(p)}
               className={cn(
                 "flex min-h-[34px] min-w-0 flex-1 items-center gap-1 rounded-xl border px-1.5 py-1 transition active:scale-[0.98]",
                 active
                   ? "border-[color:var(--lt-accent)]/45 bg-[color:var(--lt-accent-soft)]"
                   : "border-[color:var(--lt-ink)]/15 bg-[color:var(--lt-ink)]/[0.06]",
+                locked && "cursor-default active:scale-100",
               )}
               aria-label={
                 p ? (p.webName ?? p.name) : `Empty bench ${i + 1}`
@@ -921,6 +929,7 @@ export function LockerTablet({
   registerHint = null,
   registerEntry = false,
   registeredShare = false,
+  squadLocked = false,
   onShareClick,
   shareLabel,
   shareSubline,
@@ -987,7 +996,10 @@ export function LockerTablet({
   const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
-    filledCount === FORMATION.TOTAL && captainIndex == null && Boolean(onSetCaptain);
+    !squadLocked &&
+    filledCount === FORMATION.TOTAL &&
+    captainIndex == null &&
+    Boolean(onSetCaptain);
   const hasCaptain = captainIndex != null;
   const pickTour = usePickTour({
     enabled: pickWelcome,
@@ -1056,11 +1068,19 @@ export function LockerTablet({
         <PitchFilledSlot
           isStarter
           isCaptain={isCaptain}
-          showCaptainPick={needsCaptain || (squadFull && Boolean(onSetCaptain))}
+          showCaptainPick={
+            !squadLocked &&
+            (needsCaptain || (squadFull && Boolean(onSetCaptain)))
+          }
           needsCaptain={needsCaptain}
-          squadFull={squadFull}
-          onSetCaptain={() => onSetCaptain(slotIndex)}
-          onRemove={() => onClearSlot(slotIndex)}
+          squadFull={squadFull && !squadLocked}
+          locked={squadLocked}
+          onSetCaptain={() => {
+            if (!squadLocked) onSetCaptain(slotIndex);
+          }}
+          onRemove={() => {
+            if (!squadLocked) onClearSlot(slotIndex);
+          }}
           captainLabel={
             isCaptain ? pickCopy.clearCaptainLabel : pickCopy.setCaptainLabel
           }
@@ -1080,27 +1100,30 @@ export function LockerTablet({
       pickCopy.clearCaptainLabel,
       pickCopy.removePlayerLabel,
       pickCopy.setCaptainLabel,
+      squadLocked,
     ],
   );
 
   const handleFilledStarterClick = useCallback(
     (idx: number) => {
+      if (squadLocked) return;
       if (onTapStarter) {
         onTapStarter(idx);
         return;
       }
       onClearSlot(idx);
     },
-    [onClearSlot, onTapStarter],
+    [onClearSlot, onTapStarter, squadLocked],
   );
 
   const handleSlotClick = useCallback(
     (idx: number) => {
+      if (squadLocked) return;
       const empty = idx < 11 ? !starters[idx] : !bench[idx - 11];
       onSlotClick(idx);
       if (empty) setMobileTab("players");
     },
-    [bench, onSlotClick, starters],
+    [bench, onSlotClick, squadLocked, starters],
   );
 
   useEffect(() => {
@@ -1748,7 +1771,7 @@ export function LockerTablet({
           */}
           <PitchFringeBar
             formationId={formationId}
-            onFormationChange={onFormationChange}
+            onFormationChange={squadLocked ? undefined : onFormationChange}
             pitchStyleId={pitchStyleId}
             onPitchStyleChange={onPitchStyleChange}
             lastGw={lastGw}
@@ -1828,6 +1851,7 @@ export function LockerTablet({
             activeSlot={activeSlot}
             onClearSlot={onClearSlot}
             onSlotClick={handleSlotClick}
+            locked={squadLocked}
           />
         ) : null}
 
@@ -1940,22 +1964,27 @@ export function LockerTablet({
                   <button
                     key={p.id}
                     type="button"
-                    disabled={taken || clubCapped}
-                    aria-disabled={taken || clubCapped}
+                    disabled={squadLocked || taken || clubCapped}
+                    aria-disabled={squadLocked || taken || clubCapped}
                     onClick={() => {
-                      if (taken || clubCapped) return;
+                      if (squadLocked || taken || clubCapped) return;
                       onPick(p);
                       setFlashPickId(p.id);
                     }}
                     className={cn(
                       "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [content-visibility:auto] [contain-intrinsic-size:auto_74px]",
-                      taken && "cursor-default opacity-40",
+                      (taken || squadLocked) && "cursor-default opacity-40",
                       clubCapped &&
                         "cursor-default opacity-[0.48] saturate-[0.4]",
-                      !taken &&
+                      !squadLocked &&
+                        !taken &&
                         !clubCapped &&
                         "rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
-                      flash && !taken && !clubCapped && "bg-[color:var(--lt-ink)]/[0.10]",
+                      flash &&
+                        !squadLocked &&
+                        !taken &&
+                        !clubCapped &&
+                        "bg-[color:var(--lt-ink)]/[0.10]",
                     )}
                   >
                     <span
@@ -2174,10 +2203,17 @@ export function LockerTablet({
                   <button
                     key={i}
                     type="button"
-                    onClick={() =>
-                      p ? onClearSlot(slotIndex) : handleSlotClick(slotIndex)
-                    }
-                    className="flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]"
+                    onClick={() => {
+                      if (squadLocked) return;
+                      if (p) onClearSlot(slotIndex);
+                      else handleSlotClick(slotIndex);
+                    }}
+                    className={cn(
+                      "flex min-w-0 flex-1 justify-center rounded-lg transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                      squadLocked
+                        ? "cursor-default"
+                        : "hover:brightness-110 active:scale-[0.96]",
+                    )}
                     aria-label={
                       p
                         ? p.webName ?? p.name
@@ -2212,6 +2248,7 @@ export function LockerTablet({
             <button
               type="button"
               onClick={onReset}
+              disabled={squadLocked}
               aria-label="Reset"
               title="Reset"
               className={cn(
@@ -2228,6 +2265,7 @@ export function LockerTablet({
                     : "ring-1 ring-white/25 hover:ring-white/40"),
                 isMotionChrome &&
                   "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 active:scale-[0.92]",
+                squadLocked && "pointer-events-none opacity-35",
               )}
             >
               <svg
@@ -2247,6 +2285,7 @@ export function LockerTablet({
             <button
               type="button"
               onClick={onRandom}
+              disabled={squadLocked}
               aria-label="Shuffle squad"
               title="Shuffle squad"
               className={cn(
@@ -2263,6 +2302,7 @@ export function LockerTablet({
                     : "ring-1 ring-white/25 hover:ring-white/40"),
                 isMotionChrome &&
                   "duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 active:scale-[0.92]",
+                squadLocked && "pointer-events-none opacity-35",
               )}
             >
               <svg
@@ -2391,7 +2431,7 @@ export function LockerTablet({
               Pick
             </span>
           </button>
-          {!shareCtaActive ? (
+          {!shareCtaActive && !squadLocked ? (
             <button
               type="button"
               onClick={onRandom}

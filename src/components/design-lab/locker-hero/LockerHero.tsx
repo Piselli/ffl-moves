@@ -120,11 +120,55 @@ export function LockerHero({
     bench: squad.bench,
     gameweekId: data.openGwId,
     captainIndex: squad.captainIndex,
+    players: data.players,
     chainLoading: data.chainLoading,
     onRegistered: data.refreshOpenGameweek,
   });
   const showRegisteredShare =
     register.alreadyRegistered || (previewRegistered && isLab);
+  const squadLocked = showRegisteredShare;
+  const displayStarters =
+    squadLocked && register.lockedStarters
+      ? register.lockedStarters
+      : squad.starters;
+  const displayBench =
+    squadLocked && register.lockedBench ? register.lockedBench : squad.bench;
+  const displayCaptainIndex = squadLocked
+    ? (register.registeredCaptainIndex ?? squad.captainIndex)
+    : squad.captainIndex;
+  const displayFilledCount = squadLocked
+    ? FORMATION.TOTAL
+    : squad.filledCount;
+  const displaySelectedIds = useMemo(() => {
+    if (!squadLocked || !register.lockedStarters || !register.lockedBench) {
+      return squad.selectedIds;
+    }
+    const ids = new Set<number>();
+    for (const p of register.lockedStarters) if (p) ids.add(p.id);
+    for (const p of register.lockedBench) if (p) ids.add(p.id);
+    return ids;
+  }, [
+    register.lockedBench,
+    register.lockedStarters,
+    squad.selectedIds,
+    squadLocked,
+  ]);
+  const displayClubCounts = useMemo(() => {
+    if (!squadLocked || !register.lockedStarters || !register.lockedBench) {
+      return squad.clubCounts;
+    }
+    const counts: Record<number, number> = {};
+    for (const p of [...register.lockedStarters, ...register.lockedBench]) {
+      if (!p) continue;
+      counts[p.teamId] = (counts[p.teamId] ?? 0) + 1;
+    }
+    return counts;
+  }, [
+    register.lockedBench,
+    register.lockedStarters,
+    squad.clubCounts,
+    squadLocked,
+  ]);
 
   useEffect(() => {
     if (!previewRegistered || !isLab) return;
@@ -411,13 +455,13 @@ export function LockerHero({
       messages={messages}
       players={data.players}
       playersLoading={data.playersLoading}
-      starters={squad.starters}
-      bench={squad.bench}
-      activeSlot={squad.activeSlot}
-      selectedIds={squad.selectedIds}
-      clubCounts={squad.clubCounts}
-      filledCount={squad.filledCount}
-      captainIndex={squad.captainIndex}
+      starters={displayStarters}
+      bench={displayBench}
+      activeSlot={squadLocked ? null : squad.activeSlot}
+      selectedIds={displaySelectedIds}
+      clubCounts={displayClubCounts}
+      filledCount={displayFilledCount}
+      captainIndex={displayCaptainIndex}
       onSetCaptain={squad.setCaptain}
       onTapStarter={squad.tapStarter}
       onSlotClick={squad.setActiveSlot}
@@ -444,6 +488,7 @@ export function LockerHero({
       registerHint={register.hint}
       registerEntry={register.needsLogin}
       registeredShare={showRegisteredShare}
+      squadLocked={squadLocked}
       onShareClick={() => register.setShareOpen(true)}
       shareLabel={messages.pages.squadShare.registeredShareButton}
       shareSubline={messages.pages.squadShare.registeredShareSubline}
@@ -477,8 +522,8 @@ export function LockerHero({
 
           {useTabletScene ? (
             <LockerKits
-              starters={squad.starters}
-              bench={squad.bench}
+              starters={displayStarters}
+              bench={displayBench}
               roomBackgroundId={ROOM_BACKGROUND.id}
               roomFocused={!tabletRaised}
               glowId={ACTIVE_NAMEPLATE_GLOW}
@@ -668,13 +713,21 @@ export function LockerHero({
       <ShareSquadOnXModal
         open={register.shareOpen}
         onClose={() => register.setShareOpen(false)}
-        starters={register.registeredStarters}
-        bench={register.registeredBench}
+        starters={
+          register.registeredStarters.length === 11
+            ? register.registeredStarters
+            : displayStarters.filter((p): p is Player => p != null)
+        }
+        bench={
+          register.registeredBench.length === FORMATION.BENCH
+            ? register.registeredBench
+            : displayBench.filter((p): p is Player => p != null)
+        }
         context="gameweek"
         tourLabel={`${messages.pages.gameweek.gwWord} ${register.gameweekId ?? ""}`}
         sitePath="/"
         formationId={squad.formationId}
-        captainIndex={squad.captainIndex ?? undefined}
+        captainIndex={displayCaptainIndex ?? undefined}
       />
 
       {bootMounted ? (

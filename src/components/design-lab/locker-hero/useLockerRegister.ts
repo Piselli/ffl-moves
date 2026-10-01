@@ -7,7 +7,9 @@ import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   buildRegisterTeam,
   getConfig,
+  getUserTeam,
   hasRegisteredTeam,
+  NO_CAPTAIN_INDEX,
 } from "@/lib/chainClient";
 import {
   isInsufficientFundsError,
@@ -22,12 +24,75 @@ import { claimInviteConversion } from "@/lib/inviteClient";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { Player } from "@/lib/types";
 import { useLegalAttestation } from "@/hooks/useLegalAttestation";
+import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
+import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
+
+export type RegisteredSquadSnapshot = {
+  starters: Player[];
+  bench: Player[];
+  captainIndex: number | null;
+};
+
+function registeredSnapshotKey(gwId: number, addr: string) {
+  return `ffl_team_v2_gw${gwId}_${addr}`;
+}
+
+function isCompleteRegisteredSnapshot(
+  t: { starters?: Player[]; bench?: Player[] } | null | undefined,
+): t is RegisteredSquadSnapshot {
+  if (!t || !Array.isArray(t.starters) || !Array.isArray(t.bench)) return false;
+  return t.starters.length === 11 && t.bench.length === FORMATION.BENCH;
+}
+
+function normalizeStoredCaptain(
+  captainIndex: unknown,
+  starters: Player[],
+): number | null {
+  if (typeof captainIndex !== "number" || !Number.isInteger(captainIndex)) {
+    return null;
+  }
+  if (captainIndex < 0 || captainIndex > 10) return null;
+  return starters[captainIndex] ? captainIndex : null;
+}
+
+function readStoredSnapshot(key: string): RegisteredSquadSnapshot | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      starters?: Player[];
+      bench?: Player[];
+      captainIndex?: number | null;
+    };
+    if (!isCompleteRegisteredSnapshot(parsed)) return null;
+    return {
+      starters: parsed.starters,
+      bench: parsed.bench,
+      captainIndex: normalizeStoredCaptain(parsed.captainIndex, parsed.starters),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSnapshot(
+  key: string,
+  snapshot: RegisteredSquadSnapshot,
+): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(snapshot));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 export function useLockerRegister(opts: {
   starters: (Player | null)[];
   bench: (Player | null)[];
   gameweekId: number | null;
   captainIndex: number | null;
+  /** Catalog for resolving on-chain ids when the registered snapshot is missing. */
+  players?: Player[];
   /** While true, `gameweekId` may still be null — don't flash "closed" yet. */
   chainLoading?: boolean;
   /** Refetch prize pool / entries after a successful on-chain register. */
@@ -38,6 +103,7 @@ export function useLockerRegister(opts: {
     bench,
     gameweekId,
     captainIndex,
+    players = [],
     chainLoading = false,
     onRegistered,
   } = opts;
@@ -50,6 +116,8 @@ export function useLockerRegister(opts: {
 
   const [entryFeeRaw, setEntryFeeRaw] = useState<bigint>(5_000_000n);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [registeredTeam, setRegisteredTeam] =
+    useState<RegisteredSquadSnapshot | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -67,14 +135,19 @@ export function useLockerRegister(opts: {
   const isReadyToRegister = isComplete && hasCaptain;
   const feeLabel = formatFeeLabel(entryFeeRaw);
 
-  const registeredStarters = useMemo(
-    () => starters.filter((p): p is Player => p != null),
-    [starters],
-  );
-  const registeredBench = useMemo(
-    () => bench.filter((p): p is Player => p != null),
-    [bench],
-  );
+  const lockedStarters = useMemo((): (Player | null)[] | null => {
+    if (!registeredTeam) return null;
+    return registeredTeam.starters;
+  }, [registeredTeam]);
+
+  const lockedBench = useMemo((): (Player | null)[] | null => {
+    if (!registeredTeam) return null;
+    return registeredTeam.bench;
+  }, [registeredTeam]);
+
+  const registeredStarters = registeredTeam?.starters ?? [];
+  const registeredBench = registeredTeam?.bench ?? [];
+  const registeredCaptainIndex = registeredTeam?.captainIndex ?? null;
 
   const showError = useCallback((error: unknown) => {
     setErrorMessage(formatTxError(error) || getErrorMessage(error));
@@ -105,6 +178,7 @@ export function useLockerRegister(opts: {
     const addr = account?.address;
     if (!connected || !addr || gameweekId == null) {
       setAlreadyRegistered(false);
+      setRegisteredTeam(null);
       return;
     }
     let cancelled = false;
@@ -119,6 +193,64 @@ export function useLockerRegister(opts: {
       cancelled = true;
     };
   }, [account?.address, connected, gameweekId]);
+
+  // Freeze the on-chain / saved registered XI for display + share.
+  useEffect(() => {
+    if (!alreadyRegistered || !account?.address || gameweekId == null) return;
+    if (isCompleteRegisteredSnapshot(registeredTeam)) return;
+
+    const addr = account.address.toString();
+    const key = registeredSnapshotKey(gameweekId, addr);
+    const stored = readStoredSnapshot(key);
+    if (stored) {
+      setRegisteredTeam(stored);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadFromChain() {
+      const chainTeam = await getUserTeam(addr, gameweekId!);
+      if (cancelled || !chainTeam?.playerIds?.length) return;
+
+      const catalog = new Map(players.map((p) => [p.id, p]));
+      await mergeFplCatalogForChainIds(catalog, chainTeam.playerIds);
+      const teamPlayers = squadPlayersFromChain(
+        {
+          playerIds: chainTeam.playerIds,
+          playerPositions: chainTeam.playerPositions,
+        },
+        catalog,
+      );
+      if (cancelled || teamPlayers.length !== FORMATION.TOTAL) return;
+
+      const captain =
+        chainTeam.captainIndex === NO_CAPTAIN_INDEX
+          ? null
+          : normalizeStoredCaptain(
+              chainTeam.captainIndex,
+              teamPlayers.slice(0, 11),
+            );
+
+      const snapshot: RegisteredSquadSnapshot = {
+        starters: teamPlayers.slice(0, 11),
+        bench: teamPlayers.slice(11),
+        captainIndex: captain,
+      };
+      setRegisteredTeam(snapshot);
+      writeStoredSnapshot(key, snapshot);
+    }
+
+    void loadFromChain();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    alreadyRegistered,
+    account?.address,
+    gameweekId,
+    players,
+    registeredTeam,
+  ]);
 
   const registrationClosed =
     !chainLoading && gameweekId == null && !alreadyRegistered;
@@ -204,11 +336,26 @@ export function useLockerRegister(opts: {
         }),
       );
       registeredOk = true;
+      const snapshot: RegisteredSquadSnapshot = {
+        starters: starters.filter((p): p is Player => p != null),
+        bench: bench.filter((p): p is Player => p != null),
+        captainIndex,
+      };
+      if (isCompleteRegisteredSnapshot(snapshot)) {
+        setRegisteredTeam(snapshot);
+        writeStoredSnapshot(
+          registeredSnapshotKey(gameweekId, account.address.toString()),
+          snapshot,
+        );
+      }
       setAlreadyRegistered(true);
       trackReferralConversion(account.address.toString());
       claimInviteConversion(account.address.toString());
       // RPC may lag — retry claim once so first-season check sees the Entry.
-      window.setTimeout(() => claimInviteConversion(account.address.toString()), 2500);
+      window.setTimeout(
+        () => claimInviteConversion(account.address.toString()),
+        2500,
+      );
       refreshBalance();
       onRegistered?.();
       // RPC can lag a beat after confirm — second pass picks up pool/entries.
@@ -280,6 +427,9 @@ export function useLockerRegister(opts: {
     setShareOpen,
     registeredStarters,
     registeredBench,
+    registeredCaptainIndex,
+    lockedStarters,
+    lockedBench,
     gameweekId,
     attestOpen,
     setAttestOpen,
