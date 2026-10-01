@@ -118,11 +118,18 @@ export function PickHelpOverlay({
   const titleId = `lt-help-${kind}`;
   const overlay = modalOverlayMotion(reduce);
   const panel = modalPanelMotion(reduce);
+  const isHowto = kind === "howto";
 
   return (
     <AnimatePresence>
       {open ? (
-        <div className="absolute inset-0 z-[50] flex items-center justify-center p-3 sm:p-4">
+        <div
+          className={
+            isHowto
+              ? "absolute inset-0 z-[50] flex items-start justify-center overflow-hidden p-3 pt-3 sm:p-4 sm:pt-3.5"
+              : "absolute inset-0 z-[50] flex items-center justify-center p-3 sm:p-4"
+          }
+        >
           <motion.button
             type="button"
             aria-label={pick.close}
@@ -138,48 +145,70 @@ export function PickHelpOverlay({
             aria-modal="true"
             aria-labelledby={titleId}
             data-tour-anchor={tourAnchor}
-            className="relative z-10 w-full max-w-[min(440px,100%)]"
+            className={
+              isHowto
+                ? "relative z-10 flex max-h-full w-full max-w-[min(560px,100%)] flex-col"
+                : "relative z-10 w-full max-w-[min(440px,100%)]"
+            }
             initial={panel.initial}
             animate={panel.animate}
             exit={panel.exit}
             transition={panel.transition}
           >
-            <div className={BACKPLATE}>
-              <GlassPanel crystal className="w-full !rounded-2xl p-4 sm:p-5">
+            <div
+              className={
+                isHowto ? `${BACKPLATE} flex min-h-0 max-h-full flex-col` : BACKPLATE
+              }
+            >
+              <GlassPanel
+                crystal
+                className={
+                  isHowto
+                    ? "flex min-h-0 max-h-full w-full flex-col !rounded-2xl p-3.5 sm:p-5"
+                    : "w-full !rounded-2xl p-4 sm:p-5"
+                }
+              >
                 <h2
                   id={titleId}
-                  className="pr-9 text-[20px] font-black uppercase tracking-[-0.02em] text-white sm:text-[22px]"
+                  className={
+                    isHowto
+                      ? "shrink-0 pr-9 text-[22px] font-black uppercase tracking-[-0.02em] text-white sm:text-[26px]"
+                      : "pr-9 text-[20px] font-black uppercase tracking-[-0.02em] text-white sm:text-[22px]"
+                  }
                   style={DISPLAY}
                 >
                   {title}
                 </h2>
-                {kind === "howto" && pick.howToPlaySubtitle ? (
-                  <p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap pr-9 text-[11px] font-medium leading-none text-white/55">
+                {isHowto && pick.howToPlaySubtitle ? (
+                  <p className="mt-1 shrink-0 pr-9 text-[13px] font-medium leading-snug text-white/60 sm:text-[14px]">
                     {pick.howToPlaySubtitle}
                   </p>
                 ) : null}
 
-                {kind === "howto" ? (
+                {isHowto ? (
                   <>
-                    <ul className="mt-3 space-y-1.5">
+                    <ul className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain sm:mt-4 sm:space-y-2.5">
                       {pick.howToPlaySteps.map((step) => (
                         <li
                           key={step.title}
-                          className="flex items-start gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] p-1.5 pr-2.5"
+                          className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-2 pr-2.5 sm:gap-3.5 sm:p-2.5 sm:pr-3"
                         >
-                          <HowToStepArt id={step.art} />
-                          <div className="min-w-0 pt-0.5">
+                          <HowToStepArt
+                            id={step.art}
+                            className="h-[72px] w-[72px] rounded-xl sm:h-[80px] sm:w-[80px]"
+                          />
+                          <div className="min-w-0 flex-1 pt-0.5">
                             <p
-                              className="text-[13px] font-bold leading-snug text-white"
+                              className="text-[15px] font-bold leading-snug text-white sm:text-[16px]"
                               style={DISPLAY}
                             >
                               {step.title}
                             </p>
-                            <div className="mt-0.5 space-y-0.5">
+                            <div className="mt-1 space-y-0.5">
                               {step.body.map((line) => (
                                 <p
                                   key={line}
-                                  className="text-[11px] font-medium leading-snug text-white/55"
+                                  className="text-[13px] font-medium leading-snug text-white/65 sm:text-[14px] sm:leading-relaxed"
                                 >
                                   {line}
                                 </p>
@@ -193,7 +222,7 @@ export function PickHelpOverlay({
                       <button
                         type="button"
                         onClick={onContinue}
-                        className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-[14px] font-black uppercase tracking-[0.06em] text-white transition hover:brightness-[1.06] active:scale-[0.985]"
+                        className="mt-3 flex h-11 w-full shrink-0 items-center justify-center rounded-xl text-[14px] font-black uppercase tracking-[0.06em] text-white transition hover:brightness-[1.06] active:scale-[0.985] sm:mt-4 sm:h-12 sm:text-[15px]"
                         style={LOCKER_CTA.style}
                       >
                         {continueLabel ?? pick.tourNext}
