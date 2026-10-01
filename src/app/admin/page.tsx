@@ -598,6 +598,22 @@ export default function AdminPage() {
         })
       );
 
+      // getUserTeam recovers the captain from the registration tx for legacy entries. If it
+      // still reports "no captain", that player would silently lose the ×2 bonus.
+      const { NO_CAPTAIN_INDEX } = await import("@/lib/chainClient");
+      const missingCaptain = loadedTeams.filter(({ team }) => team && team.captainIndex === NO_CAPTAIN_INDEX);
+      if (missingCaptain.length > 0) {
+        const list = missingCaptain.map(({ addr }) => addr).join("\n");
+        if (
+          !window.confirm(
+            `${missingCaptain.length} entr${missingCaptain.length === 1 ? "y has" : "ies have"} no recoverable captain ` +
+              `(they would get NO ×2 bonus):\n\n${list}\n\nOK = continue anyway. Cancel = stop and retry (RPC may have failed).`,
+          )
+        ) {
+          return;
+        }
+      }
+
       // Integrity audit (EPL gameweeks only — World Cup tours use a different catalog).
       // The program stores whatever positions/clubs the client sent and has no deadline,
       // so flag late registrations, >3 per club and position/club labels that contradict

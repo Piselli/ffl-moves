@@ -67,8 +67,8 @@ export function PitchFilledSlot({
 
   return (
     <span className="group/slot relative flex flex-col items-center">
-      {isStarter && (locked ? isCaptain : true) ? (
-        locked ? (
+      {isStarter ? (
+        locked && isCaptain && !needsCaptain ? (
           <span
             className={cn(
               "absolute z-20 flex items-center justify-center rounded-full font-black leading-none",
@@ -80,7 +80,7 @@ export function PitchFilledSlot({
           >
             C
           </span>
-        ) : (
+        ) : locked && !needsCaptain ? null : (
           <button
             type="button"
             className={cn(

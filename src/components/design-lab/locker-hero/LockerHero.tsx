@@ -120,6 +120,7 @@ export function LockerHero({
     bench: squad.bench,
     gameweekId: data.openGwId,
     captainIndex: squad.captainIndex,
+    formationId: squad.formationId,
     players: data.players,
     chainLoading: data.chainLoading,
     onRegistered: data.refreshOpenGameweek,
@@ -133,9 +134,30 @@ export function LockerHero({
       : squad.starters;
   const displayBench =
     squadLocked && register.lockedBench ? register.lockedBench : squad.bench;
-  const displayCaptainIndex = squadLocked
-    ? (register.registeredCaptainIndex ?? squad.captainIndex)
-    : squad.captainIndex;
+  const displayCaptainIndex = useMemo(() => {
+    if (!squadLocked || !register.lockedStarters) return squad.captainIndex;
+    if (register.registeredCaptainIndex != null) {
+      return register.registeredCaptainIndex;
+    }
+    // Legacy Entry accounts omit captain on-chain — recover from the pick draft.
+    const draftCaptain =
+      squad.captainIndex != null ? squad.starters[squad.captainIndex] : null;
+    if (!draftCaptain) return null;
+    const idx = register.lockedStarters.findIndex(
+      (p) => p?.id === draftCaptain.id,
+    );
+    return idx >= 0 ? idx : null;
+  }, [
+    register.lockedStarters,
+    register.registeredCaptainIndex,
+    squad.captainIndex,
+    squad.starters,
+    squadLocked,
+  ]);
+  const displayFormationId =
+    squadLocked && register.lockedFormationId
+      ? register.lockedFormationId
+      : squad.formationId;
   const displayFilledCount = squadLocked
     ? FORMATION.TOTAL
     : squad.filledCount;
@@ -473,7 +495,7 @@ export function LockerHero({
       onPitchStyleChange={onPitchStyleChange}
       tabletVariantId={homeLookId}
       onTabletLookChange={isSite ? onHomeLookChange : undefined}
-      formationId={squad.formationId}
+      formationId={displayFormationId}
       onFormationChange={squad.setFormationId}
       onRegister={register.register}
       registerLabel={register.ctaLabel}
@@ -726,7 +748,7 @@ export function LockerHero({
         context="gameweek"
         tourLabel={`${messages.pages.gameweek.gwWord} ${register.gameweekId ?? ""}`}
         sitePath="/"
-        formationId={squad.formationId}
+        formationId={displayFormationId}
         captainIndex={displayCaptainIndex ?? undefined}
       />
 

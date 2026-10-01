@@ -32,6 +32,8 @@ type Copy = {
 type Props = {
   formationId: FormationId;
   onFormationChange?: (id: FormationId) => void;
+  /** Show formation chrome even when change is disabled (registered lock). */
+  formationLocked?: boolean;
   pitchStyleId: PitchStyleId;
   onPitchStyleChange?: (id: PitchStyleId) => void;
   lastGw: LastGwPreview;
@@ -47,6 +49,7 @@ type Props = {
 export function PitchFringeBar({
   formationId,
   onFormationChange,
+  formationLocked = false,
   pitchStyleId,
   onPitchStyleChange,
   lastGw,
@@ -57,6 +60,7 @@ export function PitchFringeBar({
   const [hintOpen, setHintOpen] = useState(false);
   const scoreRef = useRef<HTMLDivElement>(null);
   const showLastGw = lastGw.starterCount > 0;
+  const showFormation = Boolean(onFormationChange) || formationLocked;
 
   useEffect(() => {
     if (!hintOpen) return;
@@ -67,7 +71,7 @@ export function PitchFringeBar({
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [hintOpen]);
-  if (!onFormationChange && !onPitchStyleChange && !showLastGw) return null;
+  if (!showFormation && !onPitchStyleChange && !showLastGw) return null;
 
   const gwLabel =
     lastGw.source === "live" && lastGw.gwId != null
@@ -87,10 +91,11 @@ export function PitchFringeBar({
           data-tour-anchor={tourAnchor}
           className="pointer-events-auto flex min-w-0 shrink-0 items-center rounded-full data-[tour-active]:relative data-[tour-active]:z-[46]"
         >
-          {onFormationChange ? (
+          {showFormation ? (
             <FormationPicker
               value={formationId}
-              onChange={onFormationChange}
+              onChange={onFormationChange ?? (() => {})}
+              locked={formationLocked || !onFormationChange}
               size="xs"
             />
           ) : null}

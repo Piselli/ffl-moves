@@ -26,20 +26,77 @@ import type { Player } from "@/lib/types";
 import { useLegalAttestation } from "@/hooks/useLegalAttestation";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
+import {
+  DEFAULT_FORMATION,
+  inferFormationFromPositions,
+  isFormationId,
+  type FormationId,
+} from "@/lib/formation";
 
 export type RegisteredSquadSnapshot = {
   starters: Player[];
   bench: Player[];
   captainIndex: number | null;
+  formationId: FormationId;
 };
 
 function registeredSnapshotKey(gwId: number, addr: string) {
   return `ffl_team_v2_gw${gwId}_${addr}`;
 }
 
+function captainMetaKey(gwId: number, addr: string) {
+  return `ffl_captain_meta_v1_gw${gwId}_${addr}`;
+}
+
+type CaptainMeta = { playerId: number; index: number };
+
+function readCaptainMeta(key: string): CaptainMeta | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { playerId?: unknown; index?: unknown };
+    if (
+      typeof parsed.playerId !== "number" ||
+      !Number.isInteger(parsed.playerId) ||
+      typeof parsed.index !== "number" ||
+      !Number.isInteger(parsed.index)
+    ) {
+      return null;
+    }
+    return { playerId: parsed.playerId, index: parsed.index };
+  } catch {
+    return null;
+  }
+}
+
+function writeCaptainMeta(key: string, meta: CaptainMeta): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(meta));
+  } catch {
+    /* ignore */
+  }
+}
+
+function resolveCaptainOnStarters(
+  starters: Player[],
+  candidates: Array<number | null | undefined>,
+  meta: CaptainMeta | null,
+): number | null {
+  for (const index of candidates) {
+    const normalized = normalizeStoredCaptain(index, starters);
+    if (normalized != null) return normalized;
+  }
+  if (meta) {
+    const byId = starters.findIndex((p) => p.id === meta.playerId);
+    if (byId >= 0) return byId;
+    return normalizeStoredCaptain(meta.index, starters);
+  }
+  return null;
+}
+
 function isCompleteRegisteredSnapshot(
   t: { starters?: Player[]; bench?: Player[] } | null | undefined,
-): t is RegisteredSquadSnapshot {
+): t is { starters: Player[]; bench: Player[] } {
   if (!t || !Array.isArray(t.starters) || !Array.isArray(t.bench)) return false;
   return t.starters.length === 11 && t.bench.length === FORMATION.BENCH;
 }
@@ -55,6 +112,10 @@ function normalizeStoredCaptain(
   return starters[captainIndex] ? captainIndex : null;
 }
 
+function formationFromStarters(starters: Player[]): FormationId {
+  return inferFormationFromPositions(starters.map((p) => p.positionId));
+}
+
 function readStoredSnapshot(key: string): RegisteredSquadSnapshot | null {
   try {
     const raw = localStorage.getItem(key);
@@ -63,12 +124,27 @@ function readStoredSnapshot(key: string): RegisteredSquadSnapshot | null {
       starters?: Player[];
       bench?: Player[];
       captainIndex?: number | null;
+      formationId?: string;
     };
-    if (!isCompleteRegisteredSnapshot(parsed)) return null;
+    const starters = parsed.starters;
+    const bench = parsed.bench;
+    if (
+      !Array.isArray(starters) ||
+      !Array.isArray(bench) ||
+      starters.length !== 11 ||
+      bench.length !== FORMATION.BENCH
+    ) {
+      return null;
+    }
+    const storedFormation = parsed.formationId;
+    const formationId: FormationId = isFormationId(storedFormation ?? "")
+      ? (storedFormation as FormationId)
+      : formationFromStarters(starters);
     return {
-      starters: parsed.starters,
-      bench: parsed.bench,
-      captainIndex: normalizeStoredCaptain(parsed.captainIndex, parsed.starters),
+      starters,
+      bench,
+      captainIndex: normalizeStoredCaptain(parsed.captainIndex, starters),
+      formationId,
     };
   } catch {
     return null;
@@ -91,6 +167,7 @@ export function useLockerRegister(opts: {
   bench: (Player | null)[];
   gameweekId: number | null;
   captainIndex: number | null;
+  formationId?: FormationId;
   /** Catalog for resolving on-chain ids when the registered snapshot is missing. */
   players?: Player[];
   /** While true, `gameweekId` may still be null — don't flash "closed" yet. */
@@ -103,6 +180,7 @@ export function useLockerRegister(opts: {
     bench,
     gameweekId,
     captainIndex,
+    formationId = DEFAULT_FORMATION,
     players = [],
     chainLoading = false,
     onRegistered,
@@ -148,6 +226,7 @@ export function useLockerRegister(opts: {
   const registeredStarters = registeredTeam?.starters ?? [];
   const registeredBench = registeredTeam?.bench ?? [];
   const registeredCaptainIndex = registeredTeam?.captainIndex ?? null;
+  const lockedFormationId = registeredTeam?.formationId ?? null;
 
   const showError = useCallback((error: unknown) => {
     setErrorMessage(formatTxError(error) || getErrorMessage(error));
@@ -194,18 +273,19 @@ export function useLockerRegister(opts: {
     };
   }, [account?.address, connected, gameweekId]);
 
-  // Freeze the on-chain / saved registered XI for display + share.
+  // Authoritative freeze: optimistic LS, then refresh from chain.
+  // Mainnet Entry may still be legacy (167 bytes → no captain byte). Never wipe a
+  // known captain from LS/draft when the chain account cannot store one.
   useEffect(() => {
     if (!alreadyRegistered || !account?.address || gameweekId == null) return;
-    if (isCompleteRegisteredSnapshot(registeredTeam)) return;
 
     const addr = account.address.toString();
     const key = registeredSnapshotKey(gameweekId, addr);
+    const captainKey = captainMetaKey(gameweekId, addr);
     const stored = readStoredSnapshot(key);
-    if (stored) {
-      setRegisteredTeam(stored);
-      return;
-    }
+    const captainMeta = readCaptainMeta(captainKey);
+
+    setRegisteredTeam((prev) => prev ?? stored);
 
     let cancelled = false;
     async function loadFromChain() {
@@ -223,21 +303,55 @@ export function useLockerRegister(opts: {
       );
       if (cancelled || teamPlayers.length !== FORMATION.TOTAL) return;
 
-      const captain =
+      const starterSlice = teamPlayers.slice(0, 11);
+      const chainCaptain =
         chainTeam.captainIndex === NO_CAPTAIN_INDEX
           ? null
-          : normalizeStoredCaptain(
-              chainTeam.captainIndex,
-              teamPlayers.slice(0, 11),
-            );
+          : normalizeStoredCaptain(chainTeam.captainIndex, starterSlice);
+
+      const draftCaptainPlayer =
+        captainIndex != null && starters[captainIndex]
+          ? starters[captainIndex]
+          : null;
+      const draftCaptainById =
+        draftCaptainPlayer != null
+          ? starterSlice.findIndex((p) => p.id === draftCaptainPlayer.id)
+          : -1;
+
+      const captain = resolveCaptainOnStarters(
+        starterSlice,
+        [
+          chainCaptain,
+          stored?.captainIndex,
+          draftCaptainById >= 0 ? draftCaptainById : null,
+        ],
+        captainMeta,
+      );
+
+      if (captain != null && starterSlice[captain]) {
+        writeCaptainMeta(captainKey, {
+          playerId: starterSlice[captain]!.id,
+          index: captain,
+        });
+      }
 
       const snapshot: RegisteredSquadSnapshot = {
-        starters: teamPlayers.slice(0, 11),
+        starters: starterSlice,
         bench: teamPlayers.slice(11),
         captainIndex: captain,
+        formationId: inferFormationFromPositions(
+          chainTeam.playerPositions.slice(0, 11),
+        ),
       };
-      setRegisteredTeam(snapshot);
-      writeStoredSnapshot(key, snapshot);
+      setRegisteredTeam((prev) => {
+        const next: RegisteredSquadSnapshot = {
+          ...snapshot,
+          captainIndex:
+            snapshot.captainIndex ?? prev?.captainIndex ?? null,
+        };
+        writeStoredSnapshot(key, next);
+        return next;
+      });
     }
 
     void loadFromChain();
@@ -249,7 +363,8 @@ export function useLockerRegister(opts: {
     account?.address,
     gameweekId,
     players,
-    registeredTeam,
+    captainIndex,
+    starters,
   ]);
 
   const registrationClosed =
@@ -340,6 +455,7 @@ export function useLockerRegister(opts: {
         starters: starters.filter((p): p is Player => p != null),
         bench: bench.filter((p): p is Player => p != null),
         captainIndex,
+        formationId,
       };
       if (isCompleteRegisteredSnapshot(snapshot)) {
         setRegisteredTeam(snapshot);
@@ -347,6 +463,15 @@ export function useLockerRegister(opts: {
           registeredSnapshotKey(gameweekId, account.address.toString()),
           snapshot,
         );
+        if (captainIndex != null && snapshot.starters[captainIndex]) {
+          writeCaptainMeta(
+            captainMetaKey(gameweekId, account.address.toString()),
+            {
+              playerId: snapshot.starters[captainIndex]!.id,
+              index: captainIndex,
+            },
+          );
+        }
       }
       setAlreadyRegistered(true);
       trackReferralConversion(account.address.toString());
@@ -379,6 +504,7 @@ export function useLockerRegister(opts: {
     connected,
     entryFeeRaw,
     captainIndex,
+    formationId,
     g,
     hasCaptain,
     hasExternalWallet,
@@ -430,6 +556,7 @@ export function useLockerRegister(opts: {
     registeredCaptainIndex,
     lockedStarters,
     lockedBench,
+    lockedFormationId,
     gameweekId,
     attestOpen,
     setAttestOpen,

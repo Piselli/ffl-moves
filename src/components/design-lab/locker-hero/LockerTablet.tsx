@@ -996,10 +996,10 @@ export function LockerTablet({
   const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
   const pickCopy = m.pages.lockerPick;
   const needsCaptain =
+    Boolean(onSetCaptain) &&
     !squadLocked &&
-    filledCount === FORMATION.TOTAL &&
     captainIndex == null &&
-    Boolean(onSetCaptain);
+    filledCount === FORMATION.TOTAL;
   const hasCaptain = captainIndex != null;
   const pickTour = usePickTour({
     enabled: pickWelcome,
@@ -1069,11 +1069,11 @@ export function LockerTablet({
           isStarter
           isCaptain={isCaptain}
           showCaptainPick={
-            !squadLocked &&
-            (needsCaptain || (squadFull && Boolean(onSetCaptain)))
+            needsCaptain ||
+            (!squadLocked && squadFull && Boolean(onSetCaptain))
           }
           needsCaptain={needsCaptain}
-          squadFull={squadFull && !squadLocked}
+          squadFull={squadFull || squadLocked}
           locked={squadLocked}
           onSetCaptain={() => {
             if (!squadLocked) onSetCaptain(slotIndex);
@@ -1771,7 +1771,8 @@ export function LockerTablet({
           */}
           <PitchFringeBar
             formationId={formationId}
-            onFormationChange={squadLocked ? undefined : onFormationChange}
+            onFormationChange={onFormationChange}
+            formationLocked={squadLocked}
             pitchStyleId={pitchStyleId}
             onPitchStyleChange={onPitchStyleChange}
             lastGw={lastGw}

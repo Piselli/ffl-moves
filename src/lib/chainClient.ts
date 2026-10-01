@@ -347,9 +347,107 @@ export async function getGameweek(gameweekId: number): Promise<GameweekSummary |
   return account ? decodeGameweek(account.data) : null;
 }
 
+/**
+ * `register_team` ix data: disc(8) | gw u32 | ids 14×u32 | positions 14×u8 | clubs 14×u16 | captain u8.
+ * The legacy (167-byte Entry) program ignored the trailing captain byte, so it never reached the
+ * account, but it is still permanently recorded in the registration transaction.
+ */
+const REGISTER_IX_CAPTAIN_OFFSET = 8 + 4 + TEAM_SIZE * 4 + TEAM_SIZE + TEAM_SIZE * 2;
+
+const recoveredCaptainCache = new Map<string, number>();
+
+function captainCacheKey(owner: string, gameweekId: number): string {
+  return `ffl_entry_captain_v1_gw${gameweekId}_${owner}`;
+}
+
+function readCachedCaptain(owner: string, gameweekId: number, playerIds: number[]): number | null {
+  const cacheKey = captainCacheKey(owner, gameweekId);
+  const fingerprint = playerIds.join(",");
+  const mem = recoveredCaptainCache.get(`${cacheKey}:${fingerprint}`);
+  if (mem !== undefined) return mem;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { fp?: string; captain?: number };
+    if (parsed.fp === fingerprint && Number.isInteger(parsed.captain) && parsed.captain! >= 0 && parsed.captain! <= 10) {
+      recoveredCaptainCache.set(`${cacheKey}:${fingerprint}`, parsed.captain!);
+      return parsed.captain!;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeCachedCaptain(owner: string, gameweekId: number, playerIds: number[], captain: number) {
+  const cacheKey = captainCacheKey(owner, gameweekId);
+  const fingerprint = playerIds.join(",");
+  recoveredCaptainCache.set(`${cacheKey}:${fingerprint}`, captain);
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(cacheKey, JSON.stringify({ fp: fingerprint, captain }));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Reads the captain slot the player chose from their `register_team` transaction. Used for
+ * Entry accounts written by the legacy program, which has no captain field. The transaction
+ * must be a successful call to this program whose squad matches the account exactly.
+ */
+async function recoverCaptainFromRegistrationTx(
+  owner: string,
+  gameweekId: number,
+  playerIds: number[],
+): Promise<number | null> {
+  const cached = readCachedCaptain(owner, gameweekId, playerIds);
+  if (cached !== null) return cached;
+  const connection = getConnection();
+  const registerDisc = discriminator("global", "register_team");
+  const sigs = await connection.getSignaturesForAddress(entryPda(gameweekId, owner), { limit: 25 });
+  // Oldest first: the registration is the transaction that created the Entry account.
+  for (const { signature, err } of [...sigs].reverse()) {
+    if (err) continue;
+    const tx = await connection.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
+    if (!tx || tx.meta?.err) continue;
+    const message = tx.transaction.message;
+    const accountKeys = message.getAccountKeys({
+      accountKeysFromLookups: tx.meta?.loadedAddresses,
+    });
+    for (const instruction of message.compiledInstructions) {
+      const programId = accountKeys.get(instruction.programIdIndex);
+      if (!programId || !programId.equals(PROGRAM_ID)) continue;
+      const data = instruction.data;
+      if (data.length <= REGISTER_IX_CAPTAIN_OFFSET) continue;
+      if (!registerDisc.every((byte, i) => data[i] === byte)) continue;
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      if (view.getUint32(8, true) !== gameweekId) continue;
+      const sameSquad = playerIds.every((id, i) => view.getUint32(12 + i * 4, true) === id);
+      if (!sameSquad) continue;
+      const captain = data[REGISTER_IX_CAPTAIN_OFFSET];
+      if (captain > 10) continue;
+      writeCachedCaptain(owner, gameweekId, playerIds, captain);
+      return captain;
+    }
+  }
+  return null;
+}
+
 export async function getUserTeam(owner: string, gameweekId: number): Promise<UserTeam | null> {
   const account = await getConnection().getAccountInfo(entryPda(gameweekId, owner));
-  return account ? decodeEntry(account.data) : null;
+  if (!account) return null;
+  const team = decodeEntry(account.data);
+  if (team.captainIndex !== NO_CAPTAIN_INDEX) return team;
+  // Legacy Entry (no captain byte): recover the registered captain from the transaction.
+  try {
+    const recovered = await recoverCaptainFromRegistrationTx(owner, gameweekId, team.playerIds);
+    if (recovered !== null) return { ...team, captainIndex: recovered };
+  } catch (error) {
+    console.warn("[chainClient] could not recover captain from registration tx", error);
+  }
+  return team;
 }
 
 export async function hasRegisteredTeam(owner: string, gameweekId: number): Promise<boolean> {
