@@ -24,7 +24,7 @@ import {
   navDepositCtaStyle,
   navWhiteCtaStyle,
 } from "@/components/navUtilityStyles";
-import { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "./navStyles";
+import { primarySiteNavLinks } from "./navStyles";
 
 const NAV_META_LINK =
   "inline-flex h-8 shrink-0 items-center rounded-lg px-2 text-[10px] font-black uppercase tracking-wider text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] transition-colors hover:text-white sm:px-2.5 sm:text-[11px]";
@@ -39,23 +39,6 @@ type Props = {
 const NAV_LINK =
   "inline-flex h-9 items-center px-1.5 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-white/90 transition-colors hover:text-[#00f948] sm:h-10 sm:px-2 lg:px-2.5 lg:text-sm lg:tracking-[0.14em]";
 
-export function LockerTalentsSoon({ className }: { className?: string }) {
-  const m = useSiteMessages();
-  return (
-    <span
-      className={cn(
-        "relative inline-flex h-8 cursor-not-allowed select-none items-center px-1.5 pr-8 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-white/30 sm:px-2 sm:pr-9 lg:text-[13px] lg:tracking-[0.14em]",
-        className,
-      )}
-    >
-      {m.nav.talents}
-      <span className="absolute -top-1 right-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-1 py-0.5 text-[7px] font-bold uppercase leading-none tracking-wide text-amber-400/70">
-        {m.nav.soon}
-      </span>
-    </span>
-  );
-}
-
 function Links({
   className,
   linkClassName,
@@ -67,23 +50,10 @@ function Links({
 }) {
   const m = useSiteMessages();
   const links = primarySiteNavLinks(m);
-  const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
-  const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
 
   return (
     <nav className={cn("hidden items-center md:flex", className)}>
-      {beforeTalents.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          onClick={liveLinks ? undefined : (e) => e.preventDefault()}
-          className={cn(NAV_LINK, linkClassName)}
-        >
-          {link.label}
-        </Link>
-      ))}
-      <LockerTalentsSoon className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]" />
-      {afterTalents.map((link) => (
+      {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -216,8 +186,6 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   });
 
   const links = primarySiteNavLinks(m);
-  const beforeTalents = links.slice(0, LOCKER_NAV_TALENTS_AFTER);
-  const afterTalents = links.slice(LOCKER_NAV_TALENTS_AFTER);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -363,40 +331,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 {m.nav.backHome}
               </Link>
             ) : null}
-            {beforeTalents.map((link) => {
-              const active =
-                pathname === link.href || pathname.startsWith(`${link.href}/`);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={(e) => {
-                    if (!liveLinks) e.preventDefault();
-                    setMobileOpen(false);
-                  }}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition-colors",
-                    active
-                      ? "bg-white/[0.08] text-white"
-                      : "text-white/70 hover:bg-white/[0.05] hover:text-white",
-                  )}
-                >
-                  {link.label}
-                  {active ? (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#00f948]" />
-                  ) : null}
-                </Link>
-              );
-            })}
-            <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/25">
-              <span className="relative pr-10">
-                {m.nav.talents}
-                <span className="absolute -top-1.5 right-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-1 py-0.5 text-[7px] font-bold uppercase leading-none tracking-wide text-amber-400/70">
-                  {m.nav.soon}
-                </span>
-              </span>
-            </div>
-            {afterTalents.map((link) => {
+            {links.map((link) => {
               const active =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (

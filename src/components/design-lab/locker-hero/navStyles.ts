@@ -1,1 +1,1 @@
-export { LOCKER_NAV_TALENTS_AFTER, primarySiteNavLinks } from "@/lib/siteNav";
+export { primarySiteNavLinks } from "@/lib/siteNav";

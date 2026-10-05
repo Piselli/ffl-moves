@@ -14,6 +14,3 @@ export function primarySiteNavLinks(m: SiteMessages): SiteNavLink[] {
     { href: "/fixtures", label: m.nav.fixtures },
   ];
 }
-
-/** Locker nav inserts Talents (soon) after the first N links. */
-export const LOCKER_NAV_TALENTS_AFTER = 2;

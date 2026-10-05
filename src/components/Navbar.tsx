@@ -202,17 +202,6 @@ export function Navbar() {
               </Link>
             );
           })}
-          <div className="relative flex flex-col items-center px-2.5 py-2 rounded-lg cursor-not-allowed select-none">
-            <div className="relative">
-              <span className="text-[10px] xl:text-[11px] font-black tracking-wide xl:tracking-widest uppercase text-white/20">
-                {m.nav.talents}
-              </span>
-              <span className="absolute -top-2 -right-7 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
-                {m.nav.soon}
-              </span>
-            </div>
-            <span className="mt-0.5 h-[2px] w-4" />
-          </div>
         </div>
         </LayoutGroup>
 
@@ -359,14 +348,6 @@ export function Navbar() {
               </Link>
             );
           })}
-          <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-black uppercase tracking-widest text-white/25 cursor-not-allowed select-none">
-            <span className="relative">
-              {m.nav.talents}
-              <span className="absolute -top-1.5 -right-12 text-[7px] font-bold uppercase tracking-wide text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-1 py-0.5 rounded-full leading-none">
-                {m.nav.soon}
-              </span>
-            </span>
-          </div>
           <div className="mt-1 border-t border-white/[0.06] pt-1 px-1">
             <a
               href={SOCIAL_X_URL}
