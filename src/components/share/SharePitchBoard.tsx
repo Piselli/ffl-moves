@@ -14,69 +14,36 @@ import type { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function PortraitChalk() {
-  const chalk = "#FFFFFF";
-  const border = { borderColor: chalk };
-  const line = { background: chalk };
-  const dot = { background: chalk };
-
+  /** SVG strokes — CSS borders often export as black via html-to-image foreignObject. */
   return (
-    <div
-      className="pointer-events-none absolute inset-[4.5%] rounded-[2px] border-2 opacity-[0.92]"
-      style={border}
+    <svg
+      aria-hidden
+      className="pointer-events-none absolute inset-[4.5%] opacity-[0.92]"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
     >
-      <div
-        className="absolute inset-x-0 top-1/2 h-[1.5px] -translate-y-1/2"
-        style={line}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 aspect-square w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
-        style={border}
-      />
-      <div
-        className="absolute left-1/2 top-0 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-b-2"
-        style={border}
-      />
-      <div
-        className="absolute bottom-0 left-1/2 h-[11%] w-[48%] -translate-x-1/2 border-x-2 border-t-2"
-        style={border}
-      />
-      <div
-        className="absolute left-1/2 top-0 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-b-2"
-        style={border}
-      />
-      <div
-        className="absolute bottom-0 left-1/2 h-[6%] w-[22%] -translate-x-1/2 border-x-2 border-t-2"
-        style={border}
-      />
-      <div
-        className="absolute left-1/2 top-[14%] h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={dot}
-      />
-      <div
-        className="absolute bottom-[14%] left-1/2 h-1.5 w-1.5 -translate-x-1/2 translate-y-1/2 rounded-full"
-        style={dot}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={dot}
-      />
-      <div
-        className="absolute left-0 top-0 h-2.5 w-2.5 rounded-br-full border-b-2 border-r-2"
-        style={border}
-      />
-      <div
-        className="absolute right-0 top-0 h-2.5 w-2.5 rounded-bl-full border-b-2 border-l-2"
-        style={border}
-      />
-      <div
-        className="absolute bottom-0 left-0 h-2.5 w-2.5 rounded-tr-full border-r-2 border-t-2"
-        style={border}
-      />
-      <div
-        className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-tl-full border-l-2 border-t-2"
-        style={border}
-      />
-    </div>
+      <g
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="1.35"
+        vectorEffect="non-scaling-stroke"
+      >
+        <rect x="1" y="1" width="98" height="98" />
+        <line x1="1" y1="50" x2="99" y2="50" />
+        <circle cx="50" cy="50" r="13" />
+        <path d="M 26 1 V 12 H 74 V 1" />
+        <path d="M 26 99 V 88 H 74 V 99" />
+        <path d="M 39 1 V 7 H 61 V 1" />
+        <path d="M 39 99 V 93 H 61 V 99" />
+        <path d="M 1 1 Q 4 4 1 7" />
+        <path d="M 99 1 Q 96 4 99 7" />
+        <path d="M 1 99 Q 4 96 1 93" />
+        <path d="M 99 99 Q 96 96 99 93" />
+      </g>
+      <circle cx="50" cy="50" r="1.1" fill="#FFFFFF" />
+      <circle cx="50" cy="14" r="1.1" fill="#FFFFFF" />
+      <circle cx="50" cy="86" r="1.1" fill="#FFFFFF" />
+    </svg>
   );
 }
 

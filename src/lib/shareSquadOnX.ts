@@ -253,7 +253,13 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
       if (!src || src.startsWith("data:")) return;
 
       try {
-        if (img.complete && img.naturalWidth > 0) {
+        // Huge bitmaps (old form8-mark PNG was 3616×4944) OOM/fail canvas
+        // embed and leave a broken square in the share card.
+        const tooBig =
+          img.complete &&
+          img.naturalWidth * img.naturalHeight > 1_500_000;
+
+        if (img.complete && img.naturalWidth > 0 && !tooBig) {
           const canvas = document.createElement("canvas");
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;

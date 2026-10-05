@@ -1,31 +1,33 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-export const FORM8_MARK_SRC = "/brand/form8-mark.png";
-/** Cropped +15 stencil A. Source PNG is 8× this box. */
+/** Lightweight SVG — PNG is 3616×4944 and often fails in html-to-image share export. */
+export const FORM8_MARK_SRC = "/brand/form8-mark.svg";
+/** Cropped +15 stencil A. Source art box. */
 export const FORM8_MARK_WIDTH = 452;
 export const FORM8_MARK_HEIGHT = 618;
 
 type MarkProps = {
   className?: string;
   alt?: string;
+  /** @deprecated Ignored — plain <img> for share-export reliability. */
   priority?: boolean;
 };
 
-/** Locked form8 logomark — A-waist, halves spread +15. White glyph, transparent ground. */
-export function Form8Mark({
-  className,
-  alt = "FORM8",
-  priority = false,
-}: MarkProps) {
+/**
+ * Locked form8 logomark — A-waist, halves spread +15.
+ * Plain <img> + small SVG so squad PNG capture embeds reliably
+ * (next/image + huge PNG → empty square on X cards).
+ */
+export function Form8Mark({ className, alt = "FORM8" }: MarkProps) {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element -- share capture needs a real <img>, not next/image
+    <img
       src={FORM8_MARK_SRC}
       alt={alt}
       width={FORM8_MARK_WIDTH}
       height={FORM8_MARK_HEIGHT}
+      draggable={false}
       className={cn("h-8 w-auto shrink-0", className)}
-      priority={priority}
     />
   );
 }
