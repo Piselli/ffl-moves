@@ -182,6 +182,8 @@ function stripCaptureFilters(node: HTMLElement) {
  * Flatten capture-hostile styles.
  * CSS `filter` on cutout wrappers (brightness / drop-shadow) makes html-to-image
  * stamp one player bust onto every chip — strip all filters before export.
+ * Also re-assert white chalk — Dark Reader (and similar) can invert border colors
+ * in the live DOM before we clone for PNG.
  */
 function prepareNodeForCapture(root: HTMLElement) {
   root.style.transform = "none";
@@ -235,6 +237,17 @@ function prepareNodeForCapture(root: HTMLElement) {
     if (node.tagName === "IMG") {
       node.style.opacity = "1";
       node.style.visibility = "visible";
+    }
+
+    // Pitch chalk — Dark Reader can invert white borders before PNG clone.
+    if (node.closest("[data-share-chalk]") != null) {
+      node.style.setProperty("border-color", "#FFFFFF", "important");
+      if (node.hasAttribute("data-share-chalk-fill")) {
+        node.style.setProperty("background", "#FFFFFF", "important");
+        node.style.setProperty("background-color", "#FFFFFF", "important");
+      } else {
+        node.style.setProperty("background-color", "transparent", "important");
+      }
     }
   });
 }

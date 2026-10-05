@@ -43,34 +43,43 @@ function halfSlot(
 }
 
 function HalfChalk() {
-  /** SVG strokes — CSS borders often export as black via html-to-image foreignObject. */
+  const chalk = "#FFFFFF";
+  const border = { borderColor: chalk };
+  const fill = { background: chalk };
+
   return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-x-[2.5%] bottom-[2.5%] top-[2%] opacity-[0.92]"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
+    <div
+      data-share-chalk=""
+      className="pointer-events-none absolute inset-x-[2.5%] bottom-[2.5%] top-[2%] rounded-b-[2px] border-2 border-t-2 opacity-[0.92]"
+      style={border}
     >
-      <g
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="1.35"
-        vectorEffect="non-scaling-stroke"
-      >
-        {/* Outer half-pitch frame */}
-        <path d="M 1 1 H 99 V 99 H 1 Z" />
-        {/* Centre arc (top) */}
-        <path d="M 30 1 A 20 20 0 0 0 70 1" />
-        {/* Penalty box */}
-        <path d="M 23 99 V 74 H 77 V 99" />
-        {/* Six-yard box */}
-        <path d="M 37 99 V 89 H 63 V 99" />
-        {/* Penalty arc */}
-        <path d="M 37 74 A 13 12 0 0 1 63 74" />
-      </g>
-      <circle cx="50" cy="1" r="1.1" fill="#FFFFFF" />
-      <circle cx="50" cy="80" r="1.1" fill="#FFFFFF" />
-    </svg>
+      <div
+        className="absolute left-1/2 top-0 aspect-[2/1] w-[40%] -translate-x-1/2 rounded-b-full border-2 border-t-0"
+        style={border}
+      />
+      <div
+        data-share-chalk-fill=""
+        className="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={fill}
+      />
+      <div
+        className="absolute bottom-0 left-1/2 h-[26%] w-[54%] -translate-x-1/2 border-x-2 border-t-2"
+        style={border}
+      />
+      <div
+        className="absolute bottom-0 left-1/2 h-[11%] w-[26%] -translate-x-1/2 border-x-2 border-t-2"
+        style={border}
+      />
+      <div
+        data-share-chalk-fill=""
+        className="absolute bottom-[20%] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+        style={fill}
+      />
+      <div
+        className="absolute bottom-[26%] left-1/2 h-[12%] w-[26%] -translate-x-1/2 rounded-t-full border-2 border-b-0"
+        style={border}
+      />
+    </div>
   );
 }
 
