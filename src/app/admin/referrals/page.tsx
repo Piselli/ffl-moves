@@ -48,6 +48,7 @@ export default function ReferralDashboardPage() {
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   // Link generator
   const [baseUrl, setBaseUrl] = useState("");
@@ -55,60 +56,75 @@ export default function ReferralDashboardPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY_STORAGE);
-      if (saved) setKey(saved);
-    } catch {
-      /* ignore */
-    }
-    setBaseUrl(window.location.origin);
-  }, []);
-
   const load = useCallback(async (k: string) => {
-    if (!k) return;
+    const trimmed = k.trim();
+    if (!trimmed) {
+      setError("Встав ключ доступу і натисни «Увійти».");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/referral/stats?key=${encodeURIComponent(k)}`, {
+      const res = await fetch(`/api/referral/stats?key=${encodeURIComponent(trimmed)}`, {
         cache: "no-store",
       });
       if (res.status === 401) {
-        setError("Невірний ключ доступу.");
+        setError("Невірний ключ. Очисти поле і встав актуальний REFERRAL_ADMIN_KEY з .env.local.");
+        setData(null);
+        try {
+          localStorage.removeItem(KEY_STORAGE);
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      if (res.status === 429) {
+        setError("Забагато спроб. Зачекай хвилину і спробуй знову.");
         setData(null);
         return;
       }
       if (res.status === 503) {
         const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "Дашборд вимкнено: не задано REFERRAL_ADMIN_KEY.");
+        setError(body.error ?? "Дашборд вимкнено: не задано REFERRAL_ADMIN_KEY на сервері.");
         setData(null);
         return;
       }
       if (!res.ok) {
-        setError(`Помилка: ${res.status}`);
+        setError(`Помилка сервера: ${res.status}`);
         setData(null);
         return;
       }
       const body = (await res.json()) as StatsResponse;
       setData(body);
+      setKey(trimmed);
       try {
-        localStorage.setItem(KEY_STORAGE, k);
+        localStorage.setItem(KEY_STORAGE, trimmed);
       } catch {
         /* ignore */
       }
     } catch {
-      setError("Не вдалося завантажити статистику.");
+      setError("Не вдалося завантажити статистику. Перевір, що npm run dev запущений.");
       setData(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Auto-load if a key was remembered.
   useEffect(() => {
-    if (key) void load(key);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem(KEY_STORAGE);
+    } catch {
+      /* ignore */
+    }
+    // Partner links should always point at production, even when viewing stats on localhost.
+    setBaseUrl("https://form8.football");
+    if (saved) {
+      setKey(saved);
+      void load(saved);
+    }
+    setReady(true);
+  }, [load]);
 
   const generatedLink = useMemo(() => {
     const code = normalizeRefCode(newCode);
@@ -178,19 +194,36 @@ export default function ReferralDashboardPage() {
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load(key)}
-            placeholder="REFERRAL_ADMIN_KEY"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void load(key);
+            }}
+            placeholder="REFERRAL_ADMIN_KEY з .env.local"
+            autoComplete="off"
             className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
           />
           <button
-            onClick={() => load(key)}
-            disabled={loading || !key}
+            type="button"
+            onClick={() => void load(key)}
+            disabled={loading || !key.trim() || !ready}
             className="px-4 py-2 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 disabled:opacity-40 text-black text-sm font-bold transition-colors"
           >
-            {loading ? "…" : "Показати"}
+            {loading ? "Завантаження…" : "Увійти"}
           </button>
         </div>
-        {error && <p className="text-amber-400 text-sm mt-3">{error}</p>}
+        {error ? (
+          <p className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
+            {error}
+          </p>
+        ) : null}
+        {data ? (
+          <p className="mt-3 text-sm text-emerald-300/90">
+            ✓ Увійшов. Redis: {data.durable ? "зберігає статистику" : "in-memory (нестійко)"}.
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-white/35">
+            Встав ключ і натисни <b className="text-white/55">Увійти</b> — з’явиться таблиця кліків і реєстрацій.
+          </p>
+        )}
       </section>
 
       {/* Link generator */}
