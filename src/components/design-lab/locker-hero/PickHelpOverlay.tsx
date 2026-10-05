@@ -21,6 +21,7 @@ import {
   RATING_BONUS_TIERS,
   RATING_SUB_POINTS,
 } from "@/lib/scoring-rules";
+import { DEFAULT_PRIZE_TIERS } from "@/lib/prize-distribution";
 import { modalOverlayMotion, modalPanelMotion } from "@/lib/uiMotion";
 
 const DISPLAY = { fontFamily: "var(--lt-font-display), sans-serif" } as const;
@@ -28,7 +29,7 @@ const DISPLAY = { fontFamily: "var(--lt-font-display), sans-serif" } as const;
 /** Opaque void under crystal frost — same idea as InsufficientFundsModal. */
 const BACKPLATE = "rounded-2xl bg-[#080a0e]";
 
-type Kind = "scoring" | "howto";
+type Kind = "scoring" | "howto" | "split";
 
 type Props = {
   kind: Kind;
@@ -101,6 +102,7 @@ function useScoringRows(m: SiteMessages): { title: string; rows: Row[] } {
 /**
  * Help plaque — same family as Login / Deposit.
  * How to play: illustrated steps + continue into the 5-step coachmark tour.
+ * Scoring / prize split: compact tables.
  */
 export function PickHelpOverlay({
   kind,
@@ -114,11 +116,17 @@ export function PickHelpOverlay({
   const reduce = Boolean(useReducedMotion());
   const pick = m.pages.lockerPick;
   const scoring = useScoringRows(m);
-  const title = kind === "howto" ? pick.howToPlayTitle : scoring.title;
+  const title =
+    kind === "howto"
+      ? pick.howToPlayTitle
+      : kind === "split"
+        ? pick.prizeSplitTitle
+        : scoring.title;
   const titleId = `lt-help-${kind}`;
   const overlay = modalOverlayMotion(reduce);
   const panel = modalPanelMotion(reduce);
   const isHowto = kind === "howto";
+  const isSplit = kind === "split";
 
   return (
     <AnimatePresence>
@@ -184,6 +192,11 @@ export function PickHelpOverlay({
                     {pick.howToPlaySubtitle}
                   </p>
                 ) : null}
+                {isSplit && pick.prizeSplitHint ? (
+                  <p className="mt-1.5 truncate pr-9 text-[12px] font-medium leading-none text-white/55 sm:text-[13px]">
+                    {pick.prizeSplitHint}
+                  </p>
+                ) : null}
 
                 {isHowto ? (
                   <>
@@ -229,6 +242,52 @@ export function PickHelpOverlay({
                       </button>
                     ) : null}
                   </>
+                ) : isSplit ? (
+                  <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.1] bg-white/[0.03]">
+                    <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-3.5 py-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                        {pick.prizeSplitRank}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                        {pick.prizeSplitShare}
+                      </span>
+                    </div>
+                    <ul className="max-h-[min(52vh,420px)] overflow-y-auto overscroll-contain [-ms-overflow-style:none] [scrollbar-width:thin]">
+                      {DEFAULT_PRIZE_TIERS.map((tier, i) => (
+                        <li
+                          key={tier.rank}
+                          className={
+                            i === 0
+                              ? "flex items-baseline justify-between gap-3 border-b border-white/[0.06] bg-[rgba(0,249,72,0.07)] px-3.5 py-2.5"
+                              : "flex items-baseline justify-between gap-3 border-b border-white/[0.06] px-3.5 py-2.5 last:border-0"
+                          }
+                        >
+                          <span
+                            className={
+                              i === 0
+                                ? "text-[15px] font-bold tabular-nums text-[#00f948]"
+                                : i < 3
+                                  ? "text-[14px] font-semibold tabular-nums text-white"
+                                  : "text-[14px] font-medium tabular-nums text-white/80"
+                            }
+                            style={DISPLAY}
+                          >
+                            #{tier.rank}
+                          </span>
+                          <span
+                            className={
+                              i === 0
+                                ? "text-[15px] font-black tabular-nums tracking-tight text-white"
+                                : "text-[14px] font-semibold tabular-nums tracking-tight text-white"
+                            }
+                            style={DISPLAY}
+                          >
+                            {tier.pct}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : (
                   <ul className="mt-4 max-h-[min(52vh,420px)] space-y-0 overflow-y-auto overscroll-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin]">
                     {scoring.rows.map((row) => (

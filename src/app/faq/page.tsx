@@ -182,6 +182,10 @@ export default function FaqPage() {
         setTimeout(() => {
           document.getElementById(hashKey)?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 80);
+      } else if (hashKey.startsWith("cat-")) {
+        setTimeout(() => {
+          document.getElementById(hashKey)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
       }
     }
     setOpenIds(initial);

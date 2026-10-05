@@ -65,13 +65,16 @@ const TABLET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 /** Longer fade so Dom→WebGL under the boot is invisible when curtain lifts. */
 const CROSSFADE_MS = 280;
 
-const CANVAS_LOCKER_RAISED = "translate3d(0, 3vh, 0) scale(1)";
+const CANVAS_LOCKER_RAISED = "translate3d(0, 0.5vh, 0) scale(1)";
 const CANVAS_LOCKER_LOWERED = "translate3d(0, 46vh, 0) scale(0.9)";
-const CANVAS_DESK_RAISED = "translate3d(0, 4vh, 0) scale(1)";
+const CANVAS_DESK_RAISED = "translate3d(0, 2vh, 0) scale(1)";
 const CANVAS_DESK_LOWERED = "translate3d(0, 24vh, 0) scale(0.9)";
 
 const SETTLE_FRAMES = 6;
 const CAMERA_Z_EPS = 0.0008;
+
+/** ~12% larger than original fill; frame max height keeps legal strip clear. */
+const TABLET_VIEW_BOOST = 1.12;
 
 function canvasTabletTransform(placement: Placement, raised: boolean): string {
   if (placement === "desk") {
@@ -100,8 +103,11 @@ function cameraZForSize(width: number, height: number): number {
   const aspect = w / h;
   const fov = 30;
   const halfFovTangent = Math.tan(MathUtils.degToRad(fov / 2));
-  const targetHeightFill = w < 720 ? 0.7 : 0.82;
-  const targetWidthFill = 0.78;
+  const targetHeightFill = Math.min(
+    0.98,
+    (w < 720 ? 0.7 : 0.82) * TABLET_VIEW_BOOST,
+  );
+  const targetWidthFill = Math.min(0.98, 0.78 * TABLET_VIEW_BOOST);
   const zForHeight = IPAD_BODY_H / (2 * halfFovTangent * targetHeightFill);
   const zForWidth =
     IPAD_BODY_W / (2 * halfFovTangent * aspect * targetWidthFill);

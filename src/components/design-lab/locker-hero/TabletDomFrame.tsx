@@ -10,19 +10,18 @@ const TABLET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 /**
  * CSS box shared by Dom + WebGL wrappers.
- * The 3D camera only fills ~78–82% of this box (see ResponsiveCamera) — Dom
- * must apply DOM_MATCH_WEBGL_SCALE or the preview looks huge for a beat.
+ * The 3D camera fills most of this box (see ResponsiveCamera + TABLET_VIEW_BOOST) —
+ * Dom must apply DOM_MATCH_WEBGL_SCALE or the preview looks huge for a beat.
  */
 export const IPAD_FRAME_SIZE =
-  "aspect-[0.2816/0.2155] w-[min(99vw,calc(98.9vh*0.2816/0.2155))] shrink-0 will-change-transform";
+  "aspect-[0.2816/0.2155] w-[min(99vw,calc(92vh*0.2816/0.2155))] shrink-0 will-change-transform";
 
-/** Match ResponsiveCamera targetWidthFill / heightFill so Dom ≈ final WebGL size. */
-export const DOM_MATCH_WEBGL_SCALE = 0.82;
+/** Match ResponsiveCamera target fill so Dom ≈ final WebGL size (~12% larger). */
+export const DOM_MATCH_WEBGL_SCALE = 0.918;
 /**
- * Permanent Firefox Dom on the desk plate — width-fill is ~0.78 and the CSS
- * frame must clear the nav; 0.82 still clips the bottom on short viewports.
+ * Permanent Firefox Dom on the desk plate — keep a bit under the locker homepage fill.
  */
-export const DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK = 0.72;
+export const DOM_MATCH_WEBGL_SCALE_FIREFOX_DESK = 0.806;
 
 type Props = {
   raised: boolean;
@@ -48,12 +47,12 @@ function domTabletTransform(
   const fill = matchWebgl ? scaleFill : 1;
   const loweredScale = 0.9 * fill;
   if (placement === "desk") {
-    return raised
-      ? `translate3d(0, 4vh, 0) rotateX(0deg) rotateZ(0deg) scale(${fill})`
-      : `translate3d(0, 24vh, 0) rotateX(14deg) rotateZ(0.3deg) scale(${loweredScale})`;
+  return raised
+    ? `translate3d(0, 2vh, 0) rotateX(0deg) rotateZ(0deg) scale(${fill})`
+    : `translate3d(0, 24vh, 0) rotateX(14deg) rotateZ(0.3deg) scale(${loweredScale})`;
   }
   return raised
-    ? `translate3d(0, 3vh, 0) rotateX(0deg) rotateZ(0deg) scale(${fill})`
+    ? `translate3d(0, 0.5vh, 0) rotateX(0deg) rotateZ(0deg) scale(${fill})`
     : `translate3d(0, 46vh, 0) rotateX(28deg) rotateZ(1.4deg) scale(${loweredScale})`;
 }
 

@@ -991,6 +991,7 @@ export function LockerTablet({
   const [flashPickId, setFlashPickId] = useState<number | null>(null);
   const [scoringOpen, setScoringOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   /** Gate handoff: after How to play closes, start the 5-step coachmarks once. */
   const pendingTourAfterHowtoRef = useRef(false);
   const [guidePulseSlot, setGuidePulseSlot] = useState<number | null>(null);
@@ -1440,12 +1441,12 @@ export function LockerTablet({
           {/* Mobile: clear help chips (desktop keeps centered nav below) */}
           <nav
             aria-label={pickCopy.howToPlayBtn}
-            className="flex shrink-0 items-center gap-1.5 md:hidden"
+            className="flex shrink-0 items-center gap-1 md:hidden"
           >
             <button
               type="button"
               onClick={() => setHowtoOpen(true)}
-              className="rounded-lg border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/90 transition active:scale-[0.98]"
+              className="rounded-lg border border-white/20 bg-white/[0.06] px-2 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] text-white/90 transition active:scale-[0.98]"
             >
               {pickCopy.howToPlayBtn}
             </button>
@@ -1454,11 +1455,18 @@ export function LockerTablet({
               data-tour-anchor="scoring"
               onClick={() => setScoringOpen(true)}
               className={cn(
-                "rounded-lg border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/90 transition active:scale-[0.98]",
+                "rounded-lg border border-white/20 bg-white/[0.06] px-2 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] text-white/90 transition active:scale-[0.98]",
                 "data-[tour-active]:border-[#00f948]/50 data-[tour-active]:bg-[#00f948]/15 data-[tour-active]:text-[#00f948]",
               )}
             >
               {pickCopy.scoringBtn}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSplitOpen(true)}
+              className="rounded-lg border border-white/20 bg-white/[0.06] px-2 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] text-white/90 transition active:scale-[0.98]"
+            >
+              {pickCopy.prizeSplitBtn}
             </button>
           </nav>
         </div>
@@ -1490,6 +1498,19 @@ export function LockerTablet({
             )}
           >
             {pickCopy.scoringBtn}
+          </button>
+          <span
+            aria-hidden
+            className="text-[10px] font-semibold text-[color:var(--lt-ink)]/25"
+          >
+            ·
+          </span>
+          <button
+            type="button"
+            onClick={() => setSplitOpen(true)}
+            className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-ink)]/55 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-[color:var(--lt-ink)] active:scale-[0.98] sm:text-[11px]"
+          >
+            {pickCopy.prizeSplitBtn}
           </button>
         </nav>
 
@@ -2495,6 +2516,12 @@ export function LockerTablet({
         onClose={() => setScoringOpen(false)}
         messages={m}
         tourAnchor="scoring-panel"
+      />
+      <PickHelpOverlay
+        kind="split"
+        open={splitOpen}
+        onClose={() => setSplitOpen(false)}
+        messages={m}
       />
     </div>
   );

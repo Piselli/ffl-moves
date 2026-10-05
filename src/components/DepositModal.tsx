@@ -15,6 +15,7 @@ import {
 } from "@/lib/onramp";
 import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
+import Link from "next/link";
 
 type Tab = "cash" | "crypto";
 
@@ -603,6 +604,13 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
                             </motion.span>
                           </button>
                         </div>
+                        <Link
+                          href="/faq#web3-101--how-to-deposit"
+                          onClick={onClose}
+                          className="mt-4 flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.07] px-3.5 py-3 text-center text-[13px] font-semibold tracking-[-0.01em] text-white/90 transition-[background-color,border-color,transform] duration-150 hover:border-white/35 hover:bg-white/[0.1] hover:text-white active:scale-[0.98]"
+                        >
+                          {d.cryptoBeginnerLink}
+                        </Link>
                         {error ? (
                           <p className="mt-3 text-[12px] font-medium leading-snug text-amber-100/90">
                             {error}

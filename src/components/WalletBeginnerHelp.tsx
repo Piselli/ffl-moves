@@ -7,6 +7,7 @@ import { useSiteMessages } from "@/i18n/LocaleProvider";
 const FAQ = {
   whatIsWallet: "/faq#web3-101--what-is-wallet",
   whichWallet: "/faq#web3-101--which-wallet",
+  howToDeposit: "/faq#web3-101--how-to-deposit",
   firstSteps: "/faq#how-to-play--first-steps",
   web3Section: "/faq#cat-web3-101",
 } as const;
@@ -27,29 +28,31 @@ export function WalletBeginnerHelp({
   const t =
     locale === "uk"
       ? {
-          headerLink: "Вперше з Web3? Пояснення →",
+          headerLink: "Вперше з крипто? Як поповнити",
           blurb:
-            "Гаманець — це розширення для браузера. Воно зберігає крипто і підтверджує дії на сайті — логін і підпис замість пароля.",
-          whatIs: "Що таке гаманець?",
-          which: "Phantom, Solflare чи Jupiter — що обрати?",
-          steps: "Покрокова інструкція",
-          all: "Усі питання про Web3",
+            "Можна увійти через email. USDC — долар на Solana; у Deposit копіюєш адресу й надсилаєш USDC на неї. Окремий гаманець не обов’язковий.",
+          deposit: "Solana, USDC і поповнення",
+          whatIs: "Чи потрібен окремий гаманець?",
+          which: "Phantom, Solflare чи Jupiter — якщо свій",
+          steps: "З чого почати в грі",
+          all: "Усі питання про USDC",
         }
       : {
-          headerLink: "New to Web3? Read the guide →",
+          headerLink: "New to crypto? How to deposit",
           blurb:
-            "A wallet is a browser extension. It holds your crypto and approves actions on sites — your login and signature instead of a password.",
-          whatIs: "What is a wallet?",
-          which: "Phantom, Solflare, or Jupiter — which to pick?",
-          steps: "Step-by-step guide",
-          all: "All Web3 questions",
+            "Email login is fine. USDC is the dollar on Solana — copy your address in Deposit and send USDC there. A separate wallet app is optional.",
+          deposit: "Solana, USDC, and how to deposit",
+          whatIs: "Do I need a wallet app?",
+          which: "Phantom, Solflare, or Jupiter — if you want one",
+          steps: "Where to start in the game",
+          all: "All USDC questions",
         };
 
   if (compact) {
     return (
       <p className={className}>
         <Link
-          href={FAQ.web3Section}
+          href={FAQ.howToDeposit}
           className="text-[11px] text-white/40 hover:text-[#00f948]/90 transition-colors underline-offset-2 hover:underline"
         >
           {t.headerLink}
@@ -89,6 +92,7 @@ export function WalletBeginnerHelp({
           <ul className="space-y-2">
             {(
               [
+                [t.deposit, FAQ.howToDeposit],
                 [t.whatIs, FAQ.whatIsWallet],
                 [t.which, FAQ.whichWallet],
                 [t.steps, FAQ.firstSteps],
@@ -110,7 +114,6 @@ export function WalletBeginnerHelp({
             className="inline-flex items-center gap-1 text-[11px] text-white/35 hover:text-white/55 transition-colors"
           >
             {t.all}
-            <span aria-hidden>→</span>
           </Link>
         </div>
       ) : null}

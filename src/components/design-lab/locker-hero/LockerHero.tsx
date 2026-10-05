@@ -265,7 +265,6 @@ export function LockerHero({
 
   const [tabletRaised, setTabletRaised] = useState(true);
   const [tabletSettledDown, setTabletSettledDown] = useState(false);
-  const [pointerInTablet, setPointerInTablet] = useState(false);
   const [pitchStyleId, setPitchStyleId] =
     useState<PitchStyleId>(DEFAULT_PITCH_STYLE);
   const [homeLookId, setHomeLookId] =
@@ -427,21 +426,7 @@ export function LockerHero({
     setTabletReady(true);
   }, [layoutMode]);
 
-  useEffect(() => {
-    const onWheel = (e: WheelEvent) => {
-      if (flatPicker || pointerInTablet) return;
-      // Modals (register error, legal attest, etc.) — don't lower the iPad.
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      if (Math.abs(e.deltaY) < 6) return;
-      if (e.deltaY > 0) {
-        setTabletRaised(false);
-      } else {
-        setTabletRaised(true);
-      }
-    };
-    window.addEventListener("wheel", onWheel, { passive: true });
-    return () => window.removeEventListener("wheel", onWheel);
-  }, [flatPicker, pointerInTablet]);
+  // Room explore is opt-in via button — wheel no longer lowers/raises the tablet.
 
   useEffect(() => {
     if (tabletRaised) {
@@ -607,15 +592,19 @@ export function LockerHero({
           onClick={() => setTabletRaised(true)}
           className="absolute bottom-5 left-4 z-[70] rounded-full border border-white/20 bg-black/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70 backdrop-blur-md transition hover:border-white/40 hover:text-white sm:left-6"
         >
-          ↑ Show tablet
+          ↑ {messages.pages.lockerPick.showTablet}
         </button>
       )}
 
-      {tabletRaised && (
-        <p className="pointer-events-none absolute bottom-2 left-1/2 z-20 hidden -translate-x-1/2 text-[10px] text-white/25 sm:block">
-          Scroll outside tablet to explore the room
-        </p>
-      )}
+      {useTabletScene && tabletRaised ? (
+        <button
+          type="button"
+          onClick={() => setTabletRaised(false)}
+          className="absolute bottom-5 left-4 z-[70] rounded-full border border-white/20 bg-black/55 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/55 backdrop-blur-md transition hover:border-white/35 hover:text-white/85 sm:left-6"
+        >
+          ↓ {messages.pages.lockerPick.exploreRoom}
+        </button>
+      ) : null}
 
       <LockerLabNav liveLinks={!isLab} tabletShell={flatPicker} />
 
@@ -699,7 +688,6 @@ export function LockerHero({
           <TabletScene
             raised={tabletRaised}
             reduceMotion={Boolean(reduceMotion)}
-            onPointerInsideChange={setPointerInTablet}
             onModelReady={onTabletReady}
             contentEpoch={squadEpoch}
             fastDomPreview={isSite}

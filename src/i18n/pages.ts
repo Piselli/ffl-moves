@@ -736,12 +736,22 @@ export type PagesMessages = {
     formDotsOut: string;
     formDotsGwLine: (gw: number, status: string) => string;
     howToPlayBtn: string;
+    /** Header chip — opens prize-pool split table. */
+    prizeSplitBtn: string;
     scoringTitle: string;
     scoringSubtitle: string;
     goalsByPos: string;
     prizeSplitTitle: string;
     prizeSplitHint: string;
+    /** Column header in the prize-split table. */
+    prizeSplitRank: string;
+    /** Column header in the prize-split table. */
+    prizeSplitShare: string;
     scoringFaqLink: string;
+    /** Opt-in: lower tablet to see the locker room. */
+    exploreRoom: string;
+    /** Raise tablet after exploring the room. */
+    showTablet: string;
     howToPlayTitle: string;
     howToPlaySubtitle: string;
     /** Illustrated how-to steps (mobile + desktop overlay). */
@@ -1687,37 +1697,71 @@ export const pagesEn: PagesMessages = {
       },
       {
         id: "web3-101",
-        title: "Wallet & USDC",
-        blurb: "Login, fees, and claiming — without the jargon.",
+        title: "USDC & deposits",
+        blurb: "What you pay with, and how to fund an email login.",
         items: [
           {
-            id: "what-is-wallet",
-            q: "What is a crypto wallet and why do I need one?",
+            id: "how-to-deposit",
+            q: "What are Solana and USDC — and how do I deposit?",
             a: [
-              { type: "p", text: "A wallet holds your crypto and signs actions on-chain. On FORM8 it is your account: login, entry fee, and prize claim." },
-              { type: "p", text: "You can also enter with email — a wallet is still used under the hood for payments." },
+              {
+                type: "p",
+                text: "FORM8 runs on Solana (a fast blockchain). Entry fees and prizes are paid in USDC: a dollar stablecoin, so 1 USDC is about $1.",
+              },
+              {
+                type: "p",
+                text: "You can sign in with email. That still gives you a Solana address inside FORM8 — you do not need to install Phantom to play.",
+              },
+              {
+                type: "ul",
+                items: [
+                  "Open Deposit, stay on the Crypto tab, copy your address.",
+                  "Send USDC on the Solana network to that address (from an exchange withdrawal or another Solana wallet). Wrong network = lost funds.",
+                  "When the balance shows enough for the entry fee, register your squad.",
+                ],
+              },
+              {
+                type: "p",
+                text: "Card / Apple Pay deposit is coming. Until then, Crypto is the path. Optional browser wallets (Phantom, Solflare, Jupiter) are only if you already use one.",
+              },
+            ],
+          },
+          {
+            id: "what-is-wallet",
+            q: "Do I need a crypto wallet app?",
+            a: [
+              {
+                type: "p",
+                text: "No, if you sign in with email. FORM8 already holds a Solana address for you — Deposit shows it so you can receive USDC.",
+              },
+              {
+                type: "p",
+                text: "Install Phantom, Solflare, or Jupiter only if you prefer to log in with a wallet you already control.",
+              },
             ],
           },
           {
             id: "which-wallet",
-            q: "Which wallet do I need?",
+            q: "Which wallet app if I want one?",
             a: [
-              { type: "p", text: "Phantom, Solflare, or Jupiter — pick any after Log in. Phantom is the most common: phantom.com (extension or iOS/Android)." },
-              { type: "p", text: "Back up your seed phrase offline. Never share it. Lose it and the wallet is gone forever." },
-            ],
-          },
-          {
-            id: "what-is-solana",
-            q: "What is Solana and what is USDC?",
-            a: [
-              { type: "p", text: "Solana is the network FORM8 runs on — fast, with tiny fees. USDC is a dollar stablecoin (~$1). Entry fees and prizes are in USDC." },
+              {
+                type: "p",
+                text: "Phantom, Solflare, or Jupiter — any works after Log in. Phantom is the most common: phantom.com (browser extension or iOS/Android).",
+              },
+              {
+                type: "p",
+                text: "Back up your seed phrase offline. Never share it. Lose it and that wallet is gone.",
+              },
             ],
           },
           {
             id: "why-claim",
             q: "Why do I need to press “Claim” to receive a prize?",
             a: [
-              { type: "p", text: "On-chain payouts need your wallet signature to move USDC. Claim on the Leaderboard when the round is resolved." },
+              {
+                type: "p",
+                text: "On-chain payouts need your signature to move USDC. Claim on the Leaderboard when the round is resolved — email logins use the same in-app address.",
+              },
             ],
           },
         ],
@@ -1778,12 +1822,17 @@ export const pagesEn: PagesMessages = {
     formDotsOut: "Did not play",
     formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
     howToPlayBtn: "How to play",
+    prizeSplitBtn: "Prizes",
     scoringTitle: "Scoring",
     scoringSubtitle: "",
     goalsByPos: "Goals",
     prizeSplitTitle: "Prize split",
-    prizeSplitHint: "",
+    prizeSplitHint: "Each $5 entry puts $4 in the pool. Top 10 share it.",
+    prizeSplitRank: "Place",
+    prizeSplitShare: "Share",
     scoringFaqLink: "FAQ",
+    exploreRoom: "Explore room",
+    showTablet: "Show tablet",
     howToPlayTitle: "How to play",
     howToPlaySubtitle: "One PL weekend · real points · entry pool",
     howToPlaySteps: [
@@ -2785,37 +2834,71 @@ export const pagesUk: PagesMessages = {
       },
       {
         id: "web3-101",
-        title: "Гаманець і USDC",
-        blurb: "Вхід, внесок і клейм — без зайвого жаргону.",
+        title: "USDC і поповнення",
+        blurb: "Чим платити і як поповнити акаунт з email.",
         items: [
           {
-            id: "what-is-wallet",
-            q: "Що таке криптогаманець і навіщо він?",
+            id: "how-to-deposit",
+            q: "Що таке Solana і USDC — і як поповнити?",
             a: [
-              { type: "p", text: "Гаманець тримає крипту і підписує дії в мережі. У FORM8 це твій акаунт: логін, внесок і отримання призу." },
-              { type: "p", text: "Можна увійти через email — для платежів гаманець усе одно використовується." },
+              {
+                type: "p",
+                text: "FORM8 працює в мережі Solana. Внески й призи — в USDC: стейблкоїн близько $1 за монету.",
+              },
+              {
+                type: "p",
+                text: "Можна увійти через email. У FORM8 усе одно з’являється Solana-адреса — ставити Phantom не обов’язково.",
+              },
+              {
+                type: "ul",
+                items: [
+                  "Відкрий Deposit, вкладка Crypto, скопіюй адресу.",
+                  "Надішли на неї USDC саме в мережі Solana (вивід з біржі або з іншого Solana-гаманця). Інша мережа — кошти можуть зникнути.",
+                  "Коли баланс покриє внесок — реєструй склад.",
+                ],
+              },
+              {
+                type: "p",
+                text: "Картка / Apple Pay з’являться пізніше. Поки шлях — Crypto. Phantom, Solflare чи Jupiter — лише якщо вже звик до свого гаманця.",
+              },
+            ],
+          },
+          {
+            id: "what-is-wallet",
+            q: "Чи потрібен окремий криптогаманець?",
+            a: [
+              {
+                type: "p",
+                text: "Ні, якщо зайшов через email. FORM8 уже дає тобі Solana-адресу — у Deposit її видно, щоб прийняти USDC.",
+              },
+              {
+                type: "p",
+                text: "Став Phantom, Solflare або Jupiter лише якщо хочеш логінитись своїм гаманцем.",
+              },
             ],
           },
           {
             id: "which-wallet",
-            q: "Який гаманець потрібен?",
+            q: "Який гаманець, якщо все ж хочу свій?",
             a: [
-              { type: "p", text: "Phantom, Solflare або Jupiter — будь-який після Log in. Найпоширеніший — Phantom: phantom.com (розширення або iOS/Android)." },
-              { type: "p", text: "Збережи seed-фразу офлайн. Нікому не показуй. Втратив — гаманець зник назавжди." },
-            ],
-          },
-          {
-            id: "what-is-solana",
-            q: "Що таке Solana і USDC?",
-            a: [
-              { type: "p", text: "Solana — мережа, на якій працює FORM8: швидко й з мізерними комісіями. USDC — стейблкоїн ≈ $1. Внески й призи — в USDC." },
+              {
+                type: "p",
+                text: "Phantom, Solflare або Jupiter — будь-який після Log in. Найпоширеніший — Phantom: phantom.com (розширення або iOS/Android).",
+              },
+              {
+                type: "p",
+                text: "Збережи seed-фразу офлайн. Нікому не показуй. Втратив — той гаманець зник назавжди.",
+              },
             ],
           },
           {
             id: "why-claim",
             q: "Чому треба натискати «Claim», щоб отримати приз?",
             a: [
-              { type: "p", text: "Ончейн-виплата потребує підпису гаманця, щоб переказати USDC. Claim — на Лідерборді, коли тур резолвлено." },
+              {
+                type: "p",
+                text: "Ончейн-виплата потребує підпису, щоб переказати USDC. Claim — на Лідерборді після резолву; з email це та сама адреса в застосунку.",
+              },
             ],
           },
         ],
@@ -2876,12 +2959,17 @@ export const pagesUk: PagesMessages = {
     formDotsOut: "Не грав",
     formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
     howToPlayBtn: "Як грати",
+    prizeSplitBtn: "Призи",
     scoringTitle: "Очки",
     scoringSubtitle: "",
     goalsByPos: "Голи",
     prizeSplitTitle: "Призовий фонд",
-    prizeSplitHint: "",
+    prizeSplitHint: "З кожних $5 у пул іде $4. Топ-10 ділить фонд.",
+    prizeSplitRank: "Місце",
+    prizeSplitShare: "Частка",
     scoringFaqLink: "FAQ",
+    exploreRoom: "Оглянути кімнату",
+    showTablet: "Показати планшет",
     howToPlayTitle: "Як грати",
     howToPlaySubtitle: "Тур АПЛ · очки з матчів · пул внесків",
     howToPlaySteps: [

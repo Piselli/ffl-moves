@@ -91,6 +91,8 @@ export type SiteMessages = {
     cashComingSoon: string;
     cryptoHint: string;
     cryptoTransferHint: string;
+    /** Link under crypto send/copy — Web2 onboarding into FAQ. */
+    cryptoBeginnerLink: string;
     methodCard: string;
     methodApplePay: string;
     methodGooglePay: string;
@@ -341,7 +343,7 @@ const uk: SiteMessages = {
     walletPhantomInstallSub: "Рекомендований Solana-гаманець",
     walletSolflareInstallSub: "Альтернативний Solana-гаманець",
     walletBeginnerEyebrow: "Вперше тут?",
-    walletBeginnerTitle: "Що таке гаманець",
+    walletBeginnerTitle: "USDC і поповнення",
     desktopExtensionHint:
       "На Mac у браузері потрібне розширення Phantom, Solflare або Jupiter (Chrome, Brave або Edge).",
     desktopExtensionRefresh:
@@ -401,6 +403,7 @@ const uk: SiteMessages = {
     cashComingSoon: "Скоро",
     cryptoHint: "Надішли USDC у Solana.",
     cryptoTransferHint: "Скопіюй адресу й надішли USDC у мережі Solana.",
+    cryptoBeginnerLink: "Вперше з крипто? Як поповнити",
     methodCard: "Картка",
     methodApplePay: "Apple Pay",
     methodGooglePay: "Google Pay",
@@ -671,7 +674,7 @@ const en: SiteMessages = {
     walletPhantomInstallSub: "Recommended Solana wallet",
     walletSolflareInstallSub: "Alternative Solana wallet",
     walletBeginnerEyebrow: "First time here?",
-    walletBeginnerTitle: "What is a wallet",
+    walletBeginnerTitle: "USDC and deposits",
     desktopExtensionHint:
       "On Mac, the browser needs the Phantom, Solflare, or Jupiter extension (Chrome, Brave, or Edge).",
     desktopExtensionRefresh:
@@ -731,6 +734,7 @@ const en: SiteMessages = {
     cashComingSoon: "Soon",
     cryptoHint: "Send USDC on Solana.",
     cryptoTransferHint: "Copy your address and send USDC on Solana.",
+    cryptoBeginnerLink: "New to crypto? How to deposit",
     methodCard: "Card",
     methodApplePay: "Apple Pay",
     methodGooglePay: "Google Pay",
