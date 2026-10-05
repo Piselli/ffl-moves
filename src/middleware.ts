@@ -25,6 +25,11 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    // Partner referral dashboard is key-gated in-page — allow on production.
+    // Other /admin tools stay local-only.
+    if (pathname === "/admin/referrals" || pathname.startsWith("/admin/referrals/")) {
+      return NextResponse.next();
+    }
     const blocked = localOnlyRedirect(request);
     if (blocked) return blocked;
     return NextResponse.next();
