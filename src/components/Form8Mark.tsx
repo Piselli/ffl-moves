@@ -1,10 +1,13 @@
 import { cn } from "@/lib/utils";
 
-/** Lightweight SVG — PNG is 3616×4944 and often fails in html-to-image share export. */
-export const FORM8_MARK_SRC = "/brand/form8-mark.svg";
-/** Cropped +15 stencil A. Source art box. */
-export const FORM8_MARK_WIDTH = 452;
-export const FORM8_MARK_HEIGHT = 618;
+/**
+ * Small PNG mark for UI + share capture.
+ * Full-res PNG is 3616×4944 (OOM in export); SVG often vanishes in Phantom WebViews.
+ */
+export const FORM8_MARK_SRC = "/brand/form8-mark-share.png";
+/** Cropped +15 stencil A. Source art box (share asset is 94×128). */
+export const FORM8_MARK_WIDTH = 94;
+export const FORM8_MARK_HEIGHT = 128;
 
 type MarkProps = {
   className?: string;
@@ -15,8 +18,8 @@ type MarkProps = {
 
 /**
  * Locked form8 logomark — A-waist, halves spread +15.
- * Plain <img> + small SVG so squad PNG capture embeds reliably
- * (next/image + huge PNG → empty square on X cards).
+ * Plain <img> + small PNG so squad PNG capture embeds in wallet WebViews
+ * (next/image + huge PNG → empty square; SVG → missing mark in Phantom).
  */
 export function Form8Mark({ className, alt = "FORM8" }: MarkProps) {
   return (

@@ -354,6 +354,76 @@ async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void>
 }
 
 /**
+ * html2canvas mis-measures custom font baselines (Oswald) — glyphs shift up/down
+ * and get clipped by overflow:hidden / truncate / leading-none.
+ * Relax clipping and line-boxes so text stays readable in Phantom WebViews.
+ */
+function prepareTextForHtml2Canvas(root: HTMLElement) {
+  const nodes = root.querySelectorAll("*");
+  nodes.forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const cs = window.getComputedStyle(node);
+
+    // Keep the outer card clip for rounded corners; open everything else.
+    if (node.dataset.shareCard == null) {
+      if (cs.overflow !== "visible") node.style.overflow = "visible";
+      if (cs.overflowX !== "visible") node.style.overflowX = "visible";
+      if (cs.overflowY !== "visible") node.style.overflowY = "visible";
+    }
+
+    if (cs.textOverflow === "ellipsis") {
+      node.style.textOverflow = "clip";
+    }
+
+    // Tight line-heights + wrong ascent → clipped nickname / plate names / list rows.
+    const fontSize = Number.parseFloat(cs.fontSize) || 0;
+    const lineHeight = cs.lineHeight;
+    if (fontSize > 0 && lineHeight !== "normal") {
+      const lhPx = Number.parseFloat(lineHeight);
+      if (Number.isFinite(lhPx) && lhPx / fontSize < 1.2) {
+        node.style.lineHeight = "1.25";
+      }
+    } else if (lineHeight === "normal" || !lineHeight) {
+      /* leave */
+    }
+
+    // items-baseline is especially wrong under html2canvas font metrics.
+    if (cs.alignItems === "baseline") {
+      node.style.alignItems = "center";
+    }
+
+    // Fixed-height flex chips (name plates, captain C) — give the glyph room.
+    const height = Number.parseFloat(cs.height);
+    if (
+      fontSize > 0 &&
+      Number.isFinite(height) &&
+      height > 0 &&
+      height < 64 &&
+      (cs.display === "flex" || cs.display === "inline-flex")
+    ) {
+      node.style.lineHeight = `${Math.max(height, fontSize * 1.2)}px`;
+      node.style.paddingTop = "1px";
+      node.style.paddingBottom = "1px";
+      node.style.boxSizing = "border-box";
+    }
+  });
+}
+
+function injectDocumentFonts(targetDoc: Document) {
+  try {
+    document.fonts.forEach((face) => {
+      try {
+        targetDoc.fonts.add(face);
+      } catch {
+        /* duplicate / unsupported */
+      }
+    });
+  } catch {
+    /* older WebViews */
+  }
+}
+
+/**
  * Flatten capture-hostile styles.
  * CSS `filter` on cutout wrappers (brightness / drop-shadow) makes html-to-image
  * stamp one player bust onto every chip — strip all filters before export.
@@ -429,9 +499,41 @@ function prepareNodeForCapture(root: HTMLElement) {
   });
 }
 
+/** Rasterize at on-screen size — SVGs + huge PNGs fail in wallet WebViews. */
+async function rasterizeImgAtDisplaySize(
+  img: HTMLImageElement,
+): Promise<string | null> {
+  const rect = img.getBoundingClientRect();
+  const w = Math.max(
+    1,
+    Math.round(rect.width || img.clientWidth || img.width || 48),
+  );
+  const h = Math.max(
+    1,
+    Math.round(rect.height || img.clientHeight || img.height || 66),
+  );
+  const scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = w * scale;
+  canvas.height = h * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  try {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
+function isSvgSrc(src: string): boolean {
+  return /\.svg(\?|#|$)/i.test(src) || src.startsWith("data:image/svg");
+}
+
 /**
- * Bake each <img> to a unique data URL so foreignObject capture cannot
- * reuse one decoded bitmap across every filtered chip.
+ * Bake each <img> to a unique PNG data URL so foreignObject / html2canvas
+ * cannot reuse one decoded bitmap — and so SVG marks survive Phantom WebViews.
  */
 async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
   const imgs = Array.from(root.querySelectorAll("img"));
@@ -440,14 +542,36 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
       img.style.opacity = "1";
       img.style.visibility = "visible";
       const src = img.currentSrc || img.src;
-      if (!src || src.startsWith("data:")) return;
+      if (!src || src.startsWith("data:image/png")) return;
 
       try {
-        // Huge bitmaps (old form8-mark PNG was 3616×4944) OOM/fail canvas
-        // embed and leave a broken square in the share card.
         const tooBig =
           img.complete &&
           img.naturalWidth * img.naturalHeight > 1_500_000;
+        const needsRaster = isSvgSrc(src) || tooBig || src.startsWith("data:image/svg");
+
+        if (needsRaster) {
+          // Ensure the SVG/bitmap is loaded before drawing at display size.
+          if (!img.complete || img.naturalHeight === 0) {
+            const loaded = await fetchAsDataUrl(src);
+            if (loaded) {
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error("embed load failed"));
+                img.src = loaded;
+              });
+            }
+          }
+          const raster = await rasterizeImgAtDisplaySize(img);
+          if (raster) {
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject(new Error("raster data url failed"));
+              img.src = raster;
+            });
+            return;
+          }
+        }
 
         if (img.complete && img.naturalWidth > 0 && !tooBig) {
           try {
@@ -477,6 +601,18 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
           img.onerror = () => reject(new Error("data url image failed"));
           img.src = dataUrl;
         });
+
+        // SVG fetched as data URL still needs a PNG bake for html2canvas.
+        if (isSvgSrc(dataUrl) || isSvgSrc(src)) {
+          const raster = await rasterizeImgAtDisplaySize(img);
+          if (raster) {
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject(new Error("svg raster failed"));
+              img.src = raster;
+            });
+          }
+        }
       } catch {
         /* keep original src — capture may still work without embed */
       }
@@ -524,6 +660,8 @@ async function captureWithHtml2Canvas(
   clone: HTMLElement,
   scale: number,
 ): Promise<Blob> {
+  prepareTextForHtml2Canvas(clone);
+
   const canvas = await html2canvas(clone, {
     backgroundColor: "#000000",
     scale,
@@ -535,8 +673,10 @@ async function captureWithHtml2Canvas(
     allowTaint: false,
     logging: false,
     imageTimeout: 12_000,
-    onclone: (_doc, cloned) => {
+    onclone: (doc, cloned) => {
+      injectDocumentFonts(doc);
       prepareNodeForCapture(cloned as HTMLElement);
+      prepareTextForHtml2Canvas(cloned as HTMLElement);
       flattenAbsoluteTransforms(cloned as HTMLElement);
       (cloned as HTMLElement).querySelectorAll("img").forEach((img) => {
         img.style.opacity = "1";
@@ -593,11 +733,12 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
       embedBackgroundImagesAsDataUrls(clone),
     ]);
     prepareNodeForCapture(clone);
+    if (constrained) prepareTextForHtml2Canvas(clone);
     flattenAbsoluteTransforms(clone);
     await waitForImages(clone);
     await nextPaint();
     // WKWebView / Phantom need a beat after data-URL swaps before paint settles.
-    if (constrained) await sleep(120);
+    if (constrained) await sleep(180);
 
     if (constrained) {
       // foreignObject path is unreliable in wallet WebViews — html2canvas first.
