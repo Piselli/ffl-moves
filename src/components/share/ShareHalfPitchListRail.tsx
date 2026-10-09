@@ -216,7 +216,13 @@ function KitRow({
             data-share-captain-list=""
             aria-hidden
             className="shrink-0 self-center"
-            style={{ width: 14, height: 14, overflow: "visible" }}
+            style={{
+              width: 14,
+              height: 14,
+              overflow: "visible",
+              // html2canvas ignores flex-item top/transform — margin is what moves it.
+              marginTop: 4,
+            }}
           >
             <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden>
               <circle cx="7" cy="7" r="6.5" fill="#fbbf24" />
