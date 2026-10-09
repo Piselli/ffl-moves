@@ -212,8 +212,18 @@ function KitRow({
         </span>
         {captain ? (
           <span
-            className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black leading-none text-black"
+            data-share-captain=""
             aria-hidden
+            className="shrink-0 rounded-full bg-amber-400 text-black"
+            style={{
+              display: "block",
+              width: 14,
+              height: 14,
+              fontSize: 8,
+              fontWeight: 900,
+              lineHeight: "14px",
+              textAlign: "center",
+            }}
           >
             C
           </span>

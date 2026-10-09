@@ -60,6 +60,7 @@ export function PitchChipCutout({
 
   return (
     <span
+      aria-hidden
       className="relative block shrink-0 overflow-hidden bg-transparent"
       style={{
         width: size,
@@ -109,8 +110,7 @@ export function PitchChipCutout({
           </svg>
         </span>
       ) : null}
-
-      <span className="sr-only">{name}</span>
+      {/* No sr-only name — share PNG sets overflow:visible and was revealing full names on the pitch. */}
     </span>
   );
 }

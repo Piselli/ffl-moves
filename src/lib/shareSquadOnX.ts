@@ -354,58 +354,96 @@ async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void>
 }
 
 /**
- * html2canvas mis-measures custom font baselines (Oswald) — glyphs shift up/down
- * and get clipped by overflow:hidden / truncate / leading-none.
- * Relax clipping and line-boxes so text stays readable in Phantom WebViews.
+ * html2canvas mis-measures custom font baselines (Oswald).
+ * Be surgical — blanket overflow:visible was revealing .sr-only full names on the pitch,
+ * and flex+padding hacks shoved captain "C" off-center.
  */
 function prepareTextForHtml2Canvas(root: HTMLElement) {
-  const nodes = root.querySelectorAll("*");
-  nodes.forEach((node) => {
+  // Never paint accessibility-only copy into the PNG.
+  root.querySelectorAll(".sr-only").forEach((node) => {
+    if (node instanceof HTMLElement) node.style.display = "none";
+  });
+
+  // Nickname / list truncate — open clip so glyphs aren't sliced.
+  root.querySelectorAll(".truncate").forEach((node) => {
     if (!(node instanceof HTMLElement)) return;
+    if (node.closest("[data-share-plate]")) return;
+    node.style.overflow = "visible";
+    node.style.textOverflow = "clip";
+  });
+
+  root.querySelectorAll("*").forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    if (node.dataset.shareCaptain != null) return;
+    if (node.dataset.sharePlate != null) return;
+    if (node.dataset.sharePlateLabel != null) return;
+    if (node.dataset.shareMark != null) return;
+    if (node.dataset.shareLockup != null) return;
+
     const cs = window.getComputedStyle(node);
-
-    // Keep the outer card clip for rounded corners; open everything else.
-    if (node.dataset.shareCard == null) {
-      if (cs.overflow !== "visible") node.style.overflow = "visible";
-      if (cs.overflowX !== "visible") node.style.overflowX = "visible";
-      if (cs.overflowY !== "visible") node.style.overflowY = "visible";
-    }
-
-    if (cs.textOverflow === "ellipsis") {
-      node.style.textOverflow = "clip";
-    }
-
-    // Tight line-heights + wrong ascent → clipped nickname / plate names / list rows.
-    const fontSize = Number.parseFloat(cs.fontSize) || 0;
-    const lineHeight = cs.lineHeight;
-    if (fontSize > 0 && lineHeight !== "normal") {
-      const lhPx = Number.parseFloat(lineHeight);
-      if (Number.isFinite(lhPx) && lhPx / fontSize < 1.2) {
-        node.style.lineHeight = "1.25";
-      }
-    } else if (lineHeight === "normal" || !lineHeight) {
-      /* leave */
-    }
-
-    // items-baseline is especially wrong under html2canvas font metrics.
     if (cs.alignItems === "baseline") {
       node.style.alignItems = "center";
     }
 
-    // Fixed-height flex chips (name plates, captain C) — give the glyph room.
-    const height = Number.parseFloat(cs.height);
-    if (
-      fontSize > 0 &&
-      Number.isFinite(height) &&
-      height > 0 &&
-      height < 64 &&
-      (cs.display === "flex" || cs.display === "inline-flex")
-    ) {
-      node.style.lineHeight = `${Math.max(height, fontSize * 1.2)}px`;
-      node.style.paddingTop = "1px";
-      node.style.paddingBottom = "1px";
-      node.style.boxSizing = "border-box";
+    // Manager name / formation display — give Oswald a taller line box.
+    const fontSize = Number.parseFloat(cs.fontSize) || 0;
+    if (fontSize >= 20 && cs.lineHeight !== "normal") {
+      const lhPx = Number.parseFloat(cs.lineHeight);
+      if (Number.isFinite(lhPx) && lhPx / fontSize < 1.15) {
+        node.style.lineHeight = "1.2";
+        node.style.overflow = "visible";
+      }
     }
+  });
+
+  // Pitch plates — lineHeight already set to plateH in the component; keep overflow hidden.
+  root.querySelectorAll<HTMLElement>("[data-share-plate]").forEach((plate) => {
+    plate.style.overflow = "hidden";
+    plate.style.display = "block";
+  });
+  root.querySelectorAll<HTMLElement>("[data-share-plate-label]").forEach((label) => {
+    const plate = label.closest("[data-share-plate]");
+    const h =
+      (plate instanceof HTMLElement && plate.getBoundingClientRect().height) ||
+      Number.parseFloat(window.getComputedStyle(label).height) ||
+      0;
+    if (h > 0) {
+      label.style.display = "block";
+      label.style.height = `${h}px`;
+      label.style.lineHeight = `${h}px`;
+      label.style.padding = "0";
+      label.style.margin = "0";
+    }
+  });
+
+  // Captain discs — block + lineHeight === height (flex centering breaks in html2canvas).
+  root.querySelectorAll<HTMLElement>("[data-share-captain]").forEach((badge) => {
+    const cs = window.getComputedStyle(badge);
+    const h =
+      badge.getBoundingClientRect().height ||
+      Number.parseFloat(cs.height) ||
+      14;
+    badge.style.display = "block";
+    badge.style.padding = "0";
+    badge.style.margin = "0";
+    badge.style.boxSizing = "border-box";
+    badge.style.width = `${h}px`;
+    badge.style.height = `${h}px`;
+    badge.style.lineHeight = `${h}px`;
+    badge.style.textAlign = "center";
+    badge.style.overflow = "hidden";
+  });
+
+  // FORM8 lockup — keep mark + wordmark on one cross-axis.
+  root.querySelectorAll<HTMLElement>("[data-share-lockup]").forEach((lockup) => {
+    lockup.style.display = "inline-flex";
+    lockup.style.alignItems = "center";
+    lockup.style.lineHeight = "1";
+  });
+  root.querySelectorAll<HTMLElement>("[data-share-mark]").forEach((mark) => {
+    mark.style.display = "block";
+    mark.style.alignSelf = "center";
+    mark.style.verticalAlign = "middle";
   });
 }
 
@@ -448,14 +486,23 @@ function prepareNodeForCapture(root: HTMLElement) {
     root.style.boxShadow = "none";
   }
 
+  // Accessibility-only nodes must never appear in the PNG.
+  root.querySelectorAll(".sr-only").forEach((node) => {
+    if (node instanceof HTMLElement) node.style.display = "none";
+  });
+
   const nodes = root.querySelectorAll("*");
   nodes.forEach((node) => {
     if (!(node instanceof HTMLElement)) return;
     const cs = window.getComputedStyle(node);
 
     // html2canvas splits glyphs when letter-spacing is set — reset for export.
-    node.style.letterSpacing = "normal";
-    node.style.wordSpacing = "normal";
+    // Skip captain / plate labels — their tracking is intentional and spacing
+    // reset plus flex hacks previously shoved "C" off-center.
+    if (node.dataset.shareCaptain == null && node.dataset.sharePlateLabel == null) {
+      node.style.letterSpacing = "normal";
+      node.style.wordSpacing = "normal";
+    }
     node.style.fontKerning = "auto";
     node.style.textRendering = "geometricPrecision";
 

@@ -25,12 +25,13 @@ export function Form8Mark({ className, alt = "FORM8" }: MarkProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- share capture needs a real <img>, not next/image
     <img
+      data-share-mark=""
       src={FORM8_MARK_SRC}
       alt={alt}
       width={FORM8_MARK_WIDTH}
       height={FORM8_MARK_HEIGHT}
       draggable={false}
-      className={cn("h-8 w-auto shrink-0", className)}
+      className={cn("block h-8 w-auto shrink-0", className)}
     />
   );
 }
@@ -76,7 +77,11 @@ export function Form8Lockup({
   priority = false,
 }: LockupProps) {
   return (
-    <span className={cn("inline-flex h-6 items-center gap-2.5", className)}>
+    <span
+      data-share-lockup=""
+      className={cn("inline-flex h-6 items-center gap-2.5", className)}
+      style={{ verticalAlign: "middle" }}
+    >
       <Form8Mark
         alt=""
         priority={priority}
@@ -85,7 +90,7 @@ export function Form8Lockup({
       {markOnly ? null : (
         <Form8Wordmark
           className={cn(
-            "whitespace-nowrap text-[18px]/none text-white sm:text-[21px]/none",
+            "whitespace-nowrap text-[18px]/none leading-none text-white sm:text-[21px]/none",
             wordmarkClassName,
           )}
         />

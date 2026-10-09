@@ -108,12 +108,8 @@ export function SharePitchChipMuted({
         allowAbbreviate: false,
       });
 
-  const badgeSize =
-    size === "sm"
-      ? "h-[15px] w-[15px] text-[7px] -right-1 -top-1.5"
-      : size === "md"
-        ? "h-[16px] w-[16px] text-[7.5px] -right-1 -top-1.5"
-        : "h-[18px] w-[18px] text-[8px] -right-1.5 -top-2";
+  const badgePx = size === "sm" ? 15 : size === "md" ? 16 : 18;
+  const badgeFont = size === "sm" ? 7 : size === "md" ? 7.5 : 8;
 
   return (
     <div className="flex flex-col items-center">
@@ -132,18 +128,33 @@ export function SharePitchChipMuted({
       />
       {/* Captain on the plate — absolute-on-cutout drifts in html-to-image when busts lag. */}
       <div
-        className="-mt-1 relative flex items-center justify-center overflow-visible rounded-[7px]"
+        data-share-plate=""
+        className="-mt-1 relative rounded-[7px]"
         style={{
           width: plateW,
           height: plateH,
           paddingInline: platePadX,
+          overflow: "hidden",
           ...plate,
         }}
       >
         {captain ? (
           <span
-            className={`absolute z-20 flex items-center justify-center rounded-full font-black leading-none bg-amber-400 text-black ring-1 ring-[#d4af37]/90 ${badgeSize}`}
+            data-share-captain=""
             aria-hidden
+            className="absolute z-20 rounded-full bg-amber-400 text-black ring-1 ring-[#d4af37]/90"
+            style={{
+              // Block + matching lineHeight centers "C" in html2canvas (flex fails).
+              display: "block",
+              width: badgePx,
+              height: badgePx,
+              right: -6,
+              top: -8,
+              fontSize: badgeFont,
+              fontWeight: 900,
+              lineHeight: `${badgePx}px`,
+              textAlign: "center",
+            }}
           >
             C
           </span>
@@ -159,12 +170,16 @@ export function SharePitchChipMuted({
           />
         ) : null}
         <span
-          className={`relative z-[1] block whitespace-nowrap text-center font-bold leading-none ${nameColor}`}
+          data-share-plate-label=""
+          className={`relative z-[1] block whitespace-nowrap text-center font-bold ${nameColor}`}
           style={{
             fontSize,
             fontFamily: font.family,
             fontWeight: font.weight,
             letterSpacing: font.tracking,
+            // Exact line box = plate height — stable vertical center in html2canvas.
+            lineHeight: `${plateH}px`,
+            height: plateH,
           }}
           title={surname}
         >
