@@ -479,18 +479,18 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
     badge.style.top = `${-Math.round(size / 2)}px`;
   });
 
-  // List C — sit on the name midline (was floating above "Haaland").
+  // List C — still a touch high vs the surname; drop onto the text midline.
   root
     .querySelectorAll<HTMLElement>("[data-share-captain-list]")
     .forEach((badge) => {
       badge.style.display = "block";
       badge.style.alignSelf = "center";
       badge.style.position = "relative";
-      badge.style.top = "1px";
+      badge.style.top = "3px";
       badge.style.transform = "none";
     });
 
-  // FORM8 lockup — equal row/mark height (classic card used 26px mark in 24px row).
+  // FORM8 lockup — mark sits optically high vs the wordmark in html2canvas.
   root.querySelectorAll<HTMLElement>("[data-share-lockup]").forEach((lockup) => {
     lockup.style.display = "inline-flex";
     lockup.style.alignItems = "center";
@@ -503,7 +503,7 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
     mark.style.width = "auto";
     mark.style.alignSelf = "center";
     mark.style.verticalAlign = "middle";
-    mark.style.transform = "none";
+    mark.style.transform = "translateY(2px)";
   });
 }
 
@@ -804,6 +804,7 @@ async function captureWithHtml2Canvas(
         mark.style.height = "26px";
         mark.style.width = "auto";
         mark.style.alignSelf = "center";
+        mark.style.transform = "translateY(2px)";
       });
       root
         .querySelectorAll<HTMLElement>("[data-share-captain]:not([data-share-captain-list])")
@@ -819,7 +820,7 @@ async function captureWithHtml2Canvas(
       root.querySelectorAll<HTMLElement>("[data-share-captain-list]").forEach((badge) => {
         badge.style.alignSelf = "center";
         badge.style.position = "relative";
-        badge.style.top = "1px";
+        badge.style.top = "3px";
       });
     },
   });
