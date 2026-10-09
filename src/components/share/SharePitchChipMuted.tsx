@@ -109,7 +109,7 @@ export function SharePitchChipMuted({
       });
 
   const badgePx = size === "sm" ? 15 : size === "md" ? 16 : 18;
-  const badgeFont = size === "sm" ? 7 : size === "md" ? 7.5 : 8;
+  const badgeFont = size === "sm" ? 8 : size === "md" ? 9 : 10;
 
   return (
     <div className="flex flex-col items-center">
@@ -126,66 +126,98 @@ export function SharePitchChipMuted({
         name={player.name}
         size={s.cutout}
       />
-      {/* Captain on the plate — absolute-on-cutout drifts in html-to-image when busts lag. */}
+      {/*
+        Captain sits OUTSIDE the plate (desktop look). Inside overflow:hidden it
+        gets clipped in Phantom/html2canvas — half-buried in the white box.
+      */}
       <div
-        data-share-plate=""
-        className="-mt-1 relative rounded-[7px]"
-        style={{
-          width: plateW,
-          height: plateH,
-          paddingInline: platePadX,
-          overflow: "hidden",
-          ...plate,
-        }}
+        className="relative -mt-1"
+        style={{ width: plateW, height: plateH }}
       >
         {captain ? (
           <span
             data-share-captain=""
             aria-hidden
-            className="absolute z-20 rounded-full bg-amber-400 text-black ring-1 ring-[#d4af37]/90"
+            className="absolute z-20"
             style={{
-              // Block + matching lineHeight centers "C" in html2canvas (flex fails).
-              display: "block",
+              right: -Math.round(badgePx * 0.35),
+              top: -Math.round(badgePx * 0.45),
               width: badgePx,
               height: badgePx,
-              right: -6,
-              top: -8,
-              fontSize: badgeFont,
-              fontWeight: 900,
-              lineHeight: `${badgePx}px`,
-              textAlign: "center",
             }}
           >
-            C
+            <CaptainDisc size={badgePx} fontSize={badgeFont} />
           </span>
         ) : null}
-        {showSheen ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[7px]"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 55%)",
-            }}
-          />
-        ) : null}
-        <span
-          data-share-plate-label=""
-          className={`relative z-[1] block whitespace-nowrap text-center font-bold ${nameColor}`}
+        <div
+          data-share-plate=""
+          className="relative h-full w-full rounded-[7px]"
           style={{
-            fontSize,
-            fontFamily: font.family,
-            fontWeight: font.weight,
-            letterSpacing: font.tracking,
-            // Exact line box = plate height — stable vertical center in html2canvas.
-            lineHeight: `${plateH}px`,
-            height: plateH,
+            display: "table",
+            tableLayout: "fixed",
+            overflow: "hidden",
+            paddingInline: platePadX,
+            ...plate,
           }}
-          title={surname}
         >
-          {label}
-        </span>
+          {showSheen ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 overflow-hidden rounded-[7px]"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 55%)",
+              }}
+            />
+          ) : null}
+          <span
+            data-share-plate-label=""
+            className={`whitespace-nowrap text-center font-bold ${nameColor}`}
+            style={{
+              display: "table-cell",
+              verticalAlign: "middle",
+              textAlign: "center",
+              width: plateW,
+              height: plateH,
+              fontSize,
+              fontFamily: font.family,
+              fontWeight: font.weight,
+              letterSpacing: font.tracking,
+              lineHeight: 1.05,
+            }}
+            title={surname}
+          >
+            {label}
+          </span>
+        </div>
       </div>
     </div>
+  );
+}
+
+/** SVG disc — geometric center survives html2canvas (flex/"C" text does not). */
+function CaptainDisc({ size, fontSize }: { size: number; fontSize: number }) {
+  const r = size / 2;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden
+    >
+      <circle cx={r} cy={r} r={r - 0.5} fill="#fbbf24" stroke="#d4af37" strokeWidth="1" />
+      <text
+        x={r}
+        y={r}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="#000"
+        fontSize={fontSize}
+        fontWeight={900}
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >
+        C
+      </text>
+    </svg>
   );
 }

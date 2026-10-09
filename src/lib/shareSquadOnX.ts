@@ -242,6 +242,8 @@ function flattenAbsoluteTransforms(root: HTMLElement) {
   nodes.reverse();
   nodes.forEach((node) => {
     if (!(node instanceof HTMLElement)) return;
+    // Captain badge uses absolute top/right on purpose — don't rebake it.
+    if (node.dataset.shareCaptain != null) return;
     const cs = window.getComputedStyle(node);
     if (cs.position !== "absolute" && cs.position !== "fixed") return;
     if (!cs.transform || cs.transform === "none") return;
@@ -396,10 +398,10 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
     }
   });
 
-  // Pitch plates — lineHeight already set to plateH in the component; keep overflow hidden.
+  // Pitch plates — keep table-cell centering; nudge labels up (html2canvas paints low).
   root.querySelectorAll<HTMLElement>("[data-share-plate]").forEach((plate) => {
     plate.style.overflow = "hidden";
-    plate.style.display = "block";
+    plate.style.display = "table";
   });
   root.querySelectorAll<HTMLElement>("[data-share-plate-label]").forEach((label) => {
     const plate = label.closest("[data-share-plate]");
@@ -407,34 +409,27 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
       (plate instanceof HTMLElement && plate.getBoundingClientRect().height) ||
       Number.parseFloat(window.getComputedStyle(label).height) ||
       0;
+    label.style.display = "table-cell";
+    label.style.verticalAlign = "middle";
+    label.style.textAlign = "center";
+    label.style.padding = "0";
+    label.style.margin = "0";
     if (h > 0) {
-      label.style.display = "block";
       label.style.height = `${h}px`;
-      label.style.lineHeight = `${h}px`;
-      label.style.padding = "0";
-      label.style.margin = "0";
+      label.style.lineHeight = "1.05";
     }
+    // Phantom/html2canvas baseline sits low — pull surnames up into the plate.
+    label.style.transform = "translateY(-3px)";
   });
 
-  // Captain discs — block + lineHeight === height (flex centering breaks in html2canvas).
+  // Captain discs are SVG now — just keep them unclipped and above the plate.
   root.querySelectorAll<HTMLElement>("[data-share-captain]").forEach((badge) => {
-    const cs = window.getComputedStyle(badge);
-    const h =
-      badge.getBoundingClientRect().height ||
-      Number.parseFloat(cs.height) ||
-      14;
-    badge.style.display = "block";
-    badge.style.padding = "0";
-    badge.style.margin = "0";
-    badge.style.boxSizing = "border-box";
-    badge.style.width = `${h}px`;
-    badge.style.height = `${h}px`;
-    badge.style.lineHeight = `${h}px`;
-    badge.style.textAlign = "center";
-    badge.style.overflow = "hidden";
+    badge.style.overflow = "visible";
+    badge.style.zIndex = "30";
+    // Don't let transform-flatten shove the badge; keep absolute offsets as-is.
   });
 
-  // FORM8 lockup — keep mark + wordmark on one cross-axis.
+  // FORM8 lockup — mark was sitting a touch high vs the wordmark in WebViews.
   root.querySelectorAll<HTMLElement>("[data-share-lockup]").forEach((lockup) => {
     lockup.style.display = "inline-flex";
     lockup.style.alignItems = "center";
@@ -444,6 +439,7 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
     mark.style.display = "block";
     mark.style.alignSelf = "center";
     mark.style.verticalAlign = "middle";
+    mark.style.transform = "translateY(1px)";
   });
 }
 

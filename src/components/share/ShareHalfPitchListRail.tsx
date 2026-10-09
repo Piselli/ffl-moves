@@ -214,18 +214,24 @@ function KitRow({
           <span
             data-share-captain=""
             aria-hidden
-            className="shrink-0 rounded-full bg-amber-400 text-black"
-            style={{
-              display: "block",
-              width: 14,
-              height: 14,
-              fontSize: 8,
-              fontWeight: 900,
-              lineHeight: "14px",
-              textAlign: "center",
-            }}
+            className="shrink-0"
+            style={{ width: 14, height: 14, overflow: "visible" }}
           >
-            C
+            <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden>
+              <circle cx="7" cy="7" r="6.5" fill="#fbbf24" />
+              <text
+                x="7"
+                y="7"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#000"
+                fontSize="8"
+                fontWeight={900}
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
+                C
+              </text>
+            </svg>
           </span>
         ) : null}
         <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.12em] text-white/38">
