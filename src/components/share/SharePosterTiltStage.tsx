@@ -147,9 +147,10 @@ export function SharePosterTiltStage({
 }
 
 /**
- * Offscreen 1:1 card for PNG export.
- * Keep opacity:1 — near-zero opacity skips image decode in some browsers,
- * which drops pitch turf + player cutouts from copy/download.
+ * 1:1 card for PNG export.
+ * Stay on-screen in the modal stack (not left:-9999) — Phantom / WKWebView
+ * often skip decoding images that sit far off-screen, which drops cutouts + turf.
+ * Absolute + z-index:-1 keeps it under the 3D preview so users never see it.
  */
 export function SharePosterExportRoot({
   exportRef,
@@ -162,11 +163,11 @@ export function SharePosterExportRoot({
     <div
       ref={exportRef}
       aria-hidden
-      className="share-export-capture pointer-events-none fixed overflow-hidden select-none"
+      className="share-export-capture pointer-events-none absolute overflow-hidden select-none"
       style={{
         width: SQUAD_SHARE_CARD_WIDTH,
         height: SQUAD_SHARE_CARD_HEIGHT,
-        left: -10_000,
+        left: 0,
         top: 0,
         opacity: 1,
         visibility: "visible",

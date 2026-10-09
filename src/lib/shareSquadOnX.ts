@@ -132,6 +132,33 @@ export function xTweetIntentUrl(text: string): string {
   return `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * Mobile + wallet in-app browsers (Phantom, Solflare, …).
+ * Their WebViews break SVG foreignObject capture (html-to-image) — prefer html2canvas.
+ */
+function isConstrainedCaptureEnv(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const isWalletUa =
+    /Phantom|Solflare|Backpack|Trust\/|CoinbaseWallet|MetaMaskMobile|Rainbow/i.test(
+      ua,
+    );
+  // Android WebView marker (`; wv)`) — common for wallet browsers.
+  const isAndroidWebView = isAndroid && /(\bwv\b|; wv\)|Version\/[\d.]+)/.test(ua);
+  return isIOS || isAndroid || isWalletUa || isAndroidWebView;
+}
+
+function exportPixelRatio(): number {
+  if (!isConstrainedCaptureEnv()) return 2;
+  // Lower scale avoids blank / OOM canvases in mobile WebViews.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  return Math.min(1.5, Math.max(1, dpr));
+}
+
 function waitForImages(root: HTMLElement, timeoutMs = 12_000): Promise<void> {
   const imgs = Array.from(root.querySelectorAll("img"));
   if (imgs.length === 0) return Promise.resolve();
@@ -146,7 +173,6 @@ function waitForImages(root: HTMLElement, timeoutMs = 12_000): Promise<void> {
             resolve();
           };
           if (img.complete && img.naturalHeight > 0) {
-            // decode() ensures pixels are ready before foreignObject snapshot.
             const decoded =
               typeof img.decode === "function"
                 ? img.decode().then(finish, finish)
@@ -169,7 +195,9 @@ function nextPaint(): Promise<void> {
   });
 }
 
-const EXPORT_PIXEL_RATIO = 2;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 function resolveCaptureCard(element: HTMLElement): HTMLElement {
   if (element.dataset.shareCard != null) return element;
@@ -185,7 +213,7 @@ function stripCaptureFilters(node: HTMLElement) {
 }
 
 /**
- * Soft box-shadows become solid offset blocks in foreignObject capture.
+ * Soft box-shadows become solid offset blocks in foreignObject / WebView capture.
  * Keep only zero-blur rings when present; drop the rest.
  */
 function flattenBoxShadow(node: HTMLElement) {
@@ -198,10 +226,47 @@ function flattenBoxShadow(node: HTMLElement) {
     .split(/,(?![^(]*\))/)
     .map((part) => part.trim())
     .filter((part) => {
-      // Keep "0 0 0 Npx color" hairline rings only.
       return /^0(px)?\s+0(px)?\s+0(px)?\s+\d/.test(part);
     });
   node.style.boxShadow = rings.length > 0 ? rings.join(", ") : "none";
+}
+
+/**
+ * Bake CSS transforms into left/top for absolutely positioned nodes.
+ * html2canvas + wallet WebViews mis-place translate(-50%, …) pitch chips
+ * (floating captain badge, drifted names).
+ */
+function flattenAbsoluteTransforms(root: HTMLElement) {
+  const nodes = Array.from(root.querySelectorAll("*"));
+  // Deepest first so parent transforms don't double-apply.
+  nodes.reverse();
+  nodes.forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const cs = window.getComputedStyle(node);
+    if (cs.position !== "absolute" && cs.position !== "fixed") return;
+    if (!cs.transform || cs.transform === "none") return;
+
+    let matrix: DOMMatrix;
+    try {
+      matrix = new DOMMatrix(cs.transform);
+    } catch {
+      node.style.transform = "none";
+      return;
+    }
+    if (matrix.isIdentity) {
+      node.style.transform = "none";
+      return;
+    }
+
+    const left = Number.parseFloat(cs.left) || 0;
+    const top = Number.parseFloat(cs.top) || 0;
+    node.style.left = `${left + matrix.e}px`;
+    node.style.top = `${top + matrix.f}px`;
+    node.style.right = "auto";
+    node.style.bottom = "auto";
+    node.style.transform = "none";
+    node.style.setProperty("-webkit-transform", "none");
+  });
 }
 
 function absolutizeUrl(url: string): string {
@@ -231,6 +296,7 @@ async function fetchAsDataUrl(url: string): Promise<string | null> {
 
 /**
  * Bake CSS background-image urls (pitch turf) — html-to-image often drops them.
+ * Then swap to a real <img> — html2canvas paints <img> far more reliably than bg.
  */
 async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void> {
   const nodes = Array.from(
@@ -250,16 +316,39 @@ async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void>
 
       const match = source.match(/url\((['"]?)(.+?)\1\)/i);
       if (!match?.[2]) return;
-      const url = match[2].trim();
-      if (url.startsWith("data:")) return;
+      let url = match[2].trim();
+      if (!url.startsWith("data:")) {
+        const dataUrl = await fetchAsDataUrl(url);
+        if (!dataUrl) return;
+        url = dataUrl;
+      }
 
-      const dataUrl = await fetchAsDataUrl(url);
-      if (!dataUrl) return;
-      node.style.backgroundImage = `url("${dataUrl}")`;
+      node.style.backgroundImage = "none";
+      node.style.transform = "none";
       node.style.opacity = "1";
       node.style.visibility = "visible";
-      // Drop scale transforms that foreignObject mis-rasterizes.
-      node.style.transform = "none";
+
+      const existing = node.querySelector("img[data-share-pitch-img]");
+      if (existing) existing.remove();
+
+      const img = document.createElement("img");
+      img.setAttribute("data-share-pitch-img", "");
+      img.alt = "";
+      img.decoding = "sync";
+      img.src = url;
+      img.style.cssText = [
+        "position:absolute",
+        "inset:0",
+        "width:100%",
+        "height:100%",
+        "object-fit:cover",
+        "object-position:center",
+        "opacity:1",
+        "visibility:visible",
+        "pointer-events:none",
+        "display:block",
+      ].join(";");
+      node.appendChild(img);
     }),
   );
 }
@@ -361,19 +450,24 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
           img.naturalWidth * img.naturalHeight > 1_500_000;
 
         if (img.complete && img.naturalWidth > 0 && !tooBig) {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          ctx.drawImage(img, 0, 0);
-          const dataUrl = canvas.toDataURL("image/png");
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error("data url image failed"));
-            img.src = dataUrl;
-          });
-          return;
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL("image/png");
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error("data url image failed"));
+                img.src = dataUrl;
+              });
+              return;
+            }
+          } catch {
+            /* tainted canvas — fall through to fetch */
+          }
         }
 
         const dataUrl = await fetchAsDataUrl(src);
@@ -390,17 +484,19 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
   );
 }
 
-/** Offscreen clone so we can strip filters without flashing the live poster. */
+/**
+ * Capture host — keep in the viewport.
+ * Phantom / WKWebView cull far-offscreen nodes (no image decode, blank cutouts).
+ */
 function mountExportClone(cardEl: HTMLElement): {
   clone: HTMLElement;
   host: HTMLElement;
 } {
   const host = document.createElement("div");
   host.setAttribute("data-share-export-host", "");
-  // Real card size + opacity:1 — 0×0 / opacity:0 hosts skip image decode.
   host.style.cssText = [
     "position:fixed",
-    "left:-10000px",
+    "left:0",
     "top:0",
     `width:${SQUAD_SHARE_CARD_WIDTH}px`,
     `height:${SQUAD_SHARE_CARD_HEIGHT}px`,
@@ -408,6 +504,8 @@ function mountExportClone(cardEl: HTMLElement): {
     "pointer-events:none",
     "opacity:1",
     "visibility:visible",
+    // Under share modal chrome; still painted by the WebView compositor.
+    "z-index:1",
   ].join(";");
 
   const clone = cardEl.cloneNode(true) as HTMLElement;
@@ -422,6 +520,60 @@ function mountExportClone(cardEl: HTMLElement): {
   return { clone, host };
 }
 
+async function captureWithHtml2Canvas(
+  clone: HTMLElement,
+  scale: number,
+): Promise<Blob> {
+  const canvas = await html2canvas(clone, {
+    backgroundColor: "#000000",
+    scale,
+    width: SQUAD_SHARE_CARD_WIDTH,
+    height: SQUAD_SHARE_CARD_HEIGHT,
+    windowWidth: SQUAD_SHARE_CARD_WIDTH,
+    windowHeight: SQUAD_SHARE_CARD_HEIGHT,
+    useCORS: true,
+    allowTaint: false,
+    logging: false,
+    imageTimeout: 12_000,
+    onclone: (_doc, cloned) => {
+      prepareNodeForCapture(cloned as HTMLElement);
+      flattenAbsoluteTransforms(cloned as HTMLElement);
+      (cloned as HTMLElement).querySelectorAll("img").forEach((img) => {
+        img.style.opacity = "1";
+        img.style.visibility = "visible";
+      });
+    },
+  });
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png", 0.92),
+  );
+  if (!blob) throw new Error("Could not render squad image");
+  return blob;
+}
+
+async function captureWithHtmlToImage(
+  clone: HTMLElement,
+  scale: number,
+): Promise<Blob> {
+  const filter = (node: HTMLElement) => {
+    if (node.dataset?.shareOverlay != null) return false;
+    return true;
+  };
+  const fontEmbedCSS = await getFontEmbedCSS(clone, { cacheBust: true });
+  const blob = await toBlob(clone, {
+    cacheBust: false,
+    pixelRatio: scale,
+    backgroundColor: "#000000",
+    width: SQUAD_SHARE_CARD_WIDTH,
+    height: SQUAD_SHARE_CARD_HEIGHT,
+    fontEmbedCSS,
+    filter,
+  });
+  if (!blob) throw new Error("html-to-image returned empty blob");
+  return blob;
+}
+
 async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
   if (typeof document !== "undefined" && document.fonts?.ready) {
     await document.fonts.ready;
@@ -431,60 +583,38 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
   void cardEl.offsetHeight;
 
   const { clone, host } = mountExportClone(cardEl);
-  await waitForImages(clone);
-  await Promise.all([
-    embedImagesAsDataUrls(clone),
-    embedBackgroundImagesAsDataUrls(clone),
-  ]);
-  prepareNodeForCapture(clone);
-  await nextPaint();
-
-  const filter = (node: HTMLElement) => {
-    if (node.dataset?.shareOverlay != null) return false;
-    return true;
-  };
+  const constrained = isConstrainedCaptureEnv();
+  const scale = exportPixelRatio();
 
   try {
-    try {
-      const fontEmbedCSS = await getFontEmbedCSS(clone, { cacheBust: true });
-      const blob = await toBlob(clone, {
-        // Faces are already unique data URLs — cache-busting remote srcs
-        // reintroduces the shared-bitmap stamp bug.
-        cacheBust: false,
-        pixelRatio: EXPORT_PIXEL_RATIO,
-        backgroundColor: "#000000",
-        width: SQUAD_SHARE_CARD_WIDTH,
-        height: SQUAD_SHARE_CARD_HEIGHT,
-        fontEmbedCSS,
-        filter,
-      });
-      if (blob) return blob;
-    } catch (err) {
-      console.warn("html-to-image capture failed, falling back to html2canvas", err);
+    await waitForImages(clone);
+    await Promise.all([
+      embedImagesAsDataUrls(clone),
+      embedBackgroundImagesAsDataUrls(clone),
+    ]);
+    prepareNodeForCapture(clone);
+    flattenAbsoluteTransforms(clone);
+    await waitForImages(clone);
+    await nextPaint();
+    // WKWebView / Phantom need a beat after data-URL swaps before paint settles.
+    if (constrained) await sleep(120);
+
+    if (constrained) {
+      // foreignObject path is unreliable in wallet WebViews — html2canvas first.
+      try {
+        return await captureWithHtml2Canvas(clone, scale);
+      } catch (err) {
+        console.warn("html2canvas capture failed, trying html-to-image", err);
+        return await captureWithHtmlToImage(clone, scale);
+      }
     }
 
-    const canvas = await html2canvas(clone, {
-      backgroundColor: "#000000",
-      scale: EXPORT_PIXEL_RATIO,
-      width: SQUAD_SHARE_CARD_WIDTH,
-      height: SQUAD_SHARE_CARD_HEIGHT,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      imageTimeout: 12_000,
-      onclone: (_doc, cloned) => {
-        prepareNodeForCapture(cloned as HTMLElement);
-        (cloned as HTMLElement).querySelectorAll("img").forEach((img) => {
-          img.style.opacity = "1";
-        });
-      },
-    });
-
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/png", 0.92),
-    );
-    if (!blob) throw new Error("Could not render squad image");
-    return blob;
+    try {
+      return await captureWithHtmlToImage(clone, scale);
+    } catch (err) {
+      console.warn("html-to-image capture failed, falling back to html2canvas", err);
+      return await captureWithHtml2Canvas(clone, scale);
+    }
   } finally {
     host.remove();
   }
@@ -494,27 +624,72 @@ export async function captureElementAsPng(element: HTMLElement): Promise<Blob> {
   return captureRawCardPng(resolveCaptureCard(element));
 }
 
-export type ShareSquadResult = "clipboard" | "download";
+export type ShareSquadResult = "clipboard" | "download" | "share";
 
-function downloadPng(blob: Blob, fileName: string) {
+/**
+ * Save PNG — on mobile / wallet WebViews prefer the native share sheet
+ * (`<a download>` is often ignored inside Phantom).
+ */
+async function savePng(blob: Blob, fileName: string): Promise<"share" | "download"> {
+  const file = new File([blob], fileName, { type: "image/png" });
+
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function"
+  ) {
+    try {
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "FORM8 squad",
+        });
+        return "share";
+      }
+    } catch (err) {
+      // User dismissed the sheet — treat as success (they saw the image).
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return "share";
+      }
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = fileName;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+
+  // iOS WebView often ignores download — open the blob so the user can save.
+  if (isConstrainedCaptureEnv()) {
+    window.setTimeout(() => {
+      try {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } catch {
+        /* ignore */
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }, 250);
+  } else {
+    URL.revokeObjectURL(url);
+  }
+
+  return "download";
 }
 
-/** Download squad PNG — pass export root or `[data-share-card]`. */
+/** Download / share squad PNG — pass export root or `[data-share-card]`. */
 export async function downloadSquadImage(opts: {
   element: HTMLElement;
   fileName: string;
-}): Promise<void> {
+}): Promise<ShareSquadResult> {
   const blob = await captureElementAsPng(opts.element);
-  downloadPng(blob, opts.fileName);
+  return savePng(blob, opts.fileName);
 }
 
-const COPY_CAPTURE_TIMEOUT_MS = 20_000;
+const COPY_CAPTURE_TIMEOUT_MS = 28_000;
 
 /** Copy squad PNG — pass export root or `[data-share-card]`. */
 export async function copySquadImage(opts: {
@@ -533,7 +708,9 @@ export async function copySquadImage(opts: {
     }),
   ]);
 
+  // Clipboard image write is flaky / missing in wallet WebViews — skip straight to share.
   if (
+    !isConstrainedCaptureEnv() &&
     typeof navigator !== "undefined" &&
     navigator.clipboard?.write &&
     typeof ClipboardItem !== "undefined"
@@ -544,12 +721,11 @@ export async function copySquadImage(opts: {
       ]);
       return "clipboard";
     } catch {
-      /* fall through to download */
+      /* fall through */
     }
   }
 
-  downloadPng(blob, opts.fileName);
-  return "download";
+  return savePng(blob, opts.fileName);
 }
 
 function openXCompose(tweetText: string) {
@@ -567,6 +743,7 @@ export async function shareSquadImageOnX(opts: {
   const blob = await captureElementAsPng(opts.element);
 
   if (
+    !isConstrainedCaptureEnv() &&
     typeof navigator !== "undefined" &&
     navigator.clipboard?.write &&
     typeof ClipboardItem !== "undefined"
@@ -582,7 +759,7 @@ export async function shareSquadImageOnX(opts: {
     }
   }
 
-  downloadPng(blob, opts.fileName);
+  const result = await savePng(blob, opts.fileName);
   openXCompose(opts.tweetText);
-  return "download";
+  return result;
 }
