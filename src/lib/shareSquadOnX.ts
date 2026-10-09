@@ -140,18 +140,24 @@ function waitForImages(root: HTMLElement, timeoutMs = 12_000): Promise<void> {
     imgs.map(
       (img) =>
         new Promise<void>((resolve) => {
-          if (img.complete && img.naturalHeight > 0) {
+          const finish = () => {
             img.style.opacity = "1";
-            resolve();
-            return;
-          }
-          const done = () => {
-            img.style.opacity = "1";
+            img.style.visibility = "visible";
             resolve();
           };
-          img.addEventListener("load", done, { once: true });
-          img.addEventListener("error", done, { once: true });
-          window.setTimeout(done, timeoutMs);
+          if (img.complete && img.naturalHeight > 0) {
+            // decode() ensures pixels are ready before foreignObject snapshot.
+            const decoded =
+              typeof img.decode === "function"
+                ? img.decode().then(finish, finish)
+                : null;
+            if (decoded) return;
+            finish();
+            return;
+          }
+          img.addEventListener("load", finish, { once: true });
+          img.addEventListener("error", finish, { once: true });
+          window.setTimeout(finish, timeoutMs);
         }),
     ),
   ).then(() => undefined);
@@ -179,9 +185,90 @@ function stripCaptureFilters(node: HTMLElement) {
 }
 
 /**
+ * Soft box-shadows become solid offset blocks in foreignObject capture.
+ * Keep only zero-blur rings when present; drop the rest.
+ */
+function flattenBoxShadow(node: HTMLElement) {
+  const raw = node.style.boxShadow || window.getComputedStyle(node).boxShadow;
+  if (!raw || raw === "none") {
+    node.style.boxShadow = "none";
+    return;
+  }
+  const rings = raw
+    .split(/,(?![^(]*\))/)
+    .map((part) => part.trim())
+    .filter((part) => {
+      // Keep "0 0 0 Npx color" hairline rings only.
+      return /^0(px)?\s+0(px)?\s+0(px)?\s+\d/.test(part);
+    });
+  node.style.boxShadow = rings.length > 0 ? rings.join(", ") : "none";
+}
+
+function absolutizeUrl(url: string): string {
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  try {
+    return new URL(url, window.location.href).href;
+  } catch {
+    return url;
+  }
+}
+
+async function fetchAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(absolutizeUrl(url), { credentials: "same-origin" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bake CSS background-image urls (pitch turf) — html-to-image often drops them.
+ */
+async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void> {
+  const nodes = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-share-pitch-bg]"),
+  );
+
+  await Promise.all(
+    nodes.map(async (node) => {
+      const marked = node.getAttribute("data-share-pitch-bg");
+      const styleBg = node.style.backgroundImage;
+      const source = marked
+        ? `url("${marked}")`
+        : styleBg && styleBg !== "none"
+          ? styleBg
+          : window.getComputedStyle(node).backgroundImage;
+      if (!source || source === "none") return;
+
+      const match = source.match(/url\((['"]?)(.+?)\1\)/i);
+      if (!match?.[2]) return;
+      const url = match[2].trim();
+      if (url.startsWith("data:")) return;
+
+      const dataUrl = await fetchAsDataUrl(url);
+      if (!dataUrl) return;
+      node.style.backgroundImage = `url("${dataUrl}")`;
+      node.style.opacity = "1";
+      node.style.visibility = "visible";
+      // Drop scale transforms that foreignObject mis-rasterizes.
+      node.style.transform = "none";
+    }),
+  );
+}
+
+/**
  * Flatten capture-hostile styles.
  * CSS `filter` on cutout wrappers (brightness / drop-shadow) makes html-to-image
  * stamp one player bust onto every chip — strip all filters before export.
+ * Soft box-shadows become hard gray slabs — flatten to hairline rings.
  * Also re-assert white chalk — Dark Reader (and similar) can invert border colors
  * in the live DOM before we clone for PNG.
  */
@@ -215,6 +302,7 @@ function prepareNodeForCapture(root: HTMLElement) {
 
     // Always clear — do not trust getComputedStyle in offscreen hosts.
     stripCaptureFilters(node);
+    flattenBoxShadow(node);
 
     if (cs.backdropFilter && cs.backdropFilter !== "none") {
       node.style.backdropFilter = "none";
@@ -288,15 +376,8 @@ async function embedImagesAsDataUrls(root: HTMLElement): Promise<void> {
           return;
         }
 
-        const res = await fetch(src, { credentials: "same-origin" });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(blob);
-        });
+        const dataUrl = await fetchAsDataUrl(src);
+        if (!dataUrl) return;
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
           img.onerror = () => reject(new Error("data url image failed"));
@@ -316,7 +397,7 @@ function mountExportClone(cardEl: HTMLElement): {
 } {
   const host = document.createElement("div");
   host.setAttribute("data-share-export-host", "");
-  // Real card size — 0×0 hosts skip image decode and break getComputedStyle.
+  // Real card size + opacity:1 — 0×0 / opacity:0 hosts skip image decode.
   host.style.cssText = [
     "position:fixed",
     "left:-10000px",
@@ -325,7 +406,8 @@ function mountExportClone(cardEl: HTMLElement): {
     `height:${SQUAD_SHARE_CARD_HEIGHT}px`,
     "overflow:hidden",
     "pointer-events:none",
-    "opacity:0",
+    "opacity:1",
+    "visibility:visible",
   ].join(";");
 
   const clone = cardEl.cloneNode(true) as HTMLElement;
@@ -350,7 +432,10 @@ async function captureRawCardPng(cardEl: HTMLElement): Promise<Blob> {
 
   const { clone, host } = mountExportClone(cardEl);
   await waitForImages(clone);
-  await embedImagesAsDataUrls(clone);
+  await Promise.all([
+    embedImagesAsDataUrls(clone),
+    embedBackgroundImagesAsDataUrls(clone),
+  ]);
   prepareNodeForCapture(clone);
   await nextPaint();
 

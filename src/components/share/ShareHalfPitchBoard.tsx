@@ -192,6 +192,7 @@ export function ShareHalfPitchBoard({
       {pitch.image ? (
         <div
           aria-hidden
+          data-share-pitch-bg={pitch.image}
           className="pointer-events-none absolute inset-0 scale-[1.04]"
           style={{
             backgroundImage: `url(${pitch.image})`,

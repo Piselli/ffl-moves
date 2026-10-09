@@ -79,6 +79,7 @@ export function PitchChipCutout({
           src={src!}
           alt=""
           decoding="async"
+          data-share-cutout=""
           className="absolute inset-0 h-full w-full object-contain object-bottom transition-opacity duration-150"
           style={{ opacity: loaded ? 1 : 0 }}
           referrerPolicy="no-referrer"

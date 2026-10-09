@@ -110,38 +110,29 @@ export function SharePitchChipMuted({
 
   const badgeSize =
     size === "sm"
-      ? "h-[16px] w-[16px] text-[7px] -right-0.5 -top-0.5"
+      ? "h-[15px] w-[15px] text-[7px] -right-1 -top-1.5"
       : size === "md"
-        ? "h-[18px] w-[18px] text-[8px] -right-0.5 -top-0.5"
-        : "h-5 w-5 text-[9px] -right-1 -top-1";
+        ? "h-[16px] w-[16px] text-[7.5px] -right-1 -top-1.5"
+        : "h-[18px] w-[18px] text-[8px] -right-1.5 -top-2";
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative">
-        {captain ? (
-          <span
-            className={`absolute z-20 flex items-center justify-center rounded-full font-black leading-none bg-amber-400 text-black shadow-[0_0_0_1.5px_rgba(212,175,55,0.9),0_2px_8px_rgba(0,0,0,0.45)] ${badgeSize}`}
-            aria-hidden
-          >
-            C
-          </span>
-        ) : null}
-        <PitchChipCutout
-          player={{
-            name: player.name,
-            webName: player.webName,
-            team: player.team,
-            teamId: player.teamId,
-            photo: player.photo,
-            fplPhotoCode: player.fplPhotoCode,
-            apiId: player.apiId,
-          }}
-          name={player.name}
-          size={s.cutout}
-        />
-      </div>
+      <PitchChipCutout
+        player={{
+          name: player.name,
+          webName: player.webName,
+          team: player.team,
+          teamId: player.teamId,
+          photo: player.photo,
+          fplPhotoCode: player.fplPhotoCode,
+          apiId: player.apiId,
+        }}
+        name={player.name}
+        size={s.cutout}
+      />
+      {/* Captain on the plate — absolute-on-cutout drifts in html-to-image when busts lag. */}
       <div
-        className="-mt-1 relative flex items-center justify-center overflow-hidden rounded-[7px]"
+        className="-mt-1 relative flex items-center justify-center overflow-visible rounded-[7px]"
         style={{
           width: plateW,
           height: plateH,
@@ -149,10 +140,18 @@ export function SharePitchChipMuted({
           ...plate,
         }}
       >
+        {captain ? (
+          <span
+            className={`absolute z-20 flex items-center justify-center rounded-full font-black leading-none bg-amber-400 text-black ring-1 ring-[#d4af37]/90 ${badgeSize}`}
+            aria-hidden
+          >
+            C
+          </span>
+        ) : null}
         {showSheen ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[7px]"
             style={{
               background:
                 "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 55%)",

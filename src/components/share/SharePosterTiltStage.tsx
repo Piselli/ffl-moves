@@ -146,7 +146,11 @@ export function SharePosterTiltStage({
   );
 }
 
-/** Invisible 1:1 card for PNG export — same radius + hairline as preview. */
+/**
+ * Offscreen 1:1 card for PNG export.
+ * Keep opacity:1 — near-zero opacity skips image decode in some browsers,
+ * which drops pitch turf + player cutouts from copy/download.
+ */
 export function SharePosterExportRoot({
   exportRef,
   children,
@@ -158,12 +162,15 @@ export function SharePosterExportRoot({
     <div
       ref={exportRef}
       aria-hidden
-      className="share-export-capture pointer-events-none absolute left-1/2 top-0 -z-10 overflow-hidden select-none"
+      className="share-export-capture pointer-events-none fixed overflow-hidden select-none"
       style={{
         width: SQUAD_SHARE_CARD_WIDTH,
         height: SQUAD_SHARE_CARD_HEIGHT,
-        marginLeft: -SQUAD_SHARE_CARD_WIDTH / 2,
-        opacity: 0.001,
+        left: -10_000,
+        top: 0,
+        opacity: 1,
+        visibility: "visible",
+        zIndex: -1,
       }}
     >
       {children}
