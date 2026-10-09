@@ -135,8 +135,9 @@ export function ShareCardHalfPitchClassic({
           style={{ width: LEFT_W, height: colH }}
         >
           <Form8Lockup
+            className="h-[26px]"
             markClassName="h-[26px]"
-            wordmarkClassName="text-[15px] tracking-[0.1em] text-white/88"
+            wordmarkClassName="text-[15px] leading-none tracking-[0.1em] text-white/88"
             priority
           />
 

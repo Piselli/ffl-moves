@@ -356,9 +356,74 @@ async function embedBackgroundImagesAsDataUrls(root: HTMLElement): Promise<void>
 }
 
 /**
+ * Rasterize a pitch-plate surname to a PNG <img>.
+ * html2canvas (mobile path) cannot center custom-font HTML/SVG text — it always
+ * sits too low and clips. A pre-drawn bitmap is copied 1:1.
+ */
+function bakePlateLabelAsPng(label: HTMLElement) {
+  const plate = label.closest("[data-share-plate]");
+  if (!(plate instanceof HTMLElement)) return;
+  // Already baked on a previous prepare pass.
+  if (label instanceof HTMLImageElement) return;
+
+  const text = (label.textContent || "").trim();
+  if (!text) return;
+
+  const cs = window.getComputedStyle(label);
+  const w = Math.max(
+    1,
+    Math.round(plate.getBoundingClientRect().width || plate.clientWidth),
+  );
+  const h = Math.max(
+    1,
+    Math.round(plate.getBoundingClientRect().height || plate.clientHeight),
+  );
+  const fontSize = Number.parseFloat(cs.fontSize) || 12;
+  const fontWeight = cs.fontWeight || "700";
+  const fontFamily = cs.fontFamily || "sans-serif";
+  const fill = cs.color || "#0a0a0a";
+
+  const dpr = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = fill;
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, w / 2, h / 2);
+
+  plate.style.display = "block";
+  plate.style.position = "relative";
+  plate.style.overflow = "hidden";
+  plate.style.padding = "0";
+
+  const img = document.createElement("img");
+  img.setAttribute("data-share-plate-label", "");
+  img.alt = text;
+  img.width = w;
+  img.height = h;
+  img.src = canvas.toDataURL("image/png");
+  img.style.cssText = [
+    "display:block",
+    `width:${w}px`,
+    `height:${h}px`,
+    "margin:0",
+    "padding:0",
+    "border:0",
+  ].join(";");
+
+  label.replaceWith(img);
+}
+
+/**
  * html2canvas mis-measures custom font baselines (Oswald).
- * Be surgical — blanket overflow:visible was revealing .sr-only full names on the pitch,
- * and flex+padding hacks shoved captain "C" off-center.
+ * Be surgical — blanket overflow:visible was revealing .sr-only full names on the pitch.
  */
 function prepareTextForHtml2Canvas(root: HTMLElement) {
   // Never paint accessibility-only copy into the PNG.
@@ -387,7 +452,6 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
       node.style.alignItems = "center";
     }
 
-    // Manager name / formation display — give Oswald a taller line box.
     const fontSize = Number.parseFloat(cs.fontSize) || 0;
     if (fontSize >= 20 && cs.lineHeight !== "normal") {
       const lhPx = Number.parseFloat(cs.lineHeight);
@@ -398,48 +462,48 @@ function prepareTextForHtml2Canvas(root: HTMLElement) {
     }
   });
 
-  // Pitch plates — keep table-cell centering; nudge labels up (html2canvas paints low).
-  root.querySelectorAll<HTMLElement>("[data-share-plate]").forEach((plate) => {
-    plate.style.overflow = "hidden";
-    plate.style.display = "table";
-  });
-  root.querySelectorAll<HTMLElement>("[data-share-plate-label]").forEach((label) => {
-    const plate = label.closest("[data-share-plate]");
-    const h =
-      (plate instanceof HTMLElement && plate.getBoundingClientRect().height) ||
-      Number.parseFloat(window.getComputedStyle(label).height) ||
-      0;
-    label.style.display = "table-cell";
-    label.style.verticalAlign = "middle";
-    label.style.textAlign = "center";
-    label.style.padding = "0";
-    label.style.margin = "0";
-    if (h > 0) {
-      label.style.height = `${h}px`;
-      label.style.lineHeight = "1.05";
-    }
-    // Phantom/html2canvas baseline sits low — pull surnames up into the plate.
-    label.style.transform = "translateY(-3px)";
-  });
+  // Pitch surnames → PNG bitmap (html2canvas-proof vertical center).
+  root
+    .querySelectorAll<HTMLElement>("[data-share-plate-label]")
+    .forEach((label) => bakePlateLabelAsPng(label));
 
-  // Captain discs are SVG now — just keep them unclipped and above the plate.
-  root.querySelectorAll<HTMLElement>("[data-share-captain]").forEach((badge) => {
+  // Pitch captain — unclipped; center of disc on the plate's top-right corner.
+  root.querySelectorAll<HTMLElement>("[data-share-captain]:not([data-share-captain-list])").forEach((badge) => {
     badge.style.overflow = "visible";
     badge.style.zIndex = "30";
-    // Don't let transform-flatten shove the badge; keep absolute offsets as-is.
+    const size =
+      badge.getBoundingClientRect().width ||
+      Number.parseFloat(badge.style.width) ||
+      20;
+    badge.style.right = `${-Math.round(size / 2)}px`;
+    badge.style.top = `${-Math.round(size / 2)}px`;
   });
 
-  // FORM8 lockup — mark was sitting a touch high vs the wordmark in WebViews.
+  // List C — sit on the name midline (was floating above "Haaland").
+  root
+    .querySelectorAll<HTMLElement>("[data-share-captain-list]")
+    .forEach((badge) => {
+      badge.style.display = "block";
+      badge.style.alignSelf = "center";
+      badge.style.position = "relative";
+      badge.style.top = "1px";
+      badge.style.transform = "none";
+    });
+
+  // FORM8 lockup — equal row/mark height (classic card used 26px mark in 24px row).
   root.querySelectorAll<HTMLElement>("[data-share-lockup]").forEach((lockup) => {
     lockup.style.display = "inline-flex";
     lockup.style.alignItems = "center";
     lockup.style.lineHeight = "1";
+    lockup.style.height = "26px";
   });
   root.querySelectorAll<HTMLElement>("[data-share-mark]").forEach((mark) => {
     mark.style.display = "block";
+    mark.style.height = "26px";
+    mark.style.width = "auto";
     mark.style.alignSelf = "center";
     mark.style.verticalAlign = "middle";
-    mark.style.transform = "translateY(1px)";
+    mark.style.transform = "none";
   });
 }
 
@@ -704,6 +768,9 @@ async function captureWithHtml2Canvas(
   scale: number,
 ): Promise<Blob> {
   prepareTextForHtml2Canvas(clone);
+  // Baked plate-label PNGs must finish decoding before html2canvas snapshots.
+  await waitForImages(clone);
+  await nextPaint();
 
   const canvas = await html2canvas(clone, {
     backgroundColor: "#000000",
@@ -719,11 +786,40 @@ async function captureWithHtml2Canvas(
     onclone: (doc, cloned) => {
       injectDocumentFonts(doc);
       prepareNodeForCapture(cloned as HTMLElement);
-      prepareTextForHtml2Canvas(cloned as HTMLElement);
+      // Labels are already PNG <img>s from the pre-clone bake — don't re-bake.
       flattenAbsoluteTransforms(cloned as HTMLElement);
       (cloned as HTMLElement).querySelectorAll("img").forEach((img) => {
         img.style.opacity = "1";
         img.style.visibility = "visible";
+      });
+      // Re-apply lockup / captain geometry on the iframe clone.
+      const root = cloned as HTMLElement;
+      root.querySelectorAll<HTMLElement>("[data-share-lockup]").forEach((lockup) => {
+        lockup.style.display = "inline-flex";
+        lockup.style.alignItems = "center";
+        lockup.style.height = "26px";
+      });
+      root.querySelectorAll<HTMLElement>("[data-share-mark]").forEach((mark) => {
+        mark.style.display = "block";
+        mark.style.height = "26px";
+        mark.style.width = "auto";
+        mark.style.alignSelf = "center";
+      });
+      root
+        .querySelectorAll<HTMLElement>("[data-share-captain]:not([data-share-captain-list])")
+        .forEach((badge) => {
+          const size =
+            Number.parseFloat(badge.style.width) ||
+            badge.getBoundingClientRect().width ||
+            20;
+          badge.style.right = `${-Math.round(size / 2)}px`;
+          badge.style.top = `${-Math.round(size / 2)}px`;
+          badge.style.zIndex = "30";
+        });
+      root.querySelectorAll<HTMLElement>("[data-share-captain-list]").forEach((badge) => {
+        badge.style.alignSelf = "center";
+        badge.style.position = "relative";
+        badge.style.top = "1px";
       });
     },
   });

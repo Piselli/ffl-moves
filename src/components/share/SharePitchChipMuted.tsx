@@ -108,7 +108,8 @@ export function SharePitchChipMuted({
         allowAbbreviate: false,
       });
 
-  const badgePx = size === "sm" ? 15 : size === "md" ? 16 : 18;
+  // Match pre-Phantom sizes: sm 16 · md 18 · lg 20 (h-5).
+  const badgePx = size === "sm" ? 16 : size === "md" ? 18 : 20;
   const badgeFont = size === "sm" ? 8 : size === "md" ? 9 : 10;
 
   return (
@@ -127,8 +128,8 @@ export function SharePitchChipMuted({
         size={s.cutout}
       />
       {/*
-        Captain sits OUTSIDE the plate (desktop look). Inside overflow:hidden it
-        gets clipped in Phantom/html2canvas — half-buried in the white box.
+        Captain OUTSIDE the plate (desktop look). overflow:hidden on the plate
+        was clipping the disc in Phantom/html2canvas.
       */}
       <div
         className="relative -mt-1"
@@ -140,8 +141,9 @@ export function SharePitchChipMuted({
             aria-hidden
             className="absolute z-20"
             style={{
-              right: -Math.round(badgePx * 0.35),
-              top: -Math.round(badgePx * 0.45),
+              // Center of disc sits on the plate's top-right corner (desktop look).
+              right: -Math.round(badgePx / 2),
+              top: -Math.round(badgePx / 2),
               width: badgePx,
               height: badgePx,
             }}
@@ -151,11 +153,8 @@ export function SharePitchChipMuted({
         ) : null}
         <div
           data-share-plate=""
-          className="relative h-full w-full rounded-[7px]"
+          className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[7px]"
           style={{
-            display: "table",
-            tableLayout: "fixed",
-            overflow: "hidden",
             paddingInline: platePadX,
             ...plate,
           }}
@@ -170,20 +169,18 @@ export function SharePitchChipMuted({
               }}
             />
           ) : null}
+          {/*
+            Live UI: flex-centered span. Capture swaps this for an SVG label
+            (html2canvas cannot center custom-font baselines reliably).
+          */}
           <span
             data-share-plate-label=""
-            className={`whitespace-nowrap text-center font-bold ${nameColor}`}
+            className={`relative z-[1] block whitespace-nowrap text-center font-bold leading-none ${nameColor}`}
             style={{
-              display: "table-cell",
-              verticalAlign: "middle",
-              textAlign: "center",
-              width: plateW,
-              height: plateH,
               fontSize,
               fontFamily: font.family,
               fontWeight: font.weight,
               letterSpacing: font.tracking,
-              lineHeight: 1.05,
             }}
             title={surname}
           >
@@ -205,12 +202,20 @@ function CaptainDisc({ size, fontSize }: { size: number; fontSize: number }) {
       viewBox={`0 0 ${size} ${size}`}
       aria-hidden
     >
-      <circle cx={r} cy={r} r={r - 0.5} fill="#fbbf24" stroke="#d4af37" strokeWidth="1" />
+      <circle
+        cx={r}
+        cy={r}
+        r={r - 0.5}
+        fill="#fbbf24"
+        stroke="#d4af37"
+        strokeWidth="1"
+      />
+      {/* alphabetic + dy ≈ optical center of capital C across renderers */}
       <text
         x={r}
         y={r}
+        dy="0.35em"
         textAnchor="middle"
-        dominantBaseline="central"
         fill="#000"
         fontSize={fontSize}
         fontWeight={900}

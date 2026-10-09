@@ -203,7 +203,7 @@ function KitRow({
 
   if (rowStyle === "glass") {
     return (
-      <div className="flex items-baseline gap-2 py-[2px]">
+      <div className="flex items-center gap-2 py-[2px]">
         <span className="w-7 shrink-0 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-white/32">
           {pos}
         </span>
@@ -213,8 +213,9 @@ function KitRow({
         {captain ? (
           <span
             data-share-captain=""
+            data-share-captain-list=""
             aria-hidden
-            className="shrink-0"
+            className="shrink-0 self-center"
             style={{ width: 14, height: 14, overflow: "visible" }}
           >
             <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden>
@@ -222,8 +223,8 @@ function KitRow({
               <text
                 x="7"
                 y="7"
+                dy="0.35em"
                 textAnchor="middle"
-                dominantBaseline="central"
                 fill="#000"
                 fontSize="8"
                 fontWeight={900}
