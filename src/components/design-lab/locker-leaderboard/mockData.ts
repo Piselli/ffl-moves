@@ -17,6 +17,8 @@ export type LabSquadPlayer = {
   position?: "GK" | "DEF" | "MID" | "FWD";
   slotIndex?: number;
   isStarter?: boolean;
+  /** Starter armband — from on-chain / recovered register_team captain */
+  isCaptain?: boolean;
   /** Auto-sub / effective scorer note */
   subNote?: string | null;
   /** GW stat blob for points breakdown */

@@ -993,13 +993,29 @@ function ResultsPitchChip({
     return () => window.clearTimeout(t);
   }, [delay, reduceMotion, player.name]);
 
+  const showPts = player.stats != null;
+  const ptsLabel = Number.isFinite(player.pts) ? String(player.pts) : "—";
+
   return (
     <span
       className={cn(
-        "flex flex-col items-center transition duration-300 ease-out",
+        "relative flex flex-col items-center transition duration-300 ease-out",
         show ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}
     >
+      {player.isCaptain ? (
+        <span
+          className={cn(
+            "absolute z-20 flex items-center justify-center rounded-full bg-amber-400 font-black leading-none text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
+            compact
+              ? "-right-0.5 -top-0.5 h-4 w-4 text-[8px]"
+              : "-right-1 -top-1 h-5 w-5 text-[10px]",
+          )}
+          aria-label="Captain"
+        >
+          C
+        </span>
+      ) : null}
       <ResultsChipCutout player={player} size={cutoutSize} />
       <span
         className="flex flex-col overflow-hidden rounded-[3px]"
@@ -1024,18 +1040,37 @@ function ResultsPitchChip({
         </span>
         <span
           className={cn(
-            "relative z-[1] flex items-center justify-center px-[3px] text-center font-bold uppercase",
-            compact ? "h-[10px] text-[7px]" : "h-[12px] text-[8px]",
+            "relative z-[1] flex items-stretch",
+            compact ? "h-[12px]" : "h-[14px]",
           )}
-          style={{
-            background: footer.bg,
-            color: footer.fg,
-            fontFamily: typeface.ui,
-            letterSpacing: "0.08em",
-            fontWeight: 700,
-          }}
         >
-          {club}
+          <span
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-center px-[2px] text-center font-bold uppercase",
+              compact ? "text-[6.5px]" : "text-[8px]",
+            )}
+            style={{
+              background: footer.bg,
+              color: footer.fg,
+              fontFamily: typeface.ui,
+              letterSpacing: "0.06em",
+              fontWeight: 700,
+            }}
+          >
+            {club}
+          </span>
+          {showPts ? (
+            <span
+              className={cn(
+                "flex shrink-0 items-center justify-center bg-[#14161c] px-1 font-black tabular-nums text-white",
+                compact ? "min-w-[14px] text-[8px]" : "min-w-[18px] text-[10px]",
+              )}
+              style={{ fontFamily: typeface.ui }}
+              title={player.isCaptain ? "Captain (×2)" : "Points"}
+            >
+              {ptsLabel}
+            </span>
+          ) : null}
         </span>
       </span>
     </span>

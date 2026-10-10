@@ -110,11 +110,16 @@ export function previewTourPointsFromRegisteredTeam(
     const posId = Number.isFinite(raw) ? Math.max(0, Math.min(3, Number(raw))) : 2;
     bench.push(placeholderPlayerFromChain(id, posId));
   }
+  const cap = team.captainIndex;
+  const captainIndex =
+    typeof cap === "number" && Number.isInteger(cap) && cap >= 0 && cap <= 10
+      ? cap
+      : -1;
   return computeChainAlignedXiBreakdown(
     starters,
     bench,
     stats,
-    team.captainIndex ?? 0,
+    captainIndex,
   ).preMultiplier;
 }
 

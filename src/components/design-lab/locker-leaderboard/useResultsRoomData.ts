@@ -12,6 +12,7 @@ import {
   getGameweekResults,
   getGameweekEntrants,
   buildClaimPrize,
+  NO_CAPTAIN_INDEX,
   type GameweekSummary,
 } from "@/lib/chainClient";
 import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
@@ -840,9 +841,26 @@ export function useResultsRoomData(): ResultsRoomData {
             ? await loadClosedLiveStats(gwId, chainTeam.playerIds)
             : {};
 
+        const captainIndex =
+          Number.isInteger(chainTeam.captainIndex) &&
+          chainTeam.captainIndex >= 0 &&
+          chainTeam.captainIndex <= 10 &&
+          chainTeam.captainIndex !== NO_CAPTAIN_INDEX
+            ? chainTeam.captainIndex
+            : null;
+
         const toLab = (p: (typeof squad)[number], slotIndex: number): LabSquadPlayer => {
           const st = stats[String(p.id)];
-          const pts = st ? calculateFantasyPointsWithRating(p, st) : 0;
+          const isCaptain = captainIndex != null && slotIndex === captainIndex;
+          let pts = st ? calculateFantasyPointsWithRating(p, st) : 0;
+          // Match chain-aligned captain: ×2 only when the registered starter played.
+          if (
+            isCaptain &&
+            st &&
+            Number(st.minutes_played ?? st.minutesPlayed ?? 0) > 0
+          ) {
+            pts *= 2;
+          }
           return {
             name: p.webName || p.name.split(" ").pop() || p.name,
             pts,
@@ -854,6 +872,7 @@ export function useResultsRoomData(): ResultsRoomData {
             position: p.position,
             slotIndex,
             isStarter: slotIndex < 11,
+            isCaptain,
             stats: st,
           };
         };
