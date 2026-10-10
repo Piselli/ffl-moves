@@ -1,10 +1,11 @@
 /**
  * Traffic-triggered auto-close backup.
  *
- * GitHub Actions `schedule` on this repo often runs hours apart (not */5), so
- * kickoff-time closes can miss. Any hot public API can poke this watchdog:
- * at most once per LOCK_TTL_SEC it runs the same close path as the cron.
- * Safe after deadline only — `runAutoCloseGameweek` no-ops when early / closed.
+ * GitHub Actions `schedule` on this repo often runs hours apart (not every
+ * 5 minutes as declared), so kickoff-time closes can miss. Any hot public API
+ * can poke this watchdog: at most once per LOCK_TTL_SEC it runs the same close
+ * path as the cron. Safe after deadline only — `runAutoCloseGameweek` no-ops
+ * when early / closed.
  */
 import { Redis } from "@upstash/redis";
 import { runAutoCloseGameweek } from "@/lib/server/autoCloseGameweek";
@@ -28,7 +29,8 @@ async function acquireLock(nowMs: number): Promise<boolean> {
         nx: true,
         ex: LOCK_TTL_SEC,
       });
-      return ok === "OK" || ok === true;
+      // Upstash returns "OK" when set, null when NX misses.
+      return ok === "OK";
     } catch (error) {
       console.warn("auto-close watchdog: redis lock failed", error);
       // Fall through to memory lock so a Redis blip does not disable closes.
