@@ -1056,15 +1056,7 @@ function ResultsPitchChip({
           C
         </span>
       ) : null}
-      <span
-        className="relative"
-        style={{
-          opacity: player.autoSubbed ? 0.78 : 1,
-          filter: player.autoSubbed ? "saturate(0.65)" : undefined,
-        }}
-      >
-        <ResultsChipCutout player={player} size={cutoutSize} />
-      </span>
+      <ResultsChipCutout player={player} size={cutoutSize} />
       <span
         className="flex flex-col overflow-hidden rounded-[3px]"
         style={{
@@ -1112,7 +1104,7 @@ function ResultsPitchChip({
       </span>
       {player.autoSubbed ? (
         <PlayerPointsBreakdownTooltip
-          className="mt-0.5"
+          className="absolute left-1/2 top-full z-20 -translate-x-1/2"
           scoringPlayer={scoringPlayerFromLab(player)}
           stats={player.stats}
           total={Number.isFinite(player.pts) ? player.pts : 0}
@@ -1136,7 +1128,7 @@ function ResultsPitchChip({
             <span
               aria-hidden
               className={cn(
-                "font-black text-rose-400",
+                "font-black text-rose-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]",
                 compact ? "text-[9px]" : "text-[11px]",
               )}
             >
@@ -1145,7 +1137,7 @@ function ResultsPitchChip({
             <span
               aria-hidden
               className={cn(
-                "font-black text-emerald-400",
+                "font-black text-emerald-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]",
                 compact ? "text-[9px]" : "text-[11px]",
               )}
             >
