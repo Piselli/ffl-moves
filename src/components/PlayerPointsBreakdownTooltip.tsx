@@ -52,35 +52,22 @@ function formatLineLabel(
 
 function SwapBoard({ outName, inName }: AutoSubSwap) {
   return (
-    <div className="mb-2.5 rounded-xl border border-white/12 bg-black/35 px-2.5 py-2">
-      <p className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.16em] text-white/35">
-        Auto-sub
-      </p>
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/90 text-[10px] font-black text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
-            >
-              ↓
-            </span>
-            <span className="truncate text-[11px] font-semibold text-white/45 line-through decoration-white/25">
-              {outName}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-black text-black shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
-            >
-              ↑
-            </span>
-            <span className="truncate text-[12px] font-bold text-white">
-              {inName}
-            </span>
-          </div>
-        </div>
+    <div className="mb-2 space-y-0.5">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span aria-hidden className="shrink-0 text-[12px] font-black leading-none text-rose-400">
+          ↓
+        </span>
+        <span className="truncate text-[11px] font-semibold text-white">
+          {outName}
+        </span>
+      </div>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span aria-hidden className="shrink-0 text-[12px] font-black leading-none text-emerald-400">
+          ↑
+        </span>
+        <span className="truncate text-[11px] font-semibold text-white">
+          {inName}
+        </span>
       </div>
     </div>
   );
@@ -105,57 +92,57 @@ function BreakdownPanel({
   const pb = m.pointsBreakdown;
 
   return (
-    <div className="relative w-[13.25rem] max-w-[min(13.25rem,calc(100vw-1.5rem))]">
+    <div className="relative w-[11rem] max-w-[min(11rem,calc(100vw-1.5rem))]">
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-white/20",
-          "bg-[rgba(8,10,14,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_18px_48px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06)]",
+          "overflow-hidden rounded-xl border border-white/20",
+          "bg-[rgba(8,10,14,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_14px_36px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06)]",
           "backdrop-blur-xl",
         )}
       >
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-2xl opacity-90"
+          className="pointer-events-none absolute inset-0 rounded-xl opacity-90"
           style={{
             background:
               "linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 22%, transparent 48%), linear-gradient(320deg, rgba(0,249,72,0.06) 0%, transparent 40%)",
           }}
         />
 
-        <div className="relative px-3.5 pb-3 pt-3">
+        <div className="relative px-2.5 pb-2.5 pt-2.5">
           {autoSub ? <SwapBoard {...autoSub} /> : null}
 
-          <div className="mb-2.5 flex items-end justify-between gap-2 border-b border-white/[0.1] pb-2.5">
+          <div className="mb-1.5 flex items-end justify-between gap-2 border-b border-white/[0.1] pb-1.5">
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">
+              <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/40">
                 {pb.total}
               </p>
               {captainNote ? (
-                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-amber-300/90">
+                <p className="mt-0.5 truncate text-[9px] font-semibold leading-snug text-amber-300/90">
                   {captainNote}
                 </p>
               ) : null}
               {!autoSub && subNote ? (
-                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-white/55">
+                <p className="mt-0.5 truncate text-[9px] font-semibold leading-snug text-white/55">
                   {subNote}
                 </p>
               ) : null}
             </div>
-            <p className="shrink-0 font-display text-[1.65rem] font-black leading-none tabular-nums text-[#00f948]">
+            <p className="shrink-0 font-display text-[1.35rem] font-black leading-none tabular-nums text-[#00f948]">
               {total}
             </p>
           </div>
 
           {!lines.length ? (
-            <p className="text-[11px] leading-snug text-white/40">{pb.noStats}</p>
+            <p className="text-[10px] leading-snug text-white/40">{pb.noStats}</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {lines.map((line, i) => (
                 <li
                   key={`${line.kind}-${i}`}
-                  className="flex items-baseline justify-between gap-3"
+                  className="flex items-baseline justify-between gap-2"
                 >
-                  <span className="min-w-0 truncate text-[11px] font-medium text-white/60">
+                  <span className="min-w-0 truncate text-[10px] font-medium text-white/60">
                     {formatLineLabel(
                       line.kind,
                       line.count,
@@ -165,7 +152,7 @@ function BreakdownPanel({
                   </span>
                   <span
                     className={cn(
-                      "shrink-0 font-display text-[12px] font-bold tabular-nums",
+                      "shrink-0 font-display text-[11px] font-bold tabular-nums",
                       line.points > 0
                         ? "text-[#00f948]"
                         : line.points < 0
@@ -184,7 +171,7 @@ function BreakdownPanel({
 
       <div
         aria-hidden
-        className="mx-auto -mt-px h-2.5 w-2.5 rotate-45 border-b border-r border-white/20 bg-[rgba(8,10,14,0.92)]"
+        className="mx-auto -mt-px h-2 w-2 rotate-45 border-b border-r border-white/20 bg-[rgba(8,10,14,0.92)]"
       />
     </div>
   );
@@ -214,7 +201,7 @@ export function PlayerPointsBreakdownTooltip({
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const panelW = 212;
+    const panelW = 176;
     const margin = 10;
     let left = rect.left + rect.width / 2;
     left = Math.max(
