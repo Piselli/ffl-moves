@@ -3,6 +3,7 @@
  * Fetches real match stats for oracle submission (EPL + World Cup).
  */
 
+import fplApiIdMapFile from "@/data/fpl-apiid-map.json";
 import {
   WC_LEAGUE_ID,
   WC_SEASON,
@@ -105,12 +106,20 @@ async function loadPlayerMappings(
     const response = await fetch(url, { cache: "no-store" });
     const players = await response.json();
 
+    const byCode = (fplApiIdMapFile as { byCode?: Record<string, number> })?.byCode ?? {};
     if (Array.isArray(players)) {
       for (const player of players) {
-        const apiId = Number(player?.apiId);
         const id = Number(player?.id ?? player?.fplId);
-        if (!Number.isFinite(apiId) || apiId <= 0) continue;
         if (!Number.isFinite(id) || id <= 0) continue;
+        const fromField = Number(player?.apiId);
+        const fromCode = Number(byCode[String(player?.fplPhotoCode ?? "")]);
+        const apiId =
+          Number.isFinite(fromField) && fromField > 0
+            ? fromField
+            : Number.isFinite(fromCode) && fromCode > 0
+              ? fromCode
+              : 0;
+        if (apiId <= 0) continue;
         const position = String(player?.position || "MID");
         mappings.set(apiId, { id, position });
       }

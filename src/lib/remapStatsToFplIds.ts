@@ -1,8 +1,10 @@
+import fplApiIdMapFile from "@/data/fpl-apiid-map.json";
+
 /**
  * Remap oracle stats objects keyed by the legacy API-Sports catalog `id`
  * (`public/data/players.json`) onto FPL element ids used in register_team.
  *
- * Bridge: legacyRow.apiId → fplPlayer.apiId → fplPlayer.id
+ * Bridge: legacyRow.apiId → fplPlayer.apiId (or fplPhotoCode map) → fplPlayer.id
  */
 export async function remapStatsKeysToFplIds(
   stats: Record<string, Record<string, unknown>>,
@@ -10,7 +12,7 @@ export async function remapStatsKeysToFplIds(
   const keys = Object.keys(stats);
   if (keys.length === 0) return stats;
 
-  let fplCatalog: Array<{ id?: number; apiId?: number }> = [];
+  let fplCatalog: Array<{ id?: number; apiId?: number; fplPhotoCode?: number }> = [];
   let legacyCatalog: Array<{ id?: number; apiId?: number }> = [];
   try {
     const [fplRes, legacyRes] = await Promise.all([
@@ -23,13 +25,20 @@ export async function remapStatsKeysToFplIds(
     return stats;
   }
 
+  const byCode = (fplApiIdMapFile as { byCode?: Record<string, number> })?.byCode ?? {};
   const fplByApiId = new Map<number, number>();
   for (const p of fplCatalog) {
-    const apiId = Number(p.apiId);
     const id = Number(p.id);
-    if (Number.isFinite(apiId) && apiId > 0 && Number.isFinite(id) && id > 0) {
-      fplByApiId.set(apiId, id);
-    }
+    if (!Number.isFinite(id) || id <= 0) continue;
+    const fromField = Number(p.apiId);
+    const fromCode = Number(byCode[String(p.fplPhotoCode ?? "")]);
+    const apiId =
+      Number.isFinite(fromField) && fromField > 0
+        ? fromField
+        : Number.isFinite(fromCode) && fromCode > 0
+          ? fromCode
+          : 0;
+    if (apiId > 0) fplByApiId.set(apiId, id);
   }
   if (fplByApiId.size === 0) return stats;
 
