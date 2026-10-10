@@ -23,6 +23,8 @@ interface FplBootstrapSelectable {
 interface FplFixtureRow {
   finished?: boolean;
   started?: boolean;
+  /** Elapsed match minutes — FPL often keeps finished=false at 90' until BPS settles. */
+  minutes?: number;
   team_h: number;
   team_a: number;
 }
@@ -169,19 +171,20 @@ export async function GET(request: Request) {
 
     // Map FPL live stats → OraclePlayerStats format.
     // Contract: minutes_played=0 in the map → auto-sub; missing from the map → no sub.
-    // So only emit 0-minute rows for teams whose fixture has finished (confirmed DNP).
-    // Unplayed / not-yet-started teams are omitted so live boards do not pull bench points early.
+    // Emit 0-minute rows only when the team's fixture is done (finished flag OR ≥90').
+    // Unplayed teams omitted so live boards do not pull bench points early.
     // In-progress fixtures still emit players who already have minutes (>0).
-    const finishedTeams = new Set<number>();
+    const doneTeams = new Set<number>();
     const startedTeams = new Set<number>();
     for (const f of fixtures) {
-      if (f.started || f.finished) {
+      if (f.started || f.finished || (f.minutes ?? 0) > 0) {
         startedTeams.add(f.team_h);
         startedTeams.add(f.team_a);
       }
-      if (f.finished) {
-        finishedTeams.add(f.team_h);
-        finishedTeams.add(f.team_a);
+      // FPL often leaves finished=false at 90' while BPS settles — treat ≥90 as done for DNP.
+      if (f.finished || (f.minutes ?? 0) >= 90) {
+        doneTeams.add(f.team_h);
+        doneTeams.add(f.team_a);
       }
     }
 
@@ -203,11 +206,10 @@ export async function GET(request: Request) {
       const teamId = elementTeam.get(element.id);
       if (teamId == null) continue;
 
-      // Skip unplayed teams entirely. For started-but-unfinished matches, only keep
-      // players who already have minutes (live scoring); defer 0-min auto-sub until FT.
+      // Skip unplayed teams. Mid-match: only players with minutes. After FT (≥90'): include DNPs.
       if (mins === 0) {
-        if (!finishedTeams.has(teamId)) continue;
-      } else if (!startedTeams.has(teamId) && !finishedTeams.has(teamId)) {
+        if (!doneTeams.has(teamId)) continue;
+      } else if (!startedTeams.has(teamId) && !doneTeams.has(teamId)) {
         continue;
       }
 

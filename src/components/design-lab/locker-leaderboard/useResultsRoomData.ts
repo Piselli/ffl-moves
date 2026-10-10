@@ -309,22 +309,27 @@ async function loadClosedLiveStats(
     stats = await remapStatsKeysToFplIds(stats);
   }
 
-  // FPL live only as empty-stats fallback (has bonus, no rating). Prefer API-Sports rows.
-  if (Object.keys(stats).length === 0 && gwId >= 1 && gwId <= 38) {
-    try {
-      const fpl = await fetch(`/api/fpl-live?gw=${gwId}`).then((r) =>
-        r.ok ? r.json() : null,
-      );
-      const fplPlayers = fpl?.players as FplLiveMappedPlayer[] | undefined;
-      if (fplPlayers?.length) {
-        const full = fplLivePlayersToStatsMap(fplPlayers);
-        for (const id of playerIds) {
-          const row = full[String(id)];
-          if (row) stats[String(id)] = row;
+  // Fill gaps from FPL live (DNP rows after FT, bonus). Never overwrite API-Sports rows.
+  if (gwId >= 1 && gwId <= 38) {
+    const missing = playerIds.filter((id) => !stats[String(id)]);
+    if (missing.length > 0 || Object.keys(stats).length === 0) {
+      try {
+        const fpl = await fetch(`/api/fpl-live?gw=${gwId}`).then((r) =>
+          r.ok ? r.json() : null,
+        );
+        const fplPlayers = fpl?.players as FplLiveMappedPlayer[] | undefined;
+        if (fplPlayers?.length) {
+          const full = fplLivePlayersToStatsMap(fplPlayers);
+          const fillIds =
+            Object.keys(stats).length === 0 ? playerIds : missing;
+          for (const id of fillIds) {
+            const row = full[String(id)];
+            if (row && !stats[String(id)]) stats[String(id)] = row;
+          }
         }
+      } catch {
+        /* none */
       }
-    } catch {
-      /* none */
     }
   }
 
