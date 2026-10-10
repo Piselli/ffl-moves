@@ -15,12 +15,14 @@ const BROWSER_HEADERS = {
 interface FplBootstrapSelectable {
   id: number;
   element_type: number;
+  team: number;
   can_select?: boolean;
   status?: string;
 }
 
 interface FplFixtureRow {
   finished?: boolean;
+  started?: boolean;
   team_h: number;
   team_a: number;
 }
@@ -166,9 +168,28 @@ export async function GET(request: Request) {
     }
 
     // Map FPL live stats → OraclePlayerStats format.
-    // Include ALL selectable players — even 0-minute ones — so the contract's substitution
-    // logic fires correctly (minutes_played=0 in the stats map → contract looks for a bench
-    // replacement; player missing from the map entirely → no substitution attempted).
+    // Contract: minutes_played=0 in the map → auto-sub; missing from the map → no sub.
+    // So only emit 0-minute rows for teams whose fixture has finished (confirmed DNP).
+    // Unplayed / not-yet-started teams are omitted so live boards do not pull bench points early.
+    // In-progress fixtures still emit players who already have minutes (>0).
+    const finishedTeams = new Set<number>();
+    const startedTeams = new Set<number>();
+    for (const f of fixtures) {
+      if (f.started || f.finished) {
+        startedTeams.add(f.team_h);
+        startedTeams.add(f.team_a);
+      }
+      if (f.finished) {
+        finishedTeams.add(f.team_h);
+        finishedTeams.add(f.team_a);
+      }
+    }
+
+    const elementTeam = new Map<number, number>();
+    for (const el of selectableElements) {
+      elementTeam.set(el.id, el.team);
+    }
+
     const players: FplLiveMappedPlayer[] = [];
 
     for (const element of live.elements) {
@@ -179,6 +200,17 @@ export async function GET(request: Request) {
       if (!mapping) continue;
 
       const mins = s.minutes ?? 0;
+      const teamId = elementTeam.get(element.id);
+      if (teamId == null) continue;
+
+      // Skip unplayed teams entirely. For started-but-unfinished matches, only keep
+      // players who already have minutes (live scoring); defer 0-min auto-sub until FT.
+      if (mins === 0) {
+        if (!finishedTeams.has(teamId)) continue;
+      } else if (!startedTeams.has(teamId) && !finishedTeams.has(teamId)) {
+        continue;
+      }
+
       players.push({
         playerId: mapping.id,
         position: mapping.positionId,

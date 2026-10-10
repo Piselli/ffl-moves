@@ -2,6 +2,9 @@
  * Mirrors `fantasy_epl::calculate_team_points` + `calculate_results` pre-multiplier logic
  * so the squad UI matches on-chain `TeamResult` / leaderboard scoring.
  *
+ * Auto-sub only when the starter is present in the stats map with `minutes_played === 0`
+ * (confirmed DNP after their fixture). Missing row = match not in oracle yet → 0 pts, no sub.
+ *
  * @see move/fantasy-epl-contract/sources/fantasy_epl.move — calculate_team_points, calculate_results
  */
 
@@ -181,9 +184,12 @@ export function computeChainAlignedXiBreakdown(
       return true;
     };
 
-    // Missing oracle row = DNP (same as minutes_played 0 once WC stats include 0-min entries).
+    // Match Move `calculate_team_points`: missing oracle row → 0 pts, no auto-sub.
+    // Unplayed fixtures are omitted from partial API-Sports publishes; treating them as
+    // DNP would prematurely pull bench points before that team's match is played.
+    // True DNP is minutes_played === 0 on a present row (fixture completed).
     if (!starterStats) {
-      applyAutoSub(0);
+      pushZero(0);
       continue;
     }
 
