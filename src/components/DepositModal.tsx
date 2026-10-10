@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import { useDeposit } from "@/components/depositContext";
 import { useLogin } from "@/components/LoginProvider";
@@ -573,14 +574,29 @@ export function DepositModal({ open, onClose }: DepositModalProps) {
                           {d.cryptoTransferHint}
                         </p>
                         {address ? (
-                          <div className="mt-4 rounded-2xl border border-white/16 bg-black/40 px-3.5 py-3.5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
-                              {d.solanaAddress}
-                            </p>
-                            <p className="mt-1.5 break-all font-mono text-[14px] font-medium leading-relaxed tracking-[-0.01em] text-white">
-                              {address}
-                            </p>
-                          </div>
+                          <>
+                            <div className="mt-4 flex justify-center">
+                              <div className="rounded-2xl border border-white/16 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                                <QRCodeSVG
+                                  value={address}
+                                  size={168}
+                                  level="M"
+                                  bgColor="#ffffff"
+                                  fgColor="#0a0a0a"
+                                  marginSize={1}
+                                  title={address}
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-3 rounded-2xl border border-white/16 bg-black/40 px-3.5 py-3.5">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                                {d.solanaAddress}
+                              </p>
+                              <p className="mt-1.5 break-all font-mono text-[14px] font-medium leading-relaxed tracking-[-0.01em] text-white">
+                                {address}
+                              </p>
+                            </div>
+                          </>
                         ) : (
                           <div className="mt-4 rounded-2xl border border-white/12 bg-black/35 px-3.5 py-3.5 text-[14px] font-medium text-white/70">
                             {d.needWallet}
