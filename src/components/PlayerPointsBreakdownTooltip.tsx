@@ -39,6 +39,7 @@ function formatLineLabel(
   return base;
 }
 
+/** Form8 crystal sheet — same language as Results tablet / locker glass. */
 function BreakdownPanel({
   lines,
   total,
@@ -52,40 +53,82 @@ function BreakdownPanel({
   const gains = m.scoringGains;
   const pb = m.pointsBreakdown;
 
-  if (!lines.length) {
-    return (
-      <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl min-w-[9.5rem] max-w-[13.5rem]">
-        <p className="text-[11px] text-white/40">{pb.noStats}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-[#1a1d26] border border-white/10 rounded-xl px-3 py-2.5 shadow-2xl min-w-[9.5rem] max-w-[13.5rem]">
-      {subNote ? (
-        <p className="mb-1.5 text-[9px] font-semibold leading-snug text-[#00f948]/75">{subNote}</p>
-      ) : null}
-      <ul className="space-y-0.5">
-        {lines.map((line, i) => (
-          <li key={`${line.kind}-${i}`} className="flex items-center justify-between gap-3">
-            <span className="min-w-0 truncate text-[10px] text-white/55">
-              {formatLineLabel(line.kind, line.count, gains, m.home.scoringSavesEvery)}
-            </span>
-            <span
-              className={cn(
-                "shrink-0 font-display text-[11px] font-bold tabular-nums",
-                line.points > 0 ? "text-[#00f948]" : line.points < 0 ? "text-rose-400" : "text-white/35",
-              )}
-            >
-              {line.points > 0 ? `+${line.points}` : line.points}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-white/[0.08] pt-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-wide text-white/35">{pb.total}</span>
-        <span className="font-display text-[12px] font-black tabular-nums text-white">{total}</span>
+    <div className="relative w-[12.5rem] max-w-[min(12.5rem,calc(100vw-1.5rem))]">
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border border-white/20",
+          "bg-[rgba(8,10,14,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_18px_48px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06)]",
+          "backdrop-blur-xl",
+        )}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-2xl opacity-90"
+          style={{
+            background:
+              "linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 22%, transparent 48%), linear-gradient(320deg, rgba(0,249,72,0.06) 0%, transparent 40%)",
+          }}
+        />
+
+        <div className="relative px-3.5 pb-3 pt-3">
+          <div className="mb-2.5 flex items-end justify-between gap-2 border-b border-white/[0.1] pb-2.5">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">
+                {pb.total}
+              </p>
+              {subNote ? (
+                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-[#00f948]/85">
+                  {subNote}
+                </p>
+              ) : null}
+            </div>
+            <p className="shrink-0 font-display text-[1.65rem] font-black leading-none tabular-nums text-[#00f948]">
+              {total}
+            </p>
+          </div>
+
+          {!lines.length ? (
+            <p className="text-[11px] leading-snug text-white/40">{pb.noStats}</p>
+          ) : (
+            <ul className="space-y-1">
+              {lines.map((line, i) => (
+                <li
+                  key={`${line.kind}-${i}`}
+                  className="flex items-baseline justify-between gap-3"
+                >
+                  <span className="min-w-0 truncate text-[11px] font-medium text-white/60">
+                    {formatLineLabel(
+                      line.kind,
+                      line.count,
+                      gains,
+                      m.home.scoringSavesEvery,
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 font-display text-[12px] font-bold tabular-nums",
+                      line.points > 0
+                        ? "text-[#00f948]"
+                        : line.points < 0
+                          ? "text-rose-400"
+                          : "text-white/30",
+                    )}
+                  >
+                    {line.points > 0 ? `+${line.points}` : line.points}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
+
+      {/* Anchor caret toward the pts disc */}
+      <div
+        aria-hidden
+        className="mx-auto -mt-px h-2.5 w-2.5 rotate-45 border-b border-r border-white/20 bg-[rgba(8,10,14,0.92)]"
+      />
     </div>
   );
 }
@@ -103,17 +146,23 @@ export function PlayerPointsBreakdownTooltip({
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  const lines = disabled || !stats ? [] : computeFantasyPointsBreakdown(scoringPlayer, stats);
+  const lines =
+    disabled || !stats
+      ? []
+      : computeFantasyPointsBreakdown(scoringPlayer, stats);
 
   const updatePosition = useCallback(() => {
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const panelW = 160;
-    const margin = 8;
+    const panelW = 200;
+    const margin = 10;
     let left = rect.left + rect.width / 2;
-    left = Math.max(panelW / 2 + margin, Math.min(window.innerWidth - panelW / 2 - margin, left));
-    const top = Math.max(margin, rect.top - margin);
+    left = Math.max(
+      panelW / 2 + margin,
+      Math.min(window.innerWidth - panelW / 2 - margin, left),
+    );
+    const top = Math.max(margin, rect.top - 10);
     setPos({ top, left });
   }, []);
 
@@ -151,7 +200,7 @@ export function PlayerPointsBreakdownTooltip({
       {open && pos && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="pointer-events-none fixed z-[9999]"
+              className="pointer-events-none fixed z-[9999] animate-in fade-in-0 zoom-in-95 duration-150"
               style={{
                 top: pos.top,
                 left: pos.left,
