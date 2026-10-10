@@ -241,11 +241,23 @@ node scripts/print-phantom-import-keys.mjs
 
 ## 8. Авто-close реєстрації (cron)
 
-Vercel Hobby **не вміє** cron частіше ніж 1×/день, тому тригер — **GitHub Actions**
-кожні 5 хв → `GET /api/cron/close-gameweek` (workflow
-`.github/workflows/auto-close-gameweek.yml`).
+### Чому не лише GitHub Actions
 
-Логіка ендпоінту:
+Vercel Hobby **не вміє** cron частіше ніж 1×/день. GitHub Actions workflow
+`.github/workflows/auto-close-gameweek.yml` *оголошує* `*/15` + щільні
+субота/неділя вікна, але на практиці schedule часто **затримується на години**
+(так і було на GW6 kickoff — close спрацював лише після ручного
+`workflow_dispatch`).
+
+Тому є **два шляхи** на той самий код `runAutoCloseGameweek`:
+
+1. **Primary — traffic watchdog** (`pokeAutoCloseWatchdog` у
+   `/api/solana/config` і `/api/registration-deadline`). Після deadline будь-який
+   хіт сайту (раз на ≤60 с, Redis lock) пробує `close_gameweek`. На матчдень
+   трафік завжди є → close зазвичай протягом хвилини після kickoff.
+2. **Backup — GitHub Actions** → `GET /api/cron/close-gameweek`.
+
+Логіка ендпоінту / watchdog:
 1. Знайти OPEN gameweek on-chain.
 2. Дедлайн = **перший kickoff** FPL event (як на сайті); fallback — bootstrap `deadline_time`.
 3. Якщо `now >= deadline` → `close_gameweek` підписом **ADMIN**.
@@ -259,17 +271,23 @@ Env на **Vercel Production**:
 | `AUTO_CLOSE_ENABLED` | `true` |
 | `AUTO_CLOSE_LEAD_MS` | `0` = на kickoff |
 | `SOLANA_SERVER_RPC_URL` | public / unrestricted RPC for cron. Helius Allowed Domains fails on Vercel (Node strips `Origin` → 403) |
+| `UPSTASH_REDIS_*` | для глобального lock watchdog (вже є для referral) |
 
 GitHub: Settings → Secrets → `CRON_SECRET` (той самий рядок, що в
 `solana/movematch/.keys/CRON_SECRET.txt`). Manual run: Actions → Auto-close gameweek → Run.
 
 Admin потребує ~0.01+ SOL на fee (зараз ок, якщо не злито).
 
+Опційний третій тригер (якщо хочеш гарантію навіть без трафіку): зовнішній
+cron (cron-job.org тощо) кожні 5–15 хв з хедером
+`Authorization: Bearer $CRON_SECRET` на
+`https://www.form8.football/api/cron/close-gameweek`.
+
 Dry-run:
 
 ```bash
 curl -H "Authorization: Bearer $(cat solana/movematch/.keys/CRON_SECRET.txt)" \
-  "https://www.movematch.xyz/api/cron/close-gameweek?dryRun=1"
+  "https://www.form8.football/api/cron/close-gameweek?dryRun=1"
 ```
 
 ---

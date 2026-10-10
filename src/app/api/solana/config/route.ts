@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getConfig, getGameweek, getGameweekEntrants } from "@/lib/chainClient";
+import { pokeAutoCloseWatchdog } from "@/lib/server/autoCloseWatchdog";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ function serializeGameweek(
  */
 export async function GET() {
   try {
+    // Backup to GitHub cron (which is often delayed hours): if an OPEN GW is
+    // past first kickoff, close it in the background while serving config.
+    pokeAutoCloseWatchdog();
+
     const config = await getConfig();
     if (!config) {
       return NextResponse.json(

@@ -1,5 +1,8 @@
 # Auto-close OPEN MoveMatch gameweek after FPL first-kickoff deadline.
-# Hits production API every 5 minutes (Vercel Hobby cannot run sub-daily crons).
+# Hits production API. GitHub schedule is a *backup* — it is often delayed
+# hours on this repo (*/5 does NOT mean every 5 minutes in practice).
+# Primary close path: traffic watchdog in `/api/solana/config` (and related)
+# via `pokeAutoCloseWatchdog` → same `/api/cron/close-gameweek` logic.
 #
 # Required GitHub secret:
 #   CRON_SECRET — same value as Vercel Production CRON_SECRET
@@ -14,7 +17,11 @@ name: Auto-close gameweek
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # Broader cadence (GitHub may still delay; do not rely on this alone).
+    - cron: "*/15 * * * *"
+    # Dense EPL kickoff windows (Sat/Sun 10:00–17:45 UTC → :00/:15/:30/:45).
+    - cron: "0,15,30,45 10-17 * * 6"
+    - cron: "0,15,30,45 10-17 * * 0"
   workflow_dispatch:
     inputs:
       dry_run:

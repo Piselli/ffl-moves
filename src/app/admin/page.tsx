@@ -449,7 +449,17 @@ export default function AdminPage() {
       await loadChainConfig();
     } catch (error: unknown) {
       console.error("Failed to sponsor prize pool:", error);
-      alert(ad.alertFailed(formatTxError(error)));
+      const detail = formatTxError(error);
+      const raw =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "";
+      alert(
+        ad.alertFailed(detail) +
+          (raw && raw !== detail ? `\n\n(${raw.slice(0, 180)})` : ""),
+      );
     } finally {
       setIsSubmitting(false);
     }

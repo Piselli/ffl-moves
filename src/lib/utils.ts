@@ -53,6 +53,9 @@ export function formatTxError(error: unknown): string {
 
   const logs = Array.isArray(e.logs) ? (e.logs as unknown[]).map(String) : null;
   const programError = logs?.find((l) => /Error Message:/i.test(l));
+  const customProgram =
+    logs?.find((l) => /Program log: (Error:|Custom program error)/i.test(l)) ??
+    logs?.find((l) => /failed: /i.test(l) && /Program /i.test(l));
   const rentFail =
     logs?.some((l) => /InsufficientFundsForRent/i.test(l)) ||
     /InsufficientFundsForRent/i.test(rawMessage) ||
@@ -64,6 +67,9 @@ export function formatTxError(error: unknown): string {
   if (programError) {
     return programError.replace(/^.*Error Message:\s*/i, "").trim();
   }
+  if (customProgram) {
+    return truncate(customProgram.replace(/^.*Program log:\s*/i, "").trim(), 220);
+  }
 
   const blob = `${name}\n${rawMessage}`.toLowerCase();
   if (
@@ -74,17 +80,22 @@ export function formatTxError(error: unknown): string {
     return "Transaction cancelled in your wallet.";
   }
   if (/insufficient|not enough|0x1\b/i.test(blob)) {
-    return "Not enough USDC for the entry fee. Deposit and try again.";
+    return "Not enough USDC (or SOL for fees). Top up and try again.";
   }
   if (/blockhash|expired|timed out|timeout|network|fetch failed|429|503/i.test(blob)) {
     return "Network hiccup — wait a moment and try again.";
   }
-  if (/WalletSendTransactionError|SendTransactionError|WalletSign/i.test(name + rawMessage)) {
+  if (
+    /WalletSendTransactionError|SendTransactionError|WalletSign|could not co-sign/i.test(
+      name + rawMessage,
+    )
+  ) {
     // Prefer a short wallet message when present; otherwise a calm fallback.
     const cleaned = rawMessage
       .split(/Logs:\s*\[/i)[0]
       .replace(/\s*Catch the 'SendTransactionError'[\s\S]*$/i, "")
       .replace(/^WalletSendTransactionError:?\s*/i, "")
+      .replace(/^Wallet could not co-sign the sponsored registration:\s*/i, "")
       .trim();
     if (cleaned && cleaned.length < 160 && !/^\s*\{/.test(cleaned) && !/at\s+\w+/.test(cleaned)) {
       return humanizeTxMessage(cleaned);

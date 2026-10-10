@@ -81,15 +81,48 @@ export function useWallet() {
           }
         }
 
+        // Prefer sign + our RPC send. Phantom's sendTransaction often fails
+        // preflight on its own RPC (especially admin ixs / localhost), while the
+        // same tx simulates fine through `/api/solana/rpc`.
+        const { blockhash, lastValidBlockHeight } =
+          await connection.getLatestBlockhash("confirmed");
+        const transaction = new Transaction().add(...instructions);
+        transaction.feePayer = userKey;
+        transaction.recentBlockhash = blockhash;
+
+        if (adapter.signTransaction) {
+          try {
+            const signed = await adapter.signTransaction(transaction);
+            const sig = await connection.sendRawTransaction(signed.serialize(), {
+              skipPreflight: false,
+              preflightCommitment: "confirmed",
+            });
+            await connection.confirmTransaction(
+              { signature: sig, blockhash, lastValidBlockHeight },
+              "confirmed",
+            );
+            return sig;
+          } catch (signSendError) {
+            console.error("Wallet sign+sendRaw failed:", signSendError);
+            const msg =
+              signSendError instanceof Error ? signSendError.message : String(signSendError);
+            // Don't open a second wallet popup if the user already cancelled.
+            if (/user rejected|user denied|rejected the request|cancelled|canceled/i.test(msg)) {
+              throw signSendError;
+            }
+            throw signSendError;
+          }
+        }
+
         if (!adapter.sendTransaction) {
           throw new Error("Connected wallet cannot send transactions.");
         }
-        const transaction = new Transaction().add(...instructions);
-        transaction.feePayer = userKey;
-        transaction.recentBlockhash = (
-          await connection.getLatestBlockhash("confirmed")
-        ).blockhash;
-        return adapter.sendTransaction(transaction, connection);
+        try {
+          return await adapter.sendTransaction(transaction, connection);
+        } catch (sendError) {
+          console.error("Wallet sendTransaction failed:", sendError);
+          throw sendError;
+        }
       }
       if (heliusSession.signAndSubmit) {
         return heliusSession.signAndSubmit(instructions);

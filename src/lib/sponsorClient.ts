@@ -73,10 +73,26 @@ export function isSolTransferLike(
   );
 }
 
+/**
+ * Fee sponsorship only covers player actions the server allowlists
+ * (`register_team` / `claim_prize`). Admin ixs (sponsor pool, close GW, …)
+ * must be self-paid — routing them through the sponsor path makes Phantom
+ * simulate a disallowed sponsored tx and surfaces a useless wallet error.
+ */
+const SPONSORABLE_GAME_DISCS = new Set([
+  REGISTER_TEAM_DISC,
+  CLAIM_PRIZE_DISC,
+]);
+
 export function isForm8GameAction(
   instructions: TransactionInstruction[],
 ): boolean {
-  return instructions.some((ix) => ix.programId.equals(PROGRAM_ID));
+  return instructions.some(
+    (ix) =>
+      ix.programId.equals(PROGRAM_ID) &&
+      ix.data.length >= 8 &&
+      SPONSORABLE_GAME_DISCS.has(discHex(ix.data)),
+  );
 }
 
 export function isForm8Sponsorable(
