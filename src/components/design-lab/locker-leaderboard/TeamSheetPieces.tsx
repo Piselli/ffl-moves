@@ -896,10 +896,12 @@ function ResultsPitchFitName({
   raw,
   widthPx,
   fontSize = PLATE_FONT_SIZE,
+  color = "#0a0a0a",
 }: {
   raw: string;
   widthPx: number;
   fontSize?: number;
+  color?: string;
 }) {
   const font = getPitchChipFont();
   const { label } = fitPitchName(raw, {
@@ -924,7 +926,7 @@ function ResultsPitchFitName({
         letterSpacing: font.tracking,
         overflow: "visible",
         whiteSpace: "nowrap",
-        color: "#0a0a0a",
+        color,
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
         textRendering: "geometricPrecision",
@@ -1056,98 +1058,134 @@ function ResultsPitchChip({
           C
         </span>
       ) : null}
-      {player.autoSubbed ? (
-        <PlayerPointsBreakdownTooltip
-          className={cn(
-            "absolute z-20 left-1/2 -translate-x-1/2",
-            compact ? "-bottom-0.5" : "-bottom-1",
-          )}
-          scoringPlayer={scoringPlayerFromLab(player)}
-          stats={player.stats}
-          total={Number.isFinite(player.pts) ? player.pts : 0}
-          autoSub={
-            player.autoSubInName
-              ? { outName: player.name, inName: player.autoSubInName }
-              : null
-          }
-          captainNote={
-            player.isCaptain ? "Captain DNP — no ×2" : null
-          }
-        >
-          {/* Broadcast-style in/out arrows — not a neon SUB pill */}
-          <span
-            className={cn(
-              "flex items-center gap-px rounded-full border border-white/25 bg-black/80 px-1 py-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.55)] backdrop-blur-sm",
-              compact ? "h-[14px]" : "h-[16px]",
-            )}
-            aria-label={
-              player.autoSubInName
-                ? `Auto-sub: ${player.name} out, ${player.autoSubInName} in`
-                : "Auto-sub"
-            }
-          >
-            <span
-              aria-hidden
-              className="flex h-[10px] w-[10px] items-center justify-center rounded-full bg-rose-500 text-[8px] font-black leading-none text-white"
-            >
-              ↓
-            </span>
-            <span
-              aria-hidden
-              className="flex h-[10px] w-[10px] items-center justify-center rounded-full bg-emerald-400 text-[8px] font-black leading-none text-black"
-            >
-              ↑
-            </span>
-          </span>
-        </PlayerPointsBreakdownTooltip>
-      ) : null}
-      <ResultsChipCutout player={player} size={cutoutSize} />
+      {/* Auto-sub: quiet nameplate footer (↑ in-name), not a floating traffic-light plaque */}
       <span
-        className="flex flex-col overflow-hidden rounded-[3px]"
+        className="relative"
         style={{
-          width: plateW,
-          background: footer.bg,
-          boxShadow: "0 2px 6px rgba(0,0,0,0.45)",
-          opacity: player.autoSubUsed ? 0.55 : 1,
+          opacity: player.autoSubbed ? 0.78 : 1,
+          filter: player.autoSubbed ? "saturate(0.65)" : undefined,
         }}
       >
-        <span
-          className={cn(
-            "flex items-center justify-center bg-white px-[3px]",
-            compact ? "h-[15px]" : "h-[18px]",
-          )}
-          style={{ marginBottom: -1 }}
-        >
-          <ResultsPitchFitName
-            raw={player.name}
-            widthPx={textW}
-            fontSize={fontSize}
-          />
-        </span>
-        <span
-          className={cn(
-            "relative z-[1] flex items-center justify-center px-[3px] text-center font-bold uppercase",
-            compact ? "h-[10px] text-[7px]" : "h-[12px] text-[8px]",
-          )}
-          style={{
-            background: footer.bg,
-            color: footer.fg,
-            fontFamily: typeface.ui,
-            letterSpacing: "0.08em",
-            fontWeight: 700,
-          }}
-        >
-          {player.autoSubUsed ? (
-            <span className="inline-flex items-center gap-0.5">
-              <span className="text-emerald-300">↑</span>
-              <span>in</span>
+        <ResultsChipCutout player={player} size={cutoutSize} />
+      </span>
+      <ResultsPitchNameplate
+        player={player}
+        club={club}
+        footer={footer}
+        plateW={plateW}
+        textW={textW}
+        fontSize={fontSize}
+        compact={compact}
+        typefaceUi={typeface.ui}
+      />
+    </span>
+  );
+}
+
+function ResultsPitchNameplate({
+  player,
+  club,
+  footer,
+  plateW,
+  textW,
+  fontSize,
+  compact,
+  typefaceUi,
+}: {
+  player: LabSquadPlayer;
+  club: string;
+  footer: { bg: string; fg: string };
+  plateW: number;
+  textW: number;
+  fontSize: number;
+  compact: boolean;
+  typefaceUi: string;
+}) {
+  const autoIn = Boolean(player.autoSubbed && player.autoSubInName);
+  const plate = (
+    <span
+      className="flex flex-col overflow-hidden rounded-[3px]"
+      style={{
+        width: plateW,
+        background: footer.bg,
+        boxShadow: "0 2px 6px rgba(0,0,0,0.45)",
+        opacity: player.autoSubUsed ? 0.55 : 1,
+      }}
+      aria-label={
+        autoIn
+          ? `Auto-sub: ${player.name} out, ${player.autoSubInName} in`
+          : undefined
+      }
+    >
+      <span
+        className={cn(
+          "flex items-center justify-center bg-white px-[3px]",
+          compact ? "h-[15px]" : "h-[18px]",
+        )}
+        style={{
+          marginBottom: -1,
+          opacity: player.autoSubbed ? 0.72 : 1,
+        }}
+      >
+        <ResultsPitchFitName
+          raw={player.name}
+          widthPx={textW}
+          fontSize={fontSize}
+        />
+      </span>
+      <span
+        className={cn(
+          "relative z-[1] flex items-center justify-center px-[3px] text-center font-bold uppercase",
+          compact ? "h-[10px] text-[7px]" : "h-[12px] text-[8px]",
+        )}
+        style={{
+          background: footer.bg,
+          color: footer.fg,
+          fontFamily: typefaceUi,
+          letterSpacing: autoIn || player.autoSubUsed ? "0.04em" : "0.08em",
+          fontWeight: 700,
+        }}
+      >
+        {autoIn ? (
+          <span className="inline-flex max-w-full items-center gap-0.5">
+            <span aria-hidden className="shrink-0 opacity-80">
+              ↑
             </span>
-          ) : (
-            club
-          )}
-        </span>
+            <ResultsPitchFitName
+              raw={player.autoSubInName!}
+              widthPx={Math.max(28, textW - 8)}
+              fontSize={compact ? 7 : 7.5}
+              color={footer.fg}
+            />
+          </span>
+        ) : player.autoSubUsed ? (
+          <span className="inline-flex items-center gap-0.5 opacity-90">
+            <span aria-hidden>↑</span>
+            <span>XI</span>
+          </span>
+        ) : (
+          club
+        )}
       </span>
     </span>
+  );
+
+  if (!player.autoSubbed) return plate;
+
+  return (
+    <PlayerPointsBreakdownTooltip
+      scoringPlayer={scoringPlayerFromLab(player)}
+      stats={player.stats}
+      total={Number.isFinite(player.pts) ? player.pts : 0}
+      autoSub={
+        player.autoSubInName
+          ? { outName: player.name, inName: player.autoSubInName }
+          : null
+      }
+      captainNote={player.isCaptain ? "Captain DNP — no ×2" : null}
+    >
+      {plate}
+    </PlayerPointsBreakdownTooltip>
   );
 }
 
