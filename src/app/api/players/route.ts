@@ -9,6 +9,8 @@ import {
   peekPlayersMemory,
   runPlayersRefresh,
 } from "@/lib/playersCatalogCache";
+/** Bundled so Vercel always has the FPL code → API-Sports id bridge. */
+import fplApiIdMapFile from "@/data/fpl-apiid-map.json";
 
 type FplApiIdMapFile = {
   byCode?: Record<string, number>;
@@ -123,6 +125,8 @@ function loadJsonSafe<T>(relPath: string, fallback: T): T {
 
 /** Built by `npm run build:atlas` — FPL element.code → API-Sports id. */
 const API_ID_BY_FPL_CODE: Record<string, number> = (() => {
+  const bundled = (fplApiIdMapFile as FplApiIdMapFile)?.byCode;
+  if (bundled && Object.keys(bundled).length > 0) return bundled;
   const file = loadJsonSafe<FplApiIdMapFile>("src/data/fpl-apiid-map.json", {});
   return file.byCode ?? {};
 })();

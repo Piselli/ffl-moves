@@ -24,7 +24,8 @@ import {
   fplLivePlayersToStatsMap,
   type FplLiveMappedPlayer,
 } from "@/lib/fplLiveStatsMap";
-import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { remapStatsKeysToFplIds } from "@/lib/remapStatsToFplIds";
+import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { isWorldCupTour, WC_TOUR_ID_BASE } from "@/lib/worldcup";
@@ -297,28 +298,27 @@ async function loadClosedLiveStats(
     }
   }
 
-  if (gwId >= 1 && gwId <= 38) {
+  // Legacy API-Sports commits used public/data/players.json ids — remap to FPL ids.
+  if (Object.keys(stats).length > 0) {
+    stats = await remapStatsKeysToFplIds(stats);
+  }
+
+  // FPL live only as empty-stats fallback (has bonus, no rating). Prefer API-Sports rows.
+  if (Object.keys(stats).length === 0 && gwId >= 1 && gwId <= 38) {
     try {
       const fpl = await fetch(`/api/fpl-live?gw=${gwId}`).then((r) =>
         r.ok ? r.json() : null,
       );
       const fplPlayers = fpl?.players as FplLiveMappedPlayer[] | undefined;
       if (fplPlayers?.length) {
-        if (Object.keys(stats).length === 0) {
-          const full = fplLivePlayersToStatsMap(fplPlayers);
-          for (const id of playerIds) {
-            const row = full[String(id)];
-            if (row) stats[String(id)] = row;
-          }
-        } else {
-          stats = enrichStatsMapWithFplPlayers(stats, fplPlayers) as Record<
-            string,
-            Record<string, unknown>
-          >;
+        const full = fplLivePlayersToStatsMap(fplPlayers);
+        for (const id of playerIds) {
+          const row = full[String(id)];
+          if (row) stats[String(id)] = row;
         }
       }
     } catch {
-      /* keep commit / mirror only */
+      /* none */
     }
   }
 

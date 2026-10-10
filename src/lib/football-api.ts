@@ -90,26 +90,35 @@ export interface GameweekStatsResult {
   errors: string[];
 }
 
+/**
+ * API-Sports player id → on-chain / squad catalog id (+ position).
+ * EPL squads use FPL element ids; `/api/players` exposes those as `id` with `apiId`.
+ */
 async function loadPlayerMappings(
-  url = "/data/players.json",
+  url = "/api/players",
 ): Promise<Map<number, { id: number; position: string }>> {
   const cached = playerMappingsByUrl.get(url);
   if (cached) return cached;
 
   const mappings = new Map<number, { id: number; position: string }>();
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     const players = await response.json();
 
-    for (const player of players) {
-      if (player.apiId) {
-        // We only need the original position string here; downstream code converts to a positionId.
-        mappings.set(player.apiId, { id: player.id, position: player.position });
+    if (Array.isArray(players)) {
+      for (const player of players) {
+        const apiId = Number(player?.apiId);
+        const id = Number(player?.id ?? player?.fplId);
+        if (!Number.isFinite(apiId) || apiId <= 0) continue;
+        if (!Number.isFinite(id) || id <= 0) continue;
+        const position = String(player?.position || "MID");
+        mappings.set(apiId, { id, position });
       }
     }
   } catch (error) {
     console.error("Failed to load player mappings:", error);
   }
+
   playerMappingsByUrl.set(url, mappings);
   return mappings;
 }
@@ -180,6 +189,13 @@ async function fetchStatsForCompetition(
 
   const headers = { "x-apisports-key": apiKey };
   const mappings = await loadPlayerMappings(cfg.mappingsUrl);
+  if (mappings.size === 0) {
+    result.errors.push(
+      `No API-Sports→catalog mappings loaded from ${cfg.mappingsUrl}. Cannot attach stats to squads.`,
+    );
+    return result;
+  }
+  let unmappedWithMinutes = 0;
 
   try {
     // 1. Collect completed fixtures across every round in this tour.
@@ -258,14 +274,18 @@ async function fetchStatsForCompetition(
             if (!stats) continue;
 
             const mapping = mappings.get(playerData.player.id);
-            if (!mapping) continue; // Skip players not in our catalog
+            const minsRaw = stats.games.minutes ?? 0;
+            if (!mapping) {
+              if (minsRaw > 0) unmappedWithMinutes += 1;
+              continue;
+            }
 
             const positionId =
               mapping.position === "GK" ? 0 :
               mapping.position === "DEF" ? 1 :
               mapping.position === "MID" ? 2 : 3;
 
-            const mins = stats.games.minutes ?? 0;
+            const mins = minsRaw;
             const teamCsEligible = hadCleanSheet && mins >= 60;
 
             const cleanSheet = teamCsEligible && (positionId === 0 || positionId === 1);
@@ -312,6 +332,45 @@ async function fetchStatsForCompetition(
     result.errors.push(`Failed to fetch stats: ${error}`);
   }
 
+  // One row per squad player id (FPL id for EPL). Merge if a player appears twice.
+  if (result.players.length > 0) {
+    const byId = new Map<number, OraclePlayerStats>();
+    for (const row of result.players) {
+      const prev = byId.get(row.playerId);
+      if (!prev) {
+        byId.set(row.playerId, { ...row });
+        continue;
+      }
+      byId.set(row.playerId, {
+        ...prev,
+        minutesPlayed: prev.minutesPlayed + row.minutesPlayed,
+        goals: prev.goals + row.goals,
+        assists: prev.assists + row.assists,
+        cleanSheet: prev.cleanSheet || row.cleanSheet,
+        fplCleanSheets: Math.max(prev.fplCleanSheets ?? 0, row.fplCleanSheets ?? 0),
+        saves: prev.saves + row.saves,
+        penaltiesSaved: prev.penaltiesSaved + row.penaltiesSaved,
+        penaltiesMissed: prev.penaltiesMissed + row.penaltiesMissed,
+        ownGoals: prev.ownGoals + row.ownGoals,
+        yellowCards: prev.yellowCards + row.yellowCards,
+        redCards: prev.redCards + row.redCards,
+        rating: Math.max(prev.rating, row.rating),
+        tackles: prev.tackles + row.tackles,
+        interceptions: prev.interceptions + row.interceptions,
+        successfulDribbles: prev.successfulDribbles + row.successfulDribbles,
+        freeKickGoals: prev.freeKickGoals + row.freeKickGoals,
+        goalsConceded: (prev.goalsConceded ?? 0) + (row.goalsConceded ?? 0),
+      });
+    }
+    result.players = [...byId.values()];
+  }
+
+  if (unmappedWithMinutes > 0) {
+    result.errors.push(
+      `${unmappedWithMinutes} API-Sports player(s) with minutes had no FPL/catalog apiId mapping and were skipped.`,
+    );
+  }
+
   return result;
 }
 
@@ -322,7 +381,8 @@ export async function fetchGameweekStats(
   return fetchStatsForCompetition(apiKey, {
     leagueId: EPL_LEAGUE_ID,
     season: SEASON,
-    mappingsUrl: "/data/players.json",
+    // FPL element ids (same as register_team) + apiId bridge for API-Sports.
+    mappingsUrl: "/api/players",
     rounds: [`Regular Season - ${gameweekNumber}`],
     resultGameweekId: gameweekNumber,
   });
