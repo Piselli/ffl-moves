@@ -379,6 +379,10 @@ pub mod movematch {
             ctx.accounts.oracle.key(),
             ErrorCode::UnauthorizedOracle
         );
+        require!(
+            ctx.accounts.gameweek.status == CLOSED,
+            ErrorCode::GameweekNotClosed
+        );
         require!(uri.as_bytes().len() <= MAX_URI_BYTES, ErrorCode::UriTooLong);
         require!(stats_hash != [0u8; 32], ErrorCode::InvalidStatsHash);
         let commit = &mut ctx.accounts.stats_commit;
@@ -786,7 +790,15 @@ pub struct CommitStats<'info> {
     pub oracle: Signer<'info>,
     #[account(seeds = [b"gw".as_ref(), &gameweek.id.to_le_bytes()], bump = gameweek.bump)]
     pub gameweek: Account<'info, Gameweek>,
-    #[account(init, payer = oracle, space = StatsCommit::SPACE, seeds = [b"stats".as_ref(), &gameweek.id.to_le_bytes()], bump)]
+    /// `init_if_needed` so the oracle can refresh the hash/URI while the GW is
+    /// still CLOSED (live partial stats → final stats) without a new PDA.
+    #[account(
+        init_if_needed,
+        payer = oracle,
+        space = StatsCommit::SPACE,
+        seeds = [b"stats".as_ref(), &gameweek.id.to_le_bytes()],
+        bump
+    )]
     pub stats_commit: Account<'info, StatsCommit>,
     pub system_program: Program<'info, System>,
 }

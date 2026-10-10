@@ -231,7 +231,10 @@ export function ResultsTablet({
     claiming: room.claiming,
   });
   /** No points yet — open or closed registration list. */
-  const registrationBoard = room.tablet.status !== "resolved";
+  /** Names-only until resolve — except closed live (partial match stats). */
+  const registrationBoard =
+    room.tablet.status === "open" ||
+    (room.tablet.status === "closed" && !room.tablet.isLive);
   /** Anti-copy: rival XIs stay hidden while registration is open. */
   const squadsPublic = room.tablet.status !== "open";
   const canShowOpenXi =
@@ -320,11 +323,13 @@ export function ResultsTablet({
       openOwner={s.openOwner}
       onSelect={onSelectManager}
       sectionLabel={
-        registrationBoard
-          ? s.data.status === "closed"
-            ? "Registered · awaiting results"
-            : "Registered"
-          : "This gameweek"
+        s.data.isLive
+          ? "Live · in play"
+          : registrationBoard
+            ? s.data.status === "closed"
+              ? "Registered · awaiting results"
+              : "Registered"
+            : "This gameweek"
       }
       emptyHint={
         room.loading

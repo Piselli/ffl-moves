@@ -15,6 +15,14 @@ function localOnlyRedirect(request: NextRequest): NextResponse | null {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Oracle stats: prefer Redis/API over a stale `public/data/stats/*.json`.
+  const statsMatch = pathname.match(/^\/data\/stats\/(\d+)\.json$/);
+  if (statsMatch) {
+    return NextResponse.rewrite(
+      new URL(`/api/oracle/stats/${statsMatch[1]}`, request.url),
+    );
+  }
+
   // Legacy World Cup promo — permanently gone (404 via rewrite to not-found).
   if (pathname === "/world-cup" || pathname.startsWith("/world-cup/")) {
     return NextResponse.rewrite(new URL("/not-found-wc", request.url));
@@ -53,6 +61,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/data/stats/:path*",
     "/world-cup",
     "/world-cup/:path*",
     "/risk-disclosure",

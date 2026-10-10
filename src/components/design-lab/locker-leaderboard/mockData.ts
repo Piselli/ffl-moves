@@ -60,6 +60,8 @@ export type LabLeaderboardSnapshot = {
   prizeSymbol: string;
   entries: number;
   isPreview: boolean;
+  /** Closed GW with live/partial stats — show PTS, hide prizes until resolve. */
+  isLive?: boolean;
   rows: LabLeaderboardRow[];
 };
 

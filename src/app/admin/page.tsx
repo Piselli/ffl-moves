@@ -528,41 +528,48 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      // Parse JSON input
-      const stats = JSON.parse(statsJson) as { gameweekId: number | string; players: Record<string, unknown>[] };
+      const stats = JSON.parse(statsJson) as {
+        gameweekId: number | string;
+        players: Record<string, unknown>[] | Record<string, Record<string, unknown>>;
+      };
 
-      // Validate structure
-      if (!stats.gameweekId || !Array.isArray(stats.players)) {
+      if (!stats.gameweekId || stats.players == null) {
         throw new Error("Invalid stats format. Need { gameweekId, players: [...] }");
       }
 
-      const allPlayers = stats.players;
-      if (allPlayers.length === 0) throw new Error("No players in JSON");
+      // Fetch returns an array; a re-pasted committed file uses an id→stats object.
+      const rawPlayers: Record<string, unknown>[] = Array.isArray(stats.players)
+        ? stats.players
+        : Object.entries(stats.players).map(([playerId, row]) => ({
+            ...(row as Record<string, unknown>),
+            playerId: (row as Record<string, unknown>).playerId ?? playerId,
+          }));
+      if (rawPlayers.length === 0) throw new Error("No players in JSON");
 
       const gwId = Number(stats.gameweekId);
       const players: Record<string, Record<string, number | boolean>> = {};
-      for (const p of allPlayers) {
+      for (const p of rawPlayers) {
         const id = toU64Stat(p.playerId);
         if (id < 1) throw new Error(`Invalid playerId: ${String(p.playerId)}`);
         const position = toU64Stat(p.position);
         if (position > 3) throw new Error(`Invalid position (0–3): ${String(p.position)}`);
         players[String(id)] = {
           position,
-          minutes_played: toU64Stat(p.minutesPlayed),
+          minutes_played: toU64Stat(p.minutesPlayed ?? p.minutes_played),
           goals: toU64Stat(p.goals),
           assists: toU64Stat(p.assists),
-          clean_sheet: Boolean(p.cleanSheet),
+          clean_sheet: Boolean(p.cleanSheet ?? p.clean_sheet),
           saves: toU64Stat(p.saves),
-          penalties_saved: toU64Stat(p.penaltiesSaved),
-          penalties_missed: toU64Stat(p.penaltiesMissed),
-          own_goals: toU64Stat(p.ownGoals),
-          yellow_cards: toU64Stat(p.yellowCards),
-          red_cards: toU64Stat(p.redCards),
+          penalties_saved: toU64Stat(p.penaltiesSaved ?? p.penalties_saved),
+          penalties_missed: toU64Stat(p.penaltiesMissed ?? p.penalties_missed),
+          own_goals: toU64Stat(p.ownGoals ?? p.own_goals),
+          yellow_cards: toU64Stat(p.yellowCards ?? p.yellow_cards),
+          red_cards: toU64Stat(p.redCards ?? p.red_cards),
           rating: toU64Stat(p.rating),
           tackles: toU64Stat(p.tackles),
           interceptions: toU64Stat(p.interceptions),
-          successful_dribbles: toU64Stat(p.successfulDribbles),
-          free_kick_goals: toU64Stat(p.freeKickGoals),
+          successful_dribbles: toU64Stat(p.successfulDribbles ?? p.successful_dribbles),
+          free_kick_goals: toU64Stat(p.freeKickGoals ?? p.free_kick_goals),
           goals_conceded: toU64Stat(p.goalsConceded ?? p.goals_conceded),
           bonus: Math.max(0, Math.min(3, toU64Stat(p.bonus ?? p.fpl_bonus))),
           fpl_clean_sheets: toU64Stat(p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet) ? 1 : 0,
@@ -573,13 +580,59 @@ export default function AdminPage() {
       // `uri` and re-hash them, so the published file must be byte-identical.
       const canonicalJson = JSON.stringify({ gameweekId: gwId, players });
       const uri = publishedStatsUri(gwId);
-      downloadTextFile(`stats-${gwId}.json`, canonicalJson);
+      const playerCount = Object.keys(players).length;
 
-      await signAndSubmit(await buildCommitStats(account.address, gwId, canonicalJson, uri));
-      const statsHome = STATS_PUBLISH_BASE_URL
-        ? uri
-        : `public${SELF_HOSTED_STATS_PATH}/${gwId}.json (commit + deploy), served at ${uri}`;
-      alert(`${ad.alertStatsSubmitted}\n\n${allPlayers.length} players committed.\nPut the downloaded file at: ${statsHome}`);
+      // 1) Auto-publish JSON (Redis + local public file) — no manual download/deploy.
+      const publishRes = await fetch("/api/oracle/stats", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          gameweekId: gwId,
+          canonicalJson,
+          oracleWallet: account.address,
+        }),
+      });
+      const publishBody = (await publishRes.json().catch(() => ({}))) as {
+        error?: string;
+        durable?: boolean;
+        local?: boolean;
+        uriPath?: string;
+      };
+      if (!publishRes.ok) {
+        throw new Error(publishBody.error || `Stats publish failed (${publishRes.status})`);
+      }
+
+      // 2) On-chain commit (or refresh after program upgrade with init_if_needed).
+      const existing = await getStatsCommit(gwId);
+      let chainNote: string;
+      try {
+        await signAndSubmit(await buildCommitStats(account.address, gwId, canonicalJson, uri));
+        chainNote = existing
+          ? "On-chain stats commit updated."
+          : "On-chain stats commit created.";
+      } catch (chainErr: unknown) {
+        const msg = formatTxError(chainErr);
+        // Current mainnet program uses `init` only — second submit hits System 0x0.
+        const alreadyExists =
+          !!existing ||
+          /0x0\b|already in use|custom program error:\s*0x0/i.test(
+            `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`,
+          );
+        if (!alreadyExists) throw chainErr;
+        chainNote =
+          "Live stats file published. On-chain commit already exists for this GW " +
+          "(re-commit needs the program upgrade with init_if_needed). " +
+          "Leaderboard can still read the published file.";
+      }
+
+      const where = publishBody.durable
+        ? `${uri} (Redis — live without redeploy)`
+        : publishBody.local
+          ? `${uri} (saved locally; deploy or use Redis for prod)`
+          : uri;
+      alert(
+        `${ad.alertStatsSubmitted}\n\n${playerCount} players.\n${chainNote}\n\nPublished: ${where}`,
+      );
     } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
       alert(ad.alertFailed(formatTxError(error)));
@@ -1257,7 +1310,7 @@ export default function AdminPage() {
                 )}
               >
                 <span className="block font-bold">FPL Official</span>
-                <span className="block text-[10px] mt-0.5 opacity-70">Free &middot; No key &middot; 2025/26</span>
+                <span className="block text-[10px] mt-0.5 opacity-70">Free &middot; No key &middot; 2026/27</span>
               </button>
               <button
                 onClick={() => setDataSource("api-sports")}
@@ -1404,7 +1457,9 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold text-white">Submit Player Stats</h2>
             </div>
             <p className="text-muted-foreground text-sm mb-4">
-              {statsJson ? "Stats fetched from API - review and submit:" : "Paste JSON with player stats for the gameweek. Format:"}
+              {statsJson
+                ? "Stats fetched from API — Submit publishes the JSON automatically (no manual download/deploy), then commits on-chain."
+                : "Paste JSON with player stats for the gameweek. Format:"}
             </p>
             <pre className="text-xs bg-secondary/50 p-4 rounded-xl mb-4 overflow-x-auto text-muted-foreground border border-border">
 {`{

@@ -22,7 +22,7 @@ export const SP_WC_START_TOUR_ID = WC_TOUR_ID_BASE + 4;
 
 export const CURRENT_SEASON = {
   id: 1,
-  label: "2025/26",
+  label: "2026/27",
   enabled: true,
   wcStartTourId: SP_WC_START_TOUR_ID,
   /** WC tours in timeline order from R32 onward (same contract, ids 10004+). */

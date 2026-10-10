@@ -12,7 +12,7 @@ import {
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const EPL_LEAGUE_ID = 39;
-const SEASON = 2025; // 2025/2026 EPL season
+const SEASON = 2026; // 2026/2027 EPL season
 
 /**
  * Competition descriptor — lets one fetcher serve both EPL (FPL-id catalog) and the

@@ -14,12 +14,17 @@ import {
   buildClaimPrize,
   type GameweekSummary,
 } from "@/lib/chainClient";
+import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
 import {
   ownerHasPriorClaimPrize,
   tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
-import { calculateFantasyPointsWithRating } from "@/lib/scoring";
+import {
+  fplLivePlayersToStatsMap,
+  type FplLiveMappedPlayer,
+} from "@/lib/fplLiveStatsMap";
+import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
 import { formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { isWorldCupTour, WC_TOUR_ID_BASE } from "@/lib/worldcup";
@@ -244,7 +249,7 @@ function snapshotFromGw(
   rows: LabLeaderboardRow[],
   prizePoolLabel: string,
   prizeSymbol: string,
-  opts?: { isPreview?: boolean; entries?: number },
+  opts?: { isPreview?: boolean; isLive?: boolean; entries?: number },
 ): LabLeaderboardSnapshot {
   return {
     gameweek: gw.id,
@@ -253,8 +258,105 @@ function snapshotFromGw(
     prizeSymbol,
     entries: opts?.entries ?? gw.totalEntries,
     isPreview: opts?.isPreview ?? false,
+    isLive: opts?.isLive ?? false,
     rows,
   };
+}
+
+/** Closed-GW live stats: committed oracle file, then same-origin mirror, then FPL live. */
+async function loadClosedLiveStats(
+  gwId: number,
+  playerIds: number[],
+): Promise<Record<string, Record<string, unknown>>> {
+  let stats: Record<string, Record<string, unknown>> = {};
+
+  try {
+    stats = (await getGameweekStats(gwId, playerIds)) as Record<
+      string,
+      Record<string, unknown>
+    >;
+  } catch {
+    stats = {};
+  }
+
+  if (Object.keys(stats).length === 0) {
+    try {
+      const res = await fetch(`/data/stats/${gwId}.json`, { cache: "no-store" });
+      if (res.ok) {
+        const payload = (await res.json()) as {
+          players?: Record<string, Record<string, unknown>>;
+        };
+        const all = payload.players ?? {};
+        for (const id of playerIds) {
+          const row = all[String(id)] ?? all[id as unknown as string];
+          if (row) stats[String(id)] = row;
+        }
+      }
+    } catch {
+      /* optional local/prod mirror */
+    }
+  }
+
+  if (gwId >= 1 && gwId <= 38) {
+    try {
+      const fpl = await fetch(`/api/fpl-live?gw=${gwId}`).then((r) =>
+        r.ok ? r.json() : null,
+      );
+      const fplPlayers = fpl?.players as FplLiveMappedPlayer[] | undefined;
+      if (fplPlayers?.length) {
+        if (Object.keys(stats).length === 0) {
+          const full = fplLivePlayersToStatsMap(fplPlayers);
+          for (const id of playerIds) {
+            const row = full[String(id)];
+            if (row) stats[String(id)] = row;
+          }
+        } else {
+          stats = enrichStatsMapWithFplPlayers(stats, fplPlayers) as Record<
+            string,
+            Record<string, unknown>
+          >;
+        }
+      }
+    } catch {
+      /* keep commit / mirror only */
+    }
+  }
+
+  return stats;
+}
+
+function liveRowsFromScores(
+  scored: { owner: string; finalPoints: number }[],
+  getNickname: (addr: string) => string,
+  wallet?: string | null,
+): LabLeaderboardRow[] {
+  const sorted = [...scored].sort((a, b) => {
+    if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
+    return a.owner.localeCompare(b.owner);
+  });
+  const rows: LabLeaderboardRow[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i + 1;
+    while (j < sorted.length && sorted[j]!.finalPoints === sorted[i]!.finalPoints) {
+      j += 1;
+    }
+    const rank = i + 1;
+    for (let k = i; k < j; k++) {
+      const row = sorted[k]!;
+      rows.push({
+        rank,
+        owner: row.owner,
+        nickname: getNickname(row.owner),
+        finalPoints: row.finalPoints,
+        prizeAmount: 0,
+        claimed: false,
+        isYou: wallet ? tourOwnersMatch(row.owner, wallet) : false,
+      });
+    }
+    i = j;
+  }
+  return rows;
 }
 
 /** Owners registered for a GW — API first (browser RPC often fails), then chain. */
@@ -382,12 +484,53 @@ export function useResultsRoomData(): ResultsRoomData {
       if (!gw) return null;
       const poolLabel = prize.formatUnits(gw.prizePool);
 
-      // Open / closed: list registered managers (no points / no XI) until resolve.
-      if (gw.status !== "resolved") {
+      // Open: names only until the deadline.
+      if (gw.status === "open") {
         const owners = await fetchEntrantOwners(gwId);
         const rows = entrantsToRows(owners, getNickname, wallet);
         return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
           isPreview: true,
+          entries: owners.length || gw.totalEntries,
+        });
+      }
+
+      // Closed: live / partial scores from oracle stats (or FPL live) — not final prizes.
+      if (gw.status === "closed") {
+        const owners = await fetchEntrantOwners(gwId);
+        if (owners.length === 0) {
+          return snapshotFromGw(gw, [], poolLabel, prize.symbol, {
+            isPreview: true,
+            entries: gw.totalEntries,
+          });
+        }
+
+        const teams = await Promise.all(owners.map((addr) => getUserTeam(addr, gwId)));
+        const allIds = Array.from(
+          new Set(teams.flatMap((t) => t?.playerIds ?? [])),
+        );
+        const stats = await loadClosedLiveStats(gwId, allIds);
+        const hasStats = Object.keys(stats).length > 0;
+
+        if (!hasStats) {
+          const rows = entrantsToRows(owners, getNickname, wallet);
+          return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
+            isPreview: true,
+            entries: owners.length || gw.totalEntries,
+          });
+        }
+
+        const scored = owners.map((owner, i) => {
+          const team = teams[i];
+          if (!team) return { owner, finalPoints: 0 };
+          return {
+            owner,
+            finalPoints: previewTourPointsFromRegisteredTeam(team, stats),
+          };
+        });
+        const rows = liveRowsFromScores(scored, getNickname, wallet);
+        return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
+          isPreview: true,
+          isLive: true,
           entries: owners.length || gw.totalEntries,
         });
       }
@@ -517,12 +660,15 @@ export function useResultsRoomData(): ResultsRoomData {
     const skipTablet = skipTabletLoadGwRef.current === selectedGw;
     if (skipTablet) skipTabletLoadGwRef.current = null;
 
-    // Bootstrap already painted this live board — only refresh the wall.
+    // Bootstrap paints open/closed names fast. Always re-fetch closed boards so
+    // live/partial stats can upgrade PTS; skip only when open names are enough
+    // or we already have a live/resolved tablet for this GW.
+    const cur = tabletRef.current;
     const tabletAlready =
-      skipTablet ||
-      (tabletRef.current.gameweek === selectedGw &&
-        tabletRef.current.rows.length > 0 &&
-        tabletRef.current.status !== "resolved");
+      (skipTablet && cur.status === "open") ||
+      (cur.gameweek === selectedGw &&
+        cur.rows.length > 0 &&
+        (cur.status === "resolved" || cur.isLive === true));
 
     setClaimError(null);
     if (!tabletAlready) {
@@ -688,17 +834,15 @@ export function useResultsRoomData(): ResultsRoomData {
         );
         const starters = squad.slice(0, 11);
         const benchPlayers = squad.slice(11, 14);
-        // Points only matter once the GW has results; open/closed still show XI.
+        // Resolved + closed live: show per-player pts. Open: XI only.
         const stats =
-          tablet.status === "resolved"
-            ? await getGameweekStats(gwId, chainTeam.playerIds)
+          tablet.status === "resolved" || tablet.status === "closed"
+            ? await loadClosedLiveStats(gwId, chainTeam.playerIds)
             : {};
 
         const toLab = (p: (typeof squad)[number], slotIndex: number): LabSquadPlayer => {
-          const st = stats[p.id] as Record<string, unknown> | undefined;
-          const pts = st
-            ? calculateFantasyPointsWithRating(p, st)
-            : 0;
+          const st = stats[String(p.id)];
+          const pts = st ? calculateFantasyPointsWithRating(p, st) : 0;
           return {
             name: p.webName || p.name.split(" ").pop() || p.name,
             pts,
