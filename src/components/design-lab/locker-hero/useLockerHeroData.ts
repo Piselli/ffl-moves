@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { findOpenGameweek, getConfig } from "@/lib/chainClient";
+import { findActiveGameweek, getConfig } from "@/lib/chainClient";
 import type { Player } from "@/lib/types";
 
 type OpenGwPayload = {
@@ -10,23 +10,29 @@ type OpenGwPayload = {
   totalEntries: number;
 };
 
+function toPayload(gw: {
+  id: number;
+  prizePool: bigint | string | number;
+  totalEntries: number;
+}): OpenGwPayload {
+  return {
+    id: gw.id,
+    prizePool: typeof gw.prizePool === "bigint" ? gw.prizePool : BigInt(String(gw.prizePool ?? 0)),
+    totalEntries: Number(gw.totalEntries ?? 0),
+  };
+}
+
 /**
- * Prefer browser→Helius (Allowed Domains / Origin) on the client.
- * Fall back to `/api/solana/config` when direct RPC fails — server now
- * sends Origin so Vercel is not 403'd by Helius domain ACL.
+ * Current on-chain gameweek for hero prize pool — open *or* closed.
+ * Stays on the closed GW pool until admin opens the next one (config.current
+ * moves). Prefer browser→Helius; fall back to `/api/solana/config`.
  */
-async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
+async function loadActiveGameweek(): Promise<OpenGwPayload | null> {
   if (typeof window !== "undefined") {
     try {
       await getConfig();
-      const gw = await findOpenGameweek();
-      if (gw) {
-        return {
-          id: gw.id,
-          prizePool: gw.prizePool,
-          totalEntries: gw.totalEntries,
-        };
-      }
+      const gw = await findActiveGameweek();
+      if (gw && gw.id > 0) return toPayload(gw);
       return null;
     } catch (e) {
       console.warn("locker-hero direct RPC failed, trying server config:", e);
@@ -42,14 +48,21 @@ async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
           prizePool?: string | number;
           totalEntries?: number;
         } | null;
+        currentGameweek?: {
+          id?: number;
+          prizePool?: string | number;
+          totalEntries?: number;
+        } | null;
       };
-      const gw = payload.openGameweek;
+      // Prefer open when present; otherwise keep showing the closed current GW
+      // pool until the next tour is created/opened.
+      const gw = payload.openGameweek ?? payload.currentGameweek;
       if (gw && typeof gw.id === "number" && gw.id > 0) {
-        return {
+        return toPayload({
           id: gw.id,
-          prizePool: BigInt(String(gw.prizePool ?? 0)),
-          totalEntries: Number(gw.totalEntries ?? 0),
-        };
+          prizePool: gw.prizePool ?? 0,
+          totalEntries: gw.totalEntries ?? 0,
+        });
       }
       return null;
     }
@@ -59,16 +72,12 @@ async function loadOpenGameweek(): Promise<OpenGwPayload | null> {
 
   if (typeof window === "undefined") {
     await getConfig();
-    const gw = await findOpenGameweek();
-    if (!gw) return null;
-    return {
-      id: gw.id,
-      prizePool: gw.prizePool,
-      totalEntries: gw.totalEntries,
-    };
+    const gw = await findActiveGameweek();
+    if (!gw || gw.id <= 0) return null;
+    return toPayload(gw);
   }
 
-  throw new Error("Could not load open gameweek from RPC or server.");
+  throw new Error("Could not load active gameweek from RPC or server.");
 }
 
 let playersCache: Player[] = [];
@@ -171,7 +180,7 @@ export function useLockerHeroData() {
   const refreshOpenGameweek = useCallback(async () => {
     const epoch = ++chainEpochRef.current;
     try {
-      const gw = await loadOpenGameweek();
+      const gw = await loadActiveGameweek();
       if (epoch !== chainEpochRef.current) return;
       applyOpenGw(gw);
     } catch (e) {
@@ -188,7 +197,7 @@ export function useLockerHeroData() {
       attempt += 1;
       const epoch = ++chainEpochRef.current;
       try {
-        const gw = await loadOpenGameweek();
+        const gw = await loadActiveGameweek();
         if (cancelled || epoch !== chainEpochRef.current) return;
         applyOpenGw(gw);
         setChainLoading(false);
