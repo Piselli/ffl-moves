@@ -20,6 +20,7 @@ import { fitPitchName } from "@/components/design-lab/locker-hero/pitchChipName"
 import { pl2627HomeKit } from "@/components/design-lab/locker-hero/pl2627HomeKits";
 import { getTypeface } from "@/components/design-lab/locker-hero/lockerTypefaces";
 import { PitchChipCutout } from "@/components/design-lab/locker-hero/PitchChipCutout";
+import { PlayerPointsBreakdownTooltip } from "@/components/PlayerPointsBreakdownTooltip";
 import {
   DEFAULT_FORMATION,
   formationLanes,
@@ -34,6 +35,7 @@ import type {
   LabSquadPlayer,
 } from "./mockData";
 import { LAB_LEADERBOARD } from "./mockData";
+import { scoringPlayerFromLab } from "./xiBreakdownHelpers";
 
 /** Formation lanes FWD top → GK bottom — driven by scheme (4-3-3 / 3-4-3). */
 
@@ -1009,17 +1011,26 @@ function ResultsPitchChip({
       )}
     >
       {showPts ? (
-        <span
+        <PlayerPointsBreakdownTooltip
           className={cn(
-            "absolute z-20 flex items-center justify-center rounded-full bg-white font-black tabular-nums leading-none text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
-            badge,
-            compact ? "-left-0.5" : "-left-1",
+            "absolute z-20",
+            compact ? "-left-0.5 -top-0.5" : "-left-1 -top-1",
           )}
-          title={player.isCaptain ? "Points (captain ×2)" : "Points"}
-          aria-label={`${ptsLabel} points`}
+          scoringPlayer={scoringPlayerFromLab(player)}
+          stats={player.stats}
+          total={Number.isFinite(player.pts) ? player.pts : 0}
+          subNote={player.isCaptain ? "Captain ×2 in total" : player.subNote}
         >
-          {ptsLabel}
-        </span>
+          <span
+            className={cn(
+              "flex items-center justify-center rounded-full bg-white font-black tabular-nums leading-none text-black shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
+              compact ? "h-4 min-w-4 px-0.5 text-[8px]" : "h-5 min-w-5 px-0.5 text-[10px]",
+            )}
+            aria-label={`${ptsLabel} points — hover for breakdown`}
+          >
+            {ptsLabel}
+          </span>
+        </PlayerPointsBreakdownTooltip>
       ) : null}
       {player.isCaptain ? (
         <span

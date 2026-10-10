@@ -32,8 +32,33 @@ interface CompetitionStatsConfig {
   includeGoalsConceded?: boolean;
 }
 
-// Player apiId -> internal mapping, cached per catalog url.
-const playerMappingsByUrl = new Map<string, Map<number, { id: number; position: string }>>();
+type PlayerMapping = { id: number; position: string; team: string };
+
+// Player apiId -> candidate FPL rows (name collisions like Palmer/Chelsea vs Palmer/Ipswich).
+const playerMappingsByUrl = new Map<string, Map<number, PlayerMapping[]>>();
+
+function normTeamName(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** Pick the catalog row for this API-Sports player on this fixture team. */
+function resolveMapping(
+  candidates: PlayerMapping[] | undefined,
+  apiTeamName: string,
+): PlayerMapping | undefined {
+  if (!candidates?.length) return undefined;
+  if (candidates.length === 1) return candidates[0];
+  const want = normTeamName(apiTeamName);
+  const byTeam = candidates.find((c) => {
+    const t = normTeamName(c.team);
+    return t === want || t.includes(want) || want.includes(t);
+  });
+  return byTeam ?? candidates[0];
+}
 
 interface ApiFixture {
   fixture: { id: number; status: { short: string } };
@@ -94,14 +119,16 @@ export interface GameweekStatsResult {
 /**
  * API-Sports player id → on-chain / squad catalog id (+ position).
  * EPL squads use FPL element ids; `/api/players` exposes those as `id` with `apiId`.
+ * Multiple FPL rows may share one apiId after bad atlas merges — keep all candidates
+ * and disambiguate by fixture team name when fetching.
  */
 async function loadPlayerMappings(
   url = "/api/players",
-): Promise<Map<number, { id: number; position: string }>> {
+): Promise<Map<number, PlayerMapping[]>> {
   const cached = playerMappingsByUrl.get(url);
   if (cached) return cached;
 
-  const mappings = new Map<number, { id: number; position: string }>();
+  const mappings = new Map<number, PlayerMapping[]>();
   try {
     const response = await fetch(url, { cache: "no-store" });
     const players = await response.json();
@@ -121,7 +148,14 @@ async function loadPlayerMappings(
               : 0;
         if (apiId <= 0) continue;
         const position = String(player?.position || "MID");
-        mappings.set(apiId, { id, position });
+        const team = String(player?.team || "");
+        const row: PlayerMapping = { id, position, team };
+        const list = mappings.get(apiId);
+        if (!list) {
+          mappings.set(apiId, [row]);
+        } else if (!list.some((x) => x.id === id)) {
+          list.push(row);
+        }
       }
     }
   } catch (error) {
@@ -282,7 +316,10 @@ async function fetchStatsForCompetition(
             const stats = playerData.statistics[0];
             if (!stats) continue;
 
-            const mapping = mappings.get(playerData.player.id);
+            const mapping = resolveMapping(
+              mappings.get(playerData.player.id),
+              String(teamData.team?.name || ""),
+            );
             const minsRaw = stats.games.minutes ?? 0;
             if (!mapping) {
               if (minsRaw > 0) unmappedWithMinutes += 1;
@@ -460,6 +497,7 @@ export async function checkApiStatus(apiKey: string): Promise<{
   requestsUsed: number;
   requestsLimit: number;
   requestsRemaining: number;
+  plan?: string;
   warning?: string;
   error?: string;
 }> {
@@ -484,6 +522,10 @@ export async function checkApiStatus(apiKey: string): Promise<{
       const used = data.response.requests?.current || 0;
       const limit = data.response.requests?.limit_day || 100;
       const remaining = limit - used;
+      const plan =
+        typeof data.response.subscription?.plan === "string"
+          ? data.response.subscription.plan
+          : undefined;
 
       let warning: string | undefined;
       if (remaining < 15) {
@@ -495,6 +537,7 @@ export async function checkApiStatus(apiKey: string): Promise<{
         requestsUsed: used,
         requestsLimit: limit,
         requestsRemaining: remaining,
+        plan,
         warning,
       };
     }

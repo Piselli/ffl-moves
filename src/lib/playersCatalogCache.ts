@@ -8,7 +8,7 @@ import { Redis } from "@upstash/redis";
 import type { Player } from "@/lib/types";
 
 /** Bump when apiId bridging / catalog shape changes so stale Redis rows are dropped. */
-const REDIS_KEY = "fpl:players-catalog:v3";
+const REDIS_KEY = "fpl:players-catalog:v4";
 /** Serve from memory without hitting FPL. */
 export const PLAYERS_FRESH_MS = 5 * 60 * 1000;
 /** After fresh TTL, still serve stale while a background refresh runs. */

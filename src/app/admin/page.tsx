@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   getConfig,
@@ -125,14 +125,21 @@ export default function AdminPage() {
   const [feeEntryMove, setFeeEntryMove] = useState("");
 
   // API states
-  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("fpl");
+  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("api-sports");
   const [apiKey, setApiKey] = useState("");
+  const [apiKeySource, setApiKeySource] = useState<"env" | "storage" | "manual" | null>(null);
   const [fetchGameweek, setFetchGameweek] = useState("");
   const [isFetchingApi, setIsFetchingApi] = useState(false);
-  const [apiStatus, setApiStatus] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+  const [apiStatus, setApiStatus] = useState<{
+    used: number;
+    limit: number;
+    remaining: number;
+    plan?: string;
+  } | null>(null);
   const [apiWarning, setApiWarning] = useState("");
   const [fetchedFixtures, setFetchedFixtures] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState("");
+  const envApiKeyRef = useRef<string | null>(null);
 
   const loadChainConfig = useCallback(async () => {
     setIsLoading(true);
@@ -189,20 +196,76 @@ export default function AdminPage() {
 
   useEffect(() => {
     void loadChainConfig();
+
+    const STORAGE_KEY = "movematch_api_sports_key";
+    const LEGACY_STORAGE_KEY = "fantasy_epl_api_key";
+    let cancelled = false;
+    const timers: number[] = [];
+
+    const applyKey = (key: string, source: "env" | "storage") => {
+      if (cancelled) return;
+      setApiKey(key);
+      setApiKeySource(source);
+      try {
+        localStorage.setItem(STORAGE_KEY, key);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        /* private mode etc. */
+      }
+    };
+
+    (async () => {
+      // Prefer .env.local `API_SPORTS_KEY` on localhost.
+      // Re-apply a few times — browser password managers often overwrite type=password after paint.
+      try {
+        const res = await fetch("/api/admin/api-sports-key", { cache: "no-store" });
+        if (res.ok) {
+          const payload = (await res.json()) as { key?: string | null };
+          const fromEnv = typeof payload.key === "string" ? payload.key.trim() : "";
+          if (fromEnv) {
+            envApiKeyRef.current = fromEnv;
+            applyKey(fromEnv, "env");
+            for (const ms of [50, 200, 600, 1500]) {
+              timers.push(
+                window.setTimeout(() => {
+                  if (cancelled) return;
+                  if (envApiKeyRef.current) applyKey(envApiKeyRef.current, "env");
+                }, ms),
+              );
+            }
+            return;
+          }
+        }
+      } catch {
+        /* fall through to localStorage */
+      }
+      try {
+        const saved =
+          localStorage.getItem(STORAGE_KEY) ||
+          localStorage.getItem(LEGACY_STORAGE_KEY) ||
+          "";
+        if (saved) applyKey(saved, "storage");
+      } catch {
+        /* private mode etc. */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const t of timers) window.clearTimeout(t);
+    };
+  }, [loadChainConfig]);
+
+  // Persist manual edits (skip while we are forcing the env key).
+  useEffect(() => {
+    if (!apiKey || apiKeySource === "env") return;
     try {
-      const savedApiKey = localStorage.getItem("fantasy_epl_api_key");
-      if (savedApiKey) setApiKey(savedApiKey);
+      localStorage.setItem("movematch_api_sports_key", apiKey);
+      localStorage.removeItem("fantasy_epl_api_key");
     } catch {
       /* private mode etc. */
     }
-  }, [loadChainConfig]);
-
-  // Save API key to localStorage when it changes
-  useEffect(() => {
-    if (apiKey) {
-      localStorage.setItem("fantasy_epl_api_key", apiKey);
-    }
-  }, [apiKey]);
+  }, [apiKey, apiKeySource]);
 
   useEffect(() => {
     if (currentGameweek?.id != null) {
@@ -217,15 +280,19 @@ export default function AdminPage() {
   }, [config, prize]);
 
   const handleCheckApiStatus = async () => {
-    if (!apiKey) return;
-    const status = await checkApiStatus(apiKey);
+    const key = (envApiKeyRef.current || apiKey).trim();
+    if (!key) return;
+    if (envApiKeyRef.current && key !== apiKey) setApiKey(envApiKeyRef.current);
+    const status = await checkApiStatus(key);
     if (status.valid) {
       setApiStatus({
         used: status.requestsUsed,
         limit: status.requestsLimit,
         remaining: status.requestsRemaining,
+        plan: status.plan,
       });
       setApiWarning(status.warning || "");
+      setFetchError("");
     } else {
       setFetchError(status.error || "Invalid API key");
       setApiWarning("");
@@ -234,7 +301,9 @@ export default function AdminPage() {
 
   const handleFetchFromApi = async () => {
     if (!fetchGameweek) return;
-    if (dataSource === "api-sports" && !apiKey) return;
+    const sportsKey = (envApiKeyRef.current || apiKey).trim();
+    if (dataSource === "api-sports" && !sportsKey) return;
+    if (envApiKeyRef.current && sportsKey !== apiKey) setApiKey(envApiKeyRef.current);
 
     setIsFetchingApi(true);
     setFetchError("");
@@ -244,7 +313,7 @@ export default function AdminPage() {
       const result: GameweekStatsResult =
         dataSource === "fpl"
           ? await fetchGameweekStatsFPL(parseInt(fetchGameweek))
-          : await fetchGameweekStats(apiKey, parseInt(fetchGameweek));
+          : await fetchGameweekStats(sportsKey, parseInt(fetchGameweek));
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
@@ -602,27 +671,36 @@ export default function AdminPage() {
         throw new Error(publishBody.error || `Stats publish failed (${publishRes.status})`);
       }
 
-      // 2) On-chain commit (or refresh after program upgrade with init_if_needed).
+      // 2) On-chain commit. Mainnet still uses `init` (not init_if_needed) — a second
+      // commit hits System 0x0 and Phantom shows "Simulation failed" even with SOL.
+      // If the PDA already exists, skip the wallet popup and only refresh the JSON.
       const existing = await getStatsCommit(gwId);
       let chainNote: string;
-      try {
-        await signAndSubmit(await buildCommitStats(account.address, gwId, canonicalJson, uri));
-        chainNote = existing
-          ? "On-chain stats commit updated."
-          : "On-chain stats commit created.";
-      } catch (chainErr: unknown) {
-        const msg = formatTxError(chainErr);
-        // Current mainnet program uses `init` only — second submit hits System 0x0.
-        const alreadyExists =
-          !!existing ||
-          /0x0\b|already in use|custom program error:\s*0x0/i.test(
-            `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`,
-          );
-        if (!alreadyExists) throw chainErr;
+      if (existing) {
         chainNote =
           "Live stats file published. On-chain commit already exists for this GW " +
           "(re-commit needs the program upgrade with init_if_needed). " +
-          "Leaderboard can still read the published file.";
+          "Leaderboard reads the published file — no new signature needed.";
+      } else {
+        try {
+          await signAndSubmit(
+            await buildCommitStats(account.address, gwId, canonicalJson, uri),
+          );
+          chainNote = "On-chain stats commit created.";
+        } catch (chainErr: unknown) {
+          const msg = formatTxError(chainErr);
+          if (
+            /0x0\b|already in use|custom program error:\s*0x0/i.test(
+              `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`,
+            )
+          ) {
+            chainNote =
+              "Live stats file published. On-chain commit already exists for this GW. " +
+              "Leaderboard can still read the published file.";
+          } else {
+            throw chainErr;
+          }
+        }
       }
 
       const where = publishBody.durable
@@ -1351,10 +1429,23 @@ export default function AdminPage() {
                   <label className="block text-sm text-muted-foreground mb-2">API Key</label>
                   <div className="flex gap-3">
                     <input
-                      type="password"
+                      type="text"
+                      inputMode="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      name="mm-oracle-apisports-key"
+                      data-1p-ignore="true"
+                      data-lpignore="true"
+                      data-form-type="other"
                       placeholder="Enter your API-Sports key"
                       value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
+                      onChange={(e) => {
+                        envApiKeyRef.current = null;
+                        setApiKeySource("manual");
+                        setApiKey(e.target.value.trim());
+                      }}
                       className="flex-1 px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border border-border font-mono text-sm"
                     />
                     <button
@@ -1365,9 +1456,16 @@ export default function AdminPage() {
                       Check
                     </button>
                   </div>
+                  {apiKeySource === "env" ? (
+                    <p className="mt-2 text-xs text-emerald-400/90">
+                      Loaded from <span className="font-mono">.env.local</span> (API_SPORTS_KEY)
+                      {apiKey ? ` · …${apiKey.slice(-6)}` : ""}
+                    </p>
+                  ) : null}
                   {apiStatus && (
                     <div className="mt-2 space-y-1">
                       <p className="text-xs text-muted-foreground">
+                        {apiStatus.plan ? `${apiStatus.plan} · ` : ""}
                         API Requests: {apiStatus.used} / {apiStatus.limit} today ({apiStatus.remaining} remaining)
                       </p>
                       {apiWarning && (
