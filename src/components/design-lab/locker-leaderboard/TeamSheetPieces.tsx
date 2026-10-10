@@ -1044,6 +1044,19 @@ function ResultsPitchChip({
           C
         </span>
       ) : null}
+      {player.autoSubbed ? (
+        <span
+          className={cn(
+            "absolute z-20 rounded-sm bg-[#00f948] px-0.5 font-black uppercase leading-none text-black shadow-[0_1px_3px_rgba(0,0,0,0.5)]",
+            compact
+              ? "-bottom-0.5 left-1/2 -translate-x-1/2 text-[6px]"
+              : "-bottom-1 left-1/2 -translate-x-1/2 text-[7px]",
+          )}
+          title={player.subNote ?? "Auto-sub"}
+        >
+          SUB
+        </span>
+      ) : null}
       <ResultsChipCutout player={player} size={cutoutSize} />
       <span
         className="flex flex-col overflow-hidden rounded-[3px]"
@@ -1051,6 +1064,7 @@ function ResultsPitchChip({
           width: plateW,
           background: footer.bg,
           boxShadow: "0 2px 6px rgba(0,0,0,0.45)",
+          opacity: player.autoSubUsed ? 0.55 : 1,
         }}
       >
         <span
@@ -1079,7 +1093,7 @@ function ResultsPitchChip({
             fontWeight: 700,
           }}
         >
-          {club}
+          {player.autoSubUsed ? "↑ XI" : club}
         </span>
       </span>
     </span>

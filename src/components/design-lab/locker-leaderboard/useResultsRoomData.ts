@@ -15,7 +15,11 @@ import {
   NO_CAPTAIN_INDEX,
   type GameweekSummary,
 } from "@/lib/chainClient";
-import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
+import {
+  chainSlotDisplayPoints,
+  computeChainAlignedXiBreakdown,
+  previewTourPointsFromRegisteredTeam,
+} from "@/lib/chainAlignedScoring";
 import {
   ownerHasPriorClaimPrize,
   tourOwnersMatch,
@@ -31,6 +35,7 @@ import { formatTxError } from "@/lib/utils";
 import { MIN_PUBLIC_LEADERBOARD_GW } from "@/lib/constants";
 import { isWorldCupTour, WC_TOUR_ID_BASE } from "@/lib/worldcup";
 import type { Player, TeamResult } from "@/lib/types";
+import { useSiteMessages } from "@/i18n/LocaleProvider";
 import type { SeasonLeaderboardPayload } from "@/lib/seasonPoints";
 import type { HonorBoardPayload } from "@/lib/honorBoard";
 import {
@@ -441,6 +446,8 @@ export function useResultsRoomData(): ResultsRoomData {
   const { account, connected, signAndSubmit } = useWallet();
   const { getNickname } = useNickname();
   const prize = usePrizeAsset();
+  const site = useSiteMessages();
+  const viaSubLabel = site.pages.gameweek.registeredViaSub;
   const wallet = account?.address?.toString() ?? null;
 
   const [loading, setLoading] = useState(true);
@@ -849,11 +856,79 @@ export function useResultsRoomData(): ResultsRoomData {
             ? chainTeam.captainIndex
             : null;
 
-        const toLab = (p: (typeof squad)[number], slotIndex: number): LabSquadPlayer => {
+        const hasLiveScores =
+          tablet.status === "resolved" || tablet.status === "closed";
+        const aligned =
+          hasLiveScores && Object.keys(stats).length > 0
+            ? computeChainAlignedXiBreakdown(
+                starters,
+                benchPlayers,
+                stats,
+                captainIndex ?? -1,
+              )
+            : null;
+
+        const usedSubIds = new Set<number>();
+        if (aligned) {
+          for (const slot of aligned.slots) {
+            if (slot.substituted) usedSubIds.add(slot.effectivePlayer.id);
+          }
+        }
+
+        const toLabPlayer = (
+          p: (typeof squad)[number],
+          slotIndex: number,
+          opts: {
+            pts: number;
+            stats?: Record<string, unknown>;
+            subNote?: string | null;
+            autoSubbed?: boolean;
+            autoSubUsed?: boolean;
+            isCaptain?: boolean;
+          },
+        ): LabSquadPlayer => ({
+          name: p.webName || p.name.split(" ").pop() || p.name,
+          pts: opts.pts,
+          teamId: p.teamId,
+          photo: p.photo || p.imageUrl,
+          fplPhotoCode: p.fplPhotoCode,
+          apiId: p.apiId,
+          positionId: p.positionId,
+          position: p.position,
+          slotIndex,
+          isStarter: slotIndex < 11,
+          isCaptain: opts.isCaptain,
+          subNote: opts.subNote ?? null,
+          autoSubbed: opts.autoSubbed,
+          autoSubUsed: opts.autoSubUsed,
+          stats: opts.stats,
+        });
+
+        const xi: LabSquadPlayer[] = starters.map((p, i) => {
+          const isCaptain = captainIndex != null && i === captainIndex;
+          const slot = aligned?.slots.find((s) => s.slotIndex === i);
+          if (slot) {
+            let pts = chainSlotDisplayPoints(slot);
+            // Captain ×2 only when the *registered* starter played (same as chain).
+            if (isCaptain && !slot.substituted && pts > 0) pts *= 2;
+            const effStats = stats[String(slot.effectivePlayer.id)];
+            return toLabPlayer(p, i, {
+              pts,
+              stats: effStats,
+              isCaptain,
+              autoSubbed: slot.substituted,
+              subNote: slot.substituted
+                ? viaSubLabel(
+                    slot.effectivePlayer.webName ||
+                      slot.effectivePlayer.name.split(" ").pop() ||
+                      slot.effectivePlayer.name,
+                    chainSlotDisplayPoints(slot),
+                  )
+                : null,
+            });
+          }
           const st = stats[String(p.id)];
-          const isCaptain = captainIndex != null && slotIndex === captainIndex;
           let pts = st ? calculateFantasyPointsWithRating(p, st) : 0;
-          // Match chain-aligned captain: ×2 only when the registered starter played.
           if (
             isCaptain &&
             st &&
@@ -861,24 +936,21 @@ export function useResultsRoomData(): ResultsRoomData {
           ) {
             pts *= 2;
           }
-          return {
-            name: p.webName || p.name.split(" ").pop() || p.name,
-            pts,
-            teamId: p.teamId,
-            photo: p.photo || p.imageUrl,
-            fplPhotoCode: p.fplPhotoCode,
-            apiId: p.apiId,
-            positionId: p.positionId,
-            position: p.position,
-            slotIndex,
-            isStarter: slotIndex < 11,
-            isCaptain,
-            stats: st,
-          };
-        };
+          return toLabPlayer(p, i, { pts, stats: st, isCaptain });
+        });
 
-        const xi: LabSquadPlayer[] = starters.map((p, i) => toLab(p, i));
-        const bench: LabSquadPlayer[] = benchPlayers.map((p, i) => toLab(p, 11 + i));
+        const bench: LabSquadPlayer[] = benchPlayers.map((p, i) => {
+          const st = stats[String(p.id)];
+          const pts = st ? calculateFantasyPointsWithRating(p, st) : 0;
+          const used = usedSubIds.has(p.id);
+          return toLabPlayer(p, 11 + i, {
+            pts,
+            stats: st,
+            autoSubUsed: used,
+            subNote: used ? "↑ XI" : null,
+          });
+        });
+
         const payload: XiPayload = {
           xi,
           bench,
@@ -891,7 +963,7 @@ export function useResultsRoomData(): ResultsRoomData {
         return null;
       }
     },
-    [source, tablet.gameweek, tablet.rows, tablet.status, wallet],
+    [source, tablet.gameweek, tablet.rows, tablet.status, viaSubLabel, wallet],
   );
 
   return {

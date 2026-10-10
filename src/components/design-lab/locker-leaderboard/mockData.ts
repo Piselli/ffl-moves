@@ -21,7 +21,11 @@ export type LabSquadPlayer = {
   isCaptain?: boolean;
   /** Auto-sub / effective scorer note */
   subNote?: string | null;
-  /** GW stat blob for points breakdown */
+  /** Starter DNP — bench player’s points count in this slot */
+  autoSubbed?: boolean;
+  /** Bench player who covered a DNP starter this GW */
+  autoSubUsed?: boolean;
+  /** GW stat blob for points breakdown (effective scorer when auto-subbed) */
   stats?: Record<string, unknown>;
 };
 
