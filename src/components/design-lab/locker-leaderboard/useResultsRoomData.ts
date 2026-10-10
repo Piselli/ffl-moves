@@ -848,13 +848,37 @@ export function useResultsRoomData(): ResultsRoomData {
             ? await loadClosedLiveStats(gwId, chainTeam.playerIds)
             : {};
 
-        const captainIndex =
+        let captainIndex =
           Number.isInteger(chainTeam.captainIndex) &&
           chainTeam.captainIndex >= 0 &&
           chainTeam.captainIndex <= 10 &&
           chainTeam.captainIndex !== NO_CAPTAIN_INDEX
             ? chainTeam.captainIndex
             : null;
+        // Own squad: legacy Entry (167B) may still miss captain after tx scan — use pick meta.
+        if (captainIndex == null && isOwn && typeof window !== "undefined") {
+          try {
+            const raw = window.localStorage.getItem(
+              `ffl_captain_meta_v1_gw${gwId}_${wallet}`,
+            );
+            if (raw) {
+              const meta = JSON.parse(raw) as { playerId?: number; index?: number };
+              const idx = meta.index;
+              const pid = meta.playerId;
+              if (
+                typeof idx === "number" &&
+                idx >= 0 &&
+                idx <= 10 &&
+                starters[idx] &&
+                (pid == null || starters[idx]!.id === pid)
+              ) {
+                captainIndex = idx;
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
 
         const hasLiveScores =
           tablet.status === "resolved" || tablet.status === "closed";

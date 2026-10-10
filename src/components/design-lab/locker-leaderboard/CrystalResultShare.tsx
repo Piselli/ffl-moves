@@ -166,8 +166,16 @@ function PlateStack({
   return (
     <PlateButton player={player} select={select} reduce={reduce} delay={delay}>
       <div className={plateShell(on, SLATE_SHELL, m.isSub)}>
-        <div className="relative z-[2] flex h-[18px] shrink-0 items-center justify-center rounded-t-[8px] bg-white px-1">
-          <span className="truncate text-[11px] font-black uppercase leading-none tracking-wide text-[#0a0a0a]">
+        <div className="relative z-[2] flex h-[18px] shrink-0 items-center justify-center gap-1 rounded-t-[8px] bg-white px-1">
+          {player.isCaptain ? (
+            <span
+              className="flex h-[12px] w-[12px] shrink-0 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black leading-none text-black shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+              aria-label="Captain"
+            >
+              C
+            </span>
+          ) : null}
+          <span className="min-w-0 truncate text-[11px] font-black uppercase leading-none tracking-wide text-[#0a0a0a]">
             {m.sur}
           </span>
         </div>

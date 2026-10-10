@@ -100,8 +100,16 @@ function Dock({
   return (
     <div className="relative z-[2] w-full shrink-0">
       {/* Name */}
-      <div className="flex h-[16px] items-center justify-center overflow-hidden rounded-t-[4px] bg-white px-1">
-        <span className="truncate text-center text-[10px] font-black uppercase leading-none tracking-wide text-[#0a0a0a]">
+      <div className="flex h-[16px] items-center justify-center gap-0.5 overflow-hidden rounded-t-[4px] bg-white px-1">
+        {player.isCaptain ? (
+          <span
+            className="flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-full bg-amber-400 text-[7px] font-black leading-none text-black"
+            aria-label="Captain"
+          >
+            C
+          </span>
+        ) : null}
+        <span className="min-w-0 truncate text-center text-[10px] font-black uppercase leading-none tracking-wide text-[#0a0a0a]">
           {surname}
         </span>
       </div>
