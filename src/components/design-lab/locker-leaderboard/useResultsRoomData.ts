@@ -907,6 +907,7 @@ export function useResultsRoomData(): ResultsRoomData {
             stats?: Record<string, unknown>;
             subNote?: string | null;
             autoSubbed?: boolean;
+            autoSubInName?: string | null;
             autoSubUsed?: boolean;
             isCaptain?: boolean;
           },
@@ -924,6 +925,7 @@ export function useResultsRoomData(): ResultsRoomData {
           isCaptain: opts.isCaptain,
           subNote: opts.subNote ?? null,
           autoSubbed: opts.autoSubbed,
+          autoSubInName: opts.autoSubInName ?? null,
           autoSubUsed: opts.autoSubUsed,
           stats: opts.stats,
         });
@@ -936,18 +938,19 @@ export function useResultsRoomData(): ResultsRoomData {
             // Captain ×2 only when the *registered* starter played (same as chain).
             if (isCaptain && !slot.substituted && pts > 0) pts *= 2;
             const effStats = stats[String(slot.effectivePlayer.id)];
+            const inName = slot.substituted
+              ? slot.effectivePlayer.webName ||
+                slot.effectivePlayer.name.split(" ").pop() ||
+                slot.effectivePlayer.name
+              : null;
             return toLabPlayer(p, i, {
               pts,
               stats: effStats,
               isCaptain,
               autoSubbed: slot.substituted,
+              autoSubInName: inName,
               subNote: slot.substituted
-                ? viaSubLabel(
-                    slot.effectivePlayer.webName ||
-                      slot.effectivePlayer.name.split(" ").pop() ||
-                      slot.effectivePlayer.name,
-                    chainSlotDisplayPoints(slot),
-                  )
+                ? viaSubLabel(inName!, chainSlotDisplayPoints(slot))
                 : null,
             });
           }

@@ -23,6 +23,8 @@ export type LabSquadPlayer = {
   subNote?: string | null;
   /** Starter DNP — bench player’s points count in this slot */
   autoSubbed?: boolean;
+  /** Surname/webName of the bench player counting in this slot */
+  autoSubInName?: string | null;
   /** Bench player who covered a DNP starter this GW */
   autoSubUsed?: boolean;
   /** GW stat blob for points breakdown (effective scorer when auto-subbed) */

@@ -1019,7 +1019,19 @@ function ResultsPitchChip({
           scoringPlayer={scoringPlayerFromLab(player)}
           stats={player.stats}
           total={Number.isFinite(player.pts) ? player.pts : 0}
-          subNote={player.isCaptain ? "Captain ×2 in total" : player.subNote}
+          autoSub={
+            player.autoSubbed && player.autoSubInName
+              ? { outName: player.name, inName: player.autoSubInName }
+              : null
+          }
+          captainNote={
+            player.isCaptain && !player.autoSubbed
+              ? "Captain ×2 in total"
+              : player.isCaptain && player.autoSubbed
+                ? "Captain DNP — no ×2"
+                : null
+          }
+          subNote={player.subNote}
         >
           <span
             className={cn(
@@ -1045,17 +1057,49 @@ function ResultsPitchChip({
         </span>
       ) : null}
       {player.autoSubbed ? (
-        <span
+        <PlayerPointsBreakdownTooltip
           className={cn(
-            "absolute z-20 rounded-sm bg-[#00f948] px-0.5 font-black uppercase leading-none text-black shadow-[0_1px_3px_rgba(0,0,0,0.5)]",
-            compact
-              ? "-bottom-0.5 left-1/2 -translate-x-1/2 text-[6px]"
-              : "-bottom-1 left-1/2 -translate-x-1/2 text-[7px]",
+            "absolute z-20 left-1/2 -translate-x-1/2",
+            compact ? "-bottom-0.5" : "-bottom-1",
           )}
-          title={player.subNote ?? "Auto-sub"}
+          scoringPlayer={scoringPlayerFromLab(player)}
+          stats={player.stats}
+          total={Number.isFinite(player.pts) ? player.pts : 0}
+          autoSub={
+            player.autoSubInName
+              ? { outName: player.name, inName: player.autoSubInName }
+              : null
+          }
+          captainNote={
+            player.isCaptain ? "Captain DNP — no ×2" : null
+          }
         >
-          SUB
-        </span>
+          {/* Broadcast-style in/out arrows — not a neon SUB pill */}
+          <span
+            className={cn(
+              "flex items-center gap-px rounded-full border border-white/25 bg-black/80 px-1 py-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.55)] backdrop-blur-sm",
+              compact ? "h-[14px]" : "h-[16px]",
+            )}
+            aria-label={
+              player.autoSubInName
+                ? `Auto-sub: ${player.name} out, ${player.autoSubInName} in`
+                : "Auto-sub"
+            }
+          >
+            <span
+              aria-hidden
+              className="flex h-[10px] w-[10px] items-center justify-center rounded-full bg-rose-500 text-[8px] font-black leading-none text-white"
+            >
+              ↓
+            </span>
+            <span
+              aria-hidden
+              className="flex h-[10px] w-[10px] items-center justify-center rounded-full bg-emerald-400 text-[8px] font-black leading-none text-black"
+            >
+              ↑
+            </span>
+          </span>
+        </PlayerPointsBreakdownTooltip>
       ) : null}
       <ResultsChipCutout player={player} size={cutoutSize} />
       <span
@@ -1093,7 +1137,14 @@ function ResultsPitchChip({
             fontWeight: 700,
           }}
         >
-          {player.autoSubUsed ? "↑ XI" : club}
+          {player.autoSubUsed ? (
+            <span className="inline-flex items-center gap-0.5">
+              <span className="text-emerald-300">↑</span>
+              <span>in</span>
+            </span>
+          ) : (
+            club
+          )}
         </span>
       </span>
     </span>

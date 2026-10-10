@@ -12,6 +12,13 @@ import { GK_SAVE_BATCH } from "@/lib/scoring-rules";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { cn } from "@/lib/utils";
 
+export type AutoSubSwap = {
+  /** Registered starter who did not play */
+  outName: string;
+  /** Bench player whose points count */
+  inName: string;
+};
+
 type PlayerPointsBreakdownTooltipProps = {
   children: ReactNode;
   scoringPlayer: ScoringPlayer;
@@ -19,6 +26,10 @@ type PlayerPointsBreakdownTooltipProps = {
   total: number;
   /** Shown when auto-sub stats count toward this slot */
   subNote?: string | null;
+  /** Structured auto-sub swap for broadcast-style header */
+  autoSub?: AutoSubSwap | null;
+  /** Extra line under total (e.g. captain note) */
+  captainNote?: string | null;
   disabled?: boolean;
   className?: string;
 };
@@ -39,22 +50,62 @@ function formatLineLabel(
   return base;
 }
 
+function SwapBoard({ outName, inName }: AutoSubSwap) {
+  return (
+    <div className="mb-2.5 rounded-xl border border-white/12 bg-black/35 px-2.5 py-2">
+      <p className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.16em] text-white/35">
+        Auto-sub
+      </p>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/90 text-[10px] font-black text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
+            >
+              ↓
+            </span>
+            <span className="truncate text-[11px] font-semibold text-white/45 line-through decoration-white/25">
+              {outName}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-black text-black shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
+            >
+              ↑
+            </span>
+            <span className="truncate text-[12px] font-bold text-white">
+              {inName}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Form8 crystal sheet — same language as Results tablet / locker glass. */
 function BreakdownPanel({
   lines,
   total,
   subNote,
+  autoSub,
+  captainNote,
 }: {
   lines: PointsBreakdownLine[];
   total: number;
   subNote?: string | null;
+  autoSub?: AutoSubSwap | null;
+  captainNote?: string | null;
 }) {
   const m = useSiteMessages();
   const gains = m.scoringGains;
   const pb = m.pointsBreakdown;
 
   return (
-    <div className="relative w-[12.5rem] max-w-[min(12.5rem,calc(100vw-1.5rem))]">
+    <div className="relative w-[13.25rem] max-w-[min(13.25rem,calc(100vw-1.5rem))]">
       <div
         className={cn(
           "overflow-hidden rounded-2xl border border-white/20",
@@ -72,13 +123,20 @@ function BreakdownPanel({
         />
 
         <div className="relative px-3.5 pb-3 pt-3">
+          {autoSub ? <SwapBoard {...autoSub} /> : null}
+
           <div className="mb-2.5 flex items-end justify-between gap-2 border-b border-white/[0.1] pb-2.5">
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">
                 {pb.total}
               </p>
-              {subNote ? (
-                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-[#00f948]/85">
+              {captainNote ? (
+                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-amber-300/90">
+                  {captainNote}
+                </p>
+              ) : null}
+              {!autoSub && subNote ? (
+                <p className="mt-1 truncate text-[10px] font-semibold leading-snug text-white/55">
                   {subNote}
                 </p>
               ) : null}
@@ -124,7 +182,6 @@ function BreakdownPanel({
         </div>
       </div>
 
-      {/* Anchor caret toward the pts disc */}
       <div
         aria-hidden
         className="mx-auto -mt-px h-2.5 w-2.5 rotate-45 border-b border-r border-white/20 bg-[rgba(8,10,14,0.92)]"
@@ -139,6 +196,8 @@ export function PlayerPointsBreakdownTooltip({
   stats,
   total,
   subNote,
+  autoSub,
+  captainNote,
   disabled = false,
   className,
 }: PlayerPointsBreakdownTooltipProps) {
@@ -155,7 +214,7 @@ export function PlayerPointsBreakdownTooltip({
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const panelW = 200;
+    const panelW = 212;
     const margin = 10;
     let left = rect.left + rect.width / 2;
     left = Math.max(
@@ -208,7 +267,13 @@ export function PlayerPointsBreakdownTooltip({
               }}
               role="tooltip"
             >
-              <BreakdownPanel lines={lines} total={total} subNote={subNote} />
+              <BreakdownPanel
+                lines={lines}
+                total={total}
+                subNote={subNote}
+                autoSub={autoSub}
+                captainNote={captainNote}
+              />
             </div>,
             document.body,
           )
