@@ -143,11 +143,22 @@ export type LockerFixturesPayload = {
 };
 
 const FIXTURES_POLL_MS = 45_000;
+/** Keep polling past kickoff until FPL marks FT — scores often land before `finished`. */
+const MATCH_WINDOW_MS = 3 * 60 * 60 * 1000;
 
 function fixturesNeedLivePoll(payload: LockerFixturesPayload | null): boolean {
   const list = payload?.fixtures;
   if (!list?.length) return false;
-  return list.some((f) => f.started && !f.finished);
+  const now = Date.now();
+  return list.some((f) => {
+    if (f.finished) return false;
+    if (f.started) return true;
+    if (!f.kickoffTime) return false;
+    const kickMs = Date.parse(f.kickoffTime);
+    if (!Number.isFinite(kickMs)) return false;
+    // Started in wall-clock but flags still stale on a snapshot/probe miss.
+    return kickMs <= now && now - kickMs < MATCH_WINDOW_MS + 60 * 60 * 1000;
+  });
 }
 
 export function useLockerHeroData() {
@@ -221,13 +232,25 @@ export function useLockerHeroData() {
   }, []);
 
   // Fixtures: first paint without waiting on Solana. Soft-refetch when openGwId lands.
+  // Poll while any match is live or past kickoff so scores refresh without a full reload.
   useEffect(() => {
     let cancelled = false;
     let pollId: ReturnType<typeof setInterval> | null = null;
+    const qs =
+      openGwId != null && Number.isFinite(openGwId) && openGwId >= 1
+        ? `?registrationGw=${openGwId}`
+        : "";
 
-    const load = (opts: { qs: string; soft: boolean }) => {
+    const clearPoll = () => {
+      if (pollId) {
+        clearInterval(pollId);
+        pollId = null;
+      }
+    };
+
+    const load = (opts: { soft: boolean }) => {
       if (!opts.soft) setFixturesLoading(true);
-      return fetch(`/api/fixtures${opts.qs}`, { cache: "no-store" })
+      return fetch(`/api/fixtures${qs}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((d: LockerFixturesPayload & { error?: string }) => {
           if (cancelled || d.error) return null;
@@ -240,42 +263,23 @@ export function useLockerHeroData() {
         });
     };
 
-    const startPoll = (first: LockerFixturesPayload | null, qs: string) => {
+    const startPoll = (first: LockerFixturesPayload | null) => {
+      clearPoll();
       if (cancelled || !fixturesNeedLivePoll(first)) return;
       pollId = setInterval(() => {
-        void load({ qs, soft: true }).then((next) => {
-          if (!fixturesNeedLivePoll(next) && pollId) {
-            clearInterval(pollId);
-            pollId = null;
-          }
+        void load({ soft: true }).then((next) => {
+          if (!fixturesNeedLivePoll(next)) clearPoll();
         });
       }, FIXTURES_POLL_MS);
     };
 
-    void load({ qs: "", soft: false }).then((first) => startPoll(first, ""));
+    // Soft-refresh when registration GW arrives so the tablet does not flash empty.
+    const soft = fixturesRef.current != null;
+    void load({ soft }).then((first) => startPoll(first));
 
     return () => {
       cancelled = true;
-      if (pollId) clearInterval(pollId);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (openGwId == null || !Number.isFinite(openGwId) || openGwId < 1) return;
-    const current = fixturesRef.current;
-    if (current?.gameweek?.id === openGwId) return;
-
-    let cancelled = false;
-    const qs = `?registrationGw=${openGwId}`;
-    void fetch(`/api/fixtures${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: LockerFixturesPayload & { error?: string }) => {
-        if (cancelled || d.error) return;
-        setFixtures(d);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
+      clearPoll();
     };
   }, [openGwId]);
 

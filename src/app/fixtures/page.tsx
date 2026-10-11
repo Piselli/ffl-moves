@@ -38,17 +38,65 @@ export default function FixturesPage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
+    let pollId: ReturnType<typeof setInterval> | null = null;
     const qs =
       registrationGwId != null && registrationGwId >= 1 ? `?registrationGw=${registrationGwId}` : "";
-    fetch(`/api/fixtures${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(true);
-        else setData(d);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+
+    const needsPoll = (payload: FplFixturesPayload | null) => {
+      const list = payload?.fixtures;
+      if (!list?.length) return false;
+      const now = Date.now();
+      return list.some((f) => {
+        if (f.finished) return false;
+        if (f.started || (f.scoreH != null && f.scoreA != null)) return true;
+        if (!f.kickoffTime) return false;
+        const kickMs = Date.parse(f.kickoffTime);
+        return Number.isFinite(kickMs) && kickMs <= now && now - kickMs < 4 * 60 * 60 * 1000;
+      });
+    };
+
+    const load = (soft: boolean) => {
+      if (!soft) {
+        setLoading(true);
+        setError(false);
+      }
+      return fetch(`/api/fixtures${qs}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: FplFixturesPayload & { error?: string }) => {
+          if (cancelled) return null;
+          if (d.error) {
+            if (!soft) setError(true);
+            return null;
+          }
+          setData(d);
+          return d;
+        })
+        .catch(() => {
+          if (!cancelled && !soft) setError(true);
+          return null;
+        })
+        .finally(() => {
+          if (!cancelled && !soft) setLoading(false);
+        });
+    };
+
+    void load(false).then((first) => {
+      if (cancelled || !needsPoll(first)) return;
+      pollId = setInterval(() => {
+        void load(true).then((next) => {
+          if (!needsPoll(next) && pollId) {
+            clearInterval(pollId);
+            pollId = null;
+          }
+        });
+      }, 45_000);
+    });
+
+    return () => {
+      cancelled = true;
+      if (pollId) clearInterval(pollId);
+    };
   }, [registrationGwId]);
 
   const totalMatches = data?.fixtures.length ?? 0;

@@ -40,9 +40,21 @@ export type FplFixturesPayload = {
 
 type Status = "finished" | "live" | "upcoming";
 
+/** FPL often leaves `finished: false` until BPS settles — treat long-past KO as FT. */
+const FT_AFTER_KICKOFF_MS = 2.5 * 60 * 60 * 1000;
+
 function fixtureStatus(f: FplFixture): Status {
   if (f.finished) return "finished";
-  if (f.started) return "live";
+  const hasScores = f.scoreH != null && f.scoreA != null;
+  if (f.started || hasScores) {
+    if (f.kickoffTime) {
+      const kickMs = Date.parse(f.kickoffTime);
+      if (Number.isFinite(kickMs) && Date.now() - kickMs >= FT_AFTER_KICKOFF_MS) {
+        return "finished";
+      }
+    }
+    return "live";
+  }
   return "upcoming";
 }
 
@@ -122,10 +134,7 @@ function MatchRow({
   fx: PagesMessages["fixtures"];
 }) {
   const status = fixtureStatus(match);
-  const hasScore =
-    (status === "finished" || status === "live") &&
-    match.scoreH != null &&
-    match.scoreA != null;
+  const hasScore = match.scoreH != null && match.scoreA != null;
 
   return (
     <div

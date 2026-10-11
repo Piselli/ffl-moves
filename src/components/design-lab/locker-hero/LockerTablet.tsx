@@ -766,14 +766,17 @@ function MatchRow({
 }) {
   const badge =
     "h-7 w-7 shrink-0 object-contain";
-  const live = Boolean(match.started && !match.finished);
-  const finished = Boolean(match.finished);
   const hasScore =
-    (live || finished) &&
     match.scoreH != null &&
     match.scoreA != null &&
     Number.isFinite(match.scoreH) &&
     Number.isFinite(match.scoreA);
+  // FPL often keeps finished=false until BPS settles; infer FT ~2.5h after kickoff.
+  const kickMs = match.kickoffTime ? Date.parse(match.kickoffTime) : NaN;
+  const finished =
+    Boolean(match.finished) ||
+    (hasScore && Number.isFinite(kickMs) && Date.now() - kickMs >= 2.5 * 60 * 60 * 1000);
+  const live = Boolean((match.started || hasScore) && !finished);
 
   const ClubSide = ({
     side,

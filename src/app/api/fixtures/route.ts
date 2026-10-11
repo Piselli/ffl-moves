@@ -349,18 +349,26 @@ function pickBootstrapFallbackEvent(registrationGw: number | null): EventMeta | 
 /**
  * Prefer small `?event=` probes (work on Vercel), then a bounded full-feed attempt,
  * then the shipped season snapshot so the tablet never shows an empty open GW.
+ *
+ * Always overlay live rows on the snapshot: schedule stays complete when probes only
+ * return a few events, and matchday scores/flags win over a stale shipped slate.
  */
 async function loadLiveFixtureRows(registrationGw: number | null = null): Promise<FplFixtureRaw[] | null> {
   const priorityIds = bootstrapPriorityEventIds(registrationGw);
+  const snapshot = snapshotFixtureRows();
+
   // Small probes first — do NOT wait on the full season feed when these succeed
   // (full `/fixtures/` is often blocked/slow from US serverless and would add seconds).
   const eventRows = await fetchPriorityEventRows(priorityIds);
-  if (eventRows?.length) return eventRows;
+  if (eventRows?.length) {
+    return mergeFixtureRows([snapshot, eventRows]);
+  }
 
   const full = await fetchFplFixtureRows(FPL_FIXTURES_ALL, FULL_FEED_TIMEOUT_MS);
-  if (full) return full;
+  if (full) {
+    return mergeFixtureRows([snapshot, full]);
+  }
 
-  const snapshot = snapshotFixtureRows();
   if (snapshot) {
     console.warn("fixtures: using shipped snapshot", (fixturesSnapshot as { fetchedAt?: string }).fetchedAt ?? "");
     return snapshot;
