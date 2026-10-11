@@ -25,12 +25,15 @@ type HeliusSolanaSessionValue = {
   /** Form8 fee payer when server sponsorship is configured. */
   feePayer: string | null;
   signAndSubmit: ((instructions: TransactionInstruction[]) => Promise<string>) | null;
+  /** Signs a UTF-8 message with the embedded wallet; resolves to a hex ed25519 signature. */
+  signMessage: ((message: string) => Promise<string>) | null;
 };
 
 const EMPTY: HeliusSolanaSessionValue = {
   address: null,
   feePayer: null,
   signAndSubmit: null,
+  signMessage: null,
 };
 
 const HeliusSolanaSessionContext = createContext<HeliusSolanaSessionValue>(EMPTY);
@@ -40,7 +43,7 @@ export function useHeliusSolanaSession(): HeliusSolanaSessionValue {
 }
 
 function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
-  const { address, status, signTransaction, signAndSendTransaction } =
+  const { address, status, signTransaction, signAndSendTransaction, signMessage } =
     useHeliusWallet();
   const feePayerRef = useRef<string | null>(null);
   const [feePayer, setFeePayer] = useState<string | null>(null);
@@ -136,8 +139,9 @@ function HeliusSolanaSessionInner({ children }: PropsWithChildren) {
       address: authenticated ? address : null,
       feePayer,
       signAndSubmit: authenticated && address ? signAndSubmit : null,
+      signMessage: authenticated && address ? signMessage : null,
     }),
-    [address, authenticated, feePayer, signAndSubmit],
+    [address, authenticated, feePayer, signAndSubmit, signMessage],
   );
 
   return (

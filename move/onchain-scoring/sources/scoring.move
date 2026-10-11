@@ -51,13 +51,8 @@ module onchain_scoring::scoring {
         } else {
             pts
         };
-        let bonus_u64 = (fpl_bonus as u64);
-        let capped = if (bonus_u64 > 3) {
-            3
-        } else {
-            bonus_u64
-        };
-        let pts = pts + capped;
+        // FPL BPS bonus removed from MoveMatch scoring (arg kept for ABI shape).
+        let _unused_fpl_bonus = fpl_bonus;
         let deductions =
             penalties_missed * 2 + own_goals * 2 + yellow_cards + red_cards * 3;
         if (pts >= deductions) {
@@ -93,7 +88,7 @@ module onchain_scoring::scoring {
 
     #[test]
     fun test_gibbs_white_hat_trick() {
-        // MID, 88 min, 3 goals, bonus 3, no CS flag for MID from chain, no fpl cs
+        // MID, 88 min (+2), 3 goals (+15), hat-trick (+3) = 20. FPL BPS ignored.
         let p = player_gameweek_points(
             2,
             88,
@@ -110,7 +105,7 @@ module onchain_scoring::scoring {
             1,
             false,
         );
-        assert!(p == 23, 1);
+        assert!(p == 20, 1);
     }
 
     #[test]

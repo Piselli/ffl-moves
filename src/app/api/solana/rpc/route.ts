@@ -43,6 +43,35 @@ const READ_METHODS = new Set([
 ]);
 const SEND_METHODS = new Set(["sendTransaction", "simulateTransaction"]);
 
+/**
+ * Micro-cache + in-flight coalescing for idempotent single reads. The results board fires
+ * dozens of identical reads on every load/poll; on a shared or free upstream that is what
+ * trips 429s. Short TTLs keep post-write reads (e.g. "did my registration land?") fresh.
+ */
+const CACHE_TTL_MS: Record<string, number> = {
+  getTransaction: 10 * 60_000, // immutable once confirmed/finalized
+  getSignaturesForAddress: 30_000,
+  getAccountInfo: 5_000,
+  getMultipleAccounts: 5_000,
+};
+const rpcCache = new Map<string, { at: number; result: unknown }>();
+const rpcInflight = new Map<string, Promise<{ status: number; payload: string }>>();
+
+function cacheKeyFor(call: RpcCall): string | null {
+  const method = typeof call.method === "string" ? call.method : "";
+  if (!(method in CACHE_TTL_MS)) return null;
+  return `${method}:${JSON.stringify(call.params ?? [])}`;
+}
+
+function gcRpcCache(now: number) {
+  if (rpcCache.size < 3000) return;
+  for (const [k, v] of rpcCache) {
+    const method = k.slice(0, k.indexOf(":"));
+    if (now - v.at > (CACHE_TTL_MS[method] ?? 0)) rpcCache.delete(k);
+  }
+  if (rpcCache.size >= 3000) rpcCache.clear();
+}
+
 const MAX_BODY_BYTES = 200_000;
 const MAX_BATCH = 20;
 const READS_PER_MIN = 600;
@@ -115,6 +144,62 @@ export async function POST(request: Request) {
   }
 
   const upstream = resolveServerSolanaRpcUrl();
+
+  // Single idempotent read → serve from the micro-cache / share one upstream request.
+  const single = !Array.isArray(body) ? (body as RpcCall & { id?: unknown }) : null;
+  const ckey = single ? cacheKeyFor(single) : null;
+  if (single && ckey) {
+    const now = Date.now();
+    const method = String(single.method);
+    const hit = rpcCache.get(ckey);
+    if (hit && now - hit.at < (CACHE_TTL_MS[method] ?? 0)) {
+      return NextResponse.json(
+        { jsonrpc: "2.0", id: single.id ?? null, result: hit.result },
+        { headers: { "cache-control": "no-store", "x-rpc-cache": "hit" } },
+      );
+    }
+    let pending = rpcInflight.get(ckey);
+    if (!pending) {
+      pending = fetch(upstream, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...single, id: 1 }),
+        cache: "no-store",
+      })
+        .then(async (res) => ({ status: res.status, payload: await res.text() }))
+        .finally(() => {
+          rpcInflight.delete(ckey);
+        });
+      rpcInflight.set(ckey, pending);
+    }
+    try {
+      const { status, payload } = await pending;
+      let parsed: { result?: unknown; error?: unknown } | null = null;
+      try {
+        parsed = JSON.parse(payload);
+      } catch {
+        parsed = null;
+      }
+      if (status === 200 && parsed && parsed.error === undefined && "result" in parsed) {
+        rpcCache.set(ckey, { at: Date.now(), result: parsed.result });
+        gcRpcCache(Date.now());
+      }
+      if (parsed) {
+        return NextResponse.json(
+          { ...parsed, jsonrpc: "2.0", id: single.id ?? null },
+          { status, headers: { "cache-control": "no-store" } },
+        );
+      }
+      return new NextResponse(payload, {
+        status,
+        headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
+    } catch (err) {
+      console.error("[solana/rpc]", err instanceof Error ? err.message : err);
+      return rpcError(502, -32000, "Upstream RPC failed");
+    }
+  }
+
   try {
     const res = await fetch(upstream, {
       method: "POST",

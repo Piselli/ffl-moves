@@ -132,6 +132,22 @@ export function useWallet() {
     [adapter, connection, hasExternalWallet, heliusSession],
   );
 
+  /** Sign a UTF-8 message with the connected wallet → hex ed25519 signature (null if unsupported). */
+  const signMessage = useCallback(
+    async (message: string): Promise<string> => {
+      if (adapter.publicKey && hasExternalWallet) {
+        if (!adapter.signMessage) {
+          throw new Error("This wallet cannot sign messages.");
+        }
+        const sig = await adapter.signMessage(new TextEncoder().encode(message));
+        return Array.from(sig, (b) => b.toString(16).padStart(2, "0")).join("");
+      }
+      if (heliusSession.signMessage) return heliusSession.signMessage(message);
+      throw new Error("Connect a Solana wallet first.");
+    },
+    [adapter, hasExternalWallet, heliusSession],
+  );
+
   const disconnect = useCallback(async () => {
     try {
       if (adapter.connected) await adapter.disconnect();
@@ -166,6 +182,7 @@ export function useWallet() {
       /** Form8 fee sponsor pubkey when known (Helius session caches it). */
       feePayer: heliusSession.feePayer,
       signAndSubmit,
+      signMessage,
       signTransaction: async (_legacyPayload?: unknown): Promise<any> => {
         throw new Error(
           "Build Solana instructions through chainClient and call signAndSubmit.",
@@ -193,6 +210,7 @@ export function useWallet() {
       heliusAuth.email,
       heliusSession.feePayer,
       signAndSubmit,
+      signMessage,
     ],
   );
 }

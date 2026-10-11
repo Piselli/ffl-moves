@@ -30,12 +30,16 @@ interface CompetitionStatsConfig {
   resultGameweekId: number;
   /** When true, populate goalsConceded for GK/DEF from API-Sports / fixture score. */
   includeGoalsConceded?: boolean;
+  /** EPL: add 0-minute DNP rows for catalog players of played clubs missing from API-Sports. */
+  padDnpForPlayedClubs?: boolean;
 }
 
-type PlayerMapping = { id: number; position: string; team: string };
+type PlayerMapping = { id: number; position: string; team: string; hasApiId?: boolean };
 
 // Player apiId -> candidate FPL rows (name collisions like Palmer/Chelsea vs Palmer/Ipswich).
 const playerMappingsByUrl = new Map<string, Map<number, PlayerMapping[]>>();
+// Every catalog player (even without an apiId) — used to add 0-minute DNP rows.
+const playerCatalogByUrl = new Map<string, PlayerMapping[]>();
 
 function normTeamName(s: string): string {
   return s
@@ -129,6 +133,8 @@ async function loadPlayerMappings(
   if (cached) return cached;
 
   const mappings = new Map<number, PlayerMapping[]>();
+  const catalog: PlayerMapping[] = [];
+  const catalogIds = new Set<number>();
   try {
     const response = await fetch(url, { cache: "no-store" });
     const players = await response.json();
@@ -146,6 +152,15 @@ async function loadPlayerMappings(
             : Number.isFinite(fromCode) && fromCode > 0
               ? fromCode
               : 0;
+        if (!catalogIds.has(id)) {
+          catalogIds.add(id);
+          catalog.push({
+            id,
+            position: String(player?.position || "MID"),
+            team: String(player?.team || ""),
+            hasApiId: apiId > 0,
+          });
+        }
         if (apiId <= 0) continue;
         const position = String(player?.position || "MID");
         const team = String(player?.team || "");
@@ -163,7 +178,83 @@ async function loadPlayerMappings(
   }
 
   playerMappingsByUrl.set(url, mappings);
+  playerCatalogByUrl.set(url, catalog);
   return mappings;
+}
+
+function positionStringToId(pos: string): number {
+  return pos === "GK" ? 0 : pos === "DEF" ? 1 : pos === "MID" ? 2 : 3;
+}
+
+/** Canonical club key so API-Sports names ("Manchester City") match catalog names ("Man City"). */
+const CLUB_ALIASES: Record<string, string> = {
+  manchestercity: "mancity",
+  manchesterunited: "manutd",
+  tottenham: "spurs",
+  tottenhamhotspur: "spurs",
+  nottinghamforest: "nottmforest",
+  newcastleunited: "newcastle",
+  leedsunited: "leeds",
+  brightonhovealbion: "brighton",
+  afcbournemouth: "bournemouth",
+};
+
+export function clubKey(name: string): string {
+  const n = normTeamName(name);
+  return CLUB_ALIASES[n] ?? n;
+}
+
+/**
+ * API-Sports only lists players in the matchday squad. Injured / suspended / unused
+ * non-squad players get no row at all, and the contract treats "no row" as 0 pts with
+ * NO auto-sub. Add explicit 0-minute DNP rows for catalog players whose club's fixture is
+ * COMPLETE (`playedClubs`, from the finished fixtures actually fetched) but who have no row.
+ *
+ * Safety rules (a wrong DNP row wrongly pulls a bench player):
+ *  - only clubs with a finished fixture (never live / upcoming ones);
+ *  - only players with a known API-Sports id. Without one we cannot tell "not in squad"
+ *    from "played but unmatched", so they keep no row (0 pts, no sub).
+ */
+export function addDnpRowsForPlayedClubs(
+  rows: OraclePlayerStats[],
+  catalog: { id: number; position: string; team: string; hasApiId?: boolean }[],
+  playedClubs: Iterable<string>,
+): { rows: OraclePlayerStats[]; added: number } {
+  const played = new Set<string>();
+  for (const c of playedClubs) played.add(clubKey(c));
+  if (rows.length === 0 || catalog.length === 0 || played.size === 0) return { rows, added: 0 };
+
+  const haveIds = new Set(rows.map((r) => r.playerId));
+  const out = [...rows];
+  let added = 0;
+  for (const c of catalog) {
+    if (haveIds.has(c.id)) continue;
+    if (!c.hasApiId) continue;
+    if (!c.team || !played.has(clubKey(c.team))) continue;
+    out.push({
+      playerId: c.id,
+      position: positionStringToId(c.position),
+      minutesPlayed: 0,
+      goals: 0,
+      assists: 0,
+      cleanSheet: false,
+      fplCleanSheets: 0,
+      saves: 0,
+      penaltiesSaved: 0,
+      penaltiesMissed: 0,
+      ownGoals: 0,
+      yellowCards: 0,
+      redCards: 0,
+      rating: 0,
+      tackles: 0,
+      interceptions: 0,
+      successfulDribbles: 0,
+      freeKickGoals: 0,
+      goalsConceded: 0,
+    });
+    added += 1;
+  }
+  return { rows: out, added };
 }
 
 function mapApiPosition(pos: string): number {
@@ -239,6 +330,9 @@ async function fetchStatsForCompetition(
     return result;
   }
   let unmappedWithMinutes = 0;
+  const unmappedNames: string[] = [];
+  // Clubs whose fixture is FINISHED (only these may receive DNP padding).
+  const playedClubNames: string[] = [];
 
   try {
     // 1. Collect completed fixtures across every round in this tour.
@@ -288,6 +382,7 @@ async function fetchStatsForCompetition(
     const cleanSheetTeams = new Set<number>();
     for (const fixture of completedFixtures) {
       result.fixtures.push(`${fixture.teams.home.name} vs ${fixture.teams.away.name}`);
+      playedClubNames.push(fixture.teams.home.name, fixture.teams.away.name);
       if (fixture.goals.home === 0) cleanSheetTeams.add(fixture.teams.away.id);
       if (fixture.goals.away === 0) cleanSheetTeams.add(fixture.teams.home.id);
     }
@@ -322,7 +417,10 @@ async function fetchStatsForCompetition(
             );
             const minsRaw = stats.games.minutes ?? 0;
             if (!mapping) {
-              if (minsRaw > 0) unmappedWithMinutes += 1;
+              if (minsRaw > 0) {
+                unmappedWithMinutes += 1;
+                unmappedNames.push(`${playerData.player.name} (${teamData.team?.name ?? "?"})`);
+              }
               continue;
             }
 
@@ -409,11 +507,20 @@ async function fetchStatsForCompetition(
       });
     }
     result.players = [...byId.values()];
+
+    if (cfg.padDnpForPlayedClubs) {
+      const padded = addDnpRowsForPlayedClubs(
+        result.players,
+        playerCatalogByUrl.get(cfg.mappingsUrl) ?? [],
+        playedClubNames,
+      );
+      result.players = padded.rows;
+    }
   }
 
   if (unmappedWithMinutes > 0) {
     result.errors.push(
-      `${unmappedWithMinutes} API-Sports player(s) with minutes had no FPL/catalog apiId mapping and were skipped.`,
+      `${unmappedWithMinutes} API-Sports player(s) with minutes had no FPL/catalog apiId mapping and were skipped (they score 0 and never get subbed): ${unmappedNames.join(", ")}.`,
     );
   }
 
@@ -431,6 +538,9 @@ export async function fetchGameweekStats(
     mappingsUrl: "/api/players",
     rounds: [`Regular Season - ${gameweekNumber}`],
     resultGameweekId: gameweekNumber,
+    // GK/DEF −1 per 2 goals conceded is part of our scoring; without this EPL rows carry 0.
+    includeGoalsConceded: true,
+    padDnpForPlayedClubs: true,
   });
 }
 
@@ -461,35 +571,6 @@ export async function fetchWorldCupRoundStats(
     resultGameweekId: tourId,
     includeGoalsConceded: tourId >= WC_GOALS_CONCEDED_FROM_TOUR_ID,
   });
-}
-
-/**
- * Fetch gameweek stats from the official FPL Live API (free, no key needed).
- * Proxied through /api/fpl-live to bypass CORS.
- * Covers: goals, assists, saves, clean sheets, cards, penalties, own goals, BPS.
- * Does NOT provide: tackles, interceptions, dribbles (set to 0).
- */
-export async function fetchGameweekStatsFPL(
-  gameweekNumber: number,
-): Promise<GameweekStatsResult> {
-  try {
-    const res = await fetch(`/api/fpl-live?gw=${gameweekNumber}`);
-    const data = await res.json();
-
-    return {
-      gameweekId: data.gameweekId ?? gameweekNumber,
-      players: data.players ?? [],
-      fixtures: data.fixtures ?? [],
-      errors: data.errors ?? [],
-    };
-  } catch (error) {
-    return {
-      gameweekId: gameweekNumber,
-      players: [],
-      fixtures: [],
-      errors: [`Failed to fetch FPL stats: ${error}`],
-    };
-  }
 }
 
 export async function checkApiStatus(apiKey: string): Promise<{

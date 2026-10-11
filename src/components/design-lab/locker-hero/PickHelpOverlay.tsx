@@ -10,7 +10,6 @@ import {
   ASSIST_POINTS,
   CLEAN_SHEET_POINTS,
   DEDUCTIONS,
-  FPL_BONUS_MAX,
   GK_SAVE_BATCH,
   GK_SAVE_POINTS_PER_BATCH,
   GOAL_POINTS,
@@ -93,7 +92,6 @@ function useScoringRows(m: SiteMessages): { title: string; rows: Row[] } {
           label: g.lowRating,
           value: `−${RATING_SUB_POINTS}`,
         },
-        { label: g.fplBonus, value: `+0–${FPL_BONUS_MAX}` },
       ],
     };
   }, [a, g, home, pick.scoringTitle]);

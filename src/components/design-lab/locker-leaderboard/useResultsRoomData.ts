@@ -8,6 +8,7 @@ import {
   getConfig,
   getGameweek,
   getUserTeam,
+  getRegisteredTeamResolved,
   getGameweekStats,
   getGameweekResults,
   getGameweekEntrants,
@@ -25,10 +26,6 @@ import {
   tourOwnersMatch,
 } from "@/lib/tourClaimHistory";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
-import {
-  fplLivePlayersToStatsMap,
-  type FplLiveMappedPlayer,
-} from "@/lib/fplLiveStatsMap";
 import { remapStatsKeysToFplIds } from "@/lib/remapStatsToFplIds";
 import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { formatTxError } from "@/lib/utils";
@@ -309,30 +306,7 @@ async function loadClosedLiveStats(
     stats = await remapStatsKeysToFplIds(stats);
   }
 
-  // Fill gaps from FPL live (DNP rows after FT, bonus). Never overwrite API-Sports rows.
-  if (gwId >= 1 && gwId <= 38) {
-    const missing = playerIds.filter((id) => !stats[String(id)]);
-    if (missing.length > 0 || Object.keys(stats).length === 0) {
-      try {
-        const fpl = await fetch(`/api/fpl-live?gw=${gwId}`).then((r) =>
-          r.ok ? r.json() : null,
-        );
-        const fplPlayers = fpl?.players as FplLiveMappedPlayer[] | undefined;
-        if (fplPlayers?.length) {
-          const full = fplLivePlayersToStatsMap(fplPlayers);
-          const fillIds =
-            Object.keys(stats).length === 0 ? playerIds : missing;
-          for (const id of fillIds) {
-            const row = full[String(id)];
-            if (row && !stats[String(id)]) stats[String(id)] = row;
-          }
-        }
-      } catch {
-        /* none */
-      }
-    }
-  }
-
+  // Points come only from the published oracle (API-Sports). No live third-party fill.
   return stats;
 }
 
@@ -370,18 +344,29 @@ function liveRowsFromScores(
   return rows;
 }
 
-/** Owners registered for a GW — API first (browser RPC often fails), then chain. */
-async function fetchEntrantOwners(gwId: number): Promise<string[]> {
-  try {
-    const res = await fetch(`/api/registrations?gw=${gwId}`, { cache: "no-store" });
-    if (res.ok) {
-      const data = (await res.json()) as { registrations?: unknown };
-      if (Array.isArray(data.registrations)) {
-        return data.registrations.filter((o): o is string => typeof o === "string");
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Owners registered for a GW — API first (browser RPC often fails), then chain.
+ * RPC providers answer 429 in bursts, so retry with backoff. `expected` is the
+ * on-chain entry count: an empty list while entries exist is treated as a failure
+ * (never as "nobody registered").
+ */
+async function fetchEntrantOwners(gwId: number, expected = 0): Promise<string[]> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`/api/registrations?gw=${gwId}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { registrations?: unknown };
+        if (Array.isArray(data.registrations)) {
+          const owners = data.registrations.filter((o): o is string => typeof o === "string");
+          if (owners.length > 0 || expected === 0) return owners;
+        }
       }
+    } catch (e) {
+      console.warn("Registrations API failed:", e);
     }
-  } catch (e) {
-    console.warn("Registrations API failed, trying direct RPC:", e);
+    if (attempt < 2) await sleep(1200 * (attempt + 1));
   }
   try {
     return await getGameweekEntrants(gwId);
@@ -389,6 +374,36 @@ async function fetchEntrantOwners(gwId: number): Promise<string[]> {
     console.error("getGameweekEntrants failed", e);
     return [];
   }
+}
+
+/**
+ * Load every entrant's registered squad with small concurrency + retries so RPC 429s
+ * cannot blank the whole board. Squads that still failed are `null` and counted in `failed`.
+ */
+async function fetchTeamsResilient(
+  owners: string[],
+  gwId: number,
+): Promise<{ teams: (Awaited<ReturnType<typeof getRegisteredTeamResolved>>)[]; failed: number }> {
+  const teams: Awaited<ReturnType<typeof getRegisteredTeamResolved>>[] = new Array(owners.length).fill(null);
+  let failed = 0;
+  let next = 0;
+  const worker = async () => {
+    while (next < owners.length) {
+      const i = next++;
+      let done = false;
+      for (let attempt = 0; attempt < 2 && !done; attempt++) {
+        try {
+          teams[i] = await getRegisteredTeamResolved(owners[i]!, gwId);
+          done = true;
+        } catch {
+          if (attempt < 1) await sleep(1500);
+        }
+      }
+      if (!done) failed += 1;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, owners.length) }, worker));
+  return { teams, failed };
 }
 
 function entrantsToRows(
@@ -454,6 +469,12 @@ export function useResultsRoomData(): ResultsRoomData {
   const site = useSiteMessages();
   const viaSubLabel = site.pages.gameweek.registeredViaSub;
   const wallet = account?.address?.toString() ?? null;
+  // Board fetches must not restart when a nickname loads or the wallet connects — the
+  // rendered rows are re-labelled from these values (see `tabletMarked`).
+  const getNicknameRef = useRef(getNickname);
+  getNicknameRef.current = getNickname;
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
 
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"live" | "empty">("empty");
@@ -475,6 +496,30 @@ export function useResultsRoomData(): ResultsRoomData {
   const skipTabletLoadGwRef = useRef<number | null>(null);
   const tabletRef = useRef(tablet);
   tabletRef.current = tablet;
+  const wallPrevRef = useRef(wallPrev);
+  wallPrevRef.current = wallPrev;
+  /** Re-fetches a closed board whose squads partly failed to load (RPC 429). */
+  const boardRetryRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; count: number }>({
+    timer: null,
+    count: 0,
+  });
+  const refetchBoardRef = useRef<(gwId: number) => void>(() => {});
+  const scheduleBoardRetry = useCallback((gwId: number) => {
+    const st = boardRetryRef.current;
+    if (st.timer || st.count >= 8) return;
+    st.count += 1;
+    st.timer = setTimeout(() => {
+      st.timer = null;
+      refetchBoardRef.current(gwId);
+    }, 5000 + st.count * 1500);
+  }, []);
+  useEffect(
+    () => () => {
+      const t = boardRetryRef.current.timer;
+      if (t) clearTimeout(t);
+    },
+    [],
+  );
 
   const formatHumanPrize = useCallback(
     (raw: bigint) => {
@@ -499,25 +544,31 @@ export function useResultsRoomData(): ResultsRoomData {
 
       // Open: names only until the deadline.
       if (gw.status === "open") {
-        const owners = await fetchEntrantOwners(gwId);
-        const rows = entrantsToRows(owners, getNickname, wallet);
+        const owners = await fetchEntrantOwners(gwId, gw.totalEntries);
+        const rows = entrantsToRows(owners, getNicknameRef.current, walletRef.current);
         return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
           isPreview: true,
           entries: owners.length || gw.totalEntries,
         });
       }
 
-      // Closed: live / partial scores from oracle stats (or FPL live) — not final prizes.
+      // Closed: live / partial scores from published oracle stats — not final prizes.
       if (gw.status === "closed") {
-        const owners = await fetchEntrantOwners(gwId);
+        const owners = await fetchEntrantOwners(gwId, gw.totalEntries);
         if (owners.length === 0) {
+          // Entries exist on-chain but the list failed to load (RPC 429): keep what is
+          // already painted instead of replacing it with "no managers".
+          if (gw.totalEntries > 0) {
+            scheduleBoardRetry(gwId);
+            return null;
+          }
           return snapshotFromGw(gw, [], poolLabel, prize.symbol, {
             isPreview: true,
             entries: gw.totalEntries,
           });
         }
 
-        const teams = await Promise.all(owners.map((addr) => getUserTeam(addr, gwId)));
+        const { teams, failed } = await fetchTeamsResilient(owners, gwId);
         const allIds = Array.from(
           new Set(teams.flatMap((t) => t?.playerIds ?? [])),
         );
@@ -525,12 +576,15 @@ export function useResultsRoomData(): ResultsRoomData {
         const hasStats = Object.keys(stats).length > 0;
 
         if (!hasStats) {
-          const rows = entrantsToRows(owners, getNickname, wallet);
+          const rows = entrantsToRows(owners, getNicknameRef.current, walletRef.current);
           return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
             isPreview: true,
             entries: owners.length || gw.totalEntries,
           });
         }
+
+        // Squads that failed (RPC 429) are retried shortly; the rest are scored now.
+        if (failed > 0) scheduleBoardRetry(gwId);
 
         const scored = owners.map((owner, i) => {
           const team = teams[i];
@@ -540,7 +594,7 @@ export function useResultsRoomData(): ResultsRoomData {
             finalPoints: previewTourPointsFromRegisteredTeam(team, stats),
           };
         });
-        const rows = liveRowsFromScores(scored, getNickname, wallet);
+        const rows = liveRowsFromScores(scored, getNicknameRef.current, walletRef.current);
         return snapshotFromGw(gw, rows, poolLabel, prize.symbol, {
           isPreview: true,
           isLive: true,
@@ -554,11 +608,26 @@ export function useResultsRoomData(): ResultsRoomData {
         if (b.finalPoints !== a.finalPoints) return b.finalPoints - a.finalPoints;
         return a.owner.localeCompare(b.owner);
       });
-      const rows = resultsToRows(valid, getNickname, wallet, formatHumanPrize);
+      const rows = resultsToRows(valid, getNicknameRef.current, walletRef.current, formatHumanPrize);
       return snapshotFromGw(gw, rows, poolLabel, prize.symbol);
     },
-    [formatHumanPrize, getNickname, prize, wallet],
+    [formatHumanPrize, prize, scheduleBoardRetry],
   );
+  refetchBoardRef.current = (gwId: number) => {
+    void fetchGwBoard(gwId).then((snap) => {
+      if (!snap || !snap.rows.length) {
+        // Retries exhausted and nothing to show: stop the loading state.
+        if (boardRetryRef.current.count >= 8 && !boardRetryRef.current.timer) setLoading(false);
+        return;
+      }
+      if (tabletRef.current.gameweek === gwId || tabletRef.current.rows.length === 0) {
+        setTablet(snap);
+        setSource("live");
+      }
+      if (wallPrevRef.current.gameweek === gwId) setWallPrev(snap);
+      setLoading(false);
+    });
+  };
 
   // Honor board is independent of chain config — published results JSON is enough.
   useEffect(() => {
@@ -607,7 +676,7 @@ export function useResultsRoomData(): ResultsRoomData {
           const owners =
             bundle.registrations.length > 0
               ? bundle.registrations
-              : await fetchEntrantOwners(liveId);
+              : await fetchEntrantOwners(liveId, bundle.live.totalEntries);
           if (cancelled) return;
           const rows = entrantsToRows(owners, getNickname, wallet);
           const snap = snapshotFromGw(
@@ -724,7 +793,13 @@ export function useResultsRoomData(): ResultsRoomData {
         setWallPrev(EMPTY_BOARD);
       }
     } finally {
-      setLoading(false);
+      // Squad read failed (RPC 429) and a retry is queued: keep showing "loading" rather
+      // than a misleading "No managers registered yet".
+      const waitingForRetry =
+        !tabletAlready &&
+        tabletRef.current.rows.length === 0 &&
+        boardRetryRef.current.timer !== null;
+      if (!waitingForRetry) setLoading(false);
     }
   }, [fetchGwBoard, resolvedPair, selectedGw]);
 

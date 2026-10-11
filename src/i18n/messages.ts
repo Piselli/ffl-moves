@@ -254,8 +254,7 @@ export type SiteMessages = {
     | "redCard"
     | "ownGoal"
     | "penMiss"
-    | "yellowCard"
-    | "fplBonus",
+    | "yellowCard",
     string
   >;
   pointsBreakdown: {
@@ -572,7 +571,6 @@ const uk: SiteMessages = {
     ownGoal: "Автогол",
     penMiss: "Незабитий пенальті",
     yellowCard: "Жовта картка",
-    fplBonus: "FPL бонус",
   },
   pointsBreakdown: {
     total: "Разом",
@@ -903,7 +901,6 @@ const en: SiteMessages = {
     ownGoal: "Own goal",
     penMiss: "Penalty miss",
     yellowCard: "Yellow card",
-    fplBonus: "FPL bonus",
   },
   pointsBreakdown: {
     total: "Total",

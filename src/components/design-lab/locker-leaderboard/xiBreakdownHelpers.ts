@@ -182,6 +182,6 @@ export function mockStatsForPts(pts: number, positionId: number): Record<string,
     goals,
     assists,
     clean_sheet: positionId <= 1 && pts >= 4 && goals === 0,
-    bonus: pts >= 8 ? 2 : pts >= 5 ? 1 : 0,
+    bonus: 0,
   };
 }

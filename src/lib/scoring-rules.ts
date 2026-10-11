@@ -25,7 +25,8 @@ export const PENALTY_SAVE_POINTS = 5;
 /** GK/DEF: −1 per block of `divisor` goals conceded */
 export const GOALS_CONCEDED_DIVISOR = 2;
 
-export const FPL_BONUS_MAX = 3;
+/** @deprecated MoveMatch does not use FPL BPS bonus — kept at 0 so leftover callers stay safe. */
+export const FPL_BONUS_MAX = 0;
 
 export const DEDUCTIONS = {
   yellowCard: 1,

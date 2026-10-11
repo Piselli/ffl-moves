@@ -92,7 +92,7 @@ async function main() {
       redCards: s.red_cards ?? 0,
       // Neutral 6.0 in tenths — FPL live has no WhoScored-style rating here; BPS must not go into `rating` (see /api/fpl-live).
       rating: 60,
-      bonus: Math.max(0, Math.min(3, Number(s.bonus ?? 0) || 0)),
+      bonus: 0,
       goalsConceded: Math.max(0, Number(s.goals_conceded ?? 0) || 0),
       fplCleanSheets: (s.clean_sheets ?? 0) > 0 ? 1 : 0,
       tackles: 0,

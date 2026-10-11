@@ -14,6 +14,7 @@ import { useLogin } from "@/components/LoginProvider";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
+import { claimNickname } from "@/lib/nicknamesClient";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
@@ -171,7 +172,8 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
-  const { connected, connecting, authReady, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, authReady, address, disconnect, walletName, signMessage } =
+    useWallet();
   const { openDeposit, balanceLabel } = useDeposit();
   const { openLogin } = useLogin();
   const { setNickname, myNickname } = useNickname(address);
@@ -449,9 +451,12 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
           open={showNicknameModal}
           address={address}
           currentNickname={myNickname}
-          onSave={(name) => {
+          onSave={async (name) => {
+            const res = await claimNickname(address, name, signMessage);
+            if (!res.ok) return res.error;
             setNickname(address, name);
             setShowNicknameModal(false);
+            return null;
           }}
           onClose={() => setShowNicknameModal(false)}
         />

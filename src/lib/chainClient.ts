@@ -450,6 +450,62 @@ export async function getUserTeam(owner: string, gameweekId: number): Promise<Us
   return team;
 }
 
+const registeredTeamCache = new Map<string, UserTeam>();
+
+function teamCacheKey(owner: string, gameweekId: number): string {
+  return `ffl:team:v1:${gameweekId}:${owner}`;
+}
+
+/**
+ * Registered squad for the results board. Differs from `getUserTeam` in two ways:
+ *  - an RPC failure while recovering the captain THROWS (so the caller retries) instead of
+ *    silently returning a squad with no captain, which would under-score the manager;
+ *  - a fully resolved squad is cached (memory + localStorage). Entries are locked after
+ *    registration, so re-reading them on every poll only burns RPC quota.
+ */
+export async function getRegisteredTeamResolved(
+  owner: string,
+  gameweekId: number,
+): Promise<UserTeam | null> {
+  const key = teamCacheKey(owner, gameweekId);
+  const mem = registeredTeamCache.get(key);
+  if (mem) return mem;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw) as UserTeam;
+        if (Array.isArray(parsed.playerIds) && parsed.captainIndex !== NO_CAPTAIN_INDEX) {
+          registeredTeamCache.set(key, parsed);
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const account = await getConnection().getAccountInfo(entryPda(gameweekId, owner));
+  if (!account) return null;
+  let team = decodeEntry(account.data);
+  if (team.captainIndex === NO_CAPTAIN_INDEX) {
+    // Throws on RPC errors; null means "no matching registration tx" (genuinely no captain).
+    const recovered = await recoverCaptainFromRegistrationTx(owner, gameweekId, team.playerIds);
+    if (recovered !== null) team = { ...team, captainIndex: recovered };
+  }
+  if (team.captainIndex !== NO_CAPTAIN_INDEX) {
+    registeredTeamCache.set(key, team);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(team));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  return team;
+}
+
 export async function hasRegisteredTeam(owner: string, gameweekId: number): Promise<boolean> {
   return (await getConnection().getAccountInfo(entryPda(gameweekId, owner))) !== null;
 }

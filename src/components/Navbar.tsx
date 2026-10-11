@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { cn, shortenAddress } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
+import { claimNickname } from "@/lib/nicknamesClient";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -62,7 +63,8 @@ export function Navbar() {
         ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
-  const { connected, connecting, authReady, address, disconnect, walletName } = useWallet();
+  const { connected, connecting, authReady, address, disconnect, walletName, signMessage } =
+    useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -307,7 +309,13 @@ export function Navbar() {
           open={showNicknameModal}
           address={address}
           currentNickname={myNickname}
-          onSave={(name) => setNickname(address, name)}
+          onSave={async (name) => {
+            // Wallet signs the claim so everyone sees the nickname and nobody can fake yours.
+            const res = await claimNickname(address, name, signMessage);
+            if (!res.ok) return res.error;
+            setNickname(address, name);
+            return null;
+          }}
           onClose={() => setShowNicknameModal(false)}
         />
       ) : null}

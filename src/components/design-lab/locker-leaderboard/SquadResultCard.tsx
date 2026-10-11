@@ -44,7 +44,6 @@ function shortLabel(label: string): string {
     .replace(/Played 60\+ mins/gi, "60'")
     .replace(/Played 90'?/gi, "90'")
     .replace(/Clean sheet/gi, "CS")
-    .replace(/FPL bonus/gi, "Bon")
     .replace(/Subbed on · /i, "On ")
     .replace(/2× Goal/gi, "2G")
     .replace(/Goal/gi, "G")

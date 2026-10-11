@@ -5,7 +5,7 @@ import { RegisteredSquadShowcase } from "@/components/RegisteredSquadShowcase";
 import { getUserTeam, getTeamResult, getGameweekStats } from "@/lib/chainClient";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
-import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { FORMATION } from "@/lib/constants";
 import { Player, TeamResult } from "@/lib/types";
@@ -180,26 +180,10 @@ export function LeaderboardTable({
         );
         if (squad.length !== FORMATION.TOTAL) throw new Error("incomplete squad");
 
-        let stats: Record<string, Record<string, unknown>> = (await getGameweekStats(
+        const stats: Record<string, Record<string, unknown>> = (await getGameweekStats(
           gameweekId,
           chainTeam.playerIds,
         )) as Record<string, Record<string, unknown>>;
-
-        if (fplEnrichment) {
-          try {
-            const fpl = await fetch(`/api/fpl-live?gw=${gameweekId}`).then((r) =>
-              r.ok ? r.json() : null,
-            );
-            if (fpl?.players) {
-              stats = enrichStatsMapWithFplPlayers(
-                stats as Record<string, unknown>,
-                fpl.players,
-              ) as Record<string, Record<string, unknown>>;
-            }
-          } catch {
-            /* chain-only */
-          }
-        }
 
         squadCacheRef.current.set(owner, {
           starters: squad.slice(0, 11),

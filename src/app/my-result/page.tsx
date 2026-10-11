@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getConfig, getGameweek, getTeamResult, getUserTeam, getGameweekEntrants, getGameweekStats, findActiveGameweek } from "@/lib/chainClient";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { cn, getErrorMessage } from "@/lib/utils";
-import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
 import { Player, TeamResult } from "@/lib/types";
@@ -219,21 +219,7 @@ export default function MyResultPage() {
         // Fetch per-player stats using the actual player IDs from the team
         if (userTeam?.playerIds?.length) {
           const stats = await getGameweekStats(currentGwId, userTeam.playerIds);
-          let merged: Record<string, Record<string, unknown>> = stats as Record<
-            string,
-            Record<string, unknown>
-          >;
-          try {
-            const fpl = await fetch(`/api/fpl-live?gw=${currentGwId}`).then((r) => (r.ok ? r.json() : null));
-            if (fpl?.players)
-              merged = enrichStatsMapWithFplPlayers(
-                stats as Record<string, unknown>,
-                fpl.players,
-              ) as Record<string, Record<string, unknown>>;
-          } catch {
-            /* keep chain-only */
-          }
-          setGwStats(merged);
+          setGwStats(stats as Record<string, Record<string, unknown>>);
         }
 
         if (!playersRes.ok) throw new Error(mr.errPlayersLoad);

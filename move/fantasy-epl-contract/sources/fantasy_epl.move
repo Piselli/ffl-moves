@@ -239,7 +239,7 @@ module fantasy_epl_addr::fantasy_epl {
         free_kick_goals: u64,
         /// FPL-style: goals conceded (for GK/DEF −1 per 2)
         goals_conceded: u64,
-        /// FPL match bonus 0–3 (BPS tiers)
+        /// Legacy FPL BPS field — ignored in scoring (always treat as 0).
         fpl_bonus: u8,
         /// FPL clean sheet flag (for MID +1 when minutes ≥ 60)
         fpl_clean_sheet: bool,
@@ -1827,13 +1827,7 @@ module fantasy_epl_addr::fantasy_epl {
             };
         };
 
-        // FPL bonus 0–3
-        let bp: u64 = if ((stats.fpl_bonus as u64) > 3) {
-            3
-        } else {
-            (stats.fpl_bonus as u64)
-        };
-        points = points + bp;
+        // FPL BPS bonus removed from MoveMatch scoring (field kept for payload shape).
 
         let deductions: u64 = 0;
         deductions = deductions + (stats.penalties_missed * 2);

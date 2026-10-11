@@ -47,7 +47,7 @@ import { formatFeeLabelShort } from "@/lib/entryFee";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { trackReferralConversion } from "@/lib/referralClient";
 import { claimInviteConversion } from "@/lib/inviteClient";
-import { calculateFantasyPointsWithRating, enrichStatsMapWithFplPlayers } from "@/lib/scoring";
+import { calculateFantasyPointsWithRating } from "@/lib/scoring";
 import { computeChainAlignedXiBreakdown } from "@/lib/chainAlignedScoring";
 import { squadPlayersFromChain } from "@/lib/fplSquadResolve";
 import { mergeFplCatalogForChainIds } from "@/lib/fplResolveMissing";
@@ -292,15 +292,7 @@ export default function GameweekPage() {
 
             // Fetch stats for intermediate/final results
             const stats = await getGameweekStats(targetGwId, chainTeam.playerIds);
-            try {
-              const fpl = await fetch(`/api/fpl-live?gw=${targetGwId}`).then((r) => (r.ok ? r.json() : null));
-              const merged = fpl?.players
-                ? enrichStatsMapWithFplPlayers(stats as Record<string, unknown>, fpl.players)
-                : stats;
-              setGameweekStats(merged as Record<string, Record<string, unknown>>);
-            } catch {
-              setGameweekStats(stats as Record<string, Record<string, unknown>>);
-            }
+            setGameweekStats(stats as Record<string, Record<string, unknown>>);
 
           } else {
             // No team on chain → not registered

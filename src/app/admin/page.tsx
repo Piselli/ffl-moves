@@ -31,7 +31,7 @@ import {
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
-import { fetchGameweekStats, fetchGameweekStatsFPL, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { fetchGameweekStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
 import { SitePageShell } from "@/components/SitePageShell";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -125,7 +125,6 @@ export default function AdminPage() {
   const [feeEntryMove, setFeeEntryMove] = useState("");
 
   // API states
-  const [dataSource, setDataSource] = useState<"fpl" | "api-sports">("api-sports");
   const [apiKey, setApiKey] = useState("");
   const [apiKeySource, setApiKeySource] = useState<"env" | "storage" | "manual" | null>(null);
   const [fetchGameweek, setFetchGameweek] = useState("");
@@ -302,7 +301,7 @@ export default function AdminPage() {
   const handleFetchFromApi = async () => {
     if (!fetchGameweek) return;
     const sportsKey = (envApiKeyRef.current || apiKey).trim();
-    if (dataSource === "api-sports" && !sportsKey) return;
+    if (!sportsKey) return;
     if (envApiKeyRef.current && sportsKey !== apiKey) setApiKey(envApiKeyRef.current);
 
     setIsFetchingApi(true);
@@ -310,16 +309,13 @@ export default function AdminPage() {
     setFetchedFixtures([]);
 
     try {
-      const result: GameweekStatsResult =
-        dataSource === "fpl"
-          ? await fetchGameweekStatsFPL(parseInt(fetchGameweek))
-          : await fetchGameweekStats(sportsKey, parseInt(fetchGameweek));
+      const result: GameweekStatsResult = await fetchGameweekStats(sportsKey, parseInt(fetchGameweek));
 
       if (result.errors.length > 0) {
         setFetchError(result.errors.join("; "));
       } else if (result.players.length === 0) {
         setFetchError(
-          `No player stats returned for GW${fetchGameweek}. FPL returned fixtures but no mappable players — try again or paste JSON manually.`,
+          `No player stats returned for GW${fetchGameweek}. API-Sports returned no mappable players — try again or paste JSON manually.`,
         );
       }
 
@@ -332,9 +328,7 @@ export default function AdminPage() {
         setFetchedFixtures(result.fixtures);
       }
 
-      if (dataSource === "api-sports") {
-        await handleCheckApiStatus();
-      }
+      await handleCheckApiStatus();
     } catch (error: unknown) {
       setFetchError(getErrorMessage(error, "Failed to fetch stats"));
     } finally {
@@ -640,7 +634,8 @@ export default function AdminPage() {
           successful_dribbles: toU64Stat(p.successfulDribbles ?? p.successful_dribbles),
           free_kick_goals: toU64Stat(p.freeKickGoals ?? p.free_kick_goals),
           goals_conceded: toU64Stat(p.goalsConceded ?? p.goals_conceded),
-          bonus: Math.max(0, Math.min(3, toU64Stat(p.bonus ?? p.fpl_bonus))),
+          // MoveMatch does not use FPL BPS bonus — always submit 0.
+          bonus: 0,
           fpl_clean_sheets: toU64Stat(p.fplCleanSheets ?? p.fpl_clean_sheets ?? p.fplCleanSheet) ? 1 : 0,
         };
       }
@@ -1376,55 +1371,16 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold text-white">Fetch Stats</h2>
             </div>
 
-            {/* Data Source Toggle */}
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setDataSource("fpl")}
-                className={cn(
-                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                  dataSource === "fpl"
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/10"
-                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
-                )}
-              >
-                <span className="block font-bold">FPL Official</span>
-                <span className="block text-[10px] mt-0.5 opacity-70">Free &middot; No key &middot; 2026/27</span>
-              </button>
-              <button
-                onClick={() => setDataSource("api-sports")}
-                className={cn(
-                  "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                  dataSource === "api-sports"
-                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-lg shadow-cyan-500/10"
-                    : "bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/50"
-                )}
-              >
-                <span className="block font-bold">API-Sports</span>
-                <span className="block text-[10px] mt-0.5 opacity-70">EPL &middot; 100 req/day &middot; Needs key</span>
-              </button>
-            </div>
-
-            {dataSource === "fpl" && (
-              <p className="text-muted-foreground text-sm mb-4">
-                Uses the official Fantasy Premier League Live API. Always current season, unlimited requests, no API key needed.
-                <br />
-                <span className="text-xs text-muted-foreground/60">
-                  Provides: goals, assists, saves, clean sheets, cards, penalties, own goals, BPS. Does not include tackles/interceptions/dribbles.
-                </span>
-              </p>
-            )}
-
-            {dataSource === "api-sports" && (
-              <p className="text-muted-foreground text-sm mb-4">
-                Fetch from API-Sports (100 req/day free). Get your key from{" "}
-                <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
-                  api-football.com
-                </a>
-              </p>
-            )}
+            <p className="text-muted-foreground text-sm mb-4">
+              Fetch from API-Sports (100 req/day free). Players with no API-Sports row (injured / not in the
+              match squad) are added automatically as 0-minute DNP so auto-subs work. Get your key from{" "}
+              <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                api-football.com
+              </a>
+            </p>
 
             <div className="space-y-4">
-              {dataSource === "api-sports" && (
+              {(
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">API Key</label>
                   <div className="flex gap-3">
@@ -1490,12 +1446,10 @@ export default function AdminPage() {
                   />
                   <button
                     onClick={handleFetchFromApi}
-                    disabled={(dataSource === "api-sports" && !apiKey) || !fetchGameweek || isFetchingApi}
+                    disabled={!apiKey || !fetchGameweek || isFetchingApi}
                     className={cn(
                       "px-6 py-3 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50",
-                      dataSource === "fpl"
-                        ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 shadow-emerald-500/25"
-                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25",
+                      "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 shadow-cyan-500/25",
                     )}
                   >
                     {isFetchingApi ? (
@@ -1503,8 +1457,6 @@ export default function AdminPage() {
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Fetching...
                       </span>
-                    ) : dataSource === "fpl" ? (
-                      "Fetch from FPL"
                     ) : (
                       "Fetch from API-Sports"
                     )}
@@ -1525,13 +1477,6 @@ export default function AdminPage() {
                   <p className="text-sm text-emerald-400 font-medium mb-2">
                     Fetched {fetchedFixtures.length} fixtures:
                   </p>
-                  {fetchedFixtures.length > 10 && (
-                    <p className="text-xs text-amber-400/90 mb-2 leading-relaxed">
-                      Official FPL often tags more than 10 matches to one gameweek (blanks, rearranged fixtures). All
-                      listed here have <code className="text-amber-300/90">event</code> = this GW in the API. Submit
-                      Stats is driven by per-player live minutes/points, not by how many rows you see above.
-                    </p>
-                  )}
                   <div className="text-xs text-muted-foreground space-y-1">
                     {fetchedFixtures.map((f, i) => (
                       <p key={i}>{f}</p>

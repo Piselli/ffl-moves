@@ -288,7 +288,6 @@ const DETAIL_KINDS: readonly PointsBreakdownLineKind[] = [
   "savesBatch",
   "penSave",
   "concededGoal",
-  "fplBonus",
   "rating90",
   "rating80",
   "rating75",

@@ -17,7 +17,8 @@ interface NicknameModalProps {
   open?: boolean;
   address: string;
   currentNickname: string | null;
-  onSave: (name: string) => void;
+  /** Resolves to an error message to show, or null/void when saved. */
+  onSave: (name: string) => Promise<string | null | void> | string | null | void;
   onClose: () => void;
 }
 
@@ -50,6 +51,7 @@ export function NicknameModal({
   const [savedInvite, setSavedInvite] = useState<string | null>(null);
   const [canEnterInvite, setCanEnterInvite] = useState(false);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -123,7 +125,8 @@ export function NicknameModal({
     return stored;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     const trimmed = value.trim();
     if (!trimmed) {
       setError(nn.errEmpty);
@@ -133,9 +136,20 @@ export function NicknameModal({
       setError(nn.errMin);
       return;
     }
+    setSaving(true);
+    setError("");
+    let failure: string | null | void = null;
+    try {
+      failure = await onSave(trimmed);
+    } finally {
+      setSaving(false);
+    }
+    if (failure) {
+      setError(failure);
+      return;
+    }
     persistInviteIfAny();
     markInviteStepDone();
-    onSave(trimmed);
     onClose();
   };
 
@@ -214,7 +228,7 @@ export function NicknameModal({
                     setError("");
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSave();
+                    if (e.key === "Enter") void handleSave();
                   }}
                   placeholder={nn.placeholder}
                   maxLength={20}
@@ -295,8 +309,8 @@ export function NicknameModal({
                 </button>
                 <button
                   type="button"
-                  onClick={handleSave}
-                  disabled={!value.trim()}
+                  onClick={() => void handleSave()}
+                  disabled={!value.trim() || saving}
                   className="flex-[1.35] rounded-xl bg-white py-3.5 text-[15px] font-black uppercase tracking-[0.04em] text-black shadow-[0_0_24px_rgba(255,255,255,0.2)] transition-[transform,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:hover:brightness-100"
                 >
                   {nn.save}
