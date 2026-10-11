@@ -35,6 +35,13 @@ export function nicknameKey(nick: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Human-readable text the wallet shows when asking to sign (also what the server verifies). */
 export function nicknameClaimMessage(wallet: string, nickname: string, ts: number): string {
-  return `MoveMatch nickname\nwallet: ${wallet}\nnickname: ${nickname}\nts: ${ts}`;
+  return [
+    "FORM8 nickname",
+    `Set the nickname "${nickname}" for this wallet.`,
+    "",
+    `wallet: ${wallet}`,
+    `time: ${new Date(ts).toISOString()}`,
+  ].join("\n");
 }

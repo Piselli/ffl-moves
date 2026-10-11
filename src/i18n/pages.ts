@@ -546,6 +546,8 @@ export type PagesMessages = {
     placeholder: string;
     later: string;
     save: string;
+    /** Shown while the wallet asks to sign the nickname claim. */
+    signHint: string;
   };
   inviteEntry: {
     haveCode: string;
@@ -1380,6 +1382,7 @@ export const pagesEn: PagesMessages = {
     placeholder: "Enter nickname",
     later: "Later",
     save: "Save",
+    signHint: "Confirm in your wallet. The signature proves this nickname is yours — it is free.",
   },
   inviteEntry: {
     haveCode: "Have an invite code?",
@@ -2517,6 +2520,7 @@ export const pagesUk: PagesMessages = {
     placeholder: "Введи нікнейм",
     later: "Пізніше",
     save: "Зберегти",
+    signHint: "Підтверди у гаманці. Підпис доводить, що нікнейм твій — це безкоштовно.",
   },
   inviteEntry: {
     haveCode: "Є інвайт-код?",

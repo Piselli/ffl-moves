@@ -247,6 +247,8 @@ export function NicknameModal({
                 >
                   {error ? (
                     <p className="text-[12px] font-medium text-rose-400">{error}</p>
+                  ) : saving ? (
+                    <p className="text-[12px] font-medium text-emerald-300/90">{nn.signHint}</p>
                   ) : null}
                   <p className="text-[11px] font-medium tabular-nums text-white/35">
                     {value.length}/20

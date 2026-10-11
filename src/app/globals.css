@@ -290,4 +290,9 @@
 .tk-modal {
   z-index: 400 !important;
 }
+/* The Turnkey root wrapper is `relative z-40`, which traps .tk-modal in its own stacking
+ * context under our z-[200] modals (e.g. the "Sign message" prompt behind NicknameModal). */
+div:has(> .tk-modal) {
+  z-index: 400 !important;
+}
 
