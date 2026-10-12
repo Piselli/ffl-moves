@@ -49,19 +49,28 @@ function normTeamName(s: string): string {
     .replace(/[^a-z0-9]+/g, "");
 }
 
-/** Pick the catalog row for this API-Sports player on this fixture team. */
-function resolveMapping(
+/**
+ * Pick the catalog row(s) for this API-Sports player on this fixture team.
+ *
+ * Clubs are compared through `clubKey` so API-Sports names ("Nottingham Forest") match
+ * catalog names ("Nott'm Forest") — plain normalised comparison missed those and silently
+ * fell back to the first candidate, i.e. a same-named player at another club.
+ *
+ * Several catalog rows at the SAME club sharing one apiId are duplicate FPL entries of one
+ * human (e.g. Fletcher / J.Fletcher), so all of them get the stats.
+ */
+export function resolveMappings(
   candidates: PlayerMapping[] | undefined,
   apiTeamName: string,
-): PlayerMapping | undefined {
-  if (!candidates?.length) return undefined;
-  if (candidates.length === 1) return candidates[0];
-  const want = normTeamName(apiTeamName);
-  const byTeam = candidates.find((c) => {
-    const t = normTeamName(c.team);
+): PlayerMapping[] {
+  if (!candidates?.length) return [];
+  if (candidates.length === 1) return candidates;
+  const want = clubKey(apiTeamName);
+  const sameClub = candidates.filter((c) => {
+    const t = clubKey(c.team);
     return t === want || t.includes(want) || want.includes(t);
   });
-  return byTeam ?? candidates[0];
+  return sameClub.length > 0 ? sameClub : [candidates[0]!];
 }
 
 interface ApiFixture {
@@ -411,12 +420,12 @@ async function fetchStatsForCompetition(
             const stats = playerData.statistics[0];
             if (!stats) continue;
 
-            const mapping = resolveMapping(
+            const resolved = resolveMappings(
               mappings.get(playerData.player.id),
               String(teamData.team?.name || ""),
             );
             const minsRaw = stats.games.minutes ?? 0;
-            if (!mapping) {
+            if (resolved.length === 0) {
               if (minsRaw > 0) {
                 unmappedWithMinutes += 1;
                 unmappedNames.push(`${playerData.player.name} (${teamData.team?.name ?? "?"})`);
@@ -424,6 +433,7 @@ async function fetchStatsForCompetition(
               continue;
             }
 
+            for (const mapping of resolved) {
             const positionId =
               mapping.position === "GK" ? 0 :
               mapping.position === "DEF" ? 1 :
@@ -463,6 +473,7 @@ async function fetchStatsForCompetition(
                 cfg.includeGoalsConceded === true,
               ),
             });
+            }
           }
         }
 
