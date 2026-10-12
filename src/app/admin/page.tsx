@@ -39,6 +39,7 @@ import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import { displayAmountToRaw } from "@/lib/entryFee";
 import { cn, formatTxError, toU64Stat, getErrorMessage } from "@/lib/utils";
 import { fetchGameweekStats, checkApiStatus, type GameweekStatsResult } from "@/lib/football-api";
+import { formatAuditReport, type StatsAuditReport } from "@/lib/statsAudit";
 import { SitePageShell } from "@/components/SitePageShell";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -145,6 +146,8 @@ export default function AdminPage() {
   const [apiWarning, setApiWarning] = useState("");
   const [fetchedFixtures, setFetchedFixtures] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState("");
+  const [statsAuditText, setStatsAuditText] = useState("");
+  const [statsAuditBlocking, setStatsAuditBlocking] = useState(false);
   const envApiKeyRef = useRef<string | null>(null);
 
   const loadChainConfig = useCallback(async () => {
@@ -305,6 +308,36 @@ export default function AdminPage() {
     }
   };
 
+  /**
+   * Cross-check the stats against FPL's live feed (player-id mapping guard). Advisory: returns
+   * null when the check itself cannot run, so it never blocks the oracle flow on its own.
+   */
+  const runStatsAudit = async (
+    gw: number,
+    players: unknown,
+  ): Promise<{ text: string; blocking: boolean; unfinished: boolean } | null> => {
+    try {
+      const res = await fetch("/api/oracle/stats-audit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ gameweekId: gw, players }),
+      });
+      if (!res.ok) return null;
+      const report = (await res.json()) as StatsAuditReport;
+      const text = formatAuditReport(report);
+      const unfinished = report.fixtures.finished < report.fixtures.total;
+      return {
+        text:
+          text ||
+          `Stats cross-check vs FPL: OK — no mapping mismatches (${report.fixtures.finished}/${report.fixtures.total} fixtures finished).`,
+        blocking: report.blocking > 0,
+        unfinished,
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const handleFetchFromApi = async () => {
     if (!fetchGameweek) return;
     const sportsKey = (envApiKeyRef.current || apiKey).trim();
@@ -314,6 +347,8 @@ export default function AdminPage() {
     setIsFetchingApi(true);
     setFetchError("");
     setFetchedFixtures([]);
+    setStatsAuditText("");
+    setStatsAuditBlocking(false);
 
     try {
       const result: GameweekStatsResult = await fetchGameweekStats(sportsKey, parseInt(fetchGameweek));
@@ -333,6 +368,16 @@ export default function AdminPage() {
         };
         setStatsJson(JSON.stringify(formattedStats, null, 2));
         setFetchedFixtures(result.fixtures);
+
+        const audit = await runStatsAudit(Number(result.gameweekId), result.players);
+        if (audit) {
+          setStatsAuditText(
+            audit.blocking || audit.unfinished
+              ? `⚠ Stats cross-check vs FPL\n${audit.text}`
+              : audit.text,
+          );
+          setStatsAuditBlocking(audit.blocking || audit.unfinished);
+        }
       }
 
       await handleCheckApiStatus();
@@ -617,6 +662,30 @@ export default function AdminPage() {
       if (rawPlayers.length === 0) throw new Error("No players in JSON");
 
       const gwId = Number(stats.gameweekId);
+
+      // Mainnet commit_stats is plain `init`: the on-chain hash can be written ONCE per
+      // gameweek and never refreshed. Make the operator confirm anything that would lock in
+      // a wrong or premature hash.
+      if (gwId >= 1 && gwId <= 38) {
+        const existingCommit = await getStatsCommit(gwId).catch(() => null);
+        if (existingCommit) {
+          const ok = window.confirm(
+            `GW${gwId} already has an on-chain stats commit.\n\n` +
+              "The mainnet program cannot refresh it, so this submit only updates the published JSON " +
+              "(Calculate will then ask you to confirm the stale-hash dialog).\n\nContinue?",
+          );
+          if (!ok) return;
+        }
+        const audit = await runStatsAudit(gwId, rawPlayers);
+        if (audit && (audit.blocking || audit.unfinished)) {
+          const ok = window.confirm(
+            `Stats cross-check vs FPL found problems:\n\n${audit.text}\n\n` +
+              "OK = submit anyway.  Cancel = stop (fix the player-id mapping / wait for the last match).",
+          );
+          if (!ok) return;
+        }
+      }
+
       const players: Record<string, Record<string, number | boolean>> = {};
       for (const p of rawPlayers) {
         const id = toU64Stat(p.playerId);
@@ -1534,6 +1603,19 @@ export default function AdminPage() {
               {fetchError && (
                 <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl text-sm border border-rose-500/30">
                   {fetchError}
+                </div>
+              )}
+
+              {/* Stats vs FPL cross-check (player-id mapping guard) */}
+              {statsAuditText && (
+                <div
+                  className={`p-3 rounded-xl text-sm border whitespace-pre-wrap ${
+                    statsAuditBlocking
+                      ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                      : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                  }`}
+                >
+                  {statsAuditText}
                 </div>
               )}
 
