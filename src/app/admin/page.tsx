@@ -6,7 +6,12 @@ import {
   getConfig,
   getGameweek,
   getStatsCommit,
+  getGameweekEntrants,
+  getUserTeam,
+  getVerifiedGameweekStats,
+  getPublishedGameweekStats,
   findOpenGameweek,
+  NO_CAPTAIN_INDEX,
   type ChainConfig,
   type GameweekSummary,
 } from "@/lib/chainClient";
@@ -21,6 +26,8 @@ import {
   buildSponsorPrizePool,
   buildWithdrawTreasury,
 } from "@/lib/chainClient";
+import { previewTourPointsFromRegisteredTeam } from "@/lib/chainAlignedScoring";
+import { calculateFantasyPoints, ratingTierAdjustment } from "@/lib/scoring";
 import { allocatePrizes } from "@/lib/prize-distribution";
 import {
   SELF_HOSTED_RESULTS_PATH,
@@ -647,54 +654,57 @@ export default function AdminPage() {
       const playerCount = Object.keys(players).length;
 
       // 1) Auto-publish JSON (Redis + local public file) — no manual download/deploy.
-      const publishRes = await fetch("/api/oracle/stats", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          gameweekId: gwId,
-          canonicalJson,
-          oracleWallet: account.address,
-        }),
-      });
-      const publishBody = (await publishRes.json().catch(() => ({}))) as {
+      // Raw body = exact bytes that will be keccak-hashed on-chain (no double-escape).
+      let publishBody: {
         error?: string;
         durable?: boolean;
         local?: boolean;
         uriPath?: string;
-      };
-      if (!publishRes.ok) {
-        throw new Error(publishBody.error || `Stats publish failed (${publishRes.status})`);
+      } = {};
+      try {
+        const publishRes = await fetch("/api/oracle/stats", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-oracle-wallet": account.address,
+            "x-gameweek-id": String(gwId),
+          },
+          body: canonicalJson,
+        });
+        publishBody = (await publishRes.json().catch(() => ({}))) as typeof publishBody;
+        if (!publishRes.ok) {
+          throw new Error(publishBody.error || `Stats publish failed (${publishRes.status})`);
+        }
+      } catch (publishErr: unknown) {
+        const raw =
+          publishErr instanceof Error ? publishErr.message : String(publishErr);
+        throw new Error(
+          `Publish step failed (${raw}). If this is a cold compile, wait and retry once.`,
+        );
       }
 
-      // 2) On-chain commit. Mainnet still uses `init` (not init_if_needed) — a second
-      // commit hits System 0x0 and Phantom shows "Simulation failed" even with SOL.
-      // If the PDA already exists, skip the wallet popup and only refresh the JSON.
-      const existing = await getStatsCommit(gwId);
+      // 2) On-chain commit (init_if_needed): create or refresh hash+URI while GW is CLOSED.
+      // Skipping this when a PDA already exists left GW6 stuck on a stale early hash, so
+      // Calculate could not verify the freshly published JSON.
       let chainNote: string;
-      if (existing) {
-        chainNote =
-          "Live stats file published. On-chain commit already exists for this GW " +
-          "(re-commit needs the program upgrade with init_if_needed). " +
-          "Leaderboard reads the published file — no new signature needed.";
-      } else {
-        try {
-          await signAndSubmit(
-            await buildCommitStats(account.address, gwId, canonicalJson, uri),
-          );
-          chainNote = "On-chain stats commit created.";
-        } catch (chainErr: unknown) {
-          const msg = formatTxError(chainErr);
-          if (
-            /0x0\b|already in use|custom program error:\s*0x0/i.test(
-              `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`,
-            )
-          ) {
-            chainNote =
-              "Live stats file published. On-chain commit already exists for this GW. " +
-              "Leaderboard can still read the published file.";
-          } else {
-            throw chainErr;
-          }
+      try {
+        await signAndSubmit(
+          await buildCommitStats(account.address, gwId, canonicalJson, uri),
+        );
+        const after = await getStatsCommit(gwId);
+        chainNote = after
+          ? "On-chain stats commit updated (hash + URI)."
+          : "On-chain stats commit submitted.";
+      } catch (chainErr: unknown) {
+        const msg = formatTxError(chainErr);
+        const raw = `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`;
+        if (/0x0\b|already in use|custom program error:\s*0x0/i.test(raw)) {
+          chainNote =
+            "WARNING: JSON published, but on-chain hash NOT updated " +
+            "(mainnet commit_stats still uses plain init — PDA already exists). " +
+            "In Calculate & Publish, confirm the stale-hash dialog to settle from the published file.";
+        } else {
+          throw new Error(`On-chain commit failed (${msg}). JSON is already published.`);
         }
       }
 
@@ -708,7 +718,15 @@ export default function AdminPage() {
       );
     } catch (error: unknown) {
       console.error("Failed to submit stats:", error);
-      alert(ad.alertFailed(formatTxError(error)));
+      const raw = error instanceof Error ? error.message : String(error);
+      // Keep step-specific messages; formatTxError would collapse them to "Network hiccup".
+      alert(
+        ad.alertFailed(
+          /Publish step failed|On-chain commit failed|Invalid stats|No players/i.test(raw)
+            ? raw
+            : formatTxError(error),
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -723,9 +741,6 @@ export default function AdminPage() {
 
       // Fetch all registered teams and compute points off-chain, then sort descending.
       // The contract no longer sorts on-chain (removed O(n²) bubble sort to fit execution limits).
-      const { getGameweekEntrants, getUserTeam, getGameweekStats } = await import("@/lib/chainClient");
-      const { previewTourPointsFromRegisteredTeam } = await import("@/lib/chainAlignedScoring");
-
       const addresses = await getGameweekEntrants(gw);
       const loadedTeams = await Promise.all(
         addresses.map(async (addr) => {
@@ -736,7 +751,6 @@ export default function AdminPage() {
 
       // getUserTeam recovers the captain from the registration tx for legacy entries. If it
       // still reports "no captain", that player would silently lose the ×2 bonus.
-      const { NO_CAPTAIN_INDEX } = await import("@/lib/chainClient");
       const missingCaptain = loadedTeams.filter(({ team }) => team && team.captainIndex === NO_CAPTAIN_INDEX);
       if (missingCaptain.length > 0) {
         const list = missingCaptain.map(({ addr }) => addr).join("\n");
@@ -801,13 +815,39 @@ export default function AdminPage() {
       }
 
       const allPlayerIds = Array.from(new Set(teams.flatMap((t) => t.team?.playerIds ?? [])));
-      const statsMap = await getGameweekStats(gw, allPlayerIds);
+      let statsMap: Record<number, Record<string, unknown>> = {};
+      try {
+        statsMap = (await getVerifiedGameweekStats(gw, allPlayerIds)) as Record<
+          number,
+          Record<string, unknown>
+        >;
+      } catch (verifyErr: unknown) {
+        const verifyMsg =
+          verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
+        if (!/hash does not match/i.test(verifyMsg)) throw verifyErr;
+        // Mainnet program still uses plain `init` — cannot refresh StatsCommit PDA.
+        // publish_results only requires a non-zero commit hash; scoring can use the
+        // live published JSON the oracle just wrote (Redis / local).
+        const ok = window.confirm(
+          `On-chain stats hash is STALE for GW${gw} (re-commit blocked: account already in use).\n\n` +
+            `OK = score & publish from the published JSON at /data/stats/${gw}.json anyway.\n` +
+            `Cancel = stop (deploy program with init_if_needed, then Submit Stats again).`,
+        );
+        if (!ok) return;
+        statsMap = (await getPublishedGameweekStats(gw, allPlayerIds)) as Record<
+          number,
+          Record<string, unknown>
+        >;
+      }
+      if (Object.keys(statsMap).length === 0) {
+        throw new Error(
+          `No published stats for GW${gw}. Run Submit Stats first so /data/stats/${gw}.json exists.`,
+        );
+      }
       const chainRecord: Record<string, Record<string, unknown>> = {};
       for (const [id, s] of Object.entries(statsMap)) {
         chainRecord[id] = s as Record<string, unknown>;
       }
-
-      const { calculateFantasyPoints, ratingTierAdjustment } = await import("@/lib/scoring");
 
       const scored = teams.map(({ addr, team }) => {
         if (!team) return { addr, basePts: 0, finalPts: 0 };
@@ -857,7 +897,7 @@ export default function AdminPage() {
       await signAndSubmit(published.instructions);
 
       // Winners cannot claim without their proof, so it ships with the results file.
-      downloadTextFile(`results-${gw}.json`, JSON.stringify({
+      const resultsJson = JSON.stringify({
         gameweek: gw,
         root: published.root,
         prizeAllocated: published.total.toString(),
@@ -872,9 +912,35 @@ export default function AdminPage() {
             sum: node.sum.toString(),
           })),
         })),
-      }));
+      });
 
-      alert(`${ad.alertResultsCalculated(String(resultsGameweekId))}\n\nWinners cannot claim until the downloaded file is published as ${publishDestination(SELF_HOSTED_RESULTS_PATH, gw)}.`);
+      // Auto-publish (Redis + local file) — same flow as Submit Stats. The file is also
+      // downloaded as a backup so the proofs can never be lost.
+      downloadTextFile(`results-${gw}.json`, resultsJson);
+      let resultsNote: string;
+      try {
+        const res = await fetch("/api/oracle/results", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-oracle-wallet": account.address,
+            "x-gameweek-id": String(gw),
+          },
+          body: resultsJson,
+        });
+        const body = (await res.json().catch(() => ({}))) as { error?: string; durable?: boolean };
+        if (!res.ok) throw new Error(body.error || `status ${res.status}`);
+        resultsNote = body.durable
+          ? "Results published automatically (Redis) — winners can claim now."
+          : "Results saved locally only — deploy or configure Redis, then winners can claim.";
+      } catch (publishErr: unknown) {
+        const raw = publishErr instanceof Error ? publishErr.message : String(publishErr);
+        resultsNote =
+          `Auto-publish of results FAILED (${raw}). Upload the downloaded file as ` +
+          `${publishDestination(SELF_HOSTED_RESULTS_PATH, gw)} so winners can claim.`;
+      }
+
+      alert(`${ad.alertResultsCalculated(String(resultsGameweekId))}\n\n${resultsNote}`);
     } catch (error: unknown) {
       console.error("Failed to calculate results:", error);
       alert(ad.alertFailed(formatTxError(error)));

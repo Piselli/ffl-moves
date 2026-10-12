@@ -83,3 +83,62 @@ export async function writeOracleStatsJson(
 
   return { durable, local };
 }
+
+/* ---- Settlement results (Merkle proofs) — same durable store, separate key ---- */
+
+function resultsRedisKey(gameweekId: number): string {
+  return `oracle:results:${gameweekId}`;
+}
+
+function localResultsPath(gameweekId: number): string {
+  return path.join(process.cwd(), "public", "data", "results", `${gameweekId}.json`);
+}
+
+/** Exact results JSON previously published for this GW, or null. */
+export async function readOracleResultsJson(gameweekId: number): Promise<string | null> {
+  if (redis) {
+    try {
+      const value = await redis.get<string>(resultsRedisKey(gameweekId));
+      if (typeof value === "string" && value.length > 0) return value;
+      if (value && typeof value === "object") return JSON.stringify(value);
+    } catch (e) {
+      console.warn("oracleStatsStore redis results read failed", e);
+    }
+  }
+  try {
+    return await fs.readFile(localResultsPath(gameweekId), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/** Persist results JSON (Redis when configured + local public file). */
+export async function writeOracleResultsJson(
+  gameweekId: number,
+  json: string,
+): Promise<{ durable: boolean; local: boolean }> {
+  let durable = false;
+  let local = false;
+
+  if (redis) {
+    try {
+      await redis.set(resultsRedisKey(gameweekId), json);
+      durable = true;
+    } catch (e) {
+      console.warn("oracleStatsStore redis results write failed", e);
+    }
+  }
+  try {
+    const filePath = localResultsPath(gameweekId);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, json, "utf8");
+    local = true;
+  } catch (e) {
+    console.warn("oracleStatsStore local results write failed", e);
+  }
+
+  if (!durable && !local) {
+    throw new Error("Could not publish results (Redis unavailable and local write failed).");
+  }
+  return { durable, local };
+}

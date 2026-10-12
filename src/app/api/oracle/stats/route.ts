@@ -17,11 +17,13 @@ function normAddr(a: string): string {
 
 /**
  * POST /api/oracle/stats
- * Body: { gameweekId, canonicalJson, oracleWallet }
  *
- * Publishes the exact stats JSON the oracle will (or already did) commit on-chain.
+ * Preferred: raw body = exact stats JSON bytes to publish, plus headers
+ *   x-gameweek-id, x-oracle-wallet
+ * Legacy: JSON body { gameweekId, canonicalJson, oracleWallet }
+ *
  * Auth: wallet must match on-chain config.oracle. Optional shared secret via
- * `ORACLE_STATS_SECRET` / `CRON_SECRET` as Bearer or `x-oracle-key`.
+ * `ORACLE_STATS_SECRET` as Bearer or `x-oracle-key`.
  */
 export async function POST(req: NextRequest) {
   const gate = await rateLimit(`oracle:stats:${clientIp(req)}`, 20, 60);
@@ -32,7 +34,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Optional extra gate — do NOT reuse CRON_SECRET (that must stay server-only).
   const expectedSecret = process.env.ORACLE_STATS_SECRET?.trim() || "";
   if (expectedSecret) {
     const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
@@ -42,17 +43,37 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  const headerGw = Number(req.headers.get("x-gameweek-id") ?? "");
+  const headerWallet = (req.headers.get("x-oracle-wallet") ?? "").trim();
+
+  let gameweekId = headerGw;
+  let canonicalJson = "";
+  let oracleWallet = headerWallet;
+
+  const rawText = await req.text();
+  if (!rawText) {
+    return NextResponse.json({ error: "Empty body." }, { status: 400 });
   }
 
-  const rec = body as Record<string, unknown>;
-  const gameweekId = Number(rec.gameweekId);
-  const canonicalJson = typeof rec.canonicalJson === "string" ? rec.canonicalJson : "";
-  const oracleWallet = typeof rec.oracleWallet === "string" ? rec.oracleWallet : "";
+  // Raw body mode: body IS the canonical stats JSON (preferred — no double-escape).
+  if (Number.isInteger(headerGw) && headerGw >= 1 && headerWallet) {
+    canonicalJson = rawText;
+    gameweekId = headerGw;
+    oracleWallet = headerWallet;
+  } else {
+    // Legacy wrapper: { gameweekId, canonicalJson, oracleWallet }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(rawText) as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    gameweekId = Number(parsed.gameweekId);
+    canonicalJson =
+      typeof parsed.canonicalJson === "string" ? parsed.canonicalJson : "";
+    oracleWallet =
+      typeof parsed.oracleWallet === "string" ? parsed.oracleWallet : "";
+  }
 
   if (!Number.isInteger(gameweekId) || gameweekId < 1) {
     return NextResponse.json({ error: "Invalid gameweekId." }, { status: 400 });
@@ -86,6 +107,7 @@ export async function POST(req: NextRequest) {
       durable: published.durable || isOracleStatsStoreDurable(),
       local: published.local,
       uriPath: `/data/stats/${gameweekId}.json`,
+      bytes: canonicalJson.length,
     });
   } catch (e) {
     console.error("oracle stats publish failed", e);

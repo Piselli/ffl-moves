@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import {
   DEFAULT_PITCH_STYLE,
   getPitchStyle,
@@ -293,7 +294,7 @@ export function TeamSheetTable({
       ) : null}
       <div
         className={cn(
-          "grid shrink-0 grid-cols-[2.75rem_1fr_3rem_3.25rem] gap-2 border-b border-white/10 text-[9px] font-bold uppercase tracking-[0.16em] text-white/40",
+          "grid shrink-0 grid-cols-[2.75rem_1fr_3rem_4.5rem] gap-2 border-b border-white/10 text-[9px] font-bold uppercase tracking-[0.16em] text-white/40",
           padX,
           dense ? "pb-2.5" : "pb-3",
         )}
@@ -356,7 +357,7 @@ export function TeamSheetTable({
                       : undefined
                   }
                   className={cn(
-                    "relative grid w-full grid-cols-[2.75rem_1fr_3rem_3.25rem] items-center gap-2 border-b border-white/[0.06] text-left transition",
+                    "relative grid w-full grid-cols-[2.75rem_1fr_3rem_4.5rem] items-center gap-2 border-b border-white/[0.06] text-left transition",
                     dense ? "px-2.5 py-2" : "px-3 py-2.5 sm:px-4",
                     on && !useLayout && "bg-[#00f948]/12 ring-1 ring-inset ring-[#00f948]/45",
                     on &&
@@ -419,11 +420,20 @@ export function TeamSheetTable({
                         : "text-[#00f948]/90",
                     )}
                   >
-                    {registrationMode
-                      ? "—"
-                      : row.prizeAmount > 0
-                        ? row.prizeAmount
-                        : "—"}
+                    {registrationMode || row.prizeAmount <= 0 ? (
+                      "—"
+                    ) : (
+                      <span className="inline-flex items-center justify-end gap-1">
+                        <Image
+                          src="/usdc-logo.png"
+                          alt="USDC"
+                          width={14}
+                          height={14}
+                          className="size-3.5 shrink-0"
+                        />
+                        {row.prizeAmount}
+                      </span>
+                    )}
                   </span>
                 </button>
               );

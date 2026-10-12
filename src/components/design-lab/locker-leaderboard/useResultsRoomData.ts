@@ -267,37 +267,40 @@ function snapshotFromGw(
   };
 }
 
-/** Closed-GW live stats: committed oracle file, then same-origin mirror, then FPL live. */
+/** Closed-GW live stats: same-origin published file first (works with stale commit hash). */
 async function loadClosedLiveStats(
   gwId: number,
   playerIds: number[],
 ): Promise<Record<string, Record<string, unknown>>> {
   let stats: Record<string, Record<string, unknown>> = {};
 
-  try {
-    stats = (await getGameweekStats(gwId, playerIds)) as Record<
-      string,
-      Record<string, unknown>
-    >;
-  } catch {
-    stats = {};
+  // Prefer the live published mirror — mainnet cannot refresh StatsCommit hash yet.
+  for (const uri of [`/api/oracle/stats/${gwId}`, `/data/stats/${gwId}.json`]) {
+    try {
+      const res = await fetch(uri, { cache: "no-store" });
+      if (!res.ok) continue;
+      const payload = (await res.json()) as {
+        players?: Record<string, Record<string, unknown>>;
+      };
+      const all = payload.players ?? {};
+      for (const id of playerIds) {
+        const row = all[String(id)] ?? all[id as unknown as string];
+        if (row) stats[String(id)] = row;
+      }
+      if (Object.keys(stats).length > 0) break;
+    } catch {
+      /* try next */
+    }
   }
 
   if (Object.keys(stats).length === 0) {
     try {
-      const res = await fetch(`/data/stats/${gwId}.json`, { cache: "no-store" });
-      if (res.ok) {
-        const payload = (await res.json()) as {
-          players?: Record<string, Record<string, unknown>>;
-        };
-        const all = payload.players ?? {};
-        for (const id of playerIds) {
-          const row = all[String(id)] ?? all[id as unknown as string];
-          if (row) stats[String(id)] = row;
-        }
-      }
+      stats = (await getGameweekStats(gwId, playerIds)) as Record<
+        string,
+        Record<string, unknown>
+      >;
     } catch {
-      /* optional local/prod mirror */
+      stats = {};
     }
   }
 

@@ -752,23 +752,113 @@ export type OnChainPlayerStats = {
   fpl_clean_sheets: number;
 };
 
+/** Candidate URLs for a StatsCommit URI (apex→www redirect often breaks browser CORS). */
+function statsFetchCandidates(gameweekId: number, commitUri: string): string[] {
+  const out: string[] = [];
+  const push = (u: string) => {
+    if (u && !out.includes(u)) out.push(u);
+  };
+  push(commitUri);
+  try {
+    const parsed = new URL(commitUri);
+    if (parsed.hostname === "form8.football") {
+      parsed.hostname = "www.form8.football";
+      push(parsed.toString());
+    } else if (parsed.hostname === "movematch.xyz") {
+      parsed.hostname = "www.movematch.xyz";
+      push(parsed.toString());
+    }
+  } catch {
+    /* ignore bad URI */
+  }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    push(`${window.location.origin}/data/stats/${gameweekId}.json`);
+    push(`${window.location.origin}/api/oracle/stats/${gameweekId}`);
+  }
+  return out;
+}
+
 async function verifiedStats(gameweekId: number): Promise<Record<number, OnChainPlayerStats>> {
   const commit = await getStatsCommit(gameweekId);
   if (!commit) return {};
-  const response = await fetch(commit.uri);
-  if (!response.ok) return {};
-  const body = await response.arrayBuffer();
-  const digest = Buffer.from(keccak_256(new Uint8Array(body))).toString("hex");
-  if (digest !== commit.hash) return {};
-  const payload = JSON.parse(new TextDecoder().decode(body)) as { players?: Record<string, OnChainPlayerStats> };
-  return payload.players ?? {};
+
+  let lastFetchError: unknown = null;
+  let sawHashMismatch = false;
+
+  for (const uri of statsFetchCandidates(gameweekId, commit.uri)) {
+    try {
+      const response = await fetch(uri, { cache: "no-store" });
+      if (!response.ok) continue;
+      const body = await response.arrayBuffer();
+      const digest = Buffer.from(keccak_256(new Uint8Array(body))).toString("hex");
+      if (digest !== commit.hash) {
+        sawHashMismatch = true;
+        continue;
+      }
+      const payload = JSON.parse(new TextDecoder().decode(body)) as {
+        players?: Record<string, OnChainPlayerStats>;
+      };
+      return payload.players ?? {};
+    } catch (e) {
+      lastFetchError = e;
+    }
+  }
+
+  if (sawHashMismatch) {
+    throw new Error(
+      `Stats JSON hash does not match on-chain commit for GW${gameweekId}. ` +
+        `Mainnet commit_stats still uses plain init (cannot refresh an existing PDA). ` +
+        `Upgrade the program with init_if_needed, or settle from the published JSON in Admin.`,
+    );
+  }
+  if (lastFetchError) {
+    const msg =
+      lastFetchError instanceof Error ? lastFetchError.message : String(lastFetchError);
+    throw new Error(
+      `Could not fetch stats for GW${gameweekId} from ${commit.uri}: ${msg}`,
+    );
+  }
+  return {};
 }
 
 export async function getPlayerStats(gameweekId: number, playerId: number): Promise<OnChainPlayerStats | null> {
-  return (await verifiedStats(gameweekId))[playerId] ?? null;
+  try {
+    return (await verifiedStats(gameweekId))[playerId] ?? null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/hash does not match/i.test(msg)) {
+      return (await getPublishedGameweekStats(gameweekId, [playerId]))[playerId] ?? null;
+    }
+    return null;
+  }
 }
 
+/**
+ * Soft read for UI. On hash mismatch (stale mainnet StatsCommit PDA), fall back to
+ * the live published JSON so closed leaderboards keep showing preview points.
+ * Use `getVerifiedGameweekStats` in oracle Calculate flows.
+ */
 export async function getGameweekStats(
+  gameweekId: number,
+  playerIds: number[],
+): Promise<Record<number, OnChainPlayerStats>> {
+  try {
+    const all = await verifiedStats(gameweekId);
+    return playerIds.reduce<Record<number, OnChainPlayerStats>>((stats, id) => {
+      if (all[id]) stats[id] = all[id];
+      return stats;
+    }, {});
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/hash does not match/i.test(msg)) {
+      return getPublishedGameweekStats(gameweekId, playerIds);
+    }
+    return {};
+  }
+}
+
+/** Throws when the published JSON cannot be fetched or keccak ≠ on-chain commit. */
+export async function getVerifiedGameweekStats(
   gameweekId: number,
   playerIds: number[],
 ): Promise<Record<number, OnChainPlayerStats>> {
@@ -777,6 +867,41 @@ export async function getGameweekStats(
     if (all[id]) stats[id] = all[id];
     return stats;
   }, {});
+}
+
+/**
+ * Load published oracle JSON without keccak check (same-origin / Redis mirror).
+ * Used when mainnet cannot re-commit stats because the PDA already exists.
+ */
+export async function getPublishedGameweekStats(
+  gameweekId: number,
+  playerIds: number[],
+): Promise<Record<number, OnChainPlayerStats>> {
+  const uris: string[] = [];
+  if (typeof window !== "undefined" && window.location?.origin) {
+    uris.push(`${window.location.origin}/api/oracle/stats/${gameweekId}`);
+    uris.push(`${window.location.origin}/data/stats/${gameweekId}.json`);
+  }
+  uris.push(`/api/oracle/stats/${gameweekId}`, `/data/stats/${gameweekId}.json`);
+
+  for (const uri of uris) {
+    try {
+      const response = await fetch(uri, { cache: "no-store" });
+      if (!response.ok) continue;
+      const payload = (await response.json()) as {
+        players?: Record<string, OnChainPlayerStats>;
+      };
+      const all = payload.players ?? {};
+      return playerIds.reduce<Record<number, OnChainPlayerStats>>((stats, id) => {
+        const row = all[String(id)] ?? all[id as unknown as string];
+        if (row) stats[id] = row;
+        return stats;
+      }, {});
+    } catch {
+      /* try next */
+    }
+  }
+  return {};
 }
 
 /** Bracket is intentionally absent from the first Solana devnet deployment. */

@@ -82,7 +82,11 @@ export function formatTxError(error: unknown): string {
   if (/insufficient|not enough|0x1\b/i.test(blob)) {
     return "Not enough USDC (or SOL for fees). Top up and try again.";
   }
-  if (/blockhash|expired|timed out|timeout|network|fetch failed|429|503/i.test(blob)) {
+  if (
+    /blockhash|expired|timed out|timeout|network|fetch failed|failed to fetch|429|503/i.test(
+      blob,
+    )
+  ) {
     return "Network hiccup — wait a moment and try again.";
   }
   if (
