@@ -33,14 +33,17 @@ export async function ownerHasPriorClaimPrize(
 ): Promise<boolean> {
   void registeredAddresses;
   const normalized = normTourOwnerAddr(owner);
-  // The API list is cached server-side for a couple of minutes, so it can miss a claim made
-  // moments ago. The `ClaimReceipt` PDA is the source of truth: always check it directly
-  // for this one owner (a single account read) so a double-click/retry never reaches the chain.
-  const [fromApi, direct] = await Promise.all([
-    fetchTourClaimHistoryFromApi(tourId),
-    fetchOwnersWithClaimedPrize(tourId, [normalized]).catch(() => new Set<string>()),
-  ]);
-  return fromApi.has(normalized) || direct.has(normalized);
+  // The `ClaimReceipt` PDA is the source of truth, and reading it for one owner is a single
+  // fast account read. The API list is cached server-side for a couple of minutes (and scans
+  // every entrant on a cache miss), so it can both lag and be slow — only use it as a fallback
+  // when the direct read fails.
+  try {
+    const direct = await fetchOwnersWithClaimedPrize(tourId, [normalized]);
+    return direct.has(normalized);
+  } catch {
+    const fromApi = await fetchTourClaimHistoryFromApi(tourId);
+    return fromApi.has(normalized);
+  }
 }
 
 /** Wallets already paid for this tour, read from their `ClaimReceipt` accounts. */

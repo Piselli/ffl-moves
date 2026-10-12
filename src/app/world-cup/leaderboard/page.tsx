@@ -179,16 +179,17 @@ export default function WorldCupLeaderboardPage() {
   const handleClaimPrize = async (tourId: number) => {
     if (!connected || !account?.address) return;
 
-    const alreadyPaid = await ownerHasPriorClaimPrize(tourId, account.address.toString());
-    if (alreadyPaid) {
-      refreshBalanceAfterTx();
-      alert(lb.claimAlreadyPaid);
-      await fetchTourData(tourId);
-      return;
-    }
-
+    if (isClaiming) return;
     setIsClaiming(true);
     try {
+      const alreadyPaid = await ownerHasPriorClaimPrize(tourId, account.address.toString());
+      if (alreadyPaid) {
+        refreshBalanceAfterTx();
+        alert(lb.claimAlreadyPaid);
+        await fetchTourData(tourId);
+        return;
+      }
+
       await signAndSubmit(await buildClaimPrize(account.address, tourId));
       refreshBalanceAfterTx();
       const me = account.address.toString();

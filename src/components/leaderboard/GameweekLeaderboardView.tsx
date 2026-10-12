@@ -197,16 +197,17 @@ export function GameweekLeaderboardView() {
   const handleClaimPrize = async (gameweekId: number) => {
     if (!connected || !account?.address) return;
 
-    const alreadyPaid = await ownerHasPriorClaimPrize(gameweekId, account.address.toString());
-    if (alreadyPaid) {
-      refreshBalanceAfterTx();
-      alert(lb.claimAlreadyPaid);
-      await fetchGameweekData(gameweekId);
-      return;
-    }
-
+    if (isClaiming) return;
     setIsClaiming(true);
     try {
+      const alreadyPaid = await ownerHasPriorClaimPrize(gameweekId, account.address.toString());
+      if (alreadyPaid) {
+        refreshBalanceAfterTx();
+        alert(lb.claimAlreadyPaid);
+        await fetchGameweekData(gameweekId);
+        return;
+      }
+
       await signAndSubmit(await buildClaimPrize(account.address, gameweekId));
       refreshBalanceAfterTx();
       // Flip the row immediately — the RPC read below can lag a beat behind the confirmed tx,

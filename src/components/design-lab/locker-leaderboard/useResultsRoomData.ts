@@ -493,6 +493,7 @@ export function useResultsRoomData(): ResultsRoomData {
   const [resolvedPair, setResolvedPair] = useState<number[]>([]);
   const [pickerGws, setPickerGws] = useState<number[]>([]);
   const [claiming, setClaiming] = useState(false);
+  const claimInFlight = useRef(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const xiCache = useRef(new Map<string, XiPayload>());
   /** Seeded open/closed GW from config API — used when direct getGameweek fails. */
@@ -881,25 +882,30 @@ export function useResultsRoomData(): ResultsRoomData {
           : t,
       );
 
-    const alreadyPaid = await ownerHasPriorClaimPrize(gwId, wallet);
-    if (alreadyPaid) {
-      markClaimed();
-      refreshBalanceAfterTx();
-      setClaimError("Already claimed");
-      await loadBoards();
-      return;
-    }
-
+    if (claimInFlight.current) return;
+    claimInFlight.current = true;
+    // Show "Claiming…" straight away — the on-chain pre-check and tx building below
+    // are network reads and the button would otherwise look idle (and clickable).
     setClaiming(true);
     setClaimError(null);
     try {
+      const alreadyPaid = await ownerHasPriorClaimPrize(gwId, wallet);
+      if (alreadyPaid) {
+        markClaimed();
+        refreshBalanceAfterTx();
+        setClaimError("Already claimed");
+        void loadBoards();
+        return;
+      }
+
       await signAndSubmit(await buildClaimPrize(wallet, gwId));
       markClaimed();
       refreshBalanceAfterTx();
-      await loadBoards();
+      void loadBoards();
     } catch (error: unknown) {
       setClaimError(formatTxError(error));
     } finally {
+      claimInFlight.current = false;
       setClaiming(false);
     }
   }, [connected, loadBoards, refreshBalanceAfterTx, signAndSubmit, source, tablet.gameweek, wallet]);
