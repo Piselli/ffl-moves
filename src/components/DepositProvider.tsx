@@ -62,6 +62,20 @@ export function DepositProvider({ children }: PropsWithChildren) {
       });
   }, [address, connected]);
 
+  const followUpTimers = useRef<number[]>([]);
+  const refreshBalanceAfterTx = useCallback(() => {
+    followUpTimers.current.forEach((t) => window.clearTimeout(t));
+    followUpTimers.current = [1500, 4000, 9000].map((ms) =>
+      window.setTimeout(refreshBalance, ms),
+    );
+    refreshBalance();
+  }, [refreshBalance]);
+
+  useEffect(
+    () => () => followUpTimers.current.forEach((t) => window.clearTimeout(t)),
+    [],
+  );
+
   useEffect(() => {
     refreshBalance();
     const onFocus = () => refreshBalance();
@@ -96,7 +110,7 @@ export function DepositProvider({ children }: PropsWithChildren) {
 
   return (
     <DepositContext.Provider
-      value={{ openDeposit, openWithdraw, balanceLabel, refreshBalance }}
+      value={{ openDeposit, openWithdraw, balanceLabel, refreshBalance, refreshBalanceAfterTx }}
     >
       {children}
       {depositOpen ? (

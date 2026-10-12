@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import { useDeposit } from "@/components/depositContext";
 import { useNickname } from "@/hooks/useNickname";
 import { usePrizeAsset } from "@/components/PrizeAssetProvider";
 import {
@@ -467,6 +468,7 @@ function honorFromPayload(
 
 export function useResultsRoomData(): ResultsRoomData {
   const { account, connected, signAndSubmit } = useWallet();
+  const { refreshBalanceAfterTx } = useDeposit();
   const { getNickname } = useNickname();
   const prize = usePrizeAsset();
   const site = useSiteMessages();
@@ -865,8 +867,24 @@ export function useResultsRoomData(): ResultsRoomData {
       return;
     }
 
+    // loadBoards() skips re-fetching an already-loaded resolved tablet, so flip the
+    // user's row locally — otherwise the Claim button stays and a retry hits the chain.
+    const markClaimed = () =>
+      setTablet((t) =>
+        t.gameweek === gwId
+          ? {
+              ...t,
+              rows: t.rows.map((r) =>
+                tourOwnersMatch(r.owner, wallet) ? { ...r, claimed: true } : r,
+              ),
+            }
+          : t,
+      );
+
     const alreadyPaid = await ownerHasPriorClaimPrize(gwId, wallet);
     if (alreadyPaid) {
+      markClaimed();
+      refreshBalanceAfterTx();
       setClaimError("Already claimed");
       await loadBoards();
       return;
@@ -876,13 +894,15 @@ export function useResultsRoomData(): ResultsRoomData {
     setClaimError(null);
     try {
       await signAndSubmit(await buildClaimPrize(wallet, gwId));
+      markClaimed();
+      refreshBalanceAfterTx();
       await loadBoards();
     } catch (error: unknown) {
       setClaimError(formatTxError(error));
     } finally {
       setClaiming(false);
     }
-  }, [connected, loadBoards, signAndSubmit, source, tablet.gameweek, wallet]);
+  }, [connected, loadBoards, refreshBalanceAfterTx, signAndSubmit, source, tablet.gameweek, wallet]);
 
   const loadXiForOwner = useCallback(
     async (owner: string): Promise<XiPayload | null> => {

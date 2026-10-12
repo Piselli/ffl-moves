@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import { useDeposit } from "@/components/depositContext";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import {
@@ -43,6 +44,7 @@ const YOU_ROW_ID = "lb-you-row";
  */
 export function GameweekLeaderboardView() {
   const { account, connected, signAndSubmit } = useWallet();
+  const { refreshBalanceAfterTx } = useDeposit();
   const lb = useSiteMessages().pages.leaderboard;
   const prize = usePrizeAsset();
   const [config, setConfig] = useState<ChainConfig | null>(null);
@@ -197,6 +199,7 @@ export function GameweekLeaderboardView() {
 
     const alreadyPaid = await ownerHasPriorClaimPrize(gameweekId, account.address.toString());
     if (alreadyPaid) {
+      refreshBalanceAfterTx();
       alert(lb.claimAlreadyPaid);
       await fetchGameweekData(gameweekId);
       return;
@@ -205,11 +208,21 @@ export function GameweekLeaderboardView() {
     setIsClaiming(true);
     try {
       await signAndSubmit(await buildClaimPrize(account.address, gameweekId));
+      refreshBalanceAfterTx();
+      // Flip the row immediately — the RPC read below can lag a beat behind the confirmed tx,
+      // and a stale "Claim" button invites a second (failing) attempt.
+      const me = account.address.toString();
+      setLeaderboardData((rows) =>
+        rows.map((r) => (tourOwnersMatch(r.owner, me) ? { ...r, claimed: true } : r)),
+      );
       alert(lb.claimSuccess(prize.symbol));
       // setSelectedGameweek(gameweekId) here is a no-op (same value) — React skips state updates,
       // so the leaderboard would never reflect `claimed: true` until the user changes the dropdown.
       // Re-run the fetch directly instead.
       await fetchGameweekData(gameweekId);
+      setLeaderboardData((rows) =>
+        rows.map((r) => (tourOwnersMatch(r.owner, me) ? { ...r, claimed: true } : r)),
+      );
     } catch (error: unknown) {
       alert(lb.claimFail(formatTxError(error)));
     } finally {

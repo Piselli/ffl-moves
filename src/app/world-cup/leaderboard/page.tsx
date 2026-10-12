@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import { useDeposit } from "@/components/depositContext";
 import Link from "next/link";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import {
@@ -35,6 +36,7 @@ import { getPrizeRankCount, getPrizeTiers, isRankInPrizeZone } from "@/lib/prize
 
 export default function WorldCupLeaderboardPage() {
   const { account, connected, signAndSubmit } = useWallet();
+  const { refreshBalanceAfterTx } = useDeposit();
   const msgs = useSiteMessages();
   const lb = msgs.pages.leaderboard;
   const wc = msgs.pages.worldCup;
@@ -179,6 +181,7 @@ export default function WorldCupLeaderboardPage() {
 
     const alreadyPaid = await ownerHasPriorClaimPrize(tourId, account.address.toString());
     if (alreadyPaid) {
+      refreshBalanceAfterTx();
       alert(lb.claimAlreadyPaid);
       await fetchTourData(tourId);
       return;
@@ -187,8 +190,14 @@ export default function WorldCupLeaderboardPage() {
     setIsClaiming(true);
     try {
       await signAndSubmit(await buildClaimPrize(account.address, tourId));
+      refreshBalanceAfterTx();
+      const me = account.address.toString();
+      const markClaimed = (rows: TeamResult[]) =>
+        rows.map((r) => (tourOwnersMatch(r.owner, me) ? { ...r, claimed: true } : r));
+      setLeaderboardData(markClaimed);
       alert(lb.claimSuccess(prize.symbol));
       await fetchTourData(tourId);
+      setLeaderboardData(markClaimed);
     } catch (error: unknown) {
       alert(lb.claimFail(formatTxError(error)));
     } finally {

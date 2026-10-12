@@ -7,6 +7,8 @@ export type DepositContextValue = {
   openWithdraw: () => void;
   balanceLabel: string | null;
   refreshBalance: () => void;
+  /** Refresh now and again shortly after — RPC reads can lag a beat behind a confirmed tx. */
+  refreshBalanceAfterTx: () => void;
 };
 
 export const DepositContext = createContext<DepositContextValue>({
@@ -14,6 +16,7 @@ export const DepositContext = createContext<DepositContextValue>({
   openWithdraw: () => {},
   balanceLabel: null,
   refreshBalance: () => {},
+  refreshBalanceAfterTx: () => {},
 });
 
 export function useDeposit(): DepositContextValue {
