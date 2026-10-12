@@ -26,6 +26,11 @@ let memory: CacheEntry | null = null;
 let refreshInFlight: Promise<PlayerFormPayload> | null = null;
 
 type FplEvent = { id: number; finished?: boolean };
+type FplFixture = {
+  event?: number | null;
+  finished?: boolean;
+  finished_provisional?: boolean;
+};
 type FplLiveElement = {
   id: number;
   stats?: { minutes?: number; starts?: number };
@@ -40,8 +45,36 @@ async function buildFormPayload(): Promise<PlayerFormPayload> {
     throw new Error(`FPL bootstrap ${bootstrapRes.status}`);
   }
   const bootstrap = (await bootstrapRes.json()) as { events?: FplEvent[] };
+
+  // FPL flips `event.finished` only after its data check (often a day or more
+  // after the last match). Treat a GW as done as soon as every fixture in it is
+  // finished (provisionally), so the form strip rolls forward right away.
+  const doneByFixtures = new Set<number>();
+  try {
+    const fxRes = await fetch(`${FPL_BASE}/fixtures/`, {
+      headers: BROWSER_HEADERS,
+      cache: "no-store",
+    });
+    if (fxRes.ok) {
+      const fixtures = (await fxRes.json()) as FplFixture[];
+      const perEvent = new Map<number, { total: number; done: number }>();
+      for (const f of fixtures) {
+        if (typeof f.event !== "number") continue;
+        const agg = perEvent.get(f.event) ?? { total: 0, done: 0 };
+        agg.total += 1;
+        if (f.finished || f.finished_provisional) agg.done += 1;
+        perEvent.set(f.event, agg);
+      }
+      for (const [ev, agg] of perEvent) {
+        if (agg.total > 0 && agg.done === agg.total) doneByFixtures.add(ev);
+      }
+    }
+  } catch {
+    /* fall back to event.finished only */
+  }
+
   const finished = (bootstrap.events ?? [])
-    .filter((e) => e.finished)
+    .filter((e) => e.finished || doneByFixtures.has(e.id))
     .map((e) => e.id)
     .sort((a, b) => a - b);
   const gameweeks = finished.slice(-PLAYER_FORM_LEN);
