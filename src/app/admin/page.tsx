@@ -638,7 +638,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleSubmitStats = async () => {
+  /**
+   * `publishOnly`: publish the JSON (live scores on the closed leaderboard) WITHOUT writing the
+   * on-chain hash. The mainnet hash can only be written once per gameweek, so use this after
+   * each match and the full submit once, after the last one.
+   */
+  const handleSubmitStats = async (opts?: { publishOnly?: boolean }) => {
+    const publishOnly = opts?.publishOnly === true;
     if (!connected || !account || !statsJson) return;
 
     setIsSubmitting(true);
@@ -666,7 +672,7 @@ export default function AdminPage() {
       // Mainnet commit_stats is plain `init`: the on-chain hash can be written ONCE per
       // gameweek and never refreshed. Make the operator confirm anything that would lock in
       // a wrong or premature hash.
-      if (gwId >= 1 && gwId <= 38) {
+      if (!publishOnly && gwId >= 1 && gwId <= 38) {
         const existingCommit = await getStatsCommit(gwId).catch(() => null);
         if (existingCommit) {
           const ok = window.confirm(
@@ -757,13 +763,19 @@ export default function AdminPage() {
       // Calculate could not verify the freshly published JSON.
       let chainNote: string;
       try {
-        await signAndSubmit(
-          await buildCommitStats(account.address, gwId, canonicalJson, uri),
-        );
-        const after = await getStatsCommit(gwId);
-        chainNote = after
-          ? "On-chain stats commit updated (hash + URI)."
-          : "On-chain stats commit submitted.";
+        if (publishOnly) {
+          chainNote =
+            "Published only — on-chain hash NOT written (live scores update now). " +
+            "After the LAST match: Fetch again and press Submit Stats once.";
+        } else {
+          await signAndSubmit(
+            await buildCommitStats(account.address, gwId, canonicalJson, uri),
+          );
+          const after = await getStatsCommit(gwId);
+          chainNote = after
+            ? "On-chain stats commit updated (hash + URI)."
+            : "On-chain stats commit submitted.";
+        }
       } catch (chainErr: unknown) {
         const msg = formatTxError(chainErr);
         const raw = `${msg}\n${chainErr instanceof Error ? chainErr.message : String(chainErr)}`;
@@ -1688,13 +1700,25 @@ export default function AdminPage() {
               rows={10}
               className="w-full px-4 py-3 bg-secondary/50 text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm border border-border"
             />
-            <button
-              onClick={handleSubmitStats}
-              disabled={isSubmitting || !statsJson}
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-400 hover:to-indigo-500 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Stats"}
-            </button>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => handleSubmitStats({ publishOnly: true })}
+                disabled={isSubmitting || !statsJson}
+                className="px-6 py-3 bg-secondary/60 text-foreground rounded-xl font-medium border border-border hover:bg-secondary transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? "Working..." : "Publish live (no on-chain hash)"}
+              </button>
+              <button
+                onClick={() => handleSubmitStats()}
+                disabled={isSubmitting || !statsJson}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-400 hover:to-indigo-500 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Stats (final, writes hash)"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              After each match: <b>Publish live</b>. After the last match of the gameweek: Fetch again, then <b>Submit Stats</b> once.
+            </p>
           </div>
         )}
 

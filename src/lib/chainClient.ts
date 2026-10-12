@@ -844,6 +844,11 @@ export async function getGameweekStats(
 ): Promise<Record<number, OnChainPlayerStats>> {
   try {
     const all = await verifiedStats(gameweekId);
+    // No on-chain commit yet (the oracle publishes live stats after each match and writes the
+    // once-only mainnet hash after the last one): show the published JSON as a preview.
+    if (Object.keys(all).length === 0) {
+      return getPublishedGameweekStats(gameweekId, playerIds);
+    }
     return playerIds.reduce<Record<number, OnChainPlayerStats>>((stats, id) => {
       if (all[id]) stats[id] = all[id];
       return stats;
