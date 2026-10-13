@@ -41,7 +41,9 @@ const BOARD_ROW = "h-10 shrink-0";
 const BOARD_GRID =
   "grid grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_2.75rem_2.75rem_4rem] items-center gap-x-2 px-3";
 const BOARD_STAT = "text-[15px]";
-const BOARD_PLAYER = "text-[15px]";
+/** Display weight — nicknames / truncated wallets need to read as the row hero. */
+const BOARD_PLAYER =
+  "font-display text-[15px] font-black uppercase tracking-tight text-white sm:text-base";
 const BOARD_XP = "text-xl";
 const BOARD_HEAD =
   "text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 whitespace-nowrap";
@@ -207,14 +209,14 @@ export function SeasonLeaderboardTable({
                   </span>
                   <span
                     className={cn(
-                      "min-w-0 truncate font-medium text-white/90",
+                      "min-w-0 truncate",
                       BOARD_PLAYER,
-                      isMe && "font-semibold text-white",
+                      isMe && "text-[#00f948]",
                     )}
                   >
                     {getNickname(entry.owner)}
                     {isMe ? (
-                      <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                      <span className="ml-2 align-middle font-sans text-[10px] font-bold uppercase tracking-wider text-[#00f948]/55">
                         {m.youBadge}
                       </span>
                     ) : null}
@@ -380,17 +382,21 @@ export function SeasonLeaderboardTable({
 
                   <span
                     className={cn(
-                      "truncate",
-                      board ? "text-sm font-medium text-white/90" : compact ? "text-[12px]" : "text-[13px]",
-                      isMe && (board ? "font-semibold text-white" : "font-semibold text-[#00f948]"),
+                      "min-w-0 truncate font-display font-black uppercase tracking-tight",
+                      board
+                        ? "text-sm text-white sm:text-[15px]"
+                        : compact
+                          ? "text-[13px] text-white"
+                          : "text-[15px] text-white",
+                      isMe && "text-[#00f948]",
                     )}
                   >
                     {getNickname(entry.owner)}
                     {isMe ? (
                       <span
                         className={cn(
-                          "ml-2 text-[10px] font-bold uppercase tracking-wider",
-                          board ? "text-white/40" : "text-[#00f948]/50",
+                          "ml-2 align-middle font-sans text-[10px] font-bold uppercase tracking-wider",
+                          "text-[#00f948]/55",
                         )}
                       >
                         {m.youBadge}

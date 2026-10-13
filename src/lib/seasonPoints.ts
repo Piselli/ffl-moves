@@ -2,8 +2,7 @@ import {
   getConfig,
   getGameweek,
   getGameweekEntrants,
-  getTeamResult,
-  hasRegisteredTeam,
+  getGameweekResults,
   findHighestGameweekId,
   findLatestResolvedGameweekId,
 } from "@/lib/chainClient";
@@ -182,22 +181,44 @@ type OwnerGwData = {
   claimed: boolean;
 };
 
-async function loadOwnerDataForEvents(
-  owner: string,
+/**
+ * Load standings once per event (not once per owner). Avoids N× Merkle re-verify
+ * when building the full season board.
+ *
+ * Entrants always count as registered (registration XP). Verified result rows
+ * overlay rank + claim; managers outside the published tree keep rank 0.
+ */
+async function loadEventOwnerMaps(
   eventIds: number[],
-): Promise<OwnerGwData[]> {
-  return mapInBatches(eventIds, 8, async (eventId) => {
-    const result = await getTeamResult(owner, eventId);
-    if (result) {
-      return {
+): Promise<Map<string, OwnerGwData>[]> {
+  return mapInBatches(eventIds, 4, async (eventId) => {
+    const map = new Map<string, OwnerGwData>();
+    const [entrants, results] = await Promise.all([
+      getGameweekEntrants(eventId),
+      getGameweekResults(eventId),
+    ]);
+    for (const owner of entrants) {
+      map.set(owner.toLowerCase(), { registered: true, rank: 0, claimed: false });
+    }
+    for (const result of results) {
+      map.set(result.owner.toLowerCase(), {
         registered: true,
         rank: result.rank,
         claimed: result.claimed,
-      };
+      });
     }
-    const registered = await hasRegisteredTeam(owner, eventId);
-    return { registered, rank: 0, claimed: false };
+    return map;
   });
+}
+
+function ownerDataFromMaps(
+  owner: string,
+  eventMaps: Map<string, OwnerGwData>[],
+): OwnerGwData[] {
+  const key = owner.toLowerCase();
+  return eventMaps.map(
+    (map) => map.get(key) ?? { registered: false, rank: 0, claimed: false },
+  );
 }
 
 /** Build the full season leaderboard from on-chain data. */
@@ -275,9 +296,10 @@ export async function buildSeasonLeaderboard(): Promise<SeasonLeaderboardPayload
     if (!ownerCanonical.has(key)) ownerCanonical.set(key, wallet);
   }
   const allOwners = Array.from(ownerCanonical.values());
+  const eventMaps = await loadEventOwnerMaps(eventIds);
 
-  const entries: SeasonLeaderboardEntry[] = await mapInBatches(allOwners, 6, async (owner) => {
-    const eventData = await loadOwnerDataForEvents(owner, eventIds);
+  const entries: SeasonLeaderboardEntry[] = allOwners.map((owner) => {
+    const eventData = ownerDataFromMaps(owner, eventMaps);
     const slices = eventIds.map((eventId, i) => ({
       gameweekId: eventId,
       registered: eventData[i].registered,

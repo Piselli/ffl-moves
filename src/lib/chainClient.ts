@@ -595,10 +595,52 @@ export async function getGameweekEntrants(gameweekId: number): Promise<string[]>
 
 type PublishedResults = { results: TeamResult[] };
 
+/** Absolute origin for Node/Route Handler fetches (relative `/api/...` URLs throw). */
+function serverAppOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+  const vercel = process.env.VERCEL_URL?.replace(/^https?:\/\//, "");
+  if (vercel) return `https://${vercel}`;
+  return "http://127.0.0.1:3000";
+}
+
+/**
+ * Published oracle results JSON. Browser uses same-origin `/api/results`.
+ * Server reads the durable store first (Redis / public mirror) — Node cannot
+ * parse relative fetch URLs, which previously broke Season XP after resolve.
+ */
 async function resultsPayload(gameweekId: number): Promise<PublishedResults | null> {
-  const response = await fetch(`/api/results?gameweek=${gameweekId}`);
-  if (!response.ok) return null;
-  return response.json() as Promise<PublishedResults>;
+  if (typeof window === "undefined") {
+    try {
+      const { readOracleResultsJson } = await import("@/lib/oracleStatsStore");
+      const stored = await readOracleResultsJson(gameweekId);
+      if (stored) return JSON.parse(stored) as PublishedResults;
+    } catch {
+      /* fall through to HTTP */
+    }
+    const origin = serverAppOrigin();
+    for (const uri of [
+      `${origin}/api/results?gameweek=${gameweekId}`,
+      `${origin}/data/results/${gameweekId}.json`,
+    ]) {
+      try {
+        const response = await fetch(uri, { cache: "no-store" });
+        if (!response.ok) continue;
+        return (await response.json()) as PublishedResults;
+      } catch {
+        /* try next */
+      }
+    }
+    return null;
+  }
+
+  try {
+    const response = await fetch(`/api/results?gameweek=${gameweekId}`);
+    if (!response.ok) return null;
+    return (await response.json()) as PublishedResults;
+  } catch {
+    return null;
+  }
 }
 
 function decodeProof(proof: ResultProofNode[]): ProofNode[] {

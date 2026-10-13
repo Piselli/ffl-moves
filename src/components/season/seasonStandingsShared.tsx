@@ -228,10 +228,15 @@ export function PlayerName({
   const { getNickname } = useNickname();
   const label = displayName ? displayName(owner) : getNickname(owner);
   return (
-    <span className={cn("truncate", isMe ? "font-semibold text-[#00f948]" : "text-white/90")}>
+    <span
+      className={cn(
+        "min-w-0 truncate font-display text-[15px] font-black uppercase tracking-tight",
+        isMe ? "text-[#00f948]" : "text-white",
+      )}
+    >
       {label}
       {isMe ? (
-        <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-[#00f948]/50">
+        <span className="ml-2 align-middle font-sans text-[10px] font-bold uppercase tracking-wider text-[#00f948]/55">
           {m.youBadge}
         </span>
       ) : null}
