@@ -45,6 +45,15 @@ export function chainSlotStarterDisplayPoints(slot: ChainAlignedXiSlot): number 
   return chainSlotDisplayPoints(slot);
 }
 
+/**
+ * A slot can never bring the team below zero: the low-rating penalty is capped at what the
+ * slot earned (base + rating bonus). Without this the penalty leaked into the team total
+ * (e.g. auto-sub with base 0 and rating <6 showed 0 on the pitch but cost the team −1).
+ */
+function capRatingSub(base: number, add: number, sub: number): number {
+  return Math.min(sub, Math.max(0, base + add));
+}
+
 function pickStats(
   gameweekStats: Record<string, Record<string, unknown>>,
   playerId: number,
@@ -167,7 +176,8 @@ export function computeChainAlignedXiBreakdown(
         return false;
       }
       const basePoints = calculateFantasyPoints({ positionId: posId }, subStats);
-      const { add, sub: rs } = ratingTierAdjustment(subStats);
+      const { add, sub: rawSub } = ratingTierAdjustment(subStats);
+      const rs = capRatingSub(basePoints, add, rawSub);
       totalBase += basePoints;
       totalRatingAdd += add;
       totalRatingSub += rs;
@@ -201,7 +211,8 @@ export function computeChainAlignedXiBreakdown(
     }
 
     const basePoints = starterDisplayBase;
-    const { add, sub: rs } = ratingTierAdjustment(starterStats);
+    const { add, sub: rawSub } = ratingTierAdjustment(starterStats);
+    const rs = capRatingSub(basePoints, add, rawSub);
     totalBase += basePoints;
     totalRatingAdd += add;
     totalRatingSub += rs;
