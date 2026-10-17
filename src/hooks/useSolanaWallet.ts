@@ -97,11 +97,34 @@ export function useWallet() {
               skipPreflight: false,
               preflightCommitment: "confirmed",
             });
-            await connection.confirmTransaction(
-              { signature: sig, blockhash, lastValidBlockHeight },
-              "confirmed",
-            );
-            return sig;
+            try {
+              await connection.confirmTransaction(
+                { signature: sig, blockhash, lastValidBlockHeight },
+                "confirmed",
+              );
+              return sig;
+            } catch (confirmError) {
+              // Phantom RPC often times out after the tx already landed.
+              const cMsg =
+                confirmError instanceof Error
+                  ? confirmError.message
+                  : String(confirmError);
+              if (/timeout|timed out|blockhash|expired/i.test(cMsg)) {
+                const { value } = await connection.getSignatureStatus(sig, {
+                  searchTransactionHistory: true,
+                });
+                if (
+                  value &&
+                  !value.err &&
+                  (value.confirmationStatus === "processed" ||
+                    value.confirmationStatus === "confirmed" ||
+                    value.confirmationStatus === "finalized")
+                ) {
+                  return sig;
+                }
+              }
+              throw confirmError;
+            }
           } catch (signSendError) {
             console.error("Wallet sign+sendRaw failed:", signSendError);
             const msg =

@@ -1,3 +1,4 @@
+import { hasRegisteredTeam } from "@/lib/chainClient";
 import { formatTxError, getErrorMessage } from "@/lib/utils";
 
 async function fetchUsdcBalanceRaw(owner: string): Promise<bigint> {
@@ -73,4 +74,44 @@ export function isWalletUserRejection(error: unknown): boolean {
     msg.includes("cancelled") ||
     msg.includes("canceled")
   );
+}
+
+/**
+ * Phantom (and similar) often times out on confirm / drops the sponsor-send
+ * HTTP response after the tx already landed. Those errors look like network
+ * failures even though the Entry PDA exists.
+ */
+export function isTransientRegisterTransportError(error: unknown): boolean {
+  const msg = `${getErrorMessage(error)}\n${formatTxError(error)}`.toLowerCase();
+  return (
+    /network hiccup|timed out|timeout|blockhash|expired|failed to fetch|fetch failed|not confirmed in time|aborted|econnreset|gateway|429|503|\bnetwork\b/i.test(
+      msg,
+    ) || /WalletSendTransactionError|SendTransactionError/i.test(msg)
+  );
+}
+
+/**
+ * After a register transport error: poll chain for the Entry before showing
+ * a failure modal. Real program failures leave no Entry → still show error.
+ */
+export async function registrationLandedDespiteError(
+  owner: string,
+  gameweekId: number,
+  error: unknown,
+): Promise<boolean> {
+  if (isWalletUserRejection(error) || isInsufficientFundsError(error)) {
+    return false;
+  }
+  const attempts = isTransientRegisterTransportError(error) ? 5 : 1;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      if (await hasRegisteredTeam(owner, gameweekId)) return true;
+    } catch {
+      /* RPC lag — keep polling when the error looked transient */
+    }
+    if (i < attempts - 1) {
+      await new Promise((r) => setTimeout(r, 900));
+    }
+  }
+  return false;
 }

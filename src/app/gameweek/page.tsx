@@ -39,6 +39,7 @@ import {
 import {
   isInsufficientFundsError,
   isWalletUserRejection,
+  registrationLandedDespiteError,
   shouldOpenDepositBeforeRegister,
 } from "@/lib/registerPayment";
 import Link from "next/link";
@@ -608,47 +609,56 @@ export default function GameweekPage() {
     }
 
     setIsSubmitting(true);
-    try {
-      const allPlayers = [...starters, ...bench] as Player[];
-      const playerIds = allPlayers.map((p) => p.id);
-      const playerPositions = allPlayers.map((p) => p.positionId);
-      const playerClubs = allPlayers.map((p) => p.teamId);
+    const allPlayers = [...starters, ...bench] as Player[];
+    const playerIds = allPlayers.map((p) => p.id);
+    const playerPositions = allPlayers.map((p) => p.positionId);
+    const playerClubs = allPlayers.map((p) => p.teamId);
 
-      console.log("=== REGISTER TEAM TX ===");
-      console.log("gameweek:", currentGameweek.id);
-      console.log("playerIds:", playerIds);
-      console.log("positions:", playerPositions);
-      console.log("clubs:", playerClubs);
+    console.log("=== REGISTER TEAM TX ===");
+    console.log("gameweek:", currentGameweek.id);
+    console.log("playerIds:", playerIds);
+    console.log("positions:", playerPositions);
+    console.log("clubs:", playerClubs);
 
-      const signature = await signAndSubmit(await buildRegisterTeam(
-        account.address,
-        currentGameweek.id,
-        { playerIds, positions: playerPositions, playerPositions, clubs: playerClubs, captainIndex: 8 },
-      ));
-      console.log("Solana transaction submitted:", signature);
-
-      // Save the team snapshot for display (in memory + localStorage)
-      const teamSnapshot = { starters: starters.filter(Boolean) as Player[], bench: bench.filter(Boolean) as Player[] };
+    const finishRegistered = (signature?: string) => {
+      if (signature) console.log("Solana transaction submitted:", signature);
+      const teamSnapshot = {
+        starters: starters.filter(Boolean) as Player[],
+        bench: bench.filter(Boolean) as Player[],
+      };
       setRegisteredTeam(teamSnapshot);
       if (account?.address && currentGameweek?.id) {
         const key = `ffl_team_v2_gw${currentGameweek.id}_${account.address.toString()}`;
         localStorage.setItem(key, JSON.stringify(teamSnapshot));
         try {
-          localStorage.removeItem(fflTeamDraftKey(currentGameweek.id, account.address.toString()));
+          localStorage.removeItem(
+            fflTeamDraftKey(currentGameweek.id, account.address.toString()),
+          );
         } catch {
           /* ignore */
         }
       }
       setAlreadyRegistered(true);
       setShareModalOpen(true);
-
-      // Attribute this registration to the referral code the visitor arrived with.
       trackReferralConversion(account?.address?.toString() ?? null);
       claimInviteConversion(account?.address?.toString() ?? null);
       window.setTimeout(
         () => claimInviteConversion(account?.address?.toString() ?? null),
         2500,
       );
+    };
+
+    try {
+      const signature = await signAndSubmit(
+        await buildRegisterTeam(account.address, currentGameweek.id, {
+          playerIds,
+          positions: playerPositions,
+          playerPositions,
+          clubs: playerClubs,
+          captainIndex: 8,
+        }),
+      );
+      finishRegistered(signature);
     } catch (error: unknown) {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Error type:", typeof error);
@@ -665,12 +675,13 @@ export default function GameweekPage() {
         JSON.stringify(error, Object.getOwnPropertyNames(Object(error)), 2),
       );
 
-      // Clean, user-friendly error message (wallet vendors vary: "User rejected" vs "User has rejected the request", casing, EIP-1193 code 4001)
-      const msg = getErrorMessage(error);
-      if (isInsufficientFundsError(error)) {
+      const addr = account.address.toString();
+      if (await registrationLandedDespiteError(addr, currentGameweek.id, error)) {
+        finishRegistered();
+      } else if (isInsufficientFundsError(error)) {
         setInsufficientFundsOpen(true);
       } else if (!isWalletUserRejection(error)) {
-        alert(`${g.registerErrorPrefix} ${msg}`);
+        alert(`${g.registerErrorPrefix} ${getErrorMessage(error)}`);
       }
     } finally {
       setIsSubmitting(false);

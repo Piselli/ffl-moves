@@ -600,6 +600,18 @@ export async function completeSponsoredSend(
     preflightCommitment: "confirmed",
     maxRetries: 3,
   });
-  await waitForConfirmation(connection, signature);
+  try {
+    await waitForConfirmation(connection, signature);
+  } catch (err) {
+    // Broadcast already succeeded. Phantom clients often hit RPC confirm lag;
+    // return the signature so the UI can treat it as submitted instead of a hard fail.
+    // On-chain err from waitForConfirmation still propagates.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/not confirmed in time/i.test(msg)) throw err;
+    console.warn(
+      "[feeSponsor] tx submitted but confirm timed out; returning signature",
+      signature,
+    );
+  }
   return { signature, feePayer: sponsor.publicKey.toBase58() };
 }

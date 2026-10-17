@@ -14,6 +14,7 @@ import {
 import {
   isInsufficientFundsError,
   isWalletUserRejection,
+  registrationLandedDespiteError,
   shouldOpenDepositBeforeRegister,
 } from "@/lib/registerPayment";
 import { FORMATION } from "@/lib/constants";
@@ -439,6 +440,35 @@ export function useLockerRegister(opts: {
 
     setSubmitting(true);
     let registeredOk = false;
+    const addr = account.address.toString();
+    const finishRegistered = () => {
+      registeredOk = true;
+      const snapshot: RegisteredSquadSnapshot = {
+        starters: starters.filter((p): p is Player => p != null),
+        bench: bench.filter((p): p is Player => p != null),
+        captainIndex,
+        formationId,
+      };
+      if (isCompleteRegisteredSnapshot(snapshot)) {
+        setRegisteredTeam(snapshot);
+        writeStoredSnapshot(registeredSnapshotKey(gameweekId, addr), snapshot);
+        if (captainIndex != null && snapshot.starters[captainIndex]) {
+          writeCaptainMeta(captainMetaKey(gameweekId, addr), {
+            playerId: snapshot.starters[captainIndex]!.id,
+            index: captainIndex,
+          });
+        }
+      }
+      setAlreadyRegistered(true);
+      trackReferralConversion(addr);
+      claimInviteConversion(addr);
+      // RPC may lag — retry claim once so first-season check sees the Entry.
+      window.setTimeout(() => claimInviteConversion(addr), 2500);
+      refreshBalance();
+      onRegistered?.();
+      // RPC can lag a beat after confirm — second pass picks up pool/entries.
+      window.setTimeout(() => onRegistered?.(), 1200);
+    };
     try {
       const allPlayers = [...starters, ...bench] as Player[];
       await signAndSubmit(
@@ -450,43 +480,12 @@ export function useLockerRegister(opts: {
           captainIndex: captainIndex!,
         }),
       );
-      registeredOk = true;
-      const snapshot: RegisteredSquadSnapshot = {
-        starters: starters.filter((p): p is Player => p != null),
-        bench: bench.filter((p): p is Player => p != null),
-        captainIndex,
-        formationId,
-      };
-      if (isCompleteRegisteredSnapshot(snapshot)) {
-        setRegisteredTeam(snapshot);
-        writeStoredSnapshot(
-          registeredSnapshotKey(gameweekId, account.address.toString()),
-          snapshot,
-        );
-        if (captainIndex != null && snapshot.starters[captainIndex]) {
-          writeCaptainMeta(
-            captainMetaKey(gameweekId, account.address.toString()),
-            {
-              playerId: snapshot.starters[captainIndex]!.id,
-              index: captainIndex,
-            },
-          );
-        }
-      }
-      setAlreadyRegistered(true);
-      trackReferralConversion(account.address.toString());
-      claimInviteConversion(account.address.toString());
-      // RPC may lag — retry claim once so first-season check sees the Entry.
-      window.setTimeout(
-        () => claimInviteConversion(account.address.toString()),
-        2500,
-      );
-      refreshBalance();
-      onRegistered?.();
-      // RPC can lag a beat after confirm — second pass picks up pool/entries.
-      window.setTimeout(() => onRegistered?.(), 1200);
+      finishRegistered();
     } catch (error: unknown) {
-      if (isInsufficientFundsError(error)) {
+      // Phantom often times out after the Entry already landed — don't scare the user.
+      if (await registrationLandedDespiteError(addr, gameweekId, error)) {
+        finishRegistered();
+      } else if (isInsufficientFundsError(error)) {
         setInsufficientOpen(true);
       } else if (!isWalletUserRejection(error)) {
         showError(error);
