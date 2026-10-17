@@ -31,7 +31,9 @@ function authorize(request: Request): boolean {
  *   CRON_SECRET          — required
  *   ADMIN_KEYPAIR        — JSON secret key of on-chain admin (initializer)
  *   AUTO_CLOSE_ENABLED   — default on; set "false" to disable
- *   AUTO_CLOSE_LEAD_MS   — close this many ms before kickoff (default 0)
+ *   AUTO_CLOSE_FALLBACK_GRACE_MS — only when live FPL is unreachable: wait this long AFTER the
+ *                          shipped snapshot kickoff before closing (default 15 min).
+ *                          There is no "lead": it never closes before the first kickoff.
  */
 export async function GET(request: Request) {
   if (!authorize(request)) {

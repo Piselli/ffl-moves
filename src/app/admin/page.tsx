@@ -870,8 +870,16 @@ export default function AdminPage() {
           try {
             const res = await fetch(`/api/registration-deadline?gameweek=${gw}`, { cache: "no-store" });
             if (res.ok) {
-              const d = (await res.json()) as { deadlineEpochMs: number | null };
-              deadlineSec = d.deadlineEpochMs != null ? Math.floor(d.deadlineEpochMs / 1000) : null;
+              const d = (await res.json()) as {
+                deadlineEpochMs: number | null;
+                authoritative?: boolean;
+              };
+              // Only a confirmed first kickoff may flag entries as "late"; a fallback
+              // deadline is ~90 min early and would mark legit entries as late.
+              deadlineSec =
+                d.deadlineEpochMs != null && d.authoritative !== false
+                  ? Math.floor(d.deadlineEpochMs / 1000)
+                  : null;
             }
           } catch {
             /* deadline unknown → late-registration check skipped */

@@ -28,7 +28,11 @@ export async function isRegistrationClosed(
     deadlineMs = hit.deadlineMs;
   } else {
     try {
-      deadlineMs = (await resolveRegistrationDeadline(gameweekId)).deadlineEpochMs;
+      // Fail-open: only a CONFIRMED first kickoff may block a registration. A fallback
+      // like FPL `deadline_time` is ~90 min early and would reject legit entrants.
+      // Short budget so a slow FPL never delays a user's registration.
+      const d = await resolveRegistrationDeadline(gameweekId, { attempts: 1, timeoutMs: 3_000 });
+      deadlineMs = d.authoritative ? d.deadlineEpochMs : null;
     } catch {
       deadlineMs = null;
     }

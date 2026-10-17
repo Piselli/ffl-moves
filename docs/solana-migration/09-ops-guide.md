@@ -269,7 +269,8 @@ Env на **Vercel Production**:
 | `CRON_SECRET` | random; також як GitHub secret `CRON_SECRET` |
 | `ADMIN_KEYPAIR` | JSON з `initializer.json` |
 | `AUTO_CLOSE_ENABLED` | `true` |
-| `AUTO_CLOSE_LEAD_MS` | `0` = на kickoff |
+| `AUTO_CLOSE_LEAD_MS` | **ігнорується** (раніше kickoff не закриваємо — інцидент GW7) |
+| `AUTO_CLOSE_FALLBACK_GRACE_MS` | необов'язково; лише коли FPL недоступний — чекати після kickoff зі snapshot (default 15 хв) |
 | `SOLANA_SERVER_RPC_URL` | public / unrestricted RPC for cron. Helius Allowed Domains fails on Vercel (Node strips `Origin` → 403) |
 | `UPSTASH_REDIS_*` | для глобального lock watchdog (вже є для referral) |
 

@@ -4,7 +4,10 @@ import {
   getGameweek,
 } from "@/lib/chainClient";
 import { signAndSendAsAdmin } from "@/lib/server/adminSigner";
-import { resolveRegistrationDeadline } from "@/lib/server/fplRegistrationDeadline";
+import {
+  resolveRegistrationDeadline,
+  type RegistrationDeadline,
+} from "@/lib/server/fplRegistrationDeadline";
 
 export type AutoCloseResult =
   | { action: "skipped"; reason: string; detail?: Record<string, unknown> }
@@ -17,9 +20,35 @@ export type AutoCloseResult =
     }
   | { action: "dry_run_would_close"; gameweekId: number; detail: Record<string, unknown> };
 
+/** Extra wait after the snapshot kickoff when live FPL is unreachable (reschedule safety). */
+const DEFAULT_FALLBACK_GRACE_MS = 15 * 60_000;
+
+/**
+ * HARD RULE: never close before the official first kickoff. The FPL `deadline_time`
+ * fallback is ~90 min early: it closed GW7 11 min before kickoff.
+ *  - confirmed first kickoff (live FPL or last confirmed value) → close AT kickoff;
+ *  - FPL unreachable and nothing confirmed → shipped fixtures snapshot, but only AFTER
+ *    kickoff + a safety grace (covers a reschedule): still closes automatically, never early;
+ *  - anything else (e.g. only FPL `deadline_time`) → null = refuse, retry on the next poke.
+ * No "lead" setting exists on purpose: nothing can make this close earlier than kickoff.
+ */
+export function decideCloseAt(
+  deadline: Pick<RegistrationDeadline, "deadlineEpochMs" | "deadlineSource" | "authoritative">,
+  fallbackGraceMs?: number,
+): { closeAtMs: number | null } {
+  if (deadline.deadlineEpochMs == null) return { closeAtMs: null };
+  if (deadline.authoritative) return { closeAtMs: deadline.deadlineEpochMs };
+  if (deadline.deadlineSource !== "snapshot_kickoff") return { closeAtMs: null };
+  const grace =
+    fallbackGraceMs != null && Number.isFinite(fallbackGraceMs)
+      ? Math.max(0, fallbackGraceMs)
+      : DEFAULT_FALLBACK_GRACE_MS;
+  return { closeAtMs: deadline.deadlineEpochMs + grace };
+}
+
 /**
  * If an OPEN on-chain gameweek's registration deadline has passed, close it.
- * Lead: close this many ms *before* kickoff (0 = at kickoff). Env AUTO_CLOSE_LEAD_MS.
+ * Closes at the official first kickoff, never before it (see HARD RULE on `decideCloseAt`).
  */
 export async function runAutoCloseGameweek(opts?: {
   dryRun?: boolean;
@@ -43,8 +72,25 @@ export async function runAutoCloseGameweek(opts?: {
     };
   }
 
-  const leadMs = Number(process.env.AUTO_CLOSE_LEAD_MS ?? "0");
-  const closeAt = deadline.deadlineEpochMs - (Number.isFinite(leadMs) ? leadMs : 0);
+  // See HARD RULE on `decideCloseAt`: never earlier than the official first kickoff.
+  const graceEnv = process.env.AUTO_CLOSE_FALLBACK_GRACE_MS?.trim();
+  const decision = decideCloseAt(deadline, graceEnv ? Number(graceEnv) : undefined);
+  if (decision.closeAtMs == null) {
+    console.error(
+      "auto-close: refusing to close — first kickoff not confirmed (FPL unreachable?)",
+      { gameweekId: open.id, deadlineSource: deadline.deadlineSource, deadlineIso: deadline.deadlineIso },
+    );
+    return {
+      action: "skipped",
+      reason: "deadline_unverified",
+      detail: {
+        gameweekId: open.id,
+        deadlineSource: deadline.deadlineSource,
+        deadlineIso: deadline.deadlineIso,
+      },
+    };
+  }
+  const closeAt = decision.closeAtMs;
   const now = opts?.nowMs ?? Date.now();
 
   if (now < closeAt) {
