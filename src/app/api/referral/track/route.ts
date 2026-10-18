@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeCode, recordClick, recordConversion } from "@/lib/referral";
+import {
+  normalizeCampaign,
+  normalizeCode,
+  recordClick,
+  recordConversion,
+} from "@/lib/referral";
 import { clientIp } from "@/lib/server/clientIp";
 import { rateLimit } from "@/lib/server/rateLimit";
 
@@ -16,14 +21,13 @@ const CORS_HEADERS = {
 /**
  * POST /api/referral/track
  *
- * Body: { type: "click" | "conversion", code: string, wallet?: string }
+ * Body: { type: "click" | "conversion", code: string, campaign?: string, wallet?: string }
  *
  * Fire-and-forget from the client. Always returns 200 (even on bad input) so
  * tracking never blocks or breaks the user-facing flow.
  */
 export async function POST(req: NextRequest) {
   try {
-    // Silent cap so click/conversion counters cannot be inflated in bulk.
     const gate = await rateLimit(`referral:track:${clientIp(req)}`, 60, 60);
     if (!gate.ok) {
       return NextResponse.json({ ok: false, reason: "rate_limited" }, { status: 200, headers: CORS_HEADERS });
@@ -31,6 +35,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as {
       type?: string;
       code?: string;
+      campaign?: string;
       wallet?: string;
     };
 
@@ -38,16 +43,16 @@ export async function POST(req: NextRequest) {
     if (!code) {
       return NextResponse.json({ ok: false, reason: "invalid code" }, { status: 200, headers: CORS_HEADERS });
     }
+    const campaign = normalizeCampaign(body.campaign);
 
     if (body.type === "conversion") {
-      await recordConversion(code, body.wallet ?? null);
+      await recordConversion(code, body.wallet ?? null, { campaign });
     } else {
-      await recordClick(code);
+      await recordClick(code, campaign);
     }
 
     return NextResponse.json({ ok: true }, { status: 200, headers: CORS_HEADERS });
   } catch {
-    // Never surface tracking errors to the client.
     return NextResponse.json({ ok: false }, { status: 200, headers: CORS_HEADERS });
   }
 }

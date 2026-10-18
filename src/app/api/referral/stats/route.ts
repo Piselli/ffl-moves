@@ -3,6 +3,7 @@ import { rateLimit } from "@/lib/server/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import {
   deleteCode,
+  getCampaignStats,
   getStats,
   isReferralStoreDurable,
   getReferralHealth,
@@ -39,7 +40,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
-  const [stats, health] = await Promise.all([getStats(), getReferralHealth()]);
+  const [stats, campaigns, health] = await Promise.all([
+    getStats(),
+    getCampaignStats(),
+    getReferralHealth(),
+  ]);
   const totals = stats.reduce(
     (acc, s) => {
       acc.clicks += s.clicks;
@@ -59,8 +64,9 @@ export async function GET(req: NextRequest) {
         conversionRate: totals.clicks > 0 ? totals.signups / totals.clicks : 0,
       },
       codes: stats,
+      campaigns,
       note:
-        "Partner ?ref= links do not award Season Points. Use estimated fee volume for manual commission payouts.",
+        "Partner ?ref= (+ optional ?c= campaign). No Season Points. Fee volume for manual commission.",
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );

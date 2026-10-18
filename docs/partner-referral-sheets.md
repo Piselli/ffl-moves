@@ -1,0 +1,61 @@
+# Partner referral → Google Sheets
+
+Partners pull **only their** `?ref=` codes into a Google Sheet. No admin key, no other codes.
+
+## 1. Configure the partner (Vercel / `.env`)
+
+```bash
+REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_SECRET","codes":["acme"]}]'
+```
+
+| Field | Purpose |
+| --- | --- |
+| `id` | Internal slug |
+| `label` | Shown in the sheet header |
+| `key` | Secret the partner’s Apps Script uses (not the admin key) |
+| `codes` | Their `?ref=` codes only |
+
+Redeploy after setting the env var.
+
+## 2. Create the sheet (partner or you)
+
+1. New Google Spreadsheet → share with the partner (Viewer or Editor).
+2. **Extensions → Apps Script**.
+3. Paste the script from [`partner-sheets-apps-script.js`](./partner-sheets-apps-script.js).
+4. Set Script Properties:
+   - `PARTNER_KEY` = the partner `key` from step 1
+   - `API_BASE` = `https://www.form8.football` (optional; default in script)
+5. Run `syncPartnerStats` once → approve permissions.
+6. Run `installHourlyTrigger` once → auto-refresh every hour.
+
+## 3. What the sheet contains
+
+| Tab | Columns |
+| --- | --- |
+| **Summary** | code totals (all campaigns rolled up) |
+| **Campaigns** | per-creative split: `?ref=CODE&c=CAMPAIGN` |
+| **Conversions** | wallet, code, campaign |
+| **Meta** | partner label, last sync time, totals |
+
+### Campaign / creative links
+
+Same partner code, different creatives:
+
+```
+https://www.form8.football/?ref=acme&c=creo1
+https://www.form8.football/?ref=acme&c=creo2
+https://www.form8.football/?ref=acme&c=stories-1
+https://www.form8.football/?ref=acme              ← (default) campaign
+```
+
+No need to pre-register campaign names — first click creates the row. Spaces become `-`; Cyrillic OK.
+
+Fee volume is an estimate for manual commission — partner refs do not award Season Points.
+
+## 4. Manual check
+
+```bash
+curl -sS "https://www.form8.football/api/referral/partner?key=PARTNER_KEY" | jq .
+# CSV:
+curl -sS "https://www.form8.football/api/referral/partner?key=PARTNER_KEY&format=csv"
+```

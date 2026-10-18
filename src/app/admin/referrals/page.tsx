@@ -14,6 +14,8 @@ type ReferralStat = {
   estimatedFeeVolumeUsdc: number;
 };
 
+type CampaignStat = ReferralStat & { campaign: string };
+
 type StatsResponse = {
   durable: boolean;
   health?: { configured: boolean; reachable: boolean; error: string | null };
@@ -24,6 +26,7 @@ type StatsResponse = {
     estimatedFeeVolumeUsdc: number;
   };
   codes: ReferralStat[];
+  campaigns?: CampaignStat[];
   /** Note: partner refs do not award Season Points — fee share is manual. */
   note?: string;
 };
@@ -53,6 +56,7 @@ export default function ReferralDashboardPage() {
   // Link generator
   const [baseUrl, setBaseUrl] = useState("");
   const [newCode, setNewCode] = useState("");
+  const [newCampaign, setNewCampaign] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -129,8 +133,8 @@ export default function ReferralDashboardPage() {
   const generatedLink = useMemo(() => {
     const code = normalizeRefCode(newCode);
     if (!code || !baseUrl) return "";
-    return buildReferralLink(baseUrl, code);
-  }, [newCode, baseUrl]);
+    return buildReferralLink(baseUrl, code, newCampaign.trim() || null);
+  }, [newCode, newCampaign, baseUrl]);
 
   const removeCode = useCallback(
     async (code: string) => {
@@ -180,7 +184,10 @@ export default function ReferralDashboardPage() {
           estimated fee volume for manual commission. No Season Points.
         </p>
         <p className="text-white/30 text-xs mt-2">
-          Player invites use <code className="text-white/45">?inv=</code> and award SP separately.
+          Player invites use <code className="text-white/45">?inv=</code> and award SP separately.{" "}
+          <a href="/admin/auth" className="text-emerald-400/70 hover:text-emerald-400">
+            Auth & connects →
+          </a>
         </p>
       </header>
 
@@ -241,8 +248,14 @@ export default function ReferralDashboardPage() {
           <input
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
-            placeholder="код (напр. alex)"
-            className="sm:w-48 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
+            placeholder="код партнера (напр. acme)"
+            className="sm:w-44 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
+          />
+          <input
+            value={newCampaign}
+            onChange={(e) => setNewCampaign(e.target.value)}
+            placeholder="кампанія (creo1, stories…)"
+            className="sm:w-52 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
           />
         </div>
         {generatedLink && (
@@ -259,7 +272,41 @@ export default function ReferralDashboardPage() {
           </div>
         )}
         <p className="text-white/30 text-xs mt-2">
-          Дозволені символи: латиниця, цифри, «-» та «_». Атрибуція — за першим кліком (first-touch), cookie живе 30 днів.
+          Код партнера один і той самий (<code className="text-white/45">?ref=</code>). Кампанія —
+          опційний <code className="text-white/45">?c=</code> (creo1, stories-1…). Кліки рахуються по
+          креативу; реєстрація — first-touch. Cookie 30 днів.
+        </p>
+      </section>
+
+      {/* Partner Google Sheets */}
+      <section className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-white/70 mb-2">
+          Google Sheets для партнера
+        </h2>
+        <p className="text-white/45 text-sm mb-3">
+          Партнер бачить лише свої коди (окремий ключ, не admin). Раз на годину Apps Script тягне{" "}
+          <code className="text-white/60">/api/referral/partner</code> у таблицю: Summary + Conversions.
+        </p>
+        <ol className="list-decimal list-inside space-y-1.5 text-sm text-white/55 mb-3">
+          <li>
+            У Vercel додай{" "}
+            <code className="text-emerald-300/80">REFERRAL_PARTNERS</code> (JSON з id, key, codes) і
+            задеплой.
+          </li>
+          <li>Створи Google Sheet → Extensions → Apps Script → встав скрипт з репо.</li>
+          <li>
+            Script property <code className="text-white/70">PARTNER_KEY</code> = ключ партнера → Run{" "}
+            <code className="text-white/70">syncPartnerStats</code> →{" "}
+            <code className="text-white/70">installHourlyTrigger</code>.
+          </li>
+        </ol>
+        <pre className="overflow-x-auto rounded-lg bg-black/50 border border-white/10 px-3 py-2.5 text-[11px] leading-relaxed text-emerald-200/90 mb-3">
+{`REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"<secret>","codes":["acme"]}]'`}
+        </pre>
+        <p className="text-white/30 text-xs">
+          Інструкція + скрипт:{" "}
+          <code className="text-white/45">docs/partner-referral-sheets.md</code>,{" "}
+          <code className="text-white/45">docs/partner-sheets-apps-script.js</code>
         </p>
       </section>
 
@@ -362,6 +409,43 @@ export default function ReferralDashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {(data.campaigns?.length ?? 0) > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-white/50 mb-3">
+                Кампанії (`?c=`)
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-white/40 border-b border-white/10">
+                      <th className="py-2 pr-4 font-medium">Код</th>
+                      <th className="py-2 px-4 font-medium">Кампанія</th>
+                      <th className="py-2 px-4 font-medium text-right">Кліки</th>
+                      <th className="py-2 px-4 font-medium text-right">Реєстрації</th>
+                      <th className="py-2 pl-4 font-medium text-right">CR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.campaigns!.map((s) => (
+                      <tr
+                        key={`${s.code}:${s.campaign || "_"}`}
+                        className="border-b border-white/5 last:border-0"
+                      >
+                        <td className="py-2.5 pr-4 font-mono text-emerald-300/80">{s.code}</td>
+                        <td className="py-2.5 px-4 text-white/80">
+                          {s.campaign || "(default)"}
+                        </td>
+                        <td className="py-2.5 px-4 text-right text-white/80">{s.clicks}</td>
+                        <td className="py-2.5 px-4 text-right text-white font-semibold">{s.signups}</td>
+                        <td className="py-2.5 pl-4 text-right text-white/80">{pct(s.conversionRate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
