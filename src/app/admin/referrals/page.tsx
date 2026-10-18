@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SitePageShell } from "@/components/SitePageShell";
-import { buildReferralLink, normalizeRefCode } from "@/lib/referralClient";
+import {
+  buildReferralLink,
+  buildShortReferralLink,
+  normalizeRefCode,
+} from "@/lib/referralClient";
 
 type ReferralStat = {
   code: string;
@@ -133,6 +137,12 @@ export default function ReferralDashboardPage() {
   const generatedLink = useMemo(() => {
     const code = normalizeRefCode(newCode);
     if (!code || !baseUrl) return "";
+    return buildShortReferralLink(baseUrl, code, newCampaign.trim() || null);
+  }, [newCode, newCampaign, baseUrl]);
+
+  const generatedClassic = useMemo(() => {
+    const code = normalizeRefCode(newCode);
+    if (!code || !baseUrl) return "";
     return buildReferralLink(baseUrl, code, newCampaign.trim() || null);
   }, [newCode, newCampaign, baseUrl]);
 
@@ -259,22 +269,29 @@ export default function ReferralDashboardPage() {
           />
         </div>
         {generatedLink && (
-          <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 text-sm text-emerald-300 bg-black/40 border border-white/10 rounded-lg px-3 py-2 break-all">
-              {generatedLink}
-            </code>
-            <button
-              onClick={() => copy(generatedLink, "gen")}
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors whitespace-nowrap"
-            >
-              {copied === "gen" ? "Скопійовано" : "Копіювати"}
-            </button>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm text-emerald-300 bg-black/40 border border-white/10 rounded-lg px-3 py-2 break-all">
+                {generatedLink}
+              </code>
+              <button
+                onClick={() => copy(generatedLink, "gen")}
+                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                {copied === "gen" ? "Скопійовано" : "Копіювати"}
+              </button>
+            </div>
+            {generatedClassic ? (
+              <p className="text-[11px] text-white/30 break-all">
+                classic: <span className="text-white/45">{generatedClassic}</span>
+              </p>
+            ) : null}
           </div>
         )}
         <p className="text-white/30 text-xs mt-2">
-          Код партнера один і той самий (<code className="text-white/45">?ref=</code>). Кампанія —
-          опційний <code className="text-white/45">?c=</code> (creo1, stories-1…). Кліки рахуються по
-          креативу; реєстрація — first-touch. Cookie 30 днів.
+          Для вебмайстра — короткі лінки <code className="text-white/45">/r/код</code> і{" "}
+          <code className="text-white/45">/r/код/кампанія</code>. Кліки по креативу; реєстрація —
+          first-touch. Cookie 30 днів.
         </p>
       </section>
 

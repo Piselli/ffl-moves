@@ -151,4 +151,4 @@ export function trackReferralConversion(wallet?: string | null): void {
   track("conversion", code, getStoredRefCampaign(), wallet);
 }
 
-export { buildReferralLink };
+export { buildReferralLink, buildShortReferralLink } from "@/lib/referralLink";

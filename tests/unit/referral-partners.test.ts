@@ -6,7 +6,11 @@ import {
   parseReferralPartners,
 } from "../../src/lib/referralPartners";
 import { normalizeCampaign, type ReferralStat } from "../../src/lib/referral";
-import { buildReferralLink } from "../../src/lib/referralLink";
+import {
+  buildReferralLink,
+  buildShortReferralLink,
+  parseShortReferralPath,
+} from "../../src/lib/referralLink";
 
 describe("parseReferralPartners", () => {
   it("parses valid partners and drops bad rows", () => {
@@ -90,5 +94,23 @@ describe("campaign slugs + links", () => {
       "https://www.form8.football/?ref=acme&c=creo1",
     );
     assert.equal(buildReferralLink(base, "acme"), "https://www.form8.football/?ref=acme");
+  });
+
+  it("builds short webmaster links /r/code/campaign", () => {
+    const base = "https://www.form8.football/";
+    assert.equal(buildShortReferralLink(base, "bonus50"), "https://www.form8.football/r/bonus50");
+    assert.equal(
+      buildShortReferralLink(base, "bonus50", "creo1"),
+      "https://www.form8.football/r/bonus50/creo1",
+    );
+  });
+
+  it("parses short referral paths", () => {
+    assert.deepEqual(parseShortReferralPath("/r/bonus50"), { code: "bonus50", campaign: "" });
+    assert.deepEqual(parseShortReferralPath("/r/bonus50/creo1"), {
+      code: "bonus50",
+      campaign: "creo1",
+    });
+    assert.equal(parseShortReferralPath("/other"), null);
   });
 });

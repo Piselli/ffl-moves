@@ -15,7 +15,7 @@ import {
   getReferralPartners,
   resolveReferralPartner,
 } from "@/lib/referralPartners";
-import { buildReferralLink } from "@/lib/referralLink";
+import { buildReferralLink, buildShortReferralLink } from "@/lib/referralLink";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,7 +83,8 @@ export async function GET(req: NextRequest) {
 
   const codeRows = codes.map((s) => ({
     code: s.code,
-    link: buildReferralLink(base, s.code),
+    link: buildShortReferralLink(base, s.code),
+    linkClassic: buildReferralLink(base, s.code),
     clicks: s.clicks,
     signups: s.signups,
     conversionRate: s.conversionRate,
@@ -97,7 +98,8 @@ export async function GET(req: NextRequest) {
     .map((s) => ({
       code: s.code,
       campaign: s.campaign || "(default)",
-      link: buildReferralLink(base, s.code, s.campaign || null),
+      link: buildShortReferralLink(base, s.code, s.campaign || null),
+      linkClassic: buildReferralLink(base, s.code, s.campaign || null),
       clicks: s.clicks,
       signups: s.signups,
       conversionRate: s.conversionRate,
@@ -142,7 +144,7 @@ export async function GET(req: NextRequest) {
     campaigns: campaignRows,
     conversions,
     note:
-      "Use ?ref=CODE&c=CAMPAIGN for creatives. Same partner code; campaign splits clicks/signups. Fee volume is estimated.",
+      "Short links: /r/CODE and /r/CODE/CAMPAIGN (webmaster style). Classic ?ref=&c= still works. Fee volume is estimated.",
   };
 
   if (format === "csv") {

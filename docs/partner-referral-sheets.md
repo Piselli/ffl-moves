@@ -37,16 +37,18 @@ Redeploy after setting the env var.
 | **Conversions** | wallet, code, campaign |
 | **Meta** | partner label, last sync time, totals |
 
-### Campaign / creative links
+### Campaign / creative links (short)
 
-Same partner code, different creatives:
+Webmaster-style paths (preferred):
 
 ```
-https://www.form8.football/?ref=acme&c=creo1
-https://www.form8.football/?ref=acme&c=creo2
-https://www.form8.football/?ref=acme&c=stories-1
-https://www.form8.football/?ref=acme              ← (default) campaign
+https://www.form8.football/r/acme
+https://www.form8.football/r/acme/creo1
+https://www.form8.football/r/acme/creo2
+https://www.form8.football/r/acme/stories-1
 ```
+
+Classic query form still works: `/?ref=acme&c=creo1`.
 
 No need to pre-register campaign names — first click creates the row. Spaces become `-`; Cyrillic OK.
 
