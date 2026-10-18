@@ -43,13 +43,31 @@ async function tryPoke(): Promise<void> {
     method: "POST",
     headers: { authorization: `Bearer ${secret}` },
     cache: "no-store",
+    signal: AbortSignal.timeout(55_000),
   });
   if (!res.ok) console.warn("auto-publish watchdog: cron route answered", res.status);
+  else console.info("auto-publish watchdog: poked cron route →", res.status);
 }
 
-/** Fire-and-forget; never await from a request path. */
+/**
+ * On Vercel a serverless function is frozen as soon as its response is sent, so a bare
+ * fire-and-forget promise never finishes (GW7 live test: 19 /api/fixtures hits, zero pokes).
+ * `waitUntil` keeps the invocation alive until the promise settles. This is the same hook
+ * `@vercel/functions` uses; outside Vercel (dev/tests) there is no context and we just let
+ * the promise run.
+ */
+function waitUntilCompat(promise: Promise<unknown>): void {
+  type Ctx = { waitUntil?: (p: Promise<unknown>) => void };
+  const holder = (globalThis as Record<symbol, { get?: () => Ctx | undefined } | undefined>)[
+    Symbol.for("@vercel/request-context")
+  ];
+  holder?.get?.()?.waitUntil?.(promise);
+}
+
+/** Never await from a request path; the work is registered with waitUntil. */
 export function pokeAutoPublishStatsWatchdog(): void {
-  void tryPoke().catch((error) => {
+  const work = tryPoke().catch((error) => {
     console.warn("auto-publish watchdog failed:", error);
   });
+  waitUntilCompat(work);
 }
