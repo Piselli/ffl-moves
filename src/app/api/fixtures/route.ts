@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bootstrapLite from "@/data/fpl-bootstrap-lite.json";
 import fixturesSnapshot from "@/data/fpl-fixtures-snapshot.json";
 import { pokeAutoCloseWatchdog } from "@/lib/server/autoCloseWatchdog";
+import { pokeAutoPublishStatsWatchdog } from "@/lib/server/autoPublishStatsWatchdog";
 
 const FPL_FIXTURES_ALL = "https://fantasy.premierleague.com/api/fixtures/";
 const BADGE_BASE = "https://resources.premierleague.com/premierleague/badges/70/t";
@@ -429,6 +430,8 @@ function bootstrapFallbackSchedule(registrationGw: number | null = null): NextRe
 export async function GET(request: Request) {
   // Match-day traffic backup for auto-close (see autoCloseWatchdog).
   pokeAutoCloseWatchdog();
+  // Same idea for publishing finished-match stats to the site (production only, throttled).
+  pokeAutoPublishStatsWatchdog();
 
   const { searchParams } = new URL(request.url);
   const regRaw = searchParams.get("registrationGw");

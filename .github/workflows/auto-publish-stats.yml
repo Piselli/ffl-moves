@@ -1,0 +1,79 @@
+# Publish fresh API-Sports stats to the site after EPL matches finish.
+# Site display only — never writes anything on-chain (commit_stats / results stay manual).
+# GitHub `schedule` is a *backup*: it is often delayed. The primary trigger is the
+# traffic watchdog (`pokeAutoPublishStatsWatchdog`), which calls the same route.
+#
+# Required GitHub secret:
+#   CRON_SECRET — same value as Vercel Production CRON_SECRET
+#
+# Optional repo Variables:
+#   AUTO_PUBLISH_URL — default https://www.form8.football/api/cron/publish-stats
+#
+# "Nothing to do" runs return ok:true + action:skipped (green).
+# A safety rule refusing to publish returns ok:false (red) — read the step log.
+
+name: Auto-publish stats
+
+on:
+  schedule:
+    # EPL match windows (UTC). Weekend afternoons/evenings:
+    # The route sleeps by itself (no API-Sports calls unless a match is live / just ended),
+    # so a frequent schedule costs nothing.
+    - cron: "*/5 11-22 * * 6"
+    - cron: "*/5 11-22 * * 0"
+    # Midweek / Friday / Monday evenings:
+    - cron: "*/5 17-22 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (fetch + audit, publish nothing)"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call publish-stats cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.AUTO_PUBLISH_URL || 'https://www.form8.football/api/cron/publish-stats' }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRON_SECRET"
+            exit 1
+          fi
+          URL="$BASE_URL"
+          if [ "$DRY" = "1" ]; then
+            URL="${URL}?dryRun=1"
+          fi
+          echo "GET $URL"
+          HTTP=$(curl -sS -o /tmp/publish-stats.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+          echo "HTTP $HTTP"
+          cat /tmp/publish-stats.json || true
+          echo
+          HTTP_CODE="$HTTP" python3 - <<'PY'
+          import json, os
+          http = int(os.environ.get("HTTP_CODE") or "0")
+          raw = open("/tmp/publish-stats.json").read().strip()
+          if not raw:
+            print("empty response body")
+            raise SystemExit(1)
+          try:
+            data = json.loads(raw)
+          except json.JSONDecodeError as e:
+            print("non-JSON response:", raw[:500])
+            raise SystemExit(1) from e
+          print("action:", data.get("action"), "ok:", data.get("ok"), "reason:", data.get("reason"))
+          for w in data.get("warnings") or []:
+            print("WARNING:", w)
+          if data.get("audit"):
+            print("FPL cross-check:\n" + data["audit"])
+          if http >= 400 or data.get("ok") is False:
+            print("error:", data.get("error") or data)
+            raise SystemExit(1)
+          PY

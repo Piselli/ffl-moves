@@ -12,8 +12,8 @@ import {
 } from "./worldcup";
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
-const EPL_LEAGUE_ID = 39;
-const SEASON = 2026; // 2026/2027 EPL season
+export const EPL_LEAGUE_ID = 39;
+export const SEASON = 2026; // 2026/2027 EPL season
 
 /**
  * Competition descriptor — lets one fetcher serve both EPL (FPL-id catalog) and the
@@ -129,65 +129,121 @@ export interface GameweekStatsResult {
   errors: string[];
 }
 
+let lastMappingsLoadError: string | null = null;
+
+function ingestPlayersIntoMappings(
+  players: unknown[],
+  mappings: Map<number, PlayerMapping[]>,
+  catalog: PlayerMapping[],
+  catalogIds: Set<number>,
+): void {
+  const byCode = (fplApiIdMapFile as { byCode?: Record<string, number> })?.byCode ?? {};
+  for (const player of players) {
+    const row = player as {
+      id?: number;
+      fplId?: number;
+      apiId?: number;
+      fplPhotoCode?: number | string;
+      position?: string;
+      team?: string;
+    };
+    const id = Number(row?.id ?? row?.fplId);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    const fromField = Number(row?.apiId);
+    const fromCode = Number(byCode[String(row?.fplPhotoCode ?? "")]);
+    const apiId =
+      Number.isFinite(fromField) && fromField > 0
+        ? fromField
+        : Number.isFinite(fromCode) && fromCode > 0
+          ? fromCode
+          : 0;
+    if (!catalogIds.has(id)) {
+      catalogIds.add(id);
+      catalog.push({
+        id,
+        position: String(row?.position || "MID"),
+        team: String(row?.team || ""),
+        hasApiId: apiId > 0,
+      });
+    }
+    if (apiId <= 0) continue;
+    const position = String(row?.position || "MID");
+    const team = String(row?.team || "");
+    const mapping: PlayerMapping = { id, position, team };
+    const list = mappings.get(apiId);
+    if (!list) {
+      mappings.set(apiId, [mapping]);
+    } else if (!list.some((x) => x.id === id)) {
+      list.push(mapping);
+    }
+  }
+}
+
 /**
  * API-Sports player id → on-chain / squad catalog id (+ position).
  * EPL squads use FPL element ids; `/api/players` exposes those as `id` with `apiId`.
  * Multiple FPL rows may share one apiId after bad atlas merges — keep all candidates
  * and disambiguate by fixture team name when fetching.
+ *
+ * Never caches an empty map (a transient /api/players failure used to poison the
+ * session so every later Fetch showed "no mappings loaded").
  */
 async function loadPlayerMappings(
   url = "/api/players",
 ): Promise<Map<number, PlayerMapping[]>> {
   const cached = playerMappingsByUrl.get(url);
-  if (cached) return cached;
+  if (cached && cached.size > 0) return cached;
 
   const mappings = new Map<number, PlayerMapping[]>();
   const catalog: PlayerMapping[] = [];
   const catalogIds = new Set<number>();
+  lastMappingsLoadError = null;
+
   try {
     const response = await fetch(url, { cache: "no-store" });
-    const players = await response.json();
-
-    const byCode = (fplApiIdMapFile as { byCode?: Record<string, number> })?.byCode ?? {};
-    if (Array.isArray(players)) {
-      for (const player of players) {
-        const id = Number(player?.id ?? player?.fplId);
-        if (!Number.isFinite(id) || id <= 0) continue;
-        const fromField = Number(player?.apiId);
-        const fromCode = Number(byCode[String(player?.fplPhotoCode ?? "")]);
-        const apiId =
-          Number.isFinite(fromField) && fromField > 0
-            ? fromField
-            : Number.isFinite(fromCode) && fromCode > 0
-              ? fromCode
-              : 0;
-        if (!catalogIds.has(id)) {
-          catalogIds.add(id);
-          catalog.push({
-            id,
-            position: String(player?.position || "MID"),
-            team: String(player?.team || ""),
-            hasApiId: apiId > 0,
-          });
-        }
-        if (apiId <= 0) continue;
-        const position = String(player?.position || "MID");
-        const team = String(player?.team || "");
-        const row: PlayerMapping = { id, position, team };
-        const list = mappings.get(apiId);
-        if (!list) {
-          mappings.set(apiId, [row]);
-        } else if (!list.some((x) => x.id === id)) {
-          list.push(row);
-        }
+    if (!response.ok) {
+      lastMappingsLoadError = `${url} returned HTTP ${response.status}`;
+    } else {
+      const players = await response.json();
+      if (Array.isArray(players) && players.length > 0) {
+        ingestPlayersIntoMappings(players, mappings, catalog, catalogIds);
+      } else {
+        lastMappingsLoadError = `${url} returned a non-array or empty catalog`;
       }
     }
   } catch (error) {
+    lastMappingsLoadError = error instanceof Error ? error.message : String(error);
     console.error("Failed to load player mappings:", error);
   }
 
-  playerMappingsByUrl.set(url, mappings);
-  playerCatalogByUrl.set(url, catalog);
+  // Bundled FPL catalog + photo-code atlas — works even when live /api/players is down.
+  if (mappings.size === 0 && url === "/api/players") {
+    try {
+      const bundled = (await import("@/data/players.json")).default as unknown[];
+      if (Array.isArray(bundled) && bundled.length > 0) {
+        ingestPlayersIntoMappings(bundled, mappings, catalog, catalogIds);
+        if (mappings.size > 0) {
+          lastMappingsLoadError = lastMappingsLoadError
+            ? `${lastMappingsLoadError}; recovered via bundled players.json`
+            : null;
+        }
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      lastMappingsLoadError = lastMappingsLoadError
+        ? `${lastMappingsLoadError}; bundled fallback failed: ${msg}`
+        : `bundled fallback failed: ${msg}`;
+      console.error("Failed to load bundled player mappings:", error);
+    }
+  }
+
+  if (mappings.size > 0) {
+    playerMappingsByUrl.set(url, mappings);
+    playerCatalogByUrl.set(url, catalog);
+  } else {
+    playerMappingsByUrl.delete(url);
+    playerCatalogByUrl.delete(url);
+  }
   return mappings;
 }
 
@@ -333,8 +389,9 @@ async function fetchStatsForCompetition(
   const headers = { "x-apisports-key": apiKey };
   const mappings = await loadPlayerMappings(cfg.mappingsUrl);
   if (mappings.size === 0) {
+    const detail = lastMappingsLoadError ? ` (${lastMappingsLoadError})` : "";
     result.errors.push(
-      `No API-Sports→catalog mappings loaded from ${cfg.mappingsUrl}. Cannot attach stats to squads.`,
+      `No API-Sports→FPL mappings loaded from ${cfg.mappingsUrl}${detail}. Cannot attach stats to squads.`,
     );
     return result;
   }
@@ -538,15 +595,23 @@ async function fetchStatsForCompetition(
   return result;
 }
 
+/** Drop cached apiId→FPL maps (server auto-publish calls this so each run sees a fresh catalog). */
+export function resetPlayerMappingsCache(): void {
+  playerMappingsByUrl.clear();
+  playerCatalogByUrl.clear();
+}
+
 export async function fetchGameweekStats(
   apiKey: string,
-  gameweekNumber: number
+  gameweekNumber: number,
+  /** Browser default is same-origin; server callers pass an absolute URL. */
+  mappingsUrl = "/api/players",
 ): Promise<GameweekStatsResult> {
   return fetchStatsForCompetition(apiKey, {
     leagueId: EPL_LEAGUE_ID,
     season: SEASON,
     // FPL element ids (same as register_team) + apiId bridge for API-Sports.
-    mappingsUrl: "/api/players",
+    mappingsUrl,
     rounds: [`Regular Season - ${gameweekNumber}`],
     resultGameweekId: gameweekNumber,
     // GK/DEF −1 per 2 goals conceded is part of our scoring; without this EPL rows carry 0.

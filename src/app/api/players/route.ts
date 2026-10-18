@@ -213,14 +213,28 @@ async function fetchPlayersFromFpl(): Promise<Player[]> {
   return mapBootstrapToPlayers(data);
 }
 
+/** Attach API-Sports ids from the FPL photo-code atlas (and name fallback). */
+function ensureApiIds(players: Player[]): Player[] {
+  return players.map((p) => {
+    if (p.apiId != null && p.apiId > 0) return p;
+    const fromCode =
+      p.fplPhotoCode != null ? API_ID_BY_FPL_CODE[String(p.fplPhotoCode)] : undefined;
+    if (fromCode && fromCode > 0) return { ...p, apiId: fromCode };
+    const web = p.webName ? API_ID_BY_NAME_POS.get(`${normName(p.webName)}|${p.position}`) : undefined;
+    if (web && web > 0) return { ...p, apiId: web };
+    return p;
+  });
+}
+
 function fallbackBundledPlayers(): Player[] | null {
   const bundled = loadJsonSafe<Player[]>("src/data/players.json", []);
-  return Array.isArray(bundled) && bundled.length > 0 ? bundled : null;
+  if (!Array.isArray(bundled) || bundled.length === 0) return null;
+  return ensureApiIds(bundled);
 }
 
 function catalogResponse(players: Player[], ageMs: number) {
   const fresh = ageMs < 60_000;
-  return NextResponse.json(players, {
+  return NextResponse.json(ensureApiIds(players), {
     headers: {
       // CDN + browser: slim catalog is safe to cache; form ticks slowly.
       "Cache-Control": fresh
