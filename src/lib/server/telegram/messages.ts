@@ -23,7 +23,9 @@ export function msgWelcome(): string {
     "• live points update",
     "• prizes are ready",
     "",
+    // Two short intentional lines — avoid one long sentence wrapping mid-arrow.
     "Turn on notifications for this chat.",
+    "Bot name → Notifications → On.",
     "",
     SITE,
   ].join("\n");
