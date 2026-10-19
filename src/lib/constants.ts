@@ -66,6 +66,10 @@ export const SOCIAL_X_HANDLE = "@Form8HQ";
 export const SOCIAL_TG_URL = "https://t.me/form8football";
 export const SOCIAL_TG_HANDLE = "@form8football";
 
+/** Telegram alerts bot — deadline / registration / claim pings (opt-in). */
+export const SOCIAL_TG_ALERTS_URL = "https://t.me/Form8AlertsBot";
+export const SOCIAL_TG_ALERTS_HANDLE = "@Form8AlertsBot";
+
 /** Solana deployment settings. Only public values belong in NEXT_PUBLIC_* variables. */
 export const SOLANA_CLUSTER =
   publicEnv(process.env.NEXT_PUBLIC_SOLANA_CLUSTER) === "mainnet-beta"

@@ -1,0 +1,70 @@
+# FORM8 Telegram alert bot — registration / deadline / claim broadcasts.
+# Hits production API. Same CRON_SECRET as other auto-* workflows.
+#
+# Required GitHub secret:
+#   CRON_SECRET — same value as Vercel Production CRON_SECRET
+#
+# Optional repo Variables:
+#   TELEGRAM_ALERTS_URL — default https://www.form8.football/api/cron/telegram-alerts
+#
+# Also requires Vercel env: TELEGRAM_BOT_TOKEN, UPSTASH_REDIS_REST_*, TELEGRAM_ALERTS_ENABLED
+
+name: Telegram alerts
+
+on:
+  schedule:
+    # Every 15 min — enough for 24h/3h/1h windows without spamming Telegram.
+    - cron: "*/15 * * * *"
+    # Denser near typical EPL kickoff blocks (Sat/Sun UTC mornings–afternoons).
+    - cron: "0,15,30,45 10-17 * * 6"
+    - cron: "0,15,30,45 10-17 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (claim slots / report, no broadcast)"
+        type: boolean
+        default: false
+
+jobs:
+  alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call telegram-alerts cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.TELEGRAM_ALERTS_URL || 'https://www.form8.football/api/cron/telegram-alerts' }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRON_SECRET"
+            exit 1
+          fi
+          URL="$BASE_URL"
+          if [ "$DRY" = "1" ]; then
+            URL="${URL}?dryRun=1"
+          fi
+          echo "GET $URL"
+          HTTP=$(curl -sS -o /tmp/tg-alerts.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+          echo "HTTP $HTTP"
+          cat /tmp/tg-alerts.json || true
+          echo
+          HTTP_CODE="$HTTP" python3 - <<'PY'
+          import json, os
+          http = int(os.environ.get("HTTP_CODE") or "0")
+          raw = open("/tmp/tg-alerts.json").read().strip()
+          if not raw:
+            print("empty response body")
+            raise SystemExit(1)
+          try:
+            data = json.loads(raw)
+          except json.JSONDecodeError as e:
+            print("non-JSON response:", raw[:500])
+            raise SystemExit(1) from e
+          print("ok:", data.get("ok"), "skipped:", data.get("skipped"), "subs:", data.get("subscribers"), "fired:", len(data.get("fired") or []))
+          if http >= 400 or data.get("ok") is False:
+            print("error:", data.get("error") or data)
+            raise SystemExit(1)
+          PY

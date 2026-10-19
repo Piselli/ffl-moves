@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { Form8Lockup } from "@/components/Form8Mark";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import { SOCIAL_TG_HANDLE, SOCIAL_TG_URL } from "@/lib/constants";
+import {
+  SOCIAL_TG_ALERTS_HANDLE,
+  SOCIAL_TG_ALERTS_URL,
+  SOCIAL_TG_HANDLE,
+  SOCIAL_TG_URL,
+} from "@/lib/constants";
 
 const HIDE_FOOTER_EXACT = new Set([
   "/",
@@ -98,6 +103,15 @@ export function SiteFooter() {
                 className="text-xs font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
               >
                 {SOCIAL_TG_HANDLE}
+              </a>
+              <a
+                href={SOCIAL_TG_ALERTS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
+                title={uk ? "Алерти дедлайну" : "Deadline alerts"}
+              >
+                {SOCIAL_TG_ALERTS_HANDLE}
               </a>
               {showReferrals && (
                 <Link
