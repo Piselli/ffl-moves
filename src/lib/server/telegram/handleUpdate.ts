@@ -1,12 +1,11 @@
 import { telegramSendMessage, type TelegramUpdate } from "@/lib/server/telegram/api";
 import { broadcastText } from "@/lib/server/telegram/broadcast";
 import {
-  msgAlreadySubscribed,
   msgHelp,
-  msgNotSubscribed,
   msgStats,
   msgUnsubscribed,
   msgWelcome,
+  WELCOME_INLINE_KEYBOARD,
 } from "@/lib/server/telegram/messages";
 import {
   isAdminChat,
@@ -30,23 +29,25 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ ha
 
   const chatId = message.chat.id;
   const parsed = parseCommand(message.text);
+
+  // Ignore free text — don't spam users with command lists.
   if (!parsed) {
-    await telegramSendMessage(chatId, msgHelp());
-    return { handled: true, detail: "help_fallback" };
+    return { handled: true, detail: "ignored_text" };
   }
 
   const { cmd, arg } = parsed;
 
   if (cmd === "/start") {
     const { added, total } = await subscribeChat(chatId);
-    await telegramSendMessage(chatId, added ? msgWelcome() : msgAlreadySubscribed());
+    // Same welcome every time — no "already subscribed / stop to leave" noise.
+    await telegramSendMessage(chatId, msgWelcome(), { replyMarkup: WELCOME_INLINE_KEYBOARD });
     return { handled: true, detail: added ? `subscribed total=${total}` : `already total=${total}` };
   }
 
   if (cmd === "/stop" || cmd === "/unsubscribe") {
-    const { removed, total } = await unsubscribeChat(chatId);
-    await telegramSendMessage(chatId, removed ? msgUnsubscribed() : msgNotSubscribed());
-    return { handled: true, detail: removed ? `unsubscribed total=${total}` : `not_sub total=${total}` };
+    await unsubscribeChat(chatId);
+    await telegramSendMessage(chatId, msgUnsubscribed());
+    return { handled: true, detail: "unsubscribed" };
   }
 
   if (cmd === "/help") {
@@ -54,21 +55,16 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ ha
     return { handled: true, detail: "help" };
   }
 
+  // Admin-only — regular users get silence (not a stats dump).
   if (cmd === "/stats") {
-    if (!isAdminChat(chatId)) {
-      await telegramSendMessage(chatId, msgHelp());
-      return { handled: true, detail: "stats_denied" };
-    }
+    if (!isAdminChat(chatId)) return { handled: true, detail: "stats_denied" };
     const total = await subscriberCount();
     await telegramSendMessage(chatId, msgStats(total));
     return { handled: true, detail: `stats=${total}` };
   }
 
   if (cmd === "/broadcast") {
-    if (!isAdminChat(chatId)) {
-      await telegramSendMessage(chatId, msgHelp());
-      return { handled: true, detail: "broadcast_denied" };
-    }
+    if (!isAdminChat(chatId)) return { handled: true, detail: "broadcast_denied" };
     if (!arg) {
       await telegramSendMessage(chatId, "Usage: /broadcast Your message here");
       return { handled: true, detail: "broadcast_usage" };
@@ -81,6 +77,5 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ ha
     return { handled: true, detail: `broadcast sent=${result.sent}` };
   }
 
-  await telegramSendMessage(chatId, msgHelp());
   return { handled: true, detail: "unknown_cmd" };
 }

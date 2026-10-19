@@ -11,6 +11,7 @@ function fmtDeadline(iso: string | null, epochMs: number | null): string {
   return iso ?? "soon";
 }
 
+/** Shown after /start (and if they tap Start again). */
 export function msgWelcome(): string {
   return [
     "FORM8 Alerts — you're in.",
@@ -18,42 +19,40 @@ export function msgWelcome(): string {
     "I'll ping you when:",
     "• registration opens",
     "• deadline is 24h / 3h / 1h away",
+    "• live points update after matches",
     "• prizes are ready to claim",
     "",
-    `Play: ${SITE}`,
-    "Stop anytime: /stop",
+    "Turn on notifications for this chat so you don't miss them (tap the bot name → Notifications → On).",
+    "",
+    SITE,
   ].join("\n");
-}
-
-export function msgAlreadySubscribed(): string {
-  return "You're already subscribed. /stop to leave.";
-}
-
-export function msgUnsubscribed(): string {
-  return "Unsubscribed. You can /start again anytime.";
-}
-
-export function msgNotSubscribed(): string {
-  return "You're not subscribed. /start to get alerts.";
 }
 
 export function msgHelp(): string {
   return [
-    "Commands:",
-    "/start — subscribe",
-    "/stop — unsubscribe",
-    "/help — this message",
+    "FORM8 Alerts",
     "",
-    `Site: ${SITE}`,
+    "Tap Start (or send /start) to subscribe.",
+    "Send /stop to unsubscribe.",
+    "",
+    SITE,
   ].join("\n");
 }
 
-export function msgRegistrationOpen(gameweekId: number, deadlineIso: string | null, deadlineMs: number | null): string {
+export function msgUnsubscribed(): string {
+  return ["Unsubscribed.", "", `Come back anytime: ${SITE}`].join("\n");
+}
+
+export function msgRegistrationOpen(
+  gameweekId: number,
+  deadlineIso: string | null,
+  deadlineMs: number | null,
+): string {
   return [
-    `GW${gameweekId} registration is OPEN.`,
+    `GW${gameweekId} is open — don't forget to register your team.`,
     "",
     `Deadline: ${fmtDeadline(deadlineIso, deadlineMs)}`,
-    `Lock your squad: ${SITE}/gameweek`,
+    SITE,
   ].join("\n");
 }
 
@@ -63,24 +62,56 @@ export function msgDeadlineReminder(
   deadlineIso: string | null,
   deadlineMs: number | null,
 ): string {
-  const urgency =
-    label === "1h" ? "Last hour" : label === "3h" ? "3 hours left" : "24 hours left";
-  return [
-    `${urgency} to lock GW${gameweekId}.`,
-    "",
-    `Deadline: ${fmtDeadline(deadlineIso, deadlineMs)}`,
-    `Register now: ${SITE}/gameweek`,
-  ].join("\n");
+  const head =
+    label === "1h"
+      ? `Last hour to register for GW${gameweekId}.`
+      : label === "3h"
+        ? `3 hours left to register for GW${gameweekId}.`
+        : `GW${gameweekId} deadline in 24 hours.`;
+  const tip =
+    label === "1h"
+      ? "Miss this and you're out of the gameweek."
+      : "Don't forget to register your team before kickoff.";
+  return [head, "", tip, `Deadline: ${fmtDeadline(deadlineIso, deadlineMs)}`, SITE].join("\n");
 }
 
 export function msgClaimReady(gameweekId: number): string {
   return [
-    `GW${gameweekId} results are live — prizes ready to claim.`,
+    `GW${gameweekId} results are in — claim if you placed.`,
     "",
-    `Leaderboard: ${SITE}/leaderboard`,
+    `${SITE}/leaderboard`,
   ].join("\n");
+}
+
+/** After auto-publish writes new live points for finished matches. */
+export function msgStatsUpdate(gameweekId: number, fixtures: string[]): string {
+  const fixtureLine =
+    fixtures.length === 0
+      ? "New match stats are on the leaderboard."
+      : fixtures.length === 1
+        ? `${fixtures[0]} — points updated.`
+        : fixtures.length <= 3
+          ? `${fixtures.join(" · ")} — points updated.`
+          : `${fixtures.slice(0, 2).join(" · ")} +${fixtures.length - 2} more — points updated.`;
+  return [`GW${gameweekId}: ${fixtureLine}`, "", `${SITE}/leaderboard`].join("\n");
 }
 
 export function msgStats(total: number): string {
   return `Subscribers: ${total}`;
 }
+
+export const WELCOME_INLINE_KEYBOARD: {
+  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+} = {
+  inline_keyboard: [[{ text: "Open FORM8", url: SITE }]],
+};
+
+/** Bot profile copy — shown before the user taps Start. */
+export const BOT_SHORT_DESCRIPTION = "FORM8 alerts. Tap Start to subscribe.";
+
+export const BOT_DESCRIPTION = [
+  "Get FORM8 pings for registration, deadlines, live points, and claims.",
+  "",
+  "Tap START below to turn alerts on.",
+  "Then enable notifications for this chat so you hear them.",
+].join("\n");

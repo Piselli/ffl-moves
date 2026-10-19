@@ -399,6 +399,19 @@ export async function runAutoPublishStats(opts: {
     await writeState(gameweekId, plan.nextState);
     await sleep(nextPollInMs);
 
+    if (!unchanged) {
+      // Fire-and-forget — never block or fail the publish on Telegram.
+      void import("@/lib/server/telegram/notifyStatsUpdate")
+        .then(({ notifyStatsUpdate }) =>
+          notifyStatsUpdate({
+            gameweekId,
+            fixtures: fetched.fixtures,
+            contentChanged: true,
+          }),
+        )
+        .catch((err) => console.warn("autoPublishStats: telegram notify failed", err));
+    }
+
     return {
       action: "published",
       gameweekId,

@@ -78,10 +78,17 @@ export async function subscriberCount(): Promise<number> {
 
 /**
  * Claim a one-shot alert slot. Returns true only the first time for this key.
- * `kind` examples: reg_open, deadline_24h, deadline_3h, deadline_1h, claim_ready
+ * `kind` examples: reg_open, deadline_24h, deadline_3h, deadline_1h, claim_ready, stats_update
+ * Optional `suffix` for multiple fires per GW (e.g. each stats publish batch).
  */
-export async function claimAlertSlot(kind: string, gameweekId: number): Promise<boolean> {
-  const key = `${SENT_PREFIX}${kind}:${gameweekId}`;
+export async function claimAlertSlot(
+  kind: string,
+  gameweekId: number,
+  suffix?: string,
+): Promise<boolean> {
+  const key = suffix
+    ? `${SENT_PREFIX}${kind}:${gameweekId}:${suffix}`
+    : `${SENT_PREFIX}${kind}:${gameweekId}`;
   if (redis) {
     try {
       const ok = await redis.set(key, String(Date.now()), { nx: true, ex: SENT_TTL_SEC });
@@ -96,8 +103,8 @@ export async function claimAlertSlot(kind: string, gameweekId: number): Promise<
 }
 
 /** Mark a slot consumed without sending (skip a missed earlier window). */
-export async function markAlertSlot(kind: string, gameweekId: number): Promise<void> {
-  await claimAlertSlot(kind, gameweekId);
+export async function markAlertSlot(kind: string, gameweekId: number, suffix?: string): Promise<void> {
+  await claimAlertSlot(kind, gameweekId, suffix);
 }
 
 /**

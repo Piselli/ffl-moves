@@ -51,17 +51,40 @@ export async function telegramGetMe(): Promise<{ id: number; username?: string; 
   return call("getMe");
 }
 
+export type TelegramInlineKeyboard = {
+  inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
+};
+
 export async function telegramSendMessage(
   chatId: number | string,
   text: string,
-  opts?: { disablePreview?: boolean; parseMode?: "HTML" | "Markdown" },
+  opts?: {
+    disablePreview?: boolean;
+    parseMode?: "HTML" | "Markdown";
+    replyMarkup?: TelegramInlineKeyboard;
+  },
 ): Promise<TelegramMessage> {
   return call("sendMessage", {
     chat_id: chatId,
     text,
     disable_web_page_preview: opts?.disablePreview ?? true,
     ...(opts?.parseMode ? { parse_mode: opts.parseMode } : {}),
+    ...(opts?.replyMarkup ? { reply_markup: opts.replyMarkup } : {}),
   });
+}
+
+export async function telegramSetMyDescription(description: string): Promise<boolean> {
+  return call("setMyDescription", { description });
+}
+
+export async function telegramSetMyShortDescription(shortDescription: string): Promise<boolean> {
+  return call("setMyShortDescription", { short_description: shortDescription });
+}
+
+export async function telegramSetMyCommands(
+  commands: Array<{ command: string; description: string }>,
+): Promise<boolean> {
+  return call("setMyCommands", { commands });
 }
 
 export async function telegramSetWebhook(url: string, secretToken: string): Promise<boolean> {

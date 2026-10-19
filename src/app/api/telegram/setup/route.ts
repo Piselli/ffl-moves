@@ -7,6 +7,7 @@ import {
   telegramGetWebhookInfo,
   telegramSetWebhook,
 } from "@/lib/server/telegram/api";
+import { setupTelegramBotProfile } from "@/lib/server/telegram/setupProfile";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -80,8 +81,9 @@ export async function POST(request: Request) {
   const url = `${publicBaseUrl()}/api/telegram/webhook`;
   try {
     await telegramSetWebhook(url, secret);
+    const profile = await setupTelegramBotProfile();
     const info = await telegramGetWebhookInfo();
-    return NextResponse.json({ ok: true, url, webhook: info });
+    return NextResponse.json({ ok: true, url, webhook: info, profile });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : String(error) },
