@@ -13,16 +13,18 @@ function fmtDeadline(iso: string | null, epochMs: number | null): string {
 
 /** Shown after /start (and if they tap Start again). */
 export function msgWelcome(): string {
+  // Keep lines short so they don't wrap mid-phrase on a phone.
   return [
     "FORM8 Alerts — you're in.",
     "",
     "I'll ping you when:",
     "• registration opens",
-    "• deadline is 24h / 3h / 1h away",
-    "• live points update after matches",
-    "• prizes are ready to claim",
+    "• deadlines (24h / 3h / 1h)",
+    "• live points update",
+    "• prizes are ready",
     "",
-    "Turn on notifications for this chat so you don't miss them (tap the bot name → Notifications → On).",
+    "Turn on notifications",
+    "for this chat.",
     "",
     SITE,
   ].join("\n");
@@ -110,8 +112,14 @@ export const WELCOME_INLINE_KEYBOARD: {
 export const BOT_SHORT_DESCRIPTION = "FORM8 alerts. Tap Start to subscribe.";
 
 export const BOT_DESCRIPTION = [
-  "Get FORM8 pings for registration, deadlines, live points, and claims.",
+  "You'll get pings for:",
+  "• registration",
+  "• deadlines",
+  "• live points",
+  "• claims",
   "",
-  "Tap START below to turn alerts on.",
-  "Then enable notifications for this chat so you hear them.",
+  "Tap START below.",
+  "",
+  "Turn on notifications",
+  "for this chat.",
 ].join("\n");
