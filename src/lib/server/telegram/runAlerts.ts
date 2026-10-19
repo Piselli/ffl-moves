@@ -15,10 +15,10 @@ import {
   msgRegistrationOpen,
 } from "@/lib/server/telegram/messages";
 import {
-  bootstrapClaimAlertIfNeeded,
   claimAlertSlot,
   markAlertSlot,
   subscriberCount,
+  takeClaimReadyAlert,
 } from "@/lib/server/telegram/subscribers";
 import { telegramConfigured } from "@/lib/server/telegram/api";
 
@@ -130,15 +130,15 @@ export async function runTelegramAlerts(opts?: {
     checked.latestResolvedId = resolvedId;
     if (resolvedId > 0 && resolvedId <= 38) {
       if (dryRun) {
-        checked.claimBootstrapped = false;
+        checked.claimWouldSend = true;
         const cFire = await fire("claim_ready", resolvedId, msgClaimReady(resolvedId), true);
         if (cFire) fired.push(cFire);
       } else {
-        const bootstrapped = await bootstrapClaimAlertIfNeeded(resolvedId);
-        checked.claimBootstrapped = bootstrapped;
-        if (!bootstrapped) {
-          const cFire = await fire("claim_ready", resolvedId, msgClaimReady(resolvedId), false);
-          if (cFire) fired.push(cFire);
+        const shouldSend = await takeClaimReadyAlert(resolvedId);
+        checked.claimShouldSend = shouldSend;
+        if (shouldSend) {
+          const broadcast = await broadcastText(msgClaimReady(resolvedId));
+          fired.push({ kind: "claim_ready", gameweekId: resolvedId, broadcast });
         }
       }
     }

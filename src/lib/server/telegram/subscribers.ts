@@ -6,7 +6,8 @@ import { Redis } from "@upstash/redis";
 
 const SUBS_KEY = "tg:alerts:subs";
 const SENT_PREFIX = "tg:alerts:sent:";
-const CLAIM_BOOTSTRAP_KEY = "tg:alerts:claim_bootstrapped";
+/** Highest resolved GW we already handled for claim alerts (floor / last sent). */
+const CLAIM_LAST_KEY = "tg:alerts:claim_last_sent";
 /** Keep sent markers ~6 weeks so a GW cannot re-fire after redeploy. */
 const SENT_TTL_SEC = 42 * 24 * 3600;
 
@@ -17,6 +18,7 @@ const redis = hasUpstash ? Redis.fromEnv() : null;
 
 const memorySubs = new Set<string>();
 const memorySent = new Set<string>();
+let memoryClaimLast = 0;
 
 function chatKey(chatId: number | string): string {
   return String(chatId);
@@ -108,31 +110,35 @@ export async function markAlertSlot(kind: string, gameweekId: number, suffix?: s
 }
 
 /**
- * First cron after deploy: mark the current resolved GW as already alerted so we
- * do not spam subscribers with a weeks-old "claim ready" message.
- * Returns true when this tick should skip the claim broadcast (bootstrap ran).
+ * Decide whether to broadcast "claim ready" for `resolvedId`.
+ *
+ * First-ever call: set the floor to the current resolved GW and return false
+ * (no spam for an already-settled tour on deploy).
+ * Later: return true once when `resolvedId` advances past the floor.
  */
-export async function bootstrapClaimAlertIfNeeded(resolvedId: number): Promise<boolean> {
+export async function takeClaimReadyAlert(resolvedId: number): Promise<boolean> {
   if (resolvedId <= 0) return false;
   if (redis) {
     try {
-      const ok = await redis.set(CLAIM_BOOTSTRAP_KEY, String(resolvedId), {
-        nx: true,
-        ex: SENT_TTL_SEC * 4,
-      });
-      if (ok === "OK") {
-        await markAlertSlot("claim_ready", resolvedId);
-        return true;
+      const raw = await redis.get<string | number>(CLAIM_LAST_KEY);
+      if (raw == null) {
+        await redis.set(CLAIM_LAST_KEY, String(resolvedId), { ex: SENT_TTL_SEC * 4 });
+        return false;
       }
-      return false;
+      const last = Number(raw);
+      if (!Number.isFinite(last) || resolvedId <= last) return false;
+      await redis.set(CLAIM_LAST_KEY, String(resolvedId), { ex: SENT_TTL_SEC * 4 });
+      return true;
     } catch (err) {
-      console.warn("[telegram] claim bootstrap Redis failed:", err);
+      console.warn("[telegram] takeClaimReadyAlert Redis failed:", err);
     }
   }
-  const key = CLAIM_BOOTSTRAP_KEY;
-  if (memorySent.has(key)) return false;
-  memorySent.add(key);
-  await markAlertSlot("claim_ready", resolvedId);
+  if (memoryClaimLast <= 0) {
+    memoryClaimLast = resolvedId;
+    return false;
+  }
+  if (resolvedId <= memoryClaimLast) return false;
+  memoryClaimLast = resolvedId;
   return true;
 }
 
