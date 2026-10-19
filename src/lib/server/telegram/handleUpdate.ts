@@ -1,4 +1,8 @@
-import { telegramSendMessage, type TelegramUpdate } from "@/lib/server/telegram/api";
+import {
+  telegramSendMessage,
+  type TelegramMessage,
+  type TelegramUpdate,
+} from "@/lib/server/telegram/api";
 import { broadcastText } from "@/lib/server/telegram/broadcast";
 import {
   msgHelp,
@@ -9,6 +13,7 @@ import {
 } from "@/lib/server/telegram/messages";
 import {
   isAdminChat,
+  parseAdminChatIds,
   subscribeChat,
   subscriberCount,
   unsubscribeChat,
@@ -21,6 +26,30 @@ function parseCommand(text: string | undefined): { cmd: string; arg: string } | 
   const [raw, ...rest] = trimmed.split(/\s+/);
   const cmd = raw.split("@")[0]!.toLowerCase();
   return { cmd, arg: rest.join(" ").trim() };
+}
+
+function formatSubscriberLabel(message: TelegramMessage): string {
+  const from = message.from;
+  const chat = message.chat;
+  const username = from?.username || chat.username;
+  if (username) return `@${username}`;
+  const name = [from?.first_name ?? chat.first_name, from?.last_name ?? chat.last_name]
+    .filter(Boolean)
+    .join(" ");
+  if (name) return name;
+  return `id ${chat.id}`;
+}
+
+/** Ping every admin chat (except the actor) about subscribe / unsubscribe. */
+async function notifyAdmins(text: string, exceptChatId?: number): Promise<void> {
+  for (const adminId of parseAdminChatIds()) {
+    if (exceptChatId != null && adminId === exceptChatId) continue;
+    try {
+      await telegramSendMessage(adminId, text);
+    } catch (err) {
+      console.warn("[telegram] admin notify failed:", adminId, err);
+    }
+  }
 }
 
 export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ handled: boolean; detail?: string }> {
@@ -41,13 +70,21 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ ha
     const { added, total } = await subscribeChat(chatId);
     // Same welcome every time — no "already subscribed / stop to leave" noise.
     await telegramSendMessage(chatId, msgWelcome(), { replyMarkup: WELCOME_INLINE_KEYBOARD });
+    if (added) {
+      const who = formatSubscriberLabel(message);
+      await notifyAdmins(`New subscriber: ${who}\nTotal: ${total}`, chatId);
+    }
     return { handled: true, detail: added ? `subscribed total=${total}` : `already total=${total}` };
   }
 
   if (cmd === "/stop" || cmd === "/unsubscribe") {
-    await unsubscribeChat(chatId);
+    const { removed, total } = await unsubscribeChat(chatId);
     await telegramSendMessage(chatId, msgUnsubscribed());
-    return { handled: true, detail: "unsubscribed" };
+    if (removed) {
+      const who = formatSubscriberLabel(message);
+      await notifyAdmins(`Unsubscribed: ${who}\nTotal: ${total}`, chatId);
+    }
+    return { handled: true, detail: removed ? "unsubscribed" : "not_sub" };
   }
 
   if (cmd === "/help") {

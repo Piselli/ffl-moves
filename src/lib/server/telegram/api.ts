@@ -5,8 +5,20 @@
 
 const API_BASE = "https://api.telegram.org";
 
-export type TelegramChat = { id: number; type: string; username?: string };
-export type TelegramUser = { id: number; is_bot: boolean; first_name?: string; username?: string };
+export type TelegramChat = {
+  id: number;
+  type: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+};
+export type TelegramUser = {
+  id: number;
+  is_bot: boolean;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+};
 export type TelegramMessage = {
   message_id: number;
   chat: TelegramChat;
