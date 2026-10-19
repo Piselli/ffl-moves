@@ -29,6 +29,7 @@ import {
   countPublishedRows,
   isFinishedStatus,
   planNextPoll,
+  hasNewFinishedFixture,
   labelsForPublishAlert,
   planRefresh,
   type AutoPublishState,
@@ -408,8 +409,8 @@ export async function runAutoPublishStats(opts: {
     await writeState(gameweekId, plan.nextState);
     await sleep(nextPollInMs);
 
-    if (!unchanged) {
-      // Only name fixtures that triggered this tick (new FT, else rechecks) — not the whole slate.
+    // Site always gets +30m / +2h rechecks. Telegram only when a match newly goes FT.
+    if (!unchanged && hasNewFinishedFixture(plan.reasons)) {
       const alertFixtures = labelsForPublishAlert(plan.reasons, listed.fixtures);
       void import("@/lib/server/telegram/notifyStatsUpdate")
         .then(({ notifyStatsUpdate }) =>

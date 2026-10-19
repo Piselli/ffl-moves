@@ -84,27 +84,25 @@ export type RoundFixture = {
   label?: string;
 };
 
+/** True when this publish tick includes at least one newly finished fixture (not only rechecks). */
+export function hasNewFinishedFixture(reasons: string[]): boolean {
+  return reasons.some((r) => /^new finished fixture \d+$/.test(r));
+}
+
 /**
  * Fixture labels to show in a stats-update alert.
- * Prefer newly finished matches; if this tick is only rechecks, use those.
- * Never dump every FT fixture in the round.
+ * Only newly finished matches — silent +30m/+2h rechecks update the site without Telegram noise.
  */
 export function labelsForPublishAlert(
   reasons: string[],
   fixtures: Array<{ id: number; label?: string }>,
 ): string[] {
   const newIds: number[] = [];
-  const recheckIds: number[] = [];
   for (const r of reasons) {
     const neu = /^new finished fixture (\d+)$/.exec(r);
-    if (neu) {
-      newIds.push(Number(neu[1]));
-      continue;
-    }
-    const re = /^recheck \d+\/\d+ of fixture (\d+)$/.exec(r);
-    if (re) recheckIds.push(Number(re[1]));
+    if (neu) newIds.push(Number(neu[1]));
   }
-  const ids = newIds.length > 0 ? [...new Set(newIds)] : [...new Set(recheckIds)];
+  const ids = [...new Set(newIds)];
   const byId = new Map(
     fixtures
       .filter((f) => typeof f.label === "string" && f.label.trim().length > 0)
