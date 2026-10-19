@@ -23,8 +23,7 @@ export function msgWelcome(): string {
     "• live points update",
     "• prizes are ready",
     "",
-    "Turn on notifications",
-    "for this chat.",
+    "Turn on notifications for this chat.",
     "",
     SITE,
   ].join("\n");
@@ -120,6 +119,5 @@ export const BOT_DESCRIPTION = [
   "",
   "Tap START below.",
   "",
-  "Turn on notifications",
-  "for this chat.",
+  "Turn on notifications for this chat.",
 ].join("\n");
