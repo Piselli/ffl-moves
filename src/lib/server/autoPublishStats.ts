@@ -29,6 +29,7 @@ import {
   countPublishedRows,
   isFinishedStatus,
   planNextPoll,
+  labelsForPublishAlert,
   planRefresh,
   type AutoPublishState,
   type RoundFixture,
@@ -209,7 +210,10 @@ async function runAudit(
   }
 }
 
-type ApiFixtureRow = { fixture: { id: number; date: string; status: { short: string } } };
+type ApiFixtureRow = {
+  fixture: { id: number; date: string; status: { short: string } };
+  teams?: { home?: { name?: string }; away?: { name?: string } };
+};
 
 /** One API-Sports request: every fixture of the round with status + kickoff. */
 async function listRoundFixtures(
@@ -230,11 +234,16 @@ async function listRoundFixtures(
   if (body.errors && !Array.isArray(body.errors) && Object.keys(body.errors).length > 0) {
     return { fixtures: [], error: `API-Sports: ${JSON.stringify(body.errors)}` };
   }
-  const fixtures = (body.response ?? []).map((f) => ({
-    id: f.fixture.id,
-    short: f.fixture.status.short,
-    kickoffMs: Date.parse(f.fixture.date) || 0,
-  }));
+  const fixtures = (body.response ?? []).map((f) => {
+    const home = f.teams?.home?.name?.trim() || "Home";
+    const away = f.teams?.away?.name?.trim() || "Away";
+    return {
+      id: f.fixture.id,
+      short: f.fixture.status.short,
+      kickoffMs: Date.parse(f.fixture.date) || 0,
+      label: `${home} vs ${away}`,
+    };
+  });
   return { fixtures };
 }
 
@@ -400,12 +409,13 @@ export async function runAutoPublishStats(opts: {
     await sleep(nextPollInMs);
 
     if (!unchanged) {
-      // Fire-and-forget — never block or fail the publish on Telegram.
+      // Only name fixtures that triggered this tick (new FT, else rechecks) — not the whole slate.
+      const alertFixtures = labelsForPublishAlert(plan.reasons, listed.fixtures);
       void import("@/lib/server/telegram/notifyStatsUpdate")
         .then(({ notifyStatsUpdate }) =>
           notifyStatsUpdate({
             gameweekId,
-            fixtures: fetched.fixtures,
+            fixtures: alertFixtures,
             contentChanged: true,
           }),
         )

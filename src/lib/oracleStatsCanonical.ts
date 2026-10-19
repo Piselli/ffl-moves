@@ -76,7 +76,42 @@ export const MAX_SLEEP_MS = 15 * 60_000;
 /** Start polling this long before the earliest not-yet-started kickoff. */
 export const PRE_KICKOFF_LEAD_MS = 2 * 60_000;
 
-export type RoundFixture = { id: number; short: string; kickoffMs: number };
+export type RoundFixture = {
+  id: number;
+  short: string;
+  kickoffMs: number;
+  /** "Home vs Away" when known — used for Telegram alerts. */
+  label?: string;
+};
+
+/**
+ * Fixture labels to show in a stats-update alert.
+ * Prefer newly finished matches; if this tick is only rechecks, use those.
+ * Never dump every FT fixture in the round.
+ */
+export function labelsForPublishAlert(
+  reasons: string[],
+  fixtures: Array<{ id: number; label?: string }>,
+): string[] {
+  const newIds: number[] = [];
+  const recheckIds: number[] = [];
+  for (const r of reasons) {
+    const neu = /^new finished fixture (\d+)$/.exec(r);
+    if (neu) {
+      newIds.push(Number(neu[1]));
+      continue;
+    }
+    const re = /^recheck \d+\/\d+ of fixture (\d+)$/.exec(r);
+    if (re) recheckIds.push(Number(re[1]));
+  }
+  const ids = newIds.length > 0 ? [...new Set(newIds)] : [...new Set(recheckIds)];
+  const byId = new Map(
+    fixtures
+      .filter((f) => typeof f.label === "string" && f.label.trim().length > 0)
+      .map((f) => [f.id, f.label!.trim()] as const),
+  );
+  return ids.map((id) => byId.get(id) ?? `fixture ${id}`);
+}
 
 /**
  * How long the poller may sleep before the next API-Sports look.

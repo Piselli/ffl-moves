@@ -6,6 +6,7 @@ import {
   countPublishedRows,
   isFinishedStatus,
   planNextPoll,
+  labelsForPublishAlert,
   planRefresh,
   LIVE_POLL_MS,
   MAX_SLEEP_MS,
@@ -52,6 +53,26 @@ test("a second match finishing triggers a publish without disturbing the first",
   assert.equal(plan.shouldPublish, true);
   assert.deepEqual(plan.nextState.seen["101"], { firstSeenMs: T0, rechecks: 0 });
   assert.deepEqual(plan.nextState.seen["102"], { firstSeenMs: T0 + 5 * MIN, rechecks: 0 });
+});
+
+test("alert labels prefer newly finished fixtures over the full slate", () => {
+  const fixtures = [
+    { id: 101, label: "Fulham vs Hull City" },
+    { id: 102, label: "Tottenham vs Coventry" },
+    { id: 103, label: "Everton vs Chelsea" },
+  ];
+  assert.deepEqual(
+    labelsForPublishAlert(
+      ["new finished fixture 102", "recheck 1/2 of fixture 101"],
+      fixtures,
+    ),
+    ["Tottenham vs Coventry"],
+  );
+  assert.deepEqual(
+    labelsForPublishAlert(["recheck 2/2 of fixture 101"], fixtures),
+    ["Fulham vs Hull City"],
+  );
+  assert.deepEqual(labelsForPublishAlert([], fixtures), []);
 });
 
 test("only FT / AET / PEN count as finished", () => {
