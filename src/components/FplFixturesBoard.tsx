@@ -135,6 +135,9 @@ function MatchRow({
 }) {
   const status = fixtureStatus(match);
   const hasScore = match.scoreH != null && match.scoreA != null;
+  const kickMs = match.kickoffTime ? Date.parse(match.kickoffTime) : NaN;
+  const scorePending =
+    !hasScore && Number.isFinite(kickMs) && Date.now() >= kickMs;
 
   return (
     <div
@@ -157,6 +160,10 @@ function MatchRow({
             <span className="px-0.5 text-white/30">–</span>
             {match.scoreA}
           </span>
+        ) : scorePending ? (
+          <span className="font-display text-sm font-bold tabular-nums leading-none text-white/35">
+            —
+          </span>
         ) : (
           <span className="font-display text-sm font-bold tabular-nums leading-none text-white/55">
             {formatKickoffTime(match.kickoffTime, locale)}
@@ -167,13 +174,18 @@ function MatchRow({
             "mt-1 h-[10px] text-[8px] font-bold uppercase leading-none tracking-[0.12em]",
             status === "finished" && "text-white/30",
             status === "live" && "text-rose-400/90",
-            status === "upcoming" && "text-transparent",
+            scorePending && !hasScore && "text-white/30",
+            status === "upcoming" && !scorePending && "text-transparent",
           )}
         >
-          {status === "finished"
-            ? fx.finished
-            : status === "live"
-              ? fx.statusLive
+          {hasScore
+            ? status === "finished"
+              ? fx.finished
+              : status === "live"
+                ? fx.statusLive
+                : "·"
+            : scorePending
+              ? "…"
               : "·"}
         </span>
       </div>

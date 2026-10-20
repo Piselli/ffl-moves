@@ -95,6 +95,8 @@ const DISPLAY: CSSProperties = {
 
 type Props = {
   fixtures: LockerFixturesPayload | null;
+  /** On-chain open/active GW — wins over fixtures API for the Gameweek label. */
+  openGwId?: number | null;
   prizePoolRaw: bigint | null;
   entries: number | null;
   /** True while on-chain prize/entries are still resolving. */
@@ -773,6 +775,9 @@ function MatchRow({
     Number.isFinite(match.scoreA);
   // FPL often keeps finished=false until BPS settles; infer FT ~2.5h after kickoff.
   const kickMs = match.kickoffTime ? Date.parse(match.kickoffTime) : NaN;
+  const kickPassed = Number.isFinite(kickMs) && Date.now() >= kickMs;
+  // Stale cache without scores must not look like "match hasn't started".
+  const scorePending = !hasScore && kickPassed;
   const finished =
     Boolean(match.finished) ||
     (hasScore && Number.isFinite(kickMs) && Date.now() - kickMs >= 2.5 * 60 * 60 * 1000);
@@ -866,6 +871,10 @@ function MatchRow({
             <span className="px-0.5 text-[color:var(--lt-ink)]/35">–</span>
             {match.scoreA}
           </span>
+        ) : scorePending ? (
+          <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-muted)]">
+            —
+          </span>
         ) : (
           <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {formatKickoffTime(match.kickoffTime, locale)}
@@ -879,10 +888,12 @@ function MatchRow({
               ? live
                 ? "text-[color:var(--lt-accent)]"
                 : "text-[color:var(--lt-muted)]"
-              : "text-transparent",
+              : scorePending
+                ? "text-[color:var(--lt-muted)]"
+                : "text-transparent",
           )}
         >
-          {hasScore ? (live ? "Live" : "FT") : "·"}
+          {hasScore ? (live ? "Live" : "FT") : scorePending ? "…" : "·"}
         </span>
       </div>
       <ClubSide side={match.teamA} align="end" />
@@ -892,6 +903,7 @@ function MatchRow({
 
 export function LockerTablet({
   fixtures,
+  openGwId = null,
   prizePoolRaw,
   entries,
   chainLoading = false,
@@ -1263,7 +1275,10 @@ export function LockerTablet({
   }, [locale]);
 
   const deadline = fixtures?.gameweek?.deadlineTime ?? null;
-  const gwId = fixtures?.gameweek?.id;
+  const gwId =
+    openGwId != null && Number.isFinite(openGwId) && openGwId >= 1
+      ? openGwId
+      : fixtures?.gameweek?.id;
   const dayGroups = useMemo(
     () => groupMatchesByDay((fixtures?.fixtures ?? []).slice(0, 10), locale),
     [fixtures?.fixtures, locale],

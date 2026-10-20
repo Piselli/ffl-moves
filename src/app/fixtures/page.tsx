@@ -11,7 +11,7 @@ import {
   type FplFixturesPayload,
 } from "@/components/FplFixturesBoard";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import { getConfig, findOpenGameweek } from "@/lib/chainClient";
+import { getConfig, findActiveGameweek } from "@/lib/chainClient";
 
 export default function FixturesPage() {
   const { locale } = useSiteLocale();
@@ -26,7 +26,8 @@ export default function FixturesPage() {
     (async () => {
       try {
         const cfg = await getConfig();
-        const gw = cfg ? await findOpenGameweek() : null;
+        // Active tour (open or closed mid-round) — not FPL is_current.
+        const gw = cfg ? await findActiveGameweek() : null;
         if (!cancelled && gw?.id != null && Number.isFinite(gw.id)) setRegistrationGwId(gw.id);
       } catch {
         /* keep null — API falls back to FPL-only pick */

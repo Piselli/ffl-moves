@@ -1,0 +1,70 @@
+# Refresh Redis FPL fixtures cache for the open / active on-chain gameweek.
+# Keeps tablet scores correct when live FPL is blocked from Vercel request paths.
+# GitHub schedule is a backup; traffic also pokes `/api/cron/refresh-fixtures`.
+#
+# Required GitHub secret:
+#   CRON_SECRET — same value as Vercel Production CRON_SECRET
+#
+# Optional repo Variables:
+#   REFRESH_FIXTURES_URL — default https://www.form8.football/api/cron/refresh-fixtures
+
+name: Refresh fixtures cache
+
+on:
+  schedule:
+    # Match windows (UTC) — frequent while games can be live.
+    - cron: "*/10 11-22 * * 6"
+    - cron: "*/10 11-22 * * 0"
+    - cron: "*/15 17-22 * * 1-5"
+    # Light daytime refresh so the open GW slate stays current midweek.
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (fetch, write nothing)"
+        type: boolean
+        default: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call refresh-fixtures cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.REFRESH_FIXTURES_URL || 'https://www.form8.football/api/cron/refresh-fixtures' }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRON_SECRET"
+            exit 1
+          fi
+          URL="$BASE_URL"
+          if [ "$DRY" = "1" ]; then
+            URL="${URL}?dryRun=1"
+          fi
+          echo "GET $URL"
+          HTTP=$(curl -sS -o /tmp/refresh-fixtures.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+          echo "HTTP $HTTP"
+          cat /tmp/refresh-fixtures.json || true
+          echo
+          HTTP_CODE="$HTTP" python3 - <<'PY'
+          import json, os
+          http = int(os.environ.get("HTTP_CODE") or "0")
+          raw = open("/tmp/refresh-fixtures.json").read().strip()
+          if not raw:
+            print("empty response body")
+            raise SystemExit(1)
+          try:
+            data = json.loads(raw)
+          except json.JSONDecodeError as e:
+            print("non-JSON response:", raw[:500])
+            raise SystemExit(1) from e
+          print("action:", data.get("action"), "ok:", data.get("ok"), "gw:", data.get("gameweekId"))
+          if http >= 400 or data.get("ok") is False:
+            print("error:", data.get("error") or data.get("reason") or data)
+            raise SystemExit(1)
+          PY

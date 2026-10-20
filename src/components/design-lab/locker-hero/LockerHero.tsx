@@ -451,6 +451,7 @@ export function LockerHero({
   const picker = (
     <LockerTablet
       fixtures={data.fixtures}
+      openGwId={data.openGwId}
       prizePoolRaw={data.prizePoolRaw}
       entries={data.entries}
       chainLoading={data.chainLoading}

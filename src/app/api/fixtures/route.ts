@@ -3,6 +3,12 @@ import bootstrapLite from "@/data/fpl-bootstrap-lite.json";
 import fixturesSnapshot from "@/data/fpl-fixtures-snapshot.json";
 import { pokeAutoCloseWatchdog } from "@/lib/server/autoCloseWatchdog";
 import { pokeAutoPublishStatsWatchdog } from "@/lib/server/autoPublishStatsWatchdog";
+import {
+  readFixturesCache,
+  readFixturesCachePointer,
+  type CachedFixtureRow,
+} from "@/lib/server/fixturesCacheStore";
+import { pokeFixturesRefreshWatchdog } from "@/lib/server/fixturesRefreshWatchdog";
 import { pokeTelegramAlertsWatchdog } from "@/lib/server/telegramAlertsWatchdog";
 
 const FPL_FIXTURES_ALL = "https://fantasy.premierleague.com/api/fixtures/";
@@ -115,38 +121,66 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
  * True when chain still points at last season (high GW) while FPL already reset
  * to early new-season ids — do not treat that as "open the next tour".
  */
-function looksLikeSeasonWrap(registrationGw: number, fplPick: number): boolean {
-  return registrationGw >= 30 && fplPick <= 10 && registrationGw - fplPick >= 20;
+function looksLikeSeasonWrap(preferredGw: number, fplPick: number): boolean {
+  return preferredGw >= 30 && fplPick <= 10 && preferredGw - fplPick >= 20;
 }
 
 /**
- * FPL "live" pick stays on the earliest GW that still has unfinished *displayed* fixtures.
- * On-chain registration can open the next GW while that slate is still playing — pass
- * `registrationGw` from `findActiveGameweek` so deadline/fixtures match the squad tour.
- * If the chain lags behind FPL, `registrationGw <= fplPick` and we keep the FPL pick.
- *
- * Prefer the open on-chain GW when it is ahead (admin opened the next tour, or the
- * shipped snapshot is behind). Only refuse a large jump that looks like a season wrap
- * (e.g. chain still on GW36–38 while FPL is back on GW1–5).
+ * Display GW = on-chain registration (or Redis pointer from cron), not FPL's
+ * "earliest unfinished". Only fall back to the FPL pick when we have no product
+ * pointer, or the pointer looks like a season wrap after a new campaign starts.
  */
-function mergeRegistrationEventPreference(
+function resolveDisplayEventId(
   fplPick: number,
   registrationGw: number | null,
+  cachePointerGw: number | null,
   eventsMeta: BootstrapLite["events"],
-): number {
-  if (
-    registrationGw == null ||
-    !Number.isFinite(registrationGw) ||
-    registrationGw < 1 ||
-    registrationGw <= fplPick
-  ) {
-    return fplPick;
+): { eventId: number; lockedToTour: boolean } {
+  const preferred =
+    registrationGw != null && Number.isFinite(registrationGw) && registrationGw >= 1
+      ? registrationGw
+      : cachePointerGw != null && Number.isFinite(cachePointerGw) && cachePointerGw >= 1
+        ? cachePointerGw
+        : null;
+
+  if (preferred == null) {
+    return { eventId: fplPick, lockedToTour: false };
   }
-  if (looksLikeSeasonWrap(registrationGw, fplPick)) {
-    return fplPick;
+  if (looksLikeSeasonWrap(preferred, fplPick)) {
+    return { eventId: fplPick, lockedToTour: false };
   }
-  const exists = eventsMeta.some((e) => e.id === registrationGw);
-  return exists ? registrationGw : fplPick;
+  if (!eventsMeta.some((e) => e.id === preferred)) {
+    return { eventId: fplPick, lockedToTour: false };
+  }
+  return { eventId: preferred, lockedToTour: true };
+}
+
+/** Cron/live rows win on score + finished flags; schedule stays complete. */
+function mergeCachedFixtureRows(
+  base: FplFixtureRaw[],
+  cached: CachedFixtureRow[] | null | undefined,
+): FplFixtureRaw[] {
+  if (!cached?.length) return base;
+  const byId = new Map<number, FplFixtureRaw>();
+  for (const row of base) {
+    if (row && Number.isFinite(row.id)) byId.set(row.id, row);
+  }
+  for (const row of cached) {
+    if (!row || !Number.isFinite(row.id)) continue;
+    const prev = byId.get(row.id);
+    byId.set(row.id, {
+      id: row.id,
+      event: row.event,
+      kickoff_time: row.kickoff_time ?? prev?.kickoff_time,
+      team_h: row.team_h,
+      team_a: row.team_a,
+      finished: row.finished ?? prev?.finished,
+      started: row.started ?? prev?.started,
+      team_h_score: row.team_h_score ?? prev?.team_h_score ?? null,
+      team_a_score: row.team_a_score ?? prev?.team_a_score ?? null,
+    });
+  }
+  return Array.from(byId.values());
 }
 
 function teamSafe(map: TeamMap, id: number) {
@@ -446,6 +480,8 @@ export async function GET(request: Request) {
   pokeAutoCloseWatchdog();
   // Same idea for publishing finished-match stats to the site (production only, throttled).
   pokeAutoPublishStatsWatchdog();
+  // Keep Redis fixtures cache warm when GH schedule lags.
+  pokeFixturesRefreshWatchdog();
   // Telegram reg_open / deadline / claim — GH schedule is often hours late.
   pokeTelegramAlertsWatchdog();
 
@@ -454,28 +490,37 @@ export async function GET(request: Request) {
   const parsedReg = regRaw != null ? parseInt(regRaw, 10) : NaN;
   const registrationGw = Number.isFinite(parsedReg) && parsedReg >= 1 ? parsedReg : null;
 
-  const allRaw = await loadLiveFixtureRows(registrationGw);
+  const pointer = registrationGw == null ? await readFixturesCachePointer() : null;
+  const cachePointerGw = pointer?.gameweekId ?? null;
+  const preferredForLoad = registrationGw ?? cachePointerGw;
 
-  if (!allRaw) {
-    return bootstrapFallbackSchedule(registrationGw);
+  const [liveOrSnap, cachedForPreferred] = await Promise.all([
+    loadLiveFixtureRows(preferredForLoad),
+    preferredForLoad != null ? readFixturesCache(preferredForLoad) : Promise.resolve(null),
+  ]);
+
+  const allRaw = mergeCachedFixtureRows(
+    liveOrSnap ?? snapshotFixtureRows() ?? [],
+    cachedForPreferred?.fixtures,
+  );
+
+  if (allRaw.length === 0) {
+    return bootstrapFallbackSchedule(preferredForLoad);
   }
 
   try {
     const teamMap = buildTeamMap(bootstrapLite.teams);
     const fplPick = pickTargetEventId(allRaw, bootstrapLite.events);
-    const hintedId = mergeRegistrationEventPreference(fplPick, registrationGw, bootstrapLite.events);
+    const { eventId: hintedId, lockedToTour } = resolveDisplayEventId(
+      fplPick,
+      registrationGw,
+      cachePointerGw,
+      bootstrapLite.events,
+    );
 
-    const chainAhead =
-      registrationGw != null &&
-      Number.isFinite(registrationGw) &&
-      registrationGw > fplPick &&
-      hintedId === registrationGw;
-
-    // If the registration GW has no rows yet (kickoffs unpublished), fall through to the
-    // normal FPL slate instead of returning an empty "0 matches" panel.
-    const resolved = chainAhead
-      ? resolveFormattedFixturesForRegistrationGw(allRaw, teamMap, bootstrapLite.events, hintedId) ??
-        resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, fplPick)
+    // Locked to on-chain / cron pointer: never swap in another GW's slate.
+    const resolved = lockedToTour
+      ? resolveFormattedFixturesForRegistrationGw(allRaw, teamMap, bootstrapLite.events, hintedId)
       : resolveFormattedFixtures(allRaw, teamMap, bootstrapLite.events, hintedId);
 
     let targetMeta: EventMeta;
@@ -488,7 +533,7 @@ export async function GET(request: Request) {
       const meta = resolveEventMeta(bootstrapLite.events, hintedId);
       if (!meta) {
         console.error("fixtures: unknown event id", hintedId, "- refresh src/data/fpl-bootstrap-lite.json");
-        return bootstrapFallbackSchedule(registrationGw);
+        return bootstrapFallbackSchedule(preferredForLoad);
       }
       targetMeta = meta;
       formattedFixtures = [];
@@ -497,14 +542,16 @@ export async function GET(request: Request) {
     if (formattedFixtures.length === 0) {
       const rescue = await fetchFplFixtureRows(`${FPL_FIXTURES_ALL}?event=${targetMeta.id}`, 6000);
       if (rescue?.length) {
-        const retry = formatFixturesForEvent(rescue, targetMeta.id, teamMap);
+        const mergedRescue = mergeCachedFixtureRows(rescue, cachedForPreferred?.fixtures);
+        const retry = formatFixturesForEvent(mergedRescue, targetMeta.id, teamMap);
         if (retry.length > 0) formattedFixtures = retry;
       }
     }
     if (formattedFixtures.length === 0) {
       const snap = snapshotFixtureRows();
       if (snap) {
-        const retry = formatFixturesForEvent(snap, targetMeta.id, teamMap);
+        const mergedSnap = mergeCachedFixtureRows(snap, cachedForPreferred?.fixtures);
+        const retry = formatFixturesForEvent(mergedSnap, targetMeta.id, teamMap);
         if (retry.length > 0) formattedFixtures = retry;
       }
     }
@@ -543,6 +590,6 @@ export async function GET(request: Request) {
     return noStoreJson(payload);
   } catch (e) {
     console.error("Fixtures API processing error:", e instanceof Error ? e.message : e);
-    return bootstrapFallbackSchedule(registrationGw);
+    return bootstrapFallbackSchedule(preferredForLoad);
   }
 }
