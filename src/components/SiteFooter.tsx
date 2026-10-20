@@ -6,12 +6,7 @@ import { usePathname } from "next/navigation";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { Form8Lockup } from "@/components/Form8Mark";
 import { useSiteLocale, useSiteMessages } from "@/i18n/LocaleProvider";
-import {
-  SOCIAL_TG_ALERTS_HANDLE,
-  SOCIAL_TG_ALERTS_URL,
-  SOCIAL_TG_HANDLE,
-  SOCIAL_TG_URL,
-} from "@/lib/constants";
+import { SOCIAL_TG_ALERTS_HANDLE, SOCIAL_TG_ALERTS_URL } from "@/lib/constants";
 
 const HIDE_FOOTER_EXACT = new Set([
   "/",
@@ -97,20 +92,15 @@ export function SiteFooter() {
             <div className="flex flex-wrap items-center gap-4 sm:justify-end sm:gap-5">
               <SocialLinkX ariaLabel={m.footer.socialAria} variant="inline" />
               <a
-                href={SOCIAL_TG_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
-              >
-                {SOCIAL_TG_HANDLE}
-              </a>
-              <a
                 href={SOCIAL_TG_ALERTS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/65"
-                title={uk ? "Алерти дедлайну" : "Deadline alerts"}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#00f948]/70 transition-colors hover:text-[#00f948]"
+                title={uk ? "Telegram-бот з алертами" : "Telegram alerts bot"}
               >
+                <span className="rounded-sm bg-[#00f948]/15 px-1 py-0.5 text-[9px] font-black tracking-wider text-[#00f948]">
+                  NEW
+                </span>
                 {SOCIAL_TG_ALERTS_HANDLE}
               </a>
               {showReferrals && (

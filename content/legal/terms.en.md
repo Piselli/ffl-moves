@@ -120,5 +120,5 @@ Please try to resolve any dispute with us directly first — email [CONTACT EMAI
 ## 17. Contact
 
 - Email: [CONTACT EMAIL]
-- Telegram: [@form8football](https://t.me/form8football)
+- Telegram alerts: [@Form8AlertsBot](https://t.me/Form8AlertsBot)
 - X: [@Form8HQ](https://x.com/Form8HQ)

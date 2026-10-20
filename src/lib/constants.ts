@@ -62,13 +62,13 @@ export const MAX_PER_CLUB = 3;
 export const SOCIAL_X_URL = "https://x.com/Form8HQ";
 export const SOCIAL_X_HANDLE = "@Form8HQ";
 
-/** Official Telegram channel — questions, bugs, support. */
-export const SOCIAL_TG_URL = "https://t.me/form8football";
-export const SOCIAL_TG_HANDLE = "@form8football";
-
 /** Telegram alerts bot — deadline / registration / claim pings (opt-in). */
 export const SOCIAL_TG_ALERTS_URL = "https://t.me/Form8AlertsBot";
 export const SOCIAL_TG_ALERTS_HANDLE = "@Form8AlertsBot";
+
+/** @deprecated Use SOCIAL_TG_ALERTS_* — channel retired from public site. */
+export const SOCIAL_TG_URL = SOCIAL_TG_ALERTS_URL;
+export const SOCIAL_TG_HANDLE = SOCIAL_TG_ALERTS_HANDLE;
 
 /** Solana deployment settings. Only public values belong in NEXT_PUBLIC_* variables. */
 export const SOLANA_CLUSTER =

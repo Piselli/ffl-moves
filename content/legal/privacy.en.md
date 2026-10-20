@@ -73,4 +73,4 @@ We will update the "Last updated" date and notify you in the app about material 
 
 ## 11. Contact
 
-[CONTACT EMAIL] · Telegram [@form8football](https://t.me/form8football) · X [@Form8HQ](https://x.com/Form8HQ)
+[CONTACT EMAIL] · Telegram [](https://t.me/Form8AlertsBot) · X [@Form8HQ](https://x.com/Form8HQ)
