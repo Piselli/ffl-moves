@@ -54,4 +54,4 @@ Nothing on Form8 is investment or financial advice. Form8 has **no token**, and 
 
 Set a budget and stick to it. Don't chase losses. If playing stops being fun, take a break. If you feel you may have a gambling problem, seek help from a local support service.
 
-Questions: [CONTACT EMAIL] · Telegram [](https://t.me/Form8AlertsBot)
+Questions: [CONTACT EMAIL] · Telegram alerts [@Form8AlertsBot](https://t.me/Form8AlertsBot)

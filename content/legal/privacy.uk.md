@@ -71,4 +71,4 @@ Form8 — лише для дорослих (18+, або 21+ де це вимаг
 
 ## 11. Контакти
 
-[CONTACT EMAIL] · Telegram [](https://t.me/Form8AlertsBot) · X [@Form8HQ](https://x.com/Form8HQ)
+[CONTACT EMAIL] · Telegram alerts [@Form8AlertsBot](https://t.me/Form8AlertsBot) · X [@Form8HQ](https://x.com/Form8HQ)

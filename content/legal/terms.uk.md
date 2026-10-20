@@ -120,5 +120,5 @@ Form8 надається **«як є» і «як доступно»**. Ми не
 ## 17. Контакти
 
 - Email: [CONTACT EMAIL]
-- Telegram: [](https://t.me/Form8AlertsBot)
+- Telegram alerts: [@Form8AlertsBot](https://t.me/Form8AlertsBot)
 - X: [@Form8HQ](https://x.com/Form8HQ)
