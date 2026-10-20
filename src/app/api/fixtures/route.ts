@@ -77,6 +77,8 @@ function collectEventIds(fixtures: FplFixtureRaw[]): number[] {
 /**
  * Prefer the earliest FPL event that still has an unfinished fixture.
  * Skip events with zero rows in the feed (blanks / not published yet).
+ * Also skip events bootstrap already marks `finished` — a shipped snapshot can
+ * keep stale `finished: false` after the round ends when live FPL is unreachable.
  * Fall back to bootstrap `is_next`, then `is_current`, then the latest event that has fixtures.
  */
 function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite["events"]): number {
@@ -84,6 +86,8 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
   if (ids.length === 0) throw new Error("No fixtures in FPL feed");
 
   for (const eid of ids) {
+    const meta = eventsMeta.find((e) => e.id === eid);
+    if (meta?.finished) continue;
     const evFx = fixtures.filter((f) => f.event === eid);
     if (evFx.length === 0) continue;
     // Ignore postponed/rescheduled rows we hide from the UI (e.g. MCI–CRY in GW36);
@@ -108,13 +112,22 @@ function pickTargetEventId(fixtures: FplFixtureRaw[], eventsMeta: BootstrapLite[
 }
 
 /**
+ * True when chain still points at last season (high GW) while FPL already reset
+ * to early new-season ids — do not treat that as "open the next tour".
+ */
+function looksLikeSeasonWrap(registrationGw: number, fplPick: number): boolean {
+  return registrationGw >= 30 && fplPick <= 10 && registrationGw - fplPick >= 20;
+}
+
+/**
  * FPL "live" pick stays on the earliest GW that still has unfinished *displayed* fixtures.
  * On-chain registration can open the next GW while that slate is still playing — pass
  * `registrationGw` from `findActiveGameweek` so deadline/fixtures match the squad tour.
  * If the chain lags behind FPL, `registrationGw <= fplPick` and we keep the FPL pick.
  *
- * Cap the look-ahead at +1: after a season reset FPL returns to GW1 while chain may still
- * expose last-season GW 36–38; treating that as "chain ahead" would show the wrong slate.
+ * Prefer the open on-chain GW when it is ahead (admin opened the next tour, or the
+ * shipped snapshot is behind). Only refuse a large jump that looks like a season wrap
+ * (e.g. chain still on GW36–38 while FPL is back on GW1–5).
  */
 function mergeRegistrationEventPreference(
   fplPick: number,
@@ -129,7 +142,7 @@ function mergeRegistrationEventPreference(
   ) {
     return fplPick;
   }
-  if (registrationGw > fplPick + 1) {
+  if (looksLikeSeasonWrap(registrationGw, fplPick)) {
     return fplPick;
   }
   const exists = eventsMeta.some((e) => e.id === registrationGw);
