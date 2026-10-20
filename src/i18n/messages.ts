@@ -47,6 +47,7 @@ export type SiteMessages = {
     safariExtensionHint: string;
     solflareInstalledTips: string;
     socialXAria: string;
+    socialTgAria: string;
     installJupiterExtension: string;
     walletJupiterInstallSub: string;
     language: string;
@@ -138,6 +139,12 @@ export type SiteMessages = {
     socialHint: string;
     socialHintShort: string;
     socialAria: string;
+  };
+  telegramAlerts: {
+    badge: string;
+    nudgeTitle: string;
+    nudgeBody: string;
+    nudgeClose: string;
   };
   communityStrip: {
     label: string;
@@ -356,6 +363,7 @@ const uk: SiteMessages = {
     solflareInstalledTips:
       "1) Іконка гаманця у панелі браузера → підключи цей сайт. 2) Обери Solana. 3) Дозволь popup. 4) Онови сторінку Cmd+Shift+R.",
     socialXAria: "FORM8 на X (Twitter) — новини та підтримка",
+    socialTgAria: "FORM8 алерти в Telegram — дедлайн, результати, клейм",
     installJupiterExtension: "Встановити Jupiter",
     walletJupiterInstallSub: "Гаманець Jupiter для Solana",
     continueWithEmail: "Продовжити з email",
@@ -449,6 +457,12 @@ const uk: SiteMessages = {
     socialHint: "Дедлайни й claim — у Telegram-боті @Form8AlertsBot. Новини туру — у X.",
     socialHintShort: "Алерти в Telegram · новини в X",
     socialAria: "FORM8 на X (Twitter)",
+  },
+  telegramAlerts: {
+    badge: "New",
+    nudgeTitle: "Підключи сповіщення",
+    nudgeBody: "Не пропусти нічого важливого",
+    nudgeClose: "Закрити",
   },
   communityStrip: {
     label: "Новини та підтримка на",
@@ -686,6 +700,7 @@ const en: SiteMessages = {
     solflareInstalledTips:
       "1) Wallet toolbar icon → connect this site. 2) Select Solana. 3) Allow popups. 4) Refresh Cmd+Shift+R.",
     socialXAria: "FORM8 on X (Twitter) — news and support",
+    socialTgAria: "FORM8 Telegram alerts — deadline, results, claims",
     installJupiterExtension: "Install Jupiter",
     walletJupiterInstallSub: "Jupiter wallet for Solana",
     continueWithEmail: "Continue with email",
@@ -779,6 +794,12 @@ const en: SiteMessages = {
     socialHint: "Deadlines and claims — Telegram bot @Form8AlertsBot. Gameweek news — on X.",
     socialHintShort: "Alerts on Telegram · news on X",
     socialAria: "FORM8 on X (Twitter)",
+  },
+  telegramAlerts: {
+    badge: "New",
+    nudgeTitle: "Turn on alerts",
+    nudgeBody: "Don't miss what matters",
+    nudgeClose: "Dismiss",
   },
   communityStrip: {
     label: "News & support on",

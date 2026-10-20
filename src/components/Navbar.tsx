@@ -14,8 +14,9 @@ import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { NicknameModal } from "./NicknameModal";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUtilityCluster } from "@/components/NavUtilityCluster";
+import { SocialLinkTelegram } from "@/components/SocialLinkTelegram";
 import { SocialLinkX, XLogo } from "@/components/SocialLinkX";
-import { SOCIAL_X_URL } from "@/lib/constants";
+import { SOCIAL_TG_ALERTS_HANDLE, SOCIAL_TG_ALERTS_URL, SOCIAL_X_URL } from "@/lib/constants";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 import { Form8Lockup } from "@/components/Form8Mark";
 import { useDeposit } from "@/components/DepositProvider";
@@ -208,6 +209,11 @@ export function Navbar() {
         </LayoutGroup>
 
         <div className="relative z-10 ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <SocialLinkTelegram
+            ariaLabel={m.nav.socialTgAria}
+            badge={m.telegramAlerts.badge}
+            className="!drop-shadow-none"
+          />
           <SocialLinkX ariaLabel={m.nav.socialXAria} variant="cluster" />
           {connected ? (
             <>
@@ -357,6 +363,24 @@ export function Navbar() {
             );
           })}
           <div className="mt-1 border-t border-white/[0.06] pt-1 px-1">
+            <a
+              href={SOCIAL_TG_ALERTS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={m.nav.socialTgAria}
+              onClick={() => setMobileMenuOpen(false)}
+              className="mb-0.5 flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-display font-black uppercase tracking-widest text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+            >
+              <span className="flex min-w-0 items-center gap-2 normal-case tracking-normal">
+                <span className="rounded-[3px] bg-[#00f948] px-1 py-px font-display text-[8px] font-black uppercase tracking-wide text-black">
+                  {m.telegramAlerts.badge}
+                </span>
+                <span className="truncate text-xs font-semibold text-white/80">
+                  {SOCIAL_TG_ALERTS_HANDLE}
+                </span>
+              </span>
+              <span className="text-[10px] font-bold tracking-[0.14em] text-white/35">TG</span>
+            </a>
             <a
               href={SOCIAL_X_URL}
               target="_blank"

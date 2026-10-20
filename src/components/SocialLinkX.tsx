@@ -28,7 +28,7 @@ export function SocialLinkX({ ariaLabel, variant = "icon", className = "" }: Soc
         className={`group inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white ${className}`}
       >
         <XLogo className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-105" />
-        <span className="hidden lg:inline text-[10px] font-black font-display uppercase tracking-wider text-[#00f948]">
+        <span className="hidden xl:inline text-[10px] font-black font-display uppercase tracking-wider text-[#00f948]">
           {SOCIAL_X_HANDLE}
         </span>
       </a>

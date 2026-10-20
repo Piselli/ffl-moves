@@ -26,6 +26,7 @@ import { InsufficientFundsModal } from "@/components/InsufficientFundsModal";
 import { RegisterErrorModal } from "@/components/RegisterErrorModal";
 import { ShareSquadOnXModal } from "@/components/ShareSquadOnXModal";
 import { LegalMicroStrip } from "@/components/legal/LegalMicroStrip";
+import { TelegramAlertsNudge } from "@/components/TelegramAlertsNudge";
 import { LegalAttestModal } from "@/components/legal/LegalAttestModal";
 import { ACTIVE_NAMEPLATE_GLOW } from "./nameplateGlows";
 import { cn } from "@/lib/utils";
@@ -608,6 +609,7 @@ export function LockerHero({
       ) : null}
 
       <LockerLabNav liveLinks={!isLab} tabletShell={flatPicker} />
+      {isSite ? <TelegramAlertsNudge /> : null}
 
       {isLab ? (
         <aside className="pointer-events-none absolute bottom-4 right-3 top-20 z-[75] flex w-[9.5rem] flex-col sm:right-5 sm:w-[11rem]">

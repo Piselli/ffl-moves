@@ -11,13 +11,14 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavUsdcBalance } from "@/components/NavUsdcBalance";
 import { NicknameModal } from "@/components/NicknameModal";
 import { useLogin } from "@/components/LoginProvider";
+import { SocialLinkTelegram } from "@/components/SocialLinkTelegram";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
 import { claimNickname } from "@/lib/nicknamesClient";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
-import { SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
+import { SOCIAL_TG_ALERTS_HANDLE, SOCIAL_TG_ALERTS_URL, SOCIAL_X_HANDLE, SOCIAL_X_URL } from "@/lib/constants";
 import { LegalMicroStrip } from "@/components/legal/LegalMicroStrip";
 import { cn, shortenAddress } from "@/lib/utils";
 import {
@@ -280,7 +281,11 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
 
               <div className="min-w-3 flex-1 sm:min-w-4" aria-hidden />
 
-              <div className="relative z-20 flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-2.5">
+              <div className="relative z-20 flex shrink-0 items-center gap-1 sm:gap-1.5">
+                <SocialLinkTelegram
+                  ariaLabel={m.nav.socialTgAria}
+                  badge={m.telegramAlerts.badge}
+                />
                 <SocialLinkX
                   ariaLabel={m.nav.socialXAria}
                   variant="icon"
@@ -358,6 +363,22 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 </Link>
               );
             })}
+            <a
+              href={SOCIAL_TG_ALERTS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              aria-label={m.nav.socialTgAria}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+            >
+              <span className="flex items-center gap-2">
+                <span className="rounded-[3px] bg-[#00f948] px-1 py-px font-display text-[8px] font-black tracking-wide text-black">
+                  {m.telegramAlerts.badge}
+                </span>
+                {SOCIAL_TG_ALERTS_HANDLE}
+              </span>
+              <span className="text-[10px] font-bold tracking-[0.14em] text-white/35">TG</span>
+            </a>
             <a
               href={SOCIAL_X_URL}
               target="_blank"
