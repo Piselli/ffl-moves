@@ -3,6 +3,7 @@ import bootstrapLite from "@/data/fpl-bootstrap-lite.json";
 import fixturesSnapshot from "@/data/fpl-fixtures-snapshot.json";
 import { pokeAutoCloseWatchdog } from "@/lib/server/autoCloseWatchdog";
 import { pokeAutoPublishStatsWatchdog } from "@/lib/server/autoPublishStatsWatchdog";
+import { pokeTelegramAlertsWatchdog } from "@/lib/server/telegramAlertsWatchdog";
 
 const FPL_FIXTURES_ALL = "https://fantasy.premierleague.com/api/fixtures/";
 const BADGE_BASE = "https://resources.premierleague.com/premierleague/badges/70/t";
@@ -432,6 +433,8 @@ export async function GET(request: Request) {
   pokeAutoCloseWatchdog();
   // Same idea for publishing finished-match stats to the site (production only, throttled).
   pokeAutoPublishStatsWatchdog();
+  // Telegram reg_open / deadline / claim — GH schedule is often hours late.
+  pokeTelegramAlertsWatchdog();
 
   const { searchParams } = new URL(request.url);
   const regRaw = searchParams.get("registrationGw");

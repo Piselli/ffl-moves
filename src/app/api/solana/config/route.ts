@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getConfig, getGameweek, getGameweekEntrants } from "@/lib/chainClient";
 import { pokeAutoCloseWatchdog } from "@/lib/server/autoCloseWatchdog";
+import { pokeTelegramAlertsWatchdog } from "@/lib/server/telegramAlertsWatchdog";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export async function GET() {
     // Backup to GitHub cron (which is often delayed hours): if an OPEN GW is
     // past first kickoff, close it in the background while serving config.
     pokeAutoCloseWatchdog();
+    // Same for Telegram reg_open / deadline / claim — don't wait on GH schedule.
+    pokeTelegramAlertsWatchdog();
 
     const config = await getConfig();
     if (!config) {
