@@ -14,12 +14,29 @@ function authorize(request: Request): boolean {
   return safeEqual(header, `Bearer ${secret}`);
 }
 
+type Body = {
+  dryRun?: boolean;
+  gameweekId?: number;
+  fixtures?: unknown;
+};
+
+async function parseBody(request: Request): Promise<Body> {
+  if (request.method === "GET") return {};
+  try {
+    const json = (await request.json()) as Body;
+    return json && typeof json === "object" ? json : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Refresh Redis FPL fixture cache for the active on-chain gameweek.
  *
  * Auth: Authorization: Bearer $CRON_SECRET
- * Query: ?dryRun=1 — fetch only
- *        ?gw=N     — force a specific gameweek id
+ * Query / body: dryRun, gw / gameweekId
+ * Body may include `fixtures` (FPL rows) when the caller fetched them
+ * outside Vercel (GitHub Actions) — preferred path for reliable scores.
  *
  * Env:
  *   CRON_SECRET                     — required
@@ -32,13 +49,23 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const dryRun = url.searchParams.get("dryRun") === "1";
+  const body = await parseBody(request);
+  const dryRun = url.searchParams.get("dryRun") === "1" || body.dryRun === true;
   const gwRaw = url.searchParams.get("gw");
   const parsedGw = gwRaw != null ? parseInt(gwRaw, 10) : NaN;
-  const gameweekId = Number.isFinite(parsedGw) && parsedGw >= 1 ? parsedGw : undefined;
+  const gameweekId =
+    Number.isFinite(parsedGw) && parsedGw >= 1
+      ? parsedGw
+      : typeof body.gameweekId === "number" && body.gameweekId >= 1
+        ? body.gameweekId
+        : undefined;
 
   try {
-    const result = await runRefreshFixturesCache({ dryRun, gameweekId });
+    const result = await runRefreshFixturesCache({
+      dryRun,
+      gameweekId,
+      fixtures: body.fixtures,
+    });
     return NextResponse.json({
       ok: result.action === "refreshed" || result.action === "skipped",
       at: new Date().toISOString(),

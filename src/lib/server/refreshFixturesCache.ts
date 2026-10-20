@@ -87,9 +87,33 @@ async function resolveTargetGameweekId(): Promise<number | null> {
   return null;
 }
 
+function normalizeRows(raw: unknown): CachedFixtureRow[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const out: CachedFixtureRow[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const f = row as CachedFixtureRow;
+    if (!Number.isFinite(f.id) || !Number.isFinite(f.event)) continue;
+    out.push({
+      id: f.id,
+      event: f.event,
+      kickoff_time: f.kickoff_time ?? null,
+      team_h: f.team_h,
+      team_a: f.team_a,
+      finished: Boolean(f.finished),
+      started: Boolean(f.started),
+      team_h_score: f.team_h_score ?? null,
+      team_a_score: f.team_a_score ?? null,
+    });
+  }
+  return out.length > 0 ? out : null;
+}
+
 export async function runRefreshFixturesCache(opts?: {
   gameweekId?: number;
   dryRun?: boolean;
+  /** Rows already fetched (e.g. GitHub runner) — preferred when Vercel cannot reach FPL. */
+  fixtures?: unknown;
 }): Promise<RefreshFixturesResult> {
   if (process.env.AUTO_REFRESH_FIXTURES_ENABLED === "false") {
     return { action: "skipped", reason: "disabled" };
@@ -104,7 +128,8 @@ export async function runRefreshFixturesCache(opts?: {
     return { action: "skipped", reason: "no_active_gameweek" };
   }
 
-  const rows = await fetchEventRows(gameweekId);
+  const injected = normalizeRows(opts?.fixtures);
+  const rows = injected ?? (await fetchEventRows(gameweekId));
   if (!rows?.length) {
     return {
       action: "failed",
@@ -133,7 +158,7 @@ export async function runRefreshFixturesCache(opts?: {
 
   // Keep the previous GW warm while scores settle (BPS lag after FT).
   const alsoRefreshed: number[] = [];
-  if (gameweekId > 1) {
+  if (gameweekId > 1 && !injected) {
     const prev = await fetchEventRows(gameweekId - 1);
     if (prev?.length) {
       const ok = await persist(gameweekId - 1, prev, false);

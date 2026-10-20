@@ -1,22 +1,21 @@
 # Refresh Redis FPL fixtures cache for the open / active on-chain gameweek.
-# Keeps tablet scores correct when live FPL is blocked from Vercel request paths.
-# GitHub schedule is a backup; traffic also pokes `/api/cron/refresh-fixtures`.
+# FPL is fetched on the GitHub runner (reliable egress), then POSTed to the
+# production cron which writes Upstash — Vercel request paths often cannot reach FPL.
 #
 # Required GitHub secret:
 #   CRON_SECRET — same value as Vercel Production CRON_SECRET
 #
 # Optional repo Variables:
 #   REFRESH_FIXTURES_URL — default https://www.form8.football/api/cron/refresh-fixtures
+#   SITE_CONFIG_URL      — default https://www.form8.football/api/solana/config
 
 name: Refresh fixtures cache
 
 on:
   schedule:
-    # Match windows (UTC) — frequent while games can be live.
     - cron: "*/10 11-22 * * 6"
     - cron: "*/10 11-22 * * 0"
     - cron: "*/15 17-22 * * 1-5"
-    # Light daytime refresh so the open GW slate stays current midweek.
     - cron: "0 */3 * * *"
   workflow_dispatch:
     inputs:
@@ -30,10 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Call refresh-fixtures cron
+      - name: Fetch FPL on runner + push to site cache
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: ${{ vars.REFRESH_FIXTURES_URL || 'https://www.form8.football/api/cron/refresh-fixtures' }}
+          CRON_URL: ${{ vars.REFRESH_FIXTURES_URL || 'https://www.form8.football/api/cron/refresh-fixtures' }}
+          CONFIG_URL: ${{ vars.SITE_CONFIG_URL || 'https://www.form8.football/api/solana/config' }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
         run: |
           set -euo pipefail
@@ -41,13 +41,60 @@ jobs:
             echo "Missing GitHub secret CRON_SECRET"
             exit 1
           fi
-          URL="$BASE_URL"
-          if [ "$DRY" = "1" ]; then
-            URL="${URL}?dryRun=1"
-          fi
-          echo "GET $URL"
+
+          echo "Resolve active GW from $CONFIG_URL"
+          CFG=$(curl -sS --fail "$CONFIG_URL")
+          GW=$(printf '%s' "$CFG" | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          open_gw = (data.get("openGameweek") or {}).get("id")
+          cur = (data.get("currentGameweek") or {}).get("id")
+          if cur is None:
+              cur = (data.get("config") or {}).get("currentGameweek")
+          gw = open_gw or cur
+          if not isinstance(gw, int) or gw < 1:
+              raise SystemExit("no active gameweek in config")
+          print(gw)
+          ')
+          echo "Active GW=$GW"
+
+          FPL_URL="https://fantasy.premierleague.com/api/fixtures/?event=${GW}"
+          echo "GET $FPL_URL"
+          curl -sS --fail \
+            -A "Mozilla/5.0" \
+            -H "Accept: application/json" \
+            -H "Referer: https://fantasy.premierleague.com/" \
+            "$FPL_URL" > /tmp/fpl-event.json
+
+          GW="$GW" DRY="$DRY" python3 - <<'PY'
+          import json, os
+          gw = int(os.environ["GW"])
+          rows = json.load(open("/tmp/fpl-event.json"))
+          if not isinstance(rows, list) or not rows:
+              raise SystemExit("FPL returned empty fixtures")
+          slim = [{
+              "id": f["id"],
+              "event": f["event"],
+              "kickoff_time": f.get("kickoff_time"),
+              "team_h": f["team_h"],
+              "team_a": f["team_a"],
+              "finished": bool(f.get("finished")),
+              "started": bool(f.get("started")),
+              "team_h_score": f.get("team_h_score"),
+              "team_a_score": f.get("team_a_score"),
+          } for f in rows]
+          body = {"gameweekId": gw, "fixtures": slim, "dryRun": os.environ.get("DRY") == "1"}
+          json.dump(body, open("/tmp/refresh-body.json", "w"))
+          print(f"prepared {len(slim)} rows for GW{gw}")
+          PY
+
+          echo "POST $CRON_URL"
           HTTP=$(curl -sS -o /tmp/refresh-fixtures.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" "$URL" || true)
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/refresh-body.json \
+            "$CRON_URL" || true)
           echo "HTTP $HTTP"
           cat /tmp/refresh-fixtures.json || true
           echo
@@ -63,7 +110,7 @@ jobs:
           except json.JSONDecodeError as e:
             print("non-JSON response:", raw[:500])
             raise SystemExit(1) from e
-          print("action:", data.get("action"), "ok:", data.get("ok"), "gw:", data.get("gameweekId"))
+          print("action:", data.get("action"), "ok:", data.get("ok"), "gw:", data.get("gameweekId"), "rows:", data.get("rows"))
           if http >= 400 or data.get("ok") is False:
             print("error:", data.get("error") or data.get("reason") or data)
             raise SystemExit(1)
