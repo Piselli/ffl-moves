@@ -2,16 +2,19 @@
  * Traffic-triggered Telegram alerts backup.
  *
  * GitHub `schedule` for telegram-alerts is often delayed hours (same as auto-close).
- * Hot public routes poke this watchdog: at most once per LOCK_TTL_SEC it runs the
- * same path as `/api/cron/telegram-alerts`. Idempotent via Redis alert slots.
+ * Hot public routes poke this watchdog: at most once per THROTTLE_SEC it hits
+ * `/api/cron/telegram-alerts` in its own invocation. Idempotent via Redis alert slots.
+ *
+ * Do NOT run `runTelegramAlerts` in this request. On Vercel the isolate freezes as
+ * soon as the response is sent; a fire-and-forget FPL+RPC+broadcast never finishes
+ * (same GW7 finding as auto-publish: many /api/fixtures hits, zero pokes).
  */
 import { Redis } from "@upstash/redis";
-import { runTelegramAlerts } from "@/lib/server/telegram/runAlerts";
-import { telegramConfigured } from "@/lib/server/telegram/api";
 
 const LOCK_KEY = "tg:alerts:watchdog:lock";
-/** Global throttle — one attempt per minute across all instances. */
-const LOCK_TTL_SEC = 60;
+/** Global throttle — one poke per minute across all instances. */
+const THROTTLE_SEC = 60;
+const DEFAULT_URL = "https://www.form8.football/api/cron/telegram-alerts";
 
 const hasUpstash =
   !!process.env.UPSTASH_REDIS_REST_URL?.trim() &&
@@ -21,12 +24,12 @@ const redis = hasUpstash ? Redis.fromEnv() : null;
 
 let memoryLockUntil = 0;
 
-async function acquireLock(nowMs: number): Promise<boolean> {
+async function acquireThrottle(nowMs: number): Promise<boolean> {
   if (redis) {
     try {
       const ok = await redis.set(LOCK_KEY, String(nowMs), {
         nx: true,
-        ex: LOCK_TTL_SEC,
+        ex: THROTTLE_SEC,
       });
       return ok === "OK";
     } catch (error) {
@@ -34,27 +37,55 @@ async function acquireLock(nowMs: number): Promise<boolean> {
     }
   }
   if (nowMs < memoryLockUntil) return false;
-  memoryLockUntil = nowMs + LOCK_TTL_SEC * 1000;
+  memoryLockUntil = nowMs + THROTTLE_SEC * 1000;
   return true;
 }
 
-async function tryTelegramAlertsWatchdog(): Promise<void> {
-  if (!telegramConfigured()) return;
-  if (!(await acquireLock(Date.now()))) return;
+async function tryPoke(): Promise<void> {
+  if (process.env.TELEGRAM_ALERTS_ENABLED === "false") return;
+  if (process.env.VERCEL_ENV !== "production") return;
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) return;
+  if (!(await acquireThrottle(Date.now()))) return;
 
-  const result = await runTelegramAlerts();
-  if (result.fired.length > 0) {
-    console.info(
-      "telegram-alerts watchdog fired",
-      result.fired.map((f) => `${f.kind}:${f.gameweekId}`),
-      `subs=${result.subscribers}`,
-    );
+  const url = process.env.TELEGRAM_ALERTS_URL?.trim() || DEFAULT_URL;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(55_000),
+  });
+  if (!res.ok) {
+    console.warn("telegram-alerts watchdog: cron answered", res.status);
+    return;
+  }
+  try {
+    const data = (await res.json()) as { fired?: Array<{ kind?: string }> };
+    const fired = (data.fired ?? []).map((f) => f.kind).filter(Boolean);
+    if (fired.length > 0) {
+      console.info("telegram-alerts watchdog fired", fired);
+    }
+  } catch {
+    console.info("telegram-alerts watchdog: poked cron route →", res.status);
   }
 }
 
-/** Fire-and-forget; never await from a request path. */
+/**
+ * On Vercel a serverless function is frozen as soon as its response is sent, so a bare
+ * fire-and-forget promise never finishes. `waitUntil` keeps the invocation alive.
+ */
+function waitUntilCompat(promise: Promise<unknown>): void {
+  type Ctx = { waitUntil?: (p: Promise<unknown>) => void };
+  const holder = (globalThis as Record<symbol, { get?: () => Ctx | undefined } | undefined>)[
+    Symbol.for("@vercel/request-context")
+  ];
+  holder?.get?.()?.waitUntil?.(promise);
+}
+
+/** Never await from a request path; the work is registered with waitUntil. */
 export function pokeTelegramAlertsWatchdog(): void {
-  void tryTelegramAlertsWatchdog().catch((error) => {
+  const work = tryPoke().catch((error) => {
     console.warn("telegram-alerts watchdog failed:", error);
   });
+  waitUntilCompat(work);
 }

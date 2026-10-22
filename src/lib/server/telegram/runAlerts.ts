@@ -21,13 +21,7 @@ import {
   takeClaimReadyAlert,
 } from "@/lib/server/telegram/subscribers";
 import { telegramConfigured } from "@/lib/server/telegram/api";
-
-const HOUR = 60 * 60_000;
-const DEADLINE_WINDOWS = [
-  { kind: "deadline_1h" as const, ms: 1 * HOUR, label: "1h" as const },
-  { kind: "deadline_3h" as const, ms: 3 * HOUR, label: "3h" as const },
-  { kind: "deadline_24h" as const, ms: 24 * HOUR, label: "24h" as const },
-];
+import { DEADLINE_WINDOWS, pickDeadlineWindow } from "@/lib/server/telegram/deadlineWindows";
 
 export type AlertFire = {
   kind: string;
@@ -102,22 +96,22 @@ export async function runTelegramAlerts(opts?: {
       const msUntil = deadlineMs - now;
       checked.msUntilDeadline = msUntil;
 
-      if (msUntil > 0) {
-        const due = DEADLINE_WINDOWS.filter((w) => msUntil <= w.ms);
-        if (due.length > 0) {
-          // Tightest window only; mark looser ones consumed so we never spam catch-up.
-          const tightest = due.reduce((a, b) => (a.ms < b.ms ? a : b));
-          for (const w of DEADLINE_WINDOWS) {
-            if (w.ms > tightest.ms) await markAlertSlot(w.kind, open.id);
+      const tightest = pickDeadlineWindow(msUntil);
+      checked.deadlineWindow = tightest?.kind ?? null;
+      if (tightest) {
+        // Tightest window only; mark looser ones consumed so we never spam catch-up.
+        for (const w of DEADLINE_WINDOWS) {
+          if (w.fireWhenMsUntilAtMost > tightest.fireWhenMsUntilAtMost) {
+            await markAlertSlot(w.kind, open.id);
           }
-          const dFire = await fire(
-            tightest.kind,
-            open.id,
-            msgDeadlineReminder(open.id, tightest.label, deadline.deadlineIso, deadlineMs),
-            dryRun,
-          );
-          if (dFire) fired.push(dFire);
         }
+        const dFire = await fire(
+          tightest.kind,
+          open.id,
+          msgDeadlineReminder(open.id, tightest.label, deadline.deadlineIso, deadlineMs),
+          dryRun,
+        );
+        if (dFire) fired.push(dFire);
       }
     }
   }

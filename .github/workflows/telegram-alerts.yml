@@ -13,13 +13,8 @@ name: Telegram alerts
 
 on:
   schedule:
-    # Every 15 min (GitHub may delay; claim/deadline windows still ok).
-    - cron: "*/15 * * * *"
-    # Denser near typical EPL kickoff blocks (Sat/Sun UTC mornings–afternoons).
-    - cron: "0,15,30,45 10-17 * * 6"
-    - cron: "0,15,30,45 10-17 * * 0"
-    # Settlement evenings — catch claim_ready soon after oracle settle.
-    - cron: "0,15,30,45 18-23 * * *"
+    # Every 5 min. GitHub still delays hours sometimes — traffic watchdog is primary.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:
