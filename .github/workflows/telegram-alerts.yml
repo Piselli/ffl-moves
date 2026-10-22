@@ -21,6 +21,10 @@ on:
         description: "Dry run (claim slots / report, no broadcast)"
         type: boolean
         default: false
+      unstick:
+        description: "Release stuck slot(s) then send (e.g. deadline_24h)"
+        type: string
+        required: false
 
 jobs:
   alerts:
@@ -32,6 +36,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: ${{ vars.TELEGRAM_ALERTS_URL || 'https://www.form8.football/api/cron/telegram-alerts' }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+          UNSTICK: ${{ github.event_name == 'workflow_dispatch' && inputs.unstick || '' }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
@@ -39,8 +44,15 @@ jobs:
             exit 1
           fi
           URL="$BASE_URL"
+          QS=""
           if [ "$DRY" = "1" ]; then
-            URL="${URL}?dryRun=1"
+            QS="${QS}dryRun=1&"
+          fi
+          if [ -n "${UNSTICK:-}" ]; then
+            QS="${QS}unstick=$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["UNSTICK"]))')&"
+          fi
+          if [ -n "$QS" ]; then
+            URL="${URL}?${QS}"
           fi
           echo "GET $URL"
           HTTP=$(curl -sS -o /tmp/tg-alerts.json -w "%{http_code}" \

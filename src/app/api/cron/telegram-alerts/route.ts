@@ -23,16 +23,22 @@ function authorize(request: Request): boolean {
  *
  * Auth: Authorization: Bearer $CRON_SECRET
  * Query: ?dryRun=1 — claim slots + report without broadcasting
+ *         ?unstick=deadline_24h — drop a stuck slot then evaluate (comma-separated)
  */
 export async function GET(request: Request) {
   if (!authorize(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dryRun = new URL(request.url).searchParams.get("dryRun") === "1";
+  const url = new URL(request.url);
+  const dryRun = url.searchParams.get("dryRun") === "1";
+  const unstickRaw = url.searchParams.get("unstick")?.trim() ?? "";
+  const unstickKinds = unstickRaw
+    ? unstickRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
 
   try {
-    const result = await runTelegramAlerts({ dryRun });
+    const result = await runTelegramAlerts({ dryRun, unstickKinds });
     return NextResponse.json({ at: new Date().toISOString(), dryRun, ...result });
   } catch (error) {
     console.error("telegram-alerts cron failed:", error);

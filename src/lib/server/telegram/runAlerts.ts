@@ -16,7 +16,9 @@ import {
 } from "@/lib/server/telegram/messages";
 import {
   claimAlertSlot,
+  confirmAlertSlot,
   markAlertSlot,
+  releaseAlertSlot,
   subscriberCount,
   takeClaimReadyAlert,
 } from "@/lib/server/telegram/subscribers";
@@ -52,13 +54,25 @@ async function fire(
   }
   const claimed = await claimAlertSlot(kind, gameweekId);
   if (!claimed) return null;
-  const broadcast = await broadcastText(text);
-  return { kind, gameweekId, broadcast };
+  try {
+    const broadcast = await broadcastText(text);
+    if (broadcast.attempted > 0 && broadcast.sent === 0) {
+      await releaseAlertSlot(kind, gameweekId);
+    } else {
+      await confirmAlertSlot(kind, gameweekId);
+    }
+    return { kind, gameweekId, broadcast };
+  } catch (err) {
+    await releaseAlertSlot(kind, gameweekId);
+    throw err;
+  }
 }
 
 export async function runTelegramAlerts(opts?: {
   dryRun?: boolean;
   nowMs?: number;
+  /** Release these kinds for the open GW before evaluating (unstick a eaten slot). */
+  unstickKinds?: string[];
 }): Promise<RunAlertsResult> {
   if (!telegramConfigured()) {
     return { ok: true, skipped: "telegram_disabled_or_unconfigured", subscribers: 0, fired: [], checked: {} };
@@ -75,6 +89,13 @@ export async function runTelegramAlerts(opts?: {
   checked.openGameweekId = open?.id ?? null;
 
   if (open && open.status === "open" && open.id <= 38) {
+    if (opts?.unstickKinds?.length) {
+      for (const kind of opts.unstickKinds) {
+        await releaseAlertSlot(kind, open.id);
+      }
+      checked.unstuck = opts.unstickKinds.map((kind) => `${kind}:${open.id}`);
+    }
+
     const deadline = await resolveRegistrationDeadline(open.id);
     checked.deadline = {
       iso: deadline.deadlineIso,

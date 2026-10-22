@@ -10,6 +10,17 @@ const SENT_PREFIX = "tg:alerts:sent:";
 const CLAIM_LAST_KEY = "tg:alerts:claim_last_sent";
 /** Keep sent markers ~6 weeks so a GW cannot re-fire after redeploy. */
 const SENT_TTL_SEC = 42 * 24 * 3600;
+/**
+ * In-flight lock. If the process dies after SETNX and before send (Vercel freeze),
+ * the slot expires and the next tick retries instead of eating the alert forever.
+ */
+const CLAIM_LOCK_TTL_SEC = 15 * 60;
+
+function sentKey(kind: string, gameweekId: number, suffix?: string): string {
+  return suffix
+    ? `${SENT_PREFIX}${kind}:${gameweekId}:${suffix}`
+    : `${SENT_PREFIX}${kind}:${gameweekId}`;
+}
 
 const hasUpstash =
   !!process.env.UPSTASH_REDIS_REST_URL?.trim() &&
@@ -88,12 +99,10 @@ export async function claimAlertSlot(
   gameweekId: number,
   suffix?: string,
 ): Promise<boolean> {
-  const key = suffix
-    ? `${SENT_PREFIX}${kind}:${gameweekId}:${suffix}`
-    : `${SENT_PREFIX}${kind}:${gameweekId}`;
+  const key = sentKey(kind, gameweekId, suffix);
   if (redis) {
     try {
-      const ok = await redis.set(key, String(Date.now()), { nx: true, ex: SENT_TTL_SEC });
+      const ok = await redis.set(key, String(Date.now()), { nx: true, ex: CLAIM_LOCK_TTL_SEC });
       return ok === "OK";
     } catch (err) {
       console.warn("[telegram] claimAlertSlot Redis failed, using memory:", err);
@@ -104,9 +113,44 @@ export async function claimAlertSlot(
   return true;
 }
 
+/** Keep the slot consumed after a successful send. */
+export async function confirmAlertSlot(
+  kind: string,
+  gameweekId: number,
+  suffix?: string,
+): Promise<void> {
+  const key = sentKey(kind, gameweekId, suffix);
+  if (redis) {
+    try {
+      await redis.set(key, String(Date.now()), { ex: SENT_TTL_SEC });
+      return;
+    } catch (err) {
+      console.warn("[telegram] confirmAlertSlot Redis failed, using memory:", err);
+    }
+  }
+  memorySent.add(key);
+}
+
+/** Drop an in-flight or stuck slot so the next tick can retry. */
+export async function releaseAlertSlot(
+  kind: string,
+  gameweekId: number,
+  suffix?: string,
+): Promise<void> {
+  const key = sentKey(kind, gameweekId, suffix);
+  if (redis) {
+    try {
+      await redis.del(key);
+    } catch (err) {
+      console.warn("[telegram] releaseAlertSlot Redis failed:", err);
+    }
+  }
+  memorySent.delete(key);
+}
+
 /** Mark a slot consumed without sending (skip a missed earlier window). */
 export async function markAlertSlot(kind: string, gameweekId: number, suffix?: string): Promise<void> {
-  await claimAlertSlot(kind, gameweekId, suffix);
+  await confirmAlertSlot(kind, gameweekId, suffix);
 }
 
 /**
