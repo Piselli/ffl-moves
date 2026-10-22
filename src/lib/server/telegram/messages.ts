@@ -19,7 +19,7 @@ export function msgWelcome(): string {
     "",
     "I'll ping you when:",
     "• registration opens",
-    "• deadlines (24h / 3h / 1h)",
+    "• deadlines (24h / 12h / 3h / 1h)",
     "• live points update",
     "• prizes are ready",
     "",
@@ -61,7 +61,7 @@ export function msgRegistrationOpen(
 
 export function msgDeadlineReminder(
   gameweekId: number,
-  label: "24h" | "3h" | "1h",
+  label: "24h" | "12h" | "3h" | "1h",
   deadlineIso: string | null,
   deadlineMs: number | null,
 ): string {
@@ -70,7 +70,9 @@ export function msgDeadlineReminder(
       ? `Last hour to register for GW${gameweekId}.`
       : label === "3h"
         ? `3 hours left to register for GW${gameweekId}.`
-        : `GW${gameweekId} deadline in 24 hours.`;
+        : label === "12h"
+          ? `GW${gameweekId} deadline in 12 hours.`
+          : `GW${gameweekId} deadline in 24 hours.`;
   const tip =
     label === "1h"
       ? "Miss this and you're out of the gameweek."

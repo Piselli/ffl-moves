@@ -9,11 +9,17 @@ test("no window before the 24h band (with 30m slack)", () => {
   assert.equal(pickDeadlineWindow(24 * HOUR + 31 * MIN), null);
 });
 
-test("24h fires from ~24.5h down to just over 3h", () => {
+test("24h fires from ~24.5h down to just over 12h", () => {
   assert.equal(pickDeadlineWindow(24 * HOUR + 20 * MIN)?.kind, "deadline_24h");
   assert.equal(pickDeadlineWindow(24 * HOUR)?.kind, "deadline_24h");
   assert.equal(pickDeadlineWindow(23 * HOUR + 56 * MIN)?.kind, "deadline_24h");
-  assert.equal(pickDeadlineWindow(3 * HOUR + 1)?.kind, "deadline_24h");
+  assert.equal(pickDeadlineWindow(12 * HOUR + 21 * MIN)?.kind, "deadline_24h");
+});
+
+test("12h fires from ~12.3h down to just over 3h", () => {
+  assert.equal(pickDeadlineWindow(12 * HOUR + 15 * MIN)?.kind, "deadline_12h");
+  assert.equal(pickDeadlineWindow(12 * HOUR)?.kind, "deadline_12h");
+  assert.equal(pickDeadlineWindow(3 * HOUR + 1)?.kind, "deadline_12h");
 });
 
 test("3h is the tightest window under 3 hours", () => {
