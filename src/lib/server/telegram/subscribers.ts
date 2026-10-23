@@ -91,7 +91,7 @@ export async function subscriberCount(): Promise<number> {
 
 /**
  * Claim a one-shot alert slot. Returns true only the first time for this key.
- * `kind` examples: reg_open, deadline_24h, deadline_12h, deadline_3h, deadline_1h, claim_ready, stats_update
+ * `kind` examples: reg_open, reg_closed, deadline_24h, deadline_12h, deadline_3h, deadline_1h, claim_ready, stats_update
  * Optional `suffix` for multiple fires per GW (e.g. each stats publish batch).
  */
 export async function claimAlertSlot(

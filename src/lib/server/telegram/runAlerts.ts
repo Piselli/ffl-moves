@@ -6,12 +6,14 @@ import {
   findLatestResolvedGameweekId,
   findOpenGameweek,
   getConfig,
+  getGameweek,
 } from "@/lib/chainClient";
 import { resolveRegistrationDeadline } from "@/lib/server/fplRegistrationDeadline";
 import { broadcastText, type BroadcastResult } from "@/lib/server/telegram/broadcast";
 import {
   msgClaimReady,
   msgDeadlineReminder,
+  msgRegistrationClosed,
   msgRegistrationOpen,
 } from "@/lib/server/telegram/messages";
 import {
@@ -135,6 +137,31 @@ export async function runTelegramAlerts(opts?: {
         if (dFire) fired.push(dFire);
       }
     }
+  }
+
+  // ── Registration closed (once per GW after on-chain close) ──────────────
+  try {
+    const config = await getConfig();
+    const candidateIds = new Set<number>();
+    if (config?.currentGameweek) candidateIds.add(config.currentGameweek);
+    // If the next GW already opened, still catch the previous close once.
+    if (open && open.id > 1) candidateIds.add(open.id - 1);
+    checked.regClosedCandidates = [...candidateIds];
+
+    for (const id of candidateIds) {
+      if (id < 1 || id > 38) continue;
+      const gw = await getGameweek(id);
+      if (!gw || (gw.status !== "closed" && gw.status !== "resolved")) continue;
+      const closedFire = await fire(
+        "reg_closed",
+        gw.id,
+        msgRegistrationClosed(gw.totalEntries, gw.prizePool),
+        dryRun,
+      );
+      if (closedFire) fired.push(closedFire);
+    }
+  } catch (err) {
+    checked.regClosedError = err instanceof Error ? err.message : String(err);
   }
 
   // ── Claim ready (latest resolved EPL GW) ────────────────────────────────

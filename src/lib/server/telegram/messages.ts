@@ -1,3 +1,5 @@
+import { formatPoolCompact } from "@/lib/entryFee";
+
 const SITE = "https://www.form8.football";
 
 function fmtDeadline(iso: string | null, epochMs: number | null): string {
@@ -20,6 +22,7 @@ export function msgWelcome(): string {
     "I'll ping you when:",
     "• registration opens",
     "• deadlines (24h / 12h / 3h / 1h)",
+    "• registration closes",
     "• live points update",
     "• prizes are ready",
     "",
@@ -80,6 +83,26 @@ export function msgDeadlineReminder(
   return [head, "", tip, `Deadline: ${fmtDeadline(deadlineIso, deadlineMs)}`, SITE].join("\n");
 }
 
+/** After on-chain registration close (once per gameweek). */
+export function msgRegistrationClosed(
+  managers: number,
+  rewardPoolRaw: number | bigint,
+): string {
+  const n = Number.isFinite(managers) ? Math.max(0, Math.floor(managers)) : 0;
+  const managersLine = n === 1 ? "1 manager" : `${n} managers`;
+  const pool = formatPoolCompact(rewardPoolRaw);
+  return [
+    "Registration for this tour is closed.",
+    "",
+    "Good luck to your squads.",
+    "Enjoy the English Premier League with FORM8.",
+    "",
+    `${managersLine} · $${pool} USDC reward pool`,
+    "",
+    `${SITE}/leaderboard`,
+  ].join("\n");
+}
+
 export function msgClaimReady(gameweekId: number): string {
   return [
     `GW${gameweekId} results are in — claim if you placed.`,
@@ -132,7 +155,7 @@ export const BOT_SHORT_DESCRIPTION = "FORM8 alerts. Tap Start to subscribe.";
 
 export const BOT_DESCRIPTION = [
   "You'll get pings for:",
-  "• registration",
+  "• registration opens & closes",
   "• deadlines",
   "• live points",
   "• claims",

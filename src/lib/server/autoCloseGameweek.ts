@@ -134,6 +134,14 @@ export async function runAutoCloseGameweek(opts?: {
   const ixs = await buildCloseGameweek(admin.publicKey.toBase58(), open.id);
   const { signature } = await signAndSendAsAdmin(ixs);
 
+  // Kick Telegram so `reg_closed` can fire promptly (slots are idempotent).
+  try {
+    const { pokeTelegramAlertsWatchdog } = await import("@/lib/server/telegramAlertsWatchdog");
+    pokeTelegramAlertsWatchdog();
+  } catch (error) {
+    console.warn("auto-close: telegram alerts poke failed", error);
+  }
+
   return {
     action: "closed",
     gameweekId: open.id,
