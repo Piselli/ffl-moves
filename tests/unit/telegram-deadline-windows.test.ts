@@ -19,21 +19,21 @@ test("24h fires from ~24.5h down to just over 12h", () => {
   assert.equal(pickDeadlineWindow(12 * HOUR + 21 * MIN)?.kind, "deadline_24h");
 });
 
-test("12h fires from ~12.3h down to just over 3h25m", () => {
+test("12h fires from ~12.3h down to just over 3h", () => {
   assert.equal(pickDeadlineWindow(12 * HOUR + 15 * MIN)?.kind, "deadline_12h");
   assert.equal(pickDeadlineWindow(12 * HOUR)?.kind, "deadline_12h");
-  assert.equal(pickDeadlineWindow(3 * HOUR + 26 * MIN)?.kind, "deadline_12h");
+  assert.equal(pickDeadlineWindow(3 * HOUR + 1)?.kind, "deadline_12h");
 });
 
-test("3h fires early (~3h25m) down to just over 1h15m", () => {
-  assert.equal(pickDeadlineWindow(3 * HOUR + 20 * MIN)?.kind, "deadline_3h");
+test("3h fires exactly at/under 3h, not early", () => {
+  assert.equal(pickDeadlineWindow(3 * HOUR + MIN)?.kind, "deadline_12h");
   assert.equal(pickDeadlineWindow(3 * HOUR)?.kind, "deadline_3h");
   assert.equal(pickDeadlineWindow(90 * MIN)?.kind, "deadline_3h");
-  assert.equal(pickDeadlineWindow(1 * HOUR + 16 * MIN)?.kind, "deadline_3h");
+  assert.equal(pickDeadlineWindow(1 * HOUR + 1)?.kind, "deadline_3h");
 });
 
-test("1h fires early (~1h15m) down to kickoff", () => {
-  assert.equal(pickDeadlineWindow(1 * HOUR + 10 * MIN)?.kind, "deadline_1h");
+test("1h fires exactly at/under 1h, not early", () => {
+  assert.equal(pickDeadlineWindow(1 * HOUR + MIN)?.kind, "deadline_3h");
   assert.equal(pickDeadlineWindow(1 * HOUR)?.kind, "deadline_1h");
   assert.equal(pickDeadlineWindow(5 * MIN)?.kind, "deadline_1h");
 });

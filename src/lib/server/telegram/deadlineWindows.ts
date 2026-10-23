@@ -4,8 +4,11 @@
  * Tightest matching window wins. A late tick at T-2h sends 3h and consumes
  * looser windows so we never spam "24 hours left" after the moment has passed.
  *
- * Windows start a little early: GitHub `schedule` often lags hours, and traffic
- * pokes jitter. Early fire still reads as "about N hours left".
+ * 3h / 1h fire on the exact mark. Near kickoff the cron self-chains every
+ * ~minute, so we must not fake "early" — that reads as wrong time to players.
+ *
+ * 24h / 12h keep a small early band: GitHub schedule still lags hours out there,
+ * and the self-chain only runs inside the last ~4h.
  */
 const HOUR = 60 * 60_000;
 const MIN = 60_000;
@@ -20,8 +23,8 @@ export type DeadlineWindow = {
 };
 
 export const DEADLINE_WINDOWS: readonly DeadlineWindow[] = [
-  { kind: "deadline_1h", fireWhenMsUntilAtMost: 1 * HOUR + 15 * MIN, label: "1h" },
-  { kind: "deadline_3h", fireWhenMsUntilAtMost: 3 * HOUR + 25 * MIN, label: "3h" },
+  { kind: "deadline_1h", fireWhenMsUntilAtMost: 1 * HOUR, label: "1h" },
+  { kind: "deadline_3h", fireWhenMsUntilAtMost: 3 * HOUR, label: "3h" },
   { kind: "deadline_12h", fireWhenMsUntilAtMost: 12 * HOUR + 20 * MIN, label: "12h" },
   { kind: "deadline_24h", fireWhenMsUntilAtMost: 24 * HOUR + 30 * MIN, label: "24h" },
 ];
