@@ -140,25 +140,29 @@ export async function runTelegramAlerts(opts?: {
   }
 
   // ── Registration closed (once per GW after on-chain close) ──────────────
+  // ONLY the current gameweek, and ONLY while status === "closed".
+  // Never backfill previous GWs while another tour is open — that spammed
+  // "registration closed" for an old resolved week during GW8 registration.
   try {
-    const config = await getConfig();
-    const candidateIds = new Set<number>();
-    if (config?.currentGameweek) candidateIds.add(config.currentGameweek);
-    // If the next GW already opened, still catch the previous close once.
-    if (open && open.id > 1) candidateIds.add(open.id - 1);
-    checked.regClosedCandidates = [...candidateIds];
-
-    for (const id of candidateIds) {
-      if (id < 1 || id > 38) continue;
-      const gw = await getGameweek(id);
-      if (!gw || (gw.status !== "closed" && gw.status !== "resolved")) continue;
-      const closedFire = await fire(
-        "reg_closed",
-        gw.id,
-        msgRegistrationClosed(gw.totalEntries, gw.prizePool),
-        dryRun,
-      );
-      if (closedFire) fired.push(closedFire);
+    if (open) {
+      checked.regClosedSkipped = "open_gameweek_present";
+    } else {
+      const config = await getConfig();
+      const currentId = config?.currentGameweek ?? 0;
+      checked.regClosedCandidate = currentId || null;
+      if (currentId >= 1 && currentId <= 38) {
+        const gw = await getGameweek(currentId);
+        checked.regClosedStatus = gw?.status ?? null;
+        if (gw?.status === "closed") {
+          const closedFire = await fire(
+            "reg_closed",
+            gw.id,
+            msgRegistrationClosed(gw.totalEntries, gw.prizePool),
+            dryRun,
+          );
+          if (closedFire) fired.push(closedFire);
+        }
+      }
     }
   } catch (err) {
     checked.regClosedError = err instanceof Error ? err.message : String(err);
