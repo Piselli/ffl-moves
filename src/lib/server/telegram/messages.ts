@@ -88,6 +88,22 @@ export function msgClaimReady(gameweekId: number): string {
   ].join("\n");
 }
 
+/** One-shot feature news: tour injury flags on the picker. */
+export function msgInjuryFlagsLaunch(): string {
+  return [
+    "New on FORM8 — injury flags on every player.",
+    "",
+    "✚ Out — won't play this round",
+    "? Doubtful — still under question",
+    "",
+    "Check before you lock your squad.",
+    SITE,
+  ].join("\n");
+}
+
+export const INJURY_FLAGS_OUT_IMG = `${SITE}/marketing/tg-injury-out.png`;
+export const INJURY_FLAGS_DOUBT_IMG = `${SITE}/marketing/tg-injury-doubt.png`;
+
 /** After auto-publish writes new live points for finished matches. */
 export function msgStatsUpdate(gameweekId: number, fixtures: string[]): string {
   const fixtureLine =

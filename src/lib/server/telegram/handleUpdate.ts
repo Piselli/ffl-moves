@@ -3,6 +3,7 @@ import {
   type TelegramMessage,
   type TelegramUpdate,
 } from "@/lib/server/telegram/api";
+import { announceInjuryFlags } from "@/lib/server/telegram/announceInjuryFlags";
 import { broadcastText } from "@/lib/server/telegram/broadcast";
 import {
   msgHelp,
@@ -112,6 +113,25 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<{ ha
       `Broadcast done. sent=${result.sent} failed=${result.failed} removed=${result.removed} of ${result.attempted}`,
     );
     return { handled: true, detail: `broadcast sent=${result.sent}` };
+  }
+
+  if (cmd === "/announce") {
+    if (!isAdminChat(chatId)) return { handled: true, detail: "announce_denied" };
+    if (arg.toLowerCase() !== "injuries" && arg.toLowerCase() !== "injury_flags") {
+      await telegramSendMessage(chatId, "Usage: /announce injuries");
+      return { handled: true, detail: "announce_usage" };
+    }
+    const result = await announceInjuryFlags();
+    if (result.skipped) {
+      await telegramSendMessage(chatId, `Announce skipped: ${result.skipped}`);
+      return { handled: true, detail: `announce_skipped=${result.skipped}` };
+    }
+    const b = result.broadcast;
+    await telegramSendMessage(
+      chatId,
+      `Injury flags announce done. sent=${b?.sent ?? 0} failed=${b?.failed ?? 0} of ${b?.attempted ?? 0}`,
+    );
+    return { handled: true, detail: `announce sent=${b?.sent ?? 0}` };
   }
 
   return { handled: true, detail: "unknown_cmd" };

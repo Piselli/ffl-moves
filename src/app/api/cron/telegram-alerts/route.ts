@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { safeEqual } from "@/lib/server/clientIp";
+import { announceInjuryFlags } from "@/lib/server/telegram/announceInjuryFlags";
 import { runTelegramAlerts } from "@/lib/server/telegram/runAlerts";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ function authorize(request: Request): boolean {
  * Auth: Authorization: Bearer $CRON_SECRET
  * Query: ?dryRun=1 — claim slots + report without broadcasting
  *         ?unstick=deadline_24h — drop a stuck slot then evaluate (comma-separated)
+ *         ?announce=injuries — one-shot feature news (injury flags + photos)
  */
 export async function GET(request: Request) {
   if (!authorize(request)) {
@@ -32,12 +34,23 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const dryRun = url.searchParams.get("dryRun") === "1";
+  const announce = url.searchParams.get("announce")?.trim().toLowerCase() ?? "";
   const unstickRaw = url.searchParams.get("unstick")?.trim() ?? "";
   const unstickKinds = unstickRaw
     ? unstickRaw.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
   try {
+    if (announce === "injuries" || announce === "injury_flags") {
+      const result = await announceInjuryFlags({ dryRun });
+      return NextResponse.json({
+        at: new Date().toISOString(),
+        dryRun,
+        announce: "injuries",
+        ...result,
+      });
+    }
+
     const result = await runTelegramAlerts({ dryRun, unstickKinds });
     return NextResponse.json({ at: new Date().toISOString(), dryRun, ...result });
   } catch (error) {

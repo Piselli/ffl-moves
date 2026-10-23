@@ -25,6 +25,10 @@ on:
         description: "Release stuck slot(s) then send (e.g. deadline_24h)"
         type: string
         required: false
+      announce:
+        description: "One-shot news (injuries)"
+        type: string
+        required: false
 
 jobs:
   alerts:
@@ -37,6 +41,7 @@ jobs:
           BASE_URL: ${{ vars.TELEGRAM_ALERTS_URL || 'https://www.form8.football/api/cron/telegram-alerts' }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
           UNSTICK: ${{ github.event_name == 'workflow_dispatch' && inputs.unstick || '' }}
+          ANNOUNCE: ${{ github.event_name == 'workflow_dispatch' && inputs.announce || '' }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
@@ -50,6 +55,9 @@ jobs:
           fi
           if [ -n "${UNSTICK:-}" ]; then
             QS="${QS}unstick=$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["UNSTICK"]))')&"
+          fi
+          if [ -n "${ANNOUNCE:-}" ]; then
+            QS="${QS}announce=$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["ANNOUNCE"]))')&"
           fi
           if [ -n "$QS" ]; then
             URL="${URL}?${QS}"

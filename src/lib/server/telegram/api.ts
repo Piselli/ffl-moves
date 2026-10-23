@@ -85,6 +85,28 @@ export async function telegramSendMessage(
   });
 }
 
+export type TelegramInputMediaPhoto = {
+  type: "photo";
+  /** Public https URL Telegram can fetch. */
+  media: string;
+  caption?: string;
+  parse_mode?: "HTML" | "Markdown";
+};
+
+/** Album of photos (2–10). Caption only on the first item is shown as the album caption. */
+export async function telegramSendMediaGroup(
+  chatId: number | string,
+  media: TelegramInputMediaPhoto[],
+): Promise<TelegramMessage[]> {
+  if (media.length < 2 || media.length > 10) {
+    throw new Error("sendMediaGroup needs 2–10 photos");
+  }
+  return call("sendMediaGroup", {
+    chat_id: chatId,
+    media,
+  });
+}
+
 export async function telegramSetMyDescription(description: string): Promise<boolean> {
   return call("setMyDescription", { description });
 }
