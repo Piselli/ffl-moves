@@ -10,6 +10,7 @@
  * (same GW7 finding as auto-publish: many /api/fixtures hits, zero pokes).
  */
 import { Redis } from "@upstash/redis";
+import { waitUntilCompat } from "@/lib/server/waitUntilCompat";
 
 const LOCK_KEY = "tg:alerts:watchdog:lock";
 /** Global throttle — one poke per minute across all instances. */
@@ -60,26 +61,19 @@ async function tryPoke(): Promise<void> {
     return;
   }
   try {
-    const data = (await res.json()) as { fired?: Array<{ kind?: string }> };
+    const data = (await res.json()) as {
+      fired?: Array<{ kind?: string }>;
+      chaining?: boolean;
+    };
     const fired = (data.fired ?? []).map((f) => f.kind).filter(Boolean);
     if (fired.length > 0) {
       console.info("telegram-alerts watchdog fired", fired);
+    } else if (data.chaining) {
+      console.info("telegram-alerts watchdog: deadline chain armed");
     }
   } catch {
     console.info("telegram-alerts watchdog: poked cron route →", res.status);
   }
-}
-
-/**
- * On Vercel a serverless function is frozen as soon as its response is sent, so a bare
- * fire-and-forget promise never finishes. `waitUntil` keeps the invocation alive.
- */
-function waitUntilCompat(promise: Promise<unknown>): void {
-  type Ctx = { waitUntil?: (p: Promise<unknown>) => void };
-  const holder = (globalThis as Record<symbol, { get?: () => Ctx | undefined } | undefined>)[
-    Symbol.for("@vercel/request-context")
-  ];
-  holder?.get?.()?.waitUntil?.(promise);
 }
 
 /** Never await from a request path; the work is registered with waitUntil. */
