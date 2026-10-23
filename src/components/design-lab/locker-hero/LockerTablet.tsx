@@ -50,6 +50,10 @@ import { pl2627HomeKit } from "./pl2627HomeKits";
 import { clubKitFor } from "./clubKitColors";
 import { PlayerFormDots, usePlayerForm } from "./PlayerFormDots";
 import {
+  PlayerAvailabilityMark,
+  useTourInjuries,
+} from "./PlayerAvailabilityMark";
+import {
   DEFAULT_FORMATION,
   formationRows,
   slotPosition,
@@ -1059,6 +1063,12 @@ export function LockerTablet({
     out: pickCopy.formDotsOut,
     gwLine: pickCopy.formDotsGwLine,
   };
+  const availabilityCopy = {
+    outTitle: pickCopy.availabilityOut,
+    doubtTitle: pickCopy.availabilityDoubt,
+    suspendedTitle: pickCopy.availabilitySuspended,
+    reasonFallback: pickCopy.availabilityReasonFallback,
+  };
 
   useEffect(() => {
     if (!isNarrow) setMobileTab("pitch");
@@ -1279,6 +1289,7 @@ export function LockerTablet({
     openGwId != null && Number.isFinite(openGwId) && openGwId >= 1
       ? openGwId
       : fixtures?.gameweek?.id;
+  const tourInjuries = useTourInjuries(gwId);
   const dayGroups = useMemo(
     () => groupMatchesByDay((fixtures?.fixtures ?? []).slice(0, 10), locale),
     [fixtures?.fixtures, locale],
@@ -2000,16 +2011,29 @@ export function LockerTablet({
                 const clubCapped =
                   !taken && (clubCounts[p.teamId] ?? 0) >= MAX_PER_CLUB;
                 const flash = flashPickId === p.id;
+                const avail =
+                  p.apiId != null && p.apiId > 0
+                    ? tourInjuries.byApiId[String(p.apiId)]
+                    : undefined;
+                const rowDisabled = squadLocked || taken || clubCapped;
                 return (
-                  <button
+                  <div
                     key={p.id}
-                    type="button"
-                    disabled={squadLocked || taken || clubCapped}
-                    aria-disabled={squadLocked || taken || clubCapped}
+                    role="button"
+                    tabIndex={rowDisabled ? -1 : 0}
+                    aria-disabled={rowDisabled}
                     onClick={() => {
-                      if (squadLocked || taken || clubCapped) return;
+                      if (rowDisabled) return;
                       onPick(p);
                       setFlashPickId(p.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (rowDisabled) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onPick(p);
+                        setFlashPickId(p.id);
+                      }
                     }}
                     className={cn(
                       "group relative flex w-full items-center gap-3 px-1.5 py-2 text-left transition-[transform,background-color,opacity,filter] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [content-visibility:auto] [contain-intrinsic-size:auto_74px]",
@@ -2019,7 +2043,7 @@ export function LockerTablet({
                       !squadLocked &&
                         !taken &&
                         !clubCapped &&
-                        "rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
+                        "cursor-pointer rounded-xl hover:bg-[color:var(--lt-ink)]/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] active:scale-[0.985]",
                       flash &&
                         !squadLocked &&
                         !taken &&
@@ -2044,8 +2068,16 @@ export function LockerTablet({
                       />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-bold text-[color:var(--lt-ink)]">
-                        {p.webName ?? p.name}
+                      <p className="flex min-w-0 items-center text-[14px] font-bold text-[color:var(--lt-ink)]">
+                        <span className="truncate">
+                          {p.webName ?? p.name}
+                        </span>
+                        {avail ? (
+                          <PlayerAvailabilityMark
+                            availability={avail}
+                            copy={availabilityCopy}
+                          />
+                        ) : null}
                       </p>
                       <p className="mt-0.5 text-[11px] font-semibold text-[color:var(--lt-muted)]">
                         {p.position} · {p.team}
@@ -2098,7 +2130,7 @@ export function LockerTablet({
                         {taken ? "·" : "+"}
                       </motion.span>
                     )}
-                  </button>
+                  </div>
                 );
               })
             )}

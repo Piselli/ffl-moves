@@ -737,6 +737,11 @@ export type PagesMessages = {
     formDotsSub: string;
     formDotsOut: string;
     formDotsGwLine: (gw: number, status: string) => string;
+    /** API-Sports availability mark beside surname. */
+    availabilityOut: string;
+    availabilityDoubt: string;
+    availabilitySuspended: string;
+    availabilityReasonFallback: string;
     howToPlayBtn: string;
     /** Header chip — opens prize-pool split table. */
     prizeSplitBtn: string;
@@ -805,6 +810,62 @@ export type PagesMessages = {
       "formation" | "players" | "captain" | "scoring" | "register",
       { title: string; lines: string[] }
     >;
+  };
+  /** Community referral pool campaign (`/pool`). */
+  poolCampaign: {
+    loading: string;
+    loadError: (msg: string) => string;
+    brandEyebrow: string;
+    heroTitle: string;
+    heroLead: string;
+    upcomingTitle: string;
+    upcomingLead: string;
+    inactiveTitle: string;
+    inactiveHint: string;
+    endedBadge: string;
+    liveBadge: string;
+    countdownLabel: string;
+    countdownEnded: string;
+    unlockedLabel: string;
+    ofMax: (max: number) => string;
+    creditedLabel: string;
+    nextUnlock: (n: number, usdc: number) => string;
+    atCap: string;
+    yourInvite: string;
+    copyLink: string;
+    copied: string;
+    connectForInvite: string;
+    yourReferrals: string;
+    yourRank: string;
+    estReward: string;
+    owedReward: string;
+    paidBadge: string;
+    leaderboardTitle: string;
+    colRank: string;
+    colPlayer: string;
+    colReferrals: string;
+    colReward: string;
+    emptyLeaderboard: string;
+    findMe: string;
+    youBadge: string;
+    faqTitle: string;
+    faqWhenQ: string;
+    faqWhenA: string;
+    faqUnlockQ: string;
+    faqUnlockA: string;
+    faqWhoQ: string;
+    faqWhoA: string;
+    faqDeadlineQ: string;
+    faqDeadlineA: string;
+    faqTiesQ: string;
+    faqTiesA: string;
+    faqPayoutQ: string;
+    faqPayoutA: string;
+    registerCta: string;
+    days: string;
+    hours: string;
+    mins: string;
+    secs: string;
   };
   /** One-shot first-visit tips on secondary product surfaces. */
   surfaceTips: {
@@ -1824,6 +1885,10 @@ export const pagesEn: PagesMessages = {
     formDotsSub: "Sub",
     formDotsOut: "Did not play",
     formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
+    availabilityOut: "Out",
+    availabilityDoubt: "Doubtful",
+    availabilitySuspended: "Suspended",
+    availabilityReasonFallback: "Unavailable this tour",
     howToPlayBtn: "How to play",
     prizeSplitBtn: "Prizes",
     scoringTitle: "Scoring",
@@ -1944,6 +2009,69 @@ export const pagesEn: PagesMessages = {
         ],
       },
     },
+  },
+  poolCampaign: {
+    loading: "Loading campaign…",
+    loadError: (msg) => `Could not load campaign: ${msg}`,
+    brandEyebrow: "Form8",
+    heroTitle: "Unlocking the pool together",
+    heroLead:
+      "Invite new players to fantasy football. Every 10 credited referrals unlock 10 USDC in the community reward pool — shared by top referrers when the campaign ends.",
+    upcomingTitle: "Campaign starts soon",
+    upcomingLead:
+      "Warming up. Referrals before the official start do not count toward the pool.",
+    inactiveTitle: "Campaign not live yet",
+    inactiveHint: "Check back when Form8 opens the community pool.",
+    endedBadge: "Ended",
+    liveBadge: "Live",
+    countdownLabel: "Ends in",
+    countdownEnded: "Campaign closed",
+    unlockedLabel: "Unlocked",
+    ofMax: (max) => `of ${max.toLocaleString()} USDC`,
+    creditedLabel: "New referred players",
+    nextUnlock: (n, usdc) => `${n} more players unlock +${usdc} USDC`,
+    atCap: "Pool fully unlocked",
+    yourInvite: "Your invite",
+    copyLink: "Copy invite link",
+    copied: "Copied",
+    connectForInvite: "Connect wallet to get your invite link",
+    yourReferrals: "Your credited referrals",
+    yourRank: "Rank",
+    estReward: "Est. reward",
+    owedReward: "Your reward",
+    paidBadge: "Paid",
+    leaderboardTitle: "Top referrers",
+    colRank: "#",
+    colPlayer: "Player",
+    colReferrals: "Referrals",
+    colReward: "Reward",
+    emptyLeaderboard: "No credited referrals yet — be the first.",
+    findMe: "Find me",
+    youBadge: "You",
+    faqTitle: "Rules",
+    faqWhenQ: "When does a referral count?",
+    faqWhenA:
+      "A new player must arrive via your invite link or code and register their first squad during the campaign window.",
+    faqUnlockQ: "What unlocks the pool?",
+    faqUnlockA:
+      "Every 10 credited referred players unlock 10 USDC, up to 5,000 USDC. The final pool is whatever is unlocked at the deadline.",
+    faqWhoQ: "Who receives the rewards?",
+    faqWhoA:
+      "Only top referrers by credited referrals. Gameweek places do not take from this pool. Shares follow the place % table (like the weekly prize pool).",
+    faqDeadlineQ: "When does it end?",
+    faqDeadlineA:
+      "Hard deadline in mid-December 2026 (exact time in the countdown). Referrals after the deadline do not count.",
+    faqTiesQ: "What about ties?",
+    faqTiesA:
+      "Tied referrers share the summed percentages of the places they occupy, split equally — same rule as weekly rewards.",
+    faqPayoutQ: "How are rewards paid?",
+    faqPayoutA:
+      "After the campaign ends we freeze the unlocked pool and pay out manually or via claim. Amounts appear on this page.",
+    registerCta: "Register a squad",
+    days: "d",
+    hours: "h",
+    mins: "m",
+    secs: "s",
   },
   surfaceTips: {
     leaderboardTitle: "Leaderboard",
@@ -2962,6 +3090,10 @@ export const pagesUk: PagesMessages = {
     formDotsSub: "З лави",
     formDotsOut: "Не грав",
     formDotsGwLine: (gw, status) => `GW ${gw} · ${status}`,
+    availabilityOut: "Не зіграє",
+    availabilityDoubt: "Під питанням",
+    availabilitySuspended: "Дискваліфікація",
+    availabilityReasonFallback: "Недоступний у цьому турі",
     howToPlayBtn: "Як грати",
     prizeSplitBtn: "Призи",
     scoringTitle: "Очки",
@@ -3083,6 +3215,69 @@ export const pagesUk: PagesMessages = {
         ],
       },
     },
+  },
+  poolCampaign: {
+    loading: "Завантаження кампанії…",
+    loadError: (msg) => `Не вдалося завантажити: ${msg}`,
+    brandEyebrow: "Form8",
+    heroTitle: "Відкриваємо пул разом",
+    heroLead:
+      "Запрошуй нових гравців у фентезі-футбол. Кожні 10 зарахованих рефералів відкривають 10 USDC у спільному пулі винагород — його ділять топ-реферери після дедлайну.",
+    upcomingTitle: "Скоро старт",
+    upcomingLead:
+      "Прогрів. Реферали до офіційного старту в пул не зараховуються.",
+    inactiveTitle: "Кампанія ще не запущена",
+    inactiveHint: "Заглянь пізніше — коли Form8 відкриє спільний пул.",
+    endedBadge: "Завершено",
+    liveBadge: "Наживо",
+    countdownLabel: "До кінця",
+    countdownEnded: "Кампанію закрито",
+    unlockedLabel: "Відкрито",
+    ofMax: (max) => `з ${max.toLocaleString()} USDC`,
+    creditedLabel: "Нові гравці-реферали",
+    nextUnlock: (n, usdc) => `Ще ${n} гравців до +${usdc} USDC`,
+    atCap: "Пул повністю відкрито",
+    yourInvite: "Твій інвайт",
+    copyLink: "Копіювати лінк",
+    copied: "Скопійовано",
+    connectForInvite: "Підключи гаманець, щоб отримати інвайт-лінк",
+    yourReferrals: "Твої зараховані реферали",
+    yourRank: "Місце",
+    estReward: "Орієнтовна винагорода",
+    owedReward: "Твоя винагорода",
+    paidBadge: "Виплачено",
+    leaderboardTitle: "Топ-реферери",
+    colRank: "#",
+    colPlayer: "Гравець",
+    colReferrals: "Реферали",
+    colReward: "Винагорода",
+    emptyLeaderboard: "Поки немає зарахованих рефералів — будь першим.",
+    findMe: "Знайти мене",
+    youBadge: "Ти",
+    faqTitle: "Правила",
+    faqWhenQ: "Коли зараховується реферал?",
+    faqWhenA:
+      "Новий гравець має прийти за твоїм інвайт-лінком або кодом і зареєструвати свій перший склад у вікні кампанії.",
+    faqUnlockQ: "Що відкриває пул?",
+    faqUnlockA:
+      "Кожні 10 зарахованих рефералів відкривають 10 USDC, максимум 5,000 USDC. Фінальний пул = відкрите на момент дедлайну.",
+    faqWhoQ: "Хто отримує винагороду?",
+    faqWhoA:
+      "Лише топ-реферери за кількістю зарахованих рефералів. Місця в геймвіку з цього пулу не отримують. Частки — за % місць, як у звичайному призовому пулі.",
+    faqDeadlineQ: "Коли кінець?",
+    faqDeadlineA:
+      "Жорсткий дедлайн у середині грудня 2026 (точний час у зворотному відліку). Після дедлайну реферали не зараховуються.",
+    faqTiesQ: "Що з нічиїми?",
+    faqTiesA:
+      "Учасники з однаковою кількістю рефералів ділять суму відсотків зайнятих місць порівну — як у нагородах за геймвік.",
+    faqPayoutQ: "Як виплачуємо?",
+    faqPayoutA:
+      "Після кінця кампанії заморожуємо відкритий пул і виплачуємо вручну або через клейм. Суми з’являться на цій сторінці.",
+    registerCta: "Зареєструвати склад",
+    days: "д",
+    hours: "г",
+    mins: "хв",
+    secs: "с",
   },
   surfaceTips: {
     leaderboardTitle: "Лідерборд",
