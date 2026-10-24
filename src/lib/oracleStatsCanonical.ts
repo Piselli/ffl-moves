@@ -69,12 +69,22 @@ export const RECHECK_AFTER_MS = [30 * 60_000, 120 * 60_000] as const;
 
 /** API-Sports statuses while a match is being played (or briefly interrupted). */
 export const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
-/** How often to look while matches are on. */
-export const LIVE_POLL_MS = 60_000;
-/** Longest the poller ever sleeps without looking. */
-export const MAX_SLEEP_MS = 15 * 60_000;
+/** How often to look while matches are on (API-Sports quota is ample — prefer freshness). */
+export const LIVE_POLL_MS = 30_000;
+/**
+ * Cap while the round still has fixtures to play (NS / live). Was 15 min — that left a
+ * blind window where FT could land during sleep and wait for the next traffic/GH poke.
+ */
+export const ACTIVE_MAX_SLEEP_MS = 3 * 60_000;
+/** Cap when every fixture is already FT (only rechecks / idle remain). */
+export const IDLE_MAX_SLEEP_MS = 15 * 60_000;
 /** Start polling this long before the earliest not-yet-started kickoff. */
 export const PRE_KICKOFF_LEAD_MS = 2 * 60_000;
+
+/** True while any fixture in the round has not reached a finished status yet. */
+export function roundStillActive(fixtures: Array<{ short: string }>): boolean {
+  return fixtures.some((f) => !isFinishedStatus(f.short) && f.short !== "PST" && f.short !== "CANC" && f.short !== "ABD");
+}
 
 export type RoundFixture = {
   id: number;
@@ -113,10 +123,10 @@ export function labelsForPublishAlert(
 
 /**
  * How long the poller may sleep before the next API-Sports look.
- *  - a match is live → look every minute (so the final whistle is caught fast);
+ *  - a match is live → look every LIVE_POLL_MS (catch FT fast);
  *  - nothing live → sleep until the earliest kickoff (minus a lead) or the next due recheck;
- *  - never longer than MAX_SLEEP_MS, never shorter than LIVE_POLL_MS.
- * Idle nights / weekdays therefore cost no API requests at all.
+ *  - never longer than ACTIVE/IDLE max sleep, never shorter than LIVE_POLL_MS.
+ * Quota note: even a full Saturday at 30s live polls is well under a Pro API-Sports day cap.
  */
 export function planNextPoll(
   fixtures: RoundFixture[],
@@ -124,6 +134,8 @@ export function planNextPoll(
   nowMs: number,
 ): number {
   if (fixtures.some((f) => LIVE_STATUSES.has(f.short))) return LIVE_POLL_MS;
+
+  const maxSleep = roundStillActive(fixtures) ? ACTIVE_MAX_SLEEP_MS : IDLE_MAX_SLEEP_MS;
 
   const candidates: number[] = [];
   for (const f of fixtures) {
@@ -136,8 +148,53 @@ export function planNextPoll(
       candidates.push(s.firstSeenMs + RECHECK_AFTER_MS[s.rechecks]! - nowMs);
     }
   }
-  if (candidates.length === 0) return MAX_SLEEP_MS;
-  return Math.min(MAX_SLEEP_MS, Math.max(LIVE_POLL_MS, Math.min(...candidates)));
+  if (candidates.length === 0) return maxSleep;
+  return Math.min(maxSleep, Math.max(LIVE_POLL_MS, Math.min(...candidates)));
+}
+
+/**
+ * Delay until the next self-chain poke for publish-stats, or null to stop chaining.
+ * Matches the Redis sleep window so we wake without waiting for site traffic / GH lag.
+ */
+export function autoPublishChainDelayMs(input: {
+  action: string;
+  reason?: string;
+  nextPollInMs?: number;
+  wakesInMs?: number;
+}): number | null {
+  const STOP = new Set([
+    "AUTO_PUBLISH_STATS_ENABLED=false",
+    "no_closed_gameweek",
+    "stats_committed_on_chain",
+  ]);
+  if (input.action === "skipped" && input.reason && STOP.has(input.reason)) return null;
+
+  if (input.action === "skipped" && input.reason === "sleeping") {
+    const wakes = input.wakesInMs;
+    if (typeof wakes === "number" && Number.isFinite(wakes) && wakes > 0) {
+      return Math.max(2_000, Math.ceil(wakes));
+    }
+    return null;
+  }
+
+  if (input.action === "skipped" && input.reason === "another_run_in_progress") {
+    return 5_000;
+  }
+
+  const poll = input.nextPollInMs;
+  if (
+    typeof poll === "number" &&
+    Number.isFinite(poll) &&
+    poll > 0 &&
+    (input.action === "published" ||
+      input.action === "dry_run" ||
+      input.reason === "nothing_new" ||
+      input.reason === "no_finished_fixtures")
+  ) {
+    return Math.max(2_000, Math.ceil(poll));
+  }
+
+  return null;
 }
 
 export type FixtureSeen = { firstSeenMs: number; rechecks: number };

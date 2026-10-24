@@ -17,8 +17,8 @@ name: Auto-publish stats
 on:
   schedule:
     # EPL match windows (UTC). Weekend afternoons/evenings:
-    # The route sleeps by itself (no API-Sports calls unless a match is live / just ended),
-    # so a frequent schedule costs nothing.
+    # Primary cadence is the route's self-chain (~30s live / ≤3 min between slots).
+    # This schedule restarts the chain if depth maxes out or the process went idle.
     - cron: "*/5 11-22 * * 6"
     - cron: "*/5 11-22 * * 0"
     # Midweek / Friday / Monday evenings:

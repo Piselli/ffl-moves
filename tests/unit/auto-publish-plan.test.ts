@@ -9,8 +9,10 @@ import {
   hasNewFinishedFixture,
   labelsForPublishAlert,
   planRefresh,
+  autoPublishChainDelayMs,
   LIVE_POLL_MS,
-  MAX_SLEEP_MS,
+  ACTIVE_MAX_SLEEP_MS,
+  IDLE_MAX_SLEEP_MS,
   type AutoPublishState,
 } from "../../src/lib/oracleStatsCanonical";
 
@@ -126,29 +128,53 @@ test("canonical JSON rejects an invalid player id / position", () => {
 
 const fx = (id: number, short: string, kickoffMs: number) => ({ id, short, kickoffMs });
 
-test("a live match → look every minute", () => {
+test("a live match → look every LIVE_POLL_MS", () => {
   assert.equal(planNextPoll([fx(1, "2H", T0 - 60 * MIN), fx(2, "NS", T0 + 3600 * MIN)], {}, T0), LIVE_POLL_MS);
 });
 
-test("nothing live, next kickoff in 10 min → sleep until 2 min before it", () => {
+test("nothing live, next kickoff in 10 min → sleep capped by active max (not full 8 min lead)", () => {
+  // Lead would be 8 min, but ACTIVE_MAX_SLEEP keeps peeks frequent between slots.
   const ms = planNextPoll([fx(1, "FT", T0 - 200 * MIN), fx(2, "NS", T0 + 10 * MIN)], {}, T0);
-  assert.equal(ms, 8 * MIN);
+  assert.equal(ms, ACTIVE_MAX_SLEEP_MS);
 });
 
-test("sleep is capped at 15 min and never below 1 min", () => {
-  assert.equal(planNextPoll([fx(1, "NS", T0 + 3000 * MIN)], {}, T0), MAX_SLEEP_MS);
+test("nothing live, next kickoff in 4 min → sleep until 2 min before kickoff", () => {
+  const ms = planNextPoll([fx(1, "FT", T0 - 200 * MIN), fx(2, "NS", T0 + 4 * MIN)], {}, T0);
+  assert.equal(ms, 2 * MIN);
+});
+
+test("active round sleep is capped at 3 min and never below LIVE_POLL", () => {
+  assert.equal(planNextPoll([fx(1, "NS", T0 + 3000 * MIN)], {}, T0), ACTIVE_MAX_SLEEP_MS);
   assert.equal(planNextPoll([fx(1, "NS", T0 + 30_000)], {}, T0), LIVE_POLL_MS);
   assert.equal(planNextPoll([fx(1, "NS", T0 - 10 * MIN)], {}, T0), LIVE_POLL_MS); // delayed start
 });
 
-test("whole round finished → wake for the next pending recheck", () => {
+test("whole round finished → wake for the next pending recheck (idle cap 15 min)", () => {
   const seen = { "1": { firstSeenMs: T0 - 10 * MIN, rechecks: 0 } };
-  assert.equal(planNextPoll([fx(1, "FT", T0 - 120 * MIN)], seen, T0), 15 * MIN); // 20 min left, capped 15
+  assert.equal(planNextPoll([fx(1, "FT", T0 - 120 * MIN)], seen, T0), IDLE_MAX_SLEEP_MS); // 20 min left, capped 15
   const near = { "1": { firstSeenMs: T0 - 27 * MIN, rechecks: 0 } };
   assert.equal(planNextPoll([fx(1, "FT", T0 - 150 * MIN)], near, T0), 3 * MIN);
 });
 
-test("everything finished and all rechecks done → long sleep", () => {
+test("everything finished and all rechecks done → idle sleep", () => {
   const seen = { "1": { firstSeenMs: T0 - 300 * MIN, rechecks: 2 } };
-  assert.equal(planNextPoll([fx(1, "FT", T0 - 400 * MIN)], seen, T0), MAX_SLEEP_MS);
+  assert.equal(planNextPoll([fx(1, "FT", T0 - 400 * MIN)], seen, T0), IDLE_MAX_SLEEP_MS);
+});
+
+test("autoPublishChainDelayMs follows sleep / next poll, stops when idle", () => {
+  assert.equal(
+    autoPublishChainDelayMs({ action: "skipped", reason: "sleeping", wakesInMs: 12_000 }),
+    12_000,
+  );
+  assert.equal(
+    autoPublishChainDelayMs({ action: "skipped", reason: "nothing_new", nextPollInMs: 30_000 }),
+    30_000,
+  );
+  assert.equal(
+    autoPublishChainDelayMs({ action: "published", nextPollInMs: 180_000 }),
+    180_000,
+  );
+  assert.equal(autoPublishChainDelayMs({ action: "skipped", reason: "no_closed_gameweek" }), null);
+  assert.equal(autoPublishChainDelayMs({ action: "skipped", reason: "stats_committed_on_chain" }), null);
+  assert.equal(autoPublishChainDelayMs({ action: "skipped", reason: "another_run_in_progress" }), 5_000);
 });

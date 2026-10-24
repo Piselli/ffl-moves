@@ -6,6 +6,10 @@
  *   - writes the stats JSON to the same store the site reads (Redis + local file),
  *   - NEVER touches the chain (no commit_stats, no results) — that stays manual.
  *
+ * Cadence (see oracleStatsCanonical): ~30s while any match is live; at most ~3 min
+ * sleep while the round still has fixtures to play; +30m/+2h rechecks after each FT.
+ * The cron route self-chains on that schedule so publish does not depend on visitors.
+ *
  * Safety rules (any failure → publish nothing, keep what is already live):
  *   - only while the on-chain gameweek is CLOSED and has NO on-chain stats commit
  *     (a committed hash must stay byte-identical to the published file);
