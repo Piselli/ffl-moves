@@ -18,12 +18,10 @@ import {
 } from "@solana/web3.js";
 import { MOVEMATCH_PROGRAM_ID } from "@/lib/constants";
 
-/** Matches on-chain `Entry::SPACE` (TEAM_SIZE = 14). */
-const ENTRY_ACCOUNT_SPACE = 168;
-/**
- * The program deployed on mainnet predates `captain_index`: its Entry is 167 bytes.
- * Both sizes are tried until the program is upgraded.
- */
+/** Current on-chain `Entry::SPACE` (with `rent_payer`). */
+const ENTRY_ACCOUNT_SPACE = 200;
+/** Pre-rent_payer layouts still on mainnet (top-up only needed if rent_payer ≠ sponsor). */
+const ENTRY_ACCOUNT_SPACE_WITH_CAPTAIN = 168;
 const ENTRY_ACCOUNT_SPACE_LEGACY = 167;
 /** Matches on-chain `ClaimReceipt::SPACE`. */
 const CLAIM_ACCOUNT_SPACE = 65;
@@ -127,24 +125,48 @@ function rewriteAtaPayer(
   });
 }
 
-/** Account sizes the game action may create (several while the program is mid-migration). */
-function pdaSpacesForGameAction(instructions: TransactionInstruction[]): number[] {
+/**
+ * Account sizes the player wallet must fund for PDA `init` (payer = owner).
+ * When `register_team.rent_payer` is already the sponsor, Entry rent is not topped up.
+ */
+function pdaSpacesForGameAction(
+  instructions: TransactionInstruction[],
+  sponsor: PublicKey,
+): number[] {
   const spaces = new Set<number>();
   for (const ix of instructions) {
     if (!ix.programId.equals(PROGRAM_ID) || ix.data.length < 8) continue;
     const d = discHex(ix.data);
     if (d === REGISTER_TEAM_DISC) {
+      const rentPayer = ix.keys[3]?.pubkey;
+      // Sponsor pays Entry via `init, payer = rent_payer` — no wallet top-up.
+      if (rentPayer && rentPayer.equals(sponsor)) continue;
       spaces.add(ENTRY_ACCOUNT_SPACE_LEGACY);
+      spaces.add(ENTRY_ACCOUNT_SPACE_WITH_CAPTAIN);
       spaces.add(ENTRY_ACCOUNT_SPACE);
     } else if (d === CLAIM_PRIZE_DISC) {
       spaces.add(CLAIM_ACCOUNT_SPACE);
     }
   }
-  if (spaces.size === 0) {
-    spaces.add(ENTRY_ACCOUNT_SPACE_LEGACY);
-    spaces.add(ENTRY_ACCOUNT_SPACE);
-  }
   return [...spaces];
+}
+
+/** Point `register_team` rent_payer at the fee sponsor so Entry rent returns to us on close. */
+function rewriteRegisterRentPayer(
+  ix: TransactionInstruction,
+  sponsor: PublicKey,
+): TransactionInstruction {
+  if (!ix.programId.equals(PROGRAM_ID) || ix.data.length < 8) return ix;
+  if (discHex(ix.data) !== REGISTER_TEAM_DISC) return ix;
+  if (ix.keys.length < 4) return ix;
+  const keys = ix.keys.map((k, i) =>
+    i === 3 ? { pubkey: sponsor, isSigner: true, isWritable: true } : k,
+  );
+  return new TransactionInstruction({
+    programId: ix.programId,
+    keys,
+    data: ix.data,
+  });
 }
 
 /**
@@ -219,13 +241,15 @@ export async function prepareSponsoredInstructions(
   connection: Connection,
 ): Promise<TransactionInstruction[]> {
   const prepared = instructions.map((ix) =>
-    rewriteAtaPayer(ix, sponsor, userKey),
+    rewriteRegisterRentPayer(rewriteAtaPayer(ix, sponsor, userKey), sponsor),
   );
   if (!isForm8GameAction(prepared)) return prepared;
 
-  // Entry/claim PDA rent is paid by the player (`init, payer = owner`), and the
-  // sponsor funds exactly that. The server re-checks the amount against the live balance.
-  const spaces = pdaSpacesForGameAction(prepared);
+  // ClaimReceipt (and any self-paid Entry) still need a player-wallet top-up.
+  // Sponsored register uses rent_payer = sponsor, so Entry rent is not topped up.
+  const spaces = pdaSpacesForGameAction(prepared, sponsor);
+  if (spaces.length === 0) return prepared;
+
   const [rents, floor, balance] = await Promise.all([
     Promise.all(spaces.map((sp) => connection.getMinimumBalanceForRentExemption(sp))),
     connection.getMinimumBalanceForRentExemption(0),

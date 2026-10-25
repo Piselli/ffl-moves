@@ -42,7 +42,7 @@ export const MAX_SPONSOR_SIGNATURES = 4;
 /** Slack on the justified rent top-up (covers tiny balance changes between build and send). */
 const TOPUP_SLACK_LAMPORTS = 20_000;
 /** Matches on-chain `Entry::SPACE` / `ClaimReceipt::SPACE` (upper bound across program versions). */
-const ENTRY_ACCOUNT_SPACE = 168;
+const ENTRY_ACCOUNT_SPACE = 200;
 const CLAIM_ACCOUNT_SPACE = 65;
 const USDC_DECIMALS = 6;
 /** Approximate rent-exempt minimum of an SPL token account (165 bytes). */
@@ -539,8 +539,22 @@ export async function assertRentTopUpJustified(
   for (const ix of tx.instructions) {
     if (!ix.programId.equals(PROGRAM_ID)) continue;
     const d = discHex(ix.data);
-    if (d === REGISTER_TEAM_DISC) space = Math.max(space, ENTRY_ACCOUNT_SPACE);
-    else if (d === anchorDisc("claim_prize")) space = Math.max(space, CLAIM_ACCOUNT_SPACE);
+    if (d === REGISTER_TEAM_DISC) {
+      // Sponsor as rent_payer pays Entry via `init` — player wallet needs no Entry rent.
+      const rentPayer = ix.keys[3]?.pubkey;
+      if (rentPayer && rentPayer.equals(sponsor)) continue;
+      space = Math.max(space, ENTRY_ACCOUNT_SPACE);
+    } else if (d === anchorDisc("claim_prize")) {
+      space = Math.max(space, CLAIM_ACCOUNT_SPACE);
+    }
+  }
+  if (space === 0) {
+    for (const [, amount] of topUps) {
+      if (amount > BigInt(TOPUP_SLACK_LAMPORTS)) {
+        throw new Error("Rent top-up is larger than this wallet needs.");
+      }
+    }
+    return;
   }
   const [pdaRent, walletFloor] = await Promise.all([
     connection.getMinimumBalanceForRentExemption(space),
