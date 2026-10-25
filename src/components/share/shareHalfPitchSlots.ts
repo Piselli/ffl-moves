@@ -28,7 +28,7 @@ function rowLeftAnchors(formationId: FormationId, rowTop: number): number[] {
     .sort((a, b) => a - b);
 }
 
-/** Share half-pitch row alignment — 4-3-3 MID and 3-4-3 DEF match FWD width. */
+/** Share half-pitch row alignment — 3-FWD schemes match MID/DEF to FWD width. */
 function alignShareRowLeft(
   leftPct: number,
   topPct: number,
@@ -36,6 +36,7 @@ function alignShareRowLeft(
 ): number {
   const { DEF, MID } = getFormation(formationId);
   const fwd = fwdLeftAnchors(formationId);
+  // 5-3-2 / 3-5-2 use 2 FWD — skip the 3-wide align remap.
   if (fwd.length !== 3) return leftPct;
 
   if (DEF === 4 && MID === 3 && Math.abs(topPct - MID_ROW_TOP) <= ROW_TOL) {

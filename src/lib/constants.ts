@@ -44,8 +44,8 @@ export const POSITION_NAMES = {
   3: "FWD",
 } as const;
 
-// Formation totals shared by every scheme (4-3-3 / 3-4-3).
-// Per-row counts live in `src/lib/formation.ts` — default scheme remains 4-3-3.
+// Formation totals shared by every scheme (default 4-3-3 shape for labels).
+// Per-row counts live in `src/lib/formation.ts` — schemes: 4-3-3 / 3-4-3 / 5-3-2 / 3-5-2.
 export const FORMATION = {
   GK: 1,
   DEF: 4,

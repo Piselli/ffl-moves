@@ -42,7 +42,7 @@ We may update this list at any time. Using a VPN or other tools to hide your loc
 ## 5. How contests work
 
 - Each **gameweek** of the Premier League is a separate contest.
-- You build a **14-player squad**: 11 starters + 3 bench, maximum **3 players from one club**, formation **4-3-3** or **3-4-3**, and one **captain** whose points count **x2**.
+- You build a **14-player squad**: 11 starters + 3 bench, maximum **3 players from one club**, formation **4-3-3**, **3-4-3**, **5-3-2** or **3-5-2**, and one **captain** whose points count **x2**.
 - Squads must be submitted and paid for **before the gameweek deadline** shown in the app. After the deadline squads are locked.
 - Points are calculated from **public Fantasy Premier League data feeds and match ratings**, according to the scoring rules in the [FAQ](/faq).
 - Rankings are final once results are published for the gameweek, subject to Section 8.

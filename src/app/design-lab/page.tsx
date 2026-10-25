@@ -30,6 +30,12 @@ export default function DesignLabPage() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Link
+              href="/design-lab/formation-layout"
+              className="rounded-sm border border-lime-400/35 bg-lime-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-lime-300 transition-colors hover:bg-lime-400/20"
+            >
+              Formation drag →
+            </Link>
+            <Link
               href="/design-lab/locker-hero/nameplates"
               className="rounded-sm border border-amber-400/35 bg-amber-400/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-amber-300 transition-colors hover:bg-amber-400/20"
             >

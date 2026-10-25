@@ -57,13 +57,14 @@ export function PitchFilledSlot({
     : compact
       ? "h-[18px] w-[18px] text-[8px]"
       : "h-5 w-5 text-[9px]";
+  // Slightly tighter than captain so × marks don't kiss on a flat 5-across.
   const removeBtn = squadFull
     ? compact
-      ? "h-6 w-6 text-[14px]"
-      : "h-7 w-7 text-[16px]"
+      ? "h-5 w-5 text-[12px]"
+      : "h-6 w-6 text-[14px]"
     : compact
-      ? "h-[18px] w-[18px] text-[10px]"
-      : "h-5 w-5 text-[11px]";
+      ? "h-4 w-4 text-[9px]"
+      : "h-[18px] w-[18px] text-[10px]";
 
   return (
     <span className="group/slot relative flex flex-col items-center">

@@ -243,7 +243,7 @@ npm run preflight:solana
 - [x] `INITIALIZER` = операційний ключ `CJKNFK…no57` (перезібрати перед деплоєм)
 - [x] `[programs.mainnet]` у `Anchor.toml`
 - [x] `initialize-mainnet.mjs` на Circle USDC, створює house ATA
-- [x] Програма приймає 4-3-3 і 3-4-3
+- [x] Програма приймає 4-3-3, 3-4-3, 5-3-2 і 3-5-2
 - [ ] `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta` на Vercel Production
 - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL` — платний RPC, не публічний
 - [ ] `NEXT_PUBLIC_MOVEMATCH_PROGRAM_ID` = mainnet program id (той самий, що devnet)

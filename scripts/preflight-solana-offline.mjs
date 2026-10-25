@@ -47,8 +47,11 @@ console.log("MoveMatch offline preflight (no RPC, no spend)\n");
 const rust = read(libRs);
 const declare = rust.match(/declare_id!\("([^"]+)"\)/);
 const initializerConst = rust.match(/const INITIALIZER: Pubkey = pubkey!\("([^"]+)"\)/);
-const allows343 = /defenders == 3 && midfielders == 4/.test(rust);
-const allows433 = /defenders == 4 && midfielders == 3/.test(rust);
+const allowsFormations =
+  /\(4,\s*3,\s*3\)/.test(rust) &&
+  /\(3,\s*4,\s*3\)/.test(rust) &&
+  /\(5,\s*3,\s*2\)/.test(rust) &&
+  /\(3,\s*5,\s*2\)/.test(rust);
 
 if (declare?.[1] === EXPECTED_PROGRAM_ID) ok(`declare_id! ${EXPECTED_PROGRAM_ID}`);
 else fail(`declare_id! is ${declare?.[1] ?? "missing"}, expected ${EXPECTED_PROGRAM_ID}`);
@@ -59,8 +62,8 @@ if (initializerConst?.[1] === EXPECTED_INITIALIZER) {
   fail(`INITIALIZER is ${initializerConst?.[1] ?? "missing"}, expected ${EXPECTED_INITIALIZER}`);
 }
 
-if (allows433 && allows343) ok("Program accepts 4-3-3 and 3-4-3");
-else fail("validate_team does not accept both 4-3-3 and 3-4-3");
+if (allowsFormations) ok("Program accepts 4-3-3, 3-4-3, 5-3-2, and 3-5-2");
+else fail("validate_team does not accept all four formations");
 
 const toml = read(anchorToml);
 if (toml.includes("[programs.mainnet]") && toml.includes(EXPECTED_PROGRAM_ID)) {

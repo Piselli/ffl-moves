@@ -41,15 +41,33 @@ export type SquadFifaRows = {
   bottom: LabSquadPlayer[];
 };
 
-/** 2×7: DEF+MID top · GK+FWD+3 subs bottom. */
+/**
+ * Pack 14 players into two rows of 7 for the You / share plate.
+ * 4-3-3 / 3-4-3: DEF+MID top · GK+FWD+bench bottom.
+ * 3-5-2 / 5-3-2: the 5-wide line shares the top with the 2 FWD so both
+ * rows stay at 7 (plate layout is fixed 2×7).
+ */
 export function groupSquadFifaRows(groups: SquadFormationGroups): SquadFifaRows {
+  const { formationId, gk, def, mid, fwd, bench } = groups;
+  const keeper = gk ? [gk] : [];
+
+  if (formationId === "3-5-2") {
+    return {
+      top: [...mid, ...fwd],
+      bottom: [...keeper, ...def, ...bench],
+    };
+  }
+
+  if (formationId === "5-3-2") {
+    return {
+      top: [...def, ...fwd],
+      bottom: [...keeper, ...mid, ...bench],
+    };
+  }
+
   return {
-    top: [...groups.def, ...groups.mid],
-    bottom: [
-      ...(groups.gk ? [groups.gk] : []),
-      ...groups.fwd,
-      ...groups.bench,
-    ],
+    top: [...def, ...mid],
+    bottom: [...keeper, ...fwd, ...bench],
   };
 }
 

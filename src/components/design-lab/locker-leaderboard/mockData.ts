@@ -1,4 +1,5 @@
 import { catalogHitFromName } from "@/lib/fpl-photo-from-name";
+import type { FormationId } from "@/lib/formation";
 
 export type LabSquadPlayer = {
   name: string;
@@ -58,7 +59,7 @@ export type LabLeaderboardRow = {
   xi?: readonly LabSquadPlayer[];
   bench?: readonly LabSquadPlayer[];
   /** Inferred from on-chain starter positions when available */
-  formationId?: "4-3-3" | "3-4-3";
+  formationId?: FormationId;
 };
 
 export type LabLeaderboardSnapshot = {

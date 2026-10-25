@@ -6,7 +6,7 @@ import { FORMATION, MAX_PER_CLUB } from "@/lib/constants";
 import {
   DEFAULT_FORMATION,
   loadFormationId,
-  remapStartersToFormation,
+  remapSquadToFormation,
   saveFormationId,
   slotPosition,
   type FormationId,
@@ -155,17 +155,21 @@ export function useSquadPick(opts?: {
     });
   }, [starters, bench, gameweekId, captainIndexValid]);
 
-  const setFormationId = useCallback((id: FormationId) => {
-    pendingRemoveAfterCaptainClearRef.current = null;
-    setFormationIdState(id);
-    saveFormationId(id);
-    setStarters((prev) => {
-      const next = remapStartersToFormation(prev, id);
-      setCaptainIndexState((captain) => remapCaptainIndex(prev, next, captain));
-      return next;
-    });
-    setActiveSlot(null);
-  }, []);
+  const setFormationId = useCallback(
+    (id: FormationId) => {
+      pendingRemoveAfterCaptainClearRef.current = null;
+      setFormationIdState(id);
+      saveFormationId(id);
+      const remapped = remapSquadToFormation(starters, bench, id);
+      setCaptainIndexState((captain) =>
+        remapCaptainIndex(starters, remapped.starters, captain),
+      );
+      setStarters(remapped.starters);
+      setBench(remapped.bench);
+      setActiveSlot(null);
+    },
+    [starters, bench],
+  );
 
   const selectedIds = useMemo(() => {
     const ids = new Set<number>();

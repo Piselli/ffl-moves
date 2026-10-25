@@ -3,7 +3,7 @@
  * Slot order is always GK → DEF… → MID… → FWD… (11 starters).
  */
 
-export type FormationId = "4-3-3" | "3-4-3";
+export type FormationId = "4-3-3" | "3-4-3" | "5-3-2" | "3-5-2";
 export type PositionKey = "GK" | "DEF" | "MID" | "FWD";
 
 export type FormationShape = {
@@ -20,12 +20,19 @@ export const DEFAULT_FORMATION: FormationId = "4-3-3";
 export const FORMATIONS: Record<FormationId, FormationShape> = {
   "4-3-3": { id: "4-3-3", label: "4-3-3", GK: 1, DEF: 4, MID: 3, FWD: 3 },
   "3-4-3": { id: "3-4-3", label: "3-4-3", GK: 1, DEF: 3, MID: 4, FWD: 3 },
+  "5-3-2": { id: "5-3-2", label: "5-3-2", GK: 1, DEF: 5, MID: 3, FWD: 2 },
+  "3-5-2": { id: "3-5-2", label: "3-5-2", GK: 1, DEF: 3, MID: 5, FWD: 2 },
 };
 
-export const FORMATION_OPTIONS: readonly FormationId[] = ["4-3-3", "3-4-3"];
+export const FORMATION_OPTIONS: readonly FormationId[] = [
+  "4-3-3",
+  "3-4-3",
+  "5-3-2",
+  "3-5-2",
+];
 
 export function isFormationId(value: string): value is FormationId {
-  return value === "4-3-3" || value === "3-4-3";
+  return Object.prototype.hasOwnProperty.call(FORMATIONS, value);
 }
 
 export function getFormation(id?: FormationId | null): FormationShape {
@@ -104,21 +111,28 @@ function countStarterPositions(positions: readonly number[]) {
 }
 
 /**
- * Same rule as `validate_team` in the Solana program: 1 GK, 3 FWD, and either
- * 4-3-3 or 3-4-3 in the first eleven slots.
+ * Same rule as `validate_team` in the Solana program: 1 GK and one of
+ * 4-3-3 / 3-4-3 / 5-3-2 / 3-5-2 in the first eleven slots.
  */
 export function isValidStarterFormation(positions: readonly number[]): boolean {
   if (positions.length < 11) return false;
   const { gk, def, mid, fwd } = countStarterPositions(positions);
-  return gk === 1 && fwd === 3 && ((def === 4 && mid === 3) || (def === 3 && mid === 4));
+  if (gk !== 1) return false;
+  return FORMATION_OPTIONS.some((id) => {
+    const f = FORMATIONS[id];
+    return f.DEF === def && f.MID === mid && f.FWD === fwd;
+  });
 }
 
 export function inferFormationFromPositions(
   positions: readonly number[],
 ): FormationId {
   const { gk, def, mid, fwd } = countStarterPositions(positions);
-  if (gk === 1 && fwd === 3 && def === 3 && mid === 4) return "3-4-3";
-  if (gk === 1 && fwd === 3 && def === 4 && mid === 3) return "4-3-3";
+  if (gk !== 1) return DEFAULT_FORMATION;
+  for (const id of FORMATION_OPTIONS) {
+    const f = FORMATIONS[id];
+    if (f.DEF === def && f.MID === mid && f.FWD === fwd) return id;
+  }
   return DEFAULT_FORMATION;
 }
 
@@ -127,31 +141,61 @@ export const PITCH_SLOT_LAYOUTS: Record<
   FormationId,
   readonly { formationIndex: number; leftPct: number; topPct: number }[]
 > = {
+  // Y lanes are % of the playable green ABOVE the fringe bar. Same numbers
+  // on the full pitch (incl. fringe) sit too high vs chalk — GK especially
+  // must sit deeper so the nameplate lands inside the penalty box.
   "4-3-3": [
-    { formationIndex: 8, leftPct: 22, topPct: 18 },
-    { formationIndex: 9, leftPct: 50, topPct: 18 },
-    { formationIndex: 10, leftPct: 78, topPct: 18 },
-    { formationIndex: 5, leftPct: 26, topPct: 43 },
-    { formationIndex: 6, leftPct: 50, topPct: 43 },
-    { formationIndex: 7, leftPct: 74, topPct: 43 },
-    { formationIndex: 1, leftPct: 12, topPct: 67 },
-    { formationIndex: 2, leftPct: 37, topPct: 67 },
-    { formationIndex: 3, leftPct: 63, topPct: 67 },
-    { formationIndex: 4, leftPct: 88, topPct: 67 },
-    { formationIndex: 0, leftPct: 50, topPct: 90 },
+    { formationIndex: 8, leftPct: 22, topPct: 16 },
+    { formationIndex: 9, leftPct: 50, topPct: 16 },
+    { formationIndex: 10, leftPct: 78, topPct: 16 },
+    { formationIndex: 5, leftPct: 26, topPct: 40 },
+    { formationIndex: 6, leftPct: 50, topPct: 40 },
+    { formationIndex: 7, leftPct: 74, topPct: 40 },
+    { formationIndex: 1, leftPct: 12, topPct: 66 },
+    { formationIndex: 2, leftPct: 37, topPct: 66 },
+    { formationIndex: 3, leftPct: 63, topPct: 66 },
+    { formationIndex: 4, leftPct: 88, topPct: 66 },
+    { formationIndex: 0, leftPct: 50, topPct: 88 },
   ],
   "3-4-3": [
-    { formationIndex: 8, leftPct: 22, topPct: 18 },
-    { formationIndex: 9, leftPct: 50, topPct: 18 },
-    { formationIndex: 10, leftPct: 78, topPct: 18 },
-    { formationIndex: 4, leftPct: 14, topPct: 43 },
-    { formationIndex: 5, leftPct: 38, topPct: 43 },
-    { formationIndex: 6, leftPct: 62, topPct: 43 },
-    { formationIndex: 7, leftPct: 86, topPct: 43 },
-    { formationIndex: 1, leftPct: 22, topPct: 67 },
-    { formationIndex: 2, leftPct: 50, topPct: 67 },
-    { formationIndex: 3, leftPct: 78, topPct: 67 },
-    { formationIndex: 0, leftPct: 50, topPct: 90 },
+    { formationIndex: 8, leftPct: 22, topPct: 16 },
+    { formationIndex: 9, leftPct: 50, topPct: 16 },
+    { formationIndex: 10, leftPct: 78, topPct: 16 },
+    { formationIndex: 4, leftPct: 14, topPct: 40 },
+    { formationIndex: 5, leftPct: 38, topPct: 40 },
+    { formationIndex: 6, leftPct: 62, topPct: 40 },
+    { formationIndex: 7, leftPct: 86, topPct: 40 },
+    { formationIndex: 1, leftPct: 22, topPct: 66 },
+    { formationIndex: 2, leftPct: 50, topPct: 66 },
+    { formationIndex: 3, leftPct: 78, topPct: 66 },
+    { formationIndex: 0, leftPct: 50, topPct: 88 },
+  ],
+  // 5-wide lines stay flat (same topPct). Do not stagger wings.
+  "5-3-2": [
+    { formationIndex: 9, leftPct: 35, topPct: 16 },
+    { formationIndex: 10, leftPct: 65, topPct: 16 },
+    { formationIndex: 6, leftPct: 26, topPct: 40 },
+    { formationIndex: 7, leftPct: 50, topPct: 40 },
+    { formationIndex: 8, leftPct: 74, topPct: 40 },
+    { formationIndex: 1, leftPct: 10, topPct: 66 },
+    { formationIndex: 2, leftPct: 30, topPct: 66 },
+    { formationIndex: 3, leftPct: 50, topPct: 66 },
+    { formationIndex: 4, leftPct: 70, topPct: 66 },
+    { formationIndex: 5, leftPct: 90, topPct: 66 },
+    { formationIndex: 0, leftPct: 50, topPct: 88 },
+  ],
+  "3-5-2": [
+    { formationIndex: 9, leftPct: 35, topPct: 16 },
+    { formationIndex: 10, leftPct: 65, topPct: 16 },
+    { formationIndex: 4, leftPct: 10, topPct: 40 },
+    { formationIndex: 5, leftPct: 30, topPct: 40 },
+    { formationIndex: 6, leftPct: 50, topPct: 40 },
+    { formationIndex: 7, leftPct: 70, topPct: 40 },
+    { formationIndex: 8, leftPct: 90, topPct: 40 },
+    { formationIndex: 1, leftPct: 22, topPct: 66 },
+    { formationIndex: 2, leftPct: 50, topPct: 66 },
+    { formationIndex: 3, leftPct: 78, topPct: 66 },
+    { formationIndex: 0, leftPct: 50, topPct: 88 },
   ],
 };
 
@@ -179,13 +223,20 @@ export const HORIZONTAL_PITCH_SLOT_LAYOUTS: Record<
 > = {
   "4-3-3": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["4-3-3"]),
   "3-4-3": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["3-4-3"]),
+  "5-3-2": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["5-3-2"]),
+  "3-5-2": portraitToHorizontalPitchSlots(PITCH_SLOT_LAYOUTS["3-5-2"]),
 };
 
-/** Remap filled starters into a new formation, keeping as many as fit by position. */
-export function remapStartersToFormation<T extends { position: PositionKey }>(
+type RemapPlayer = { position: PositionKey; id?: number };
+
+/**
+ * Remap filled starters into a new formation, keeping as many as fit by position.
+ * Overflow that no longer fits the XI is returned separately (park on bench in UI).
+ */
+export function remapStartersToFormation<T extends RemapPlayer>(
   starters: (T | null)[],
   nextFormation: FormationId,
-): (T | null)[] {
+): { starters: (T | null)[]; overflow: T[] } {
   const pools: Record<PositionKey, T[]> = {
     GK: [],
     DEF: [],
@@ -199,7 +250,32 @@ export function remapStartersToFormation<T extends { position: PositionKey }>(
   for (const { position, index } of starterSlots(nextFormation)) {
     next[index] = pools[position].shift() ?? null;
   }
-  return next;
+  const overflow = [...pools.GK, ...pools.DEF, ...pools.MID, ...pools.FWD];
+  return { starters: next, overflow };
+}
+
+/** Remap XI and park overflow into empty bench slots (drops only if bench is full). */
+export function remapSquadToFormation<T extends RemapPlayer>(
+  starters: (T | null)[],
+  bench: (T | null)[],
+  nextFormation: FormationId,
+): { starters: (T | null)[]; bench: (T | null)[] } {
+  const { starters: nextStarters, overflow } = remapStartersToFormation(
+    starters,
+    nextFormation,
+  );
+  const nextBench = [...bench];
+  const onBench = new Set(
+    nextBench.filter(Boolean).map((p) => p!.id).filter((id) => id != null),
+  );
+  for (const player of overflow) {
+    if (player.id != null && onBench.has(player.id)) continue;
+    const empty = nextBench.findIndex((slot) => slot == null);
+    if (empty === -1) break;
+    nextBench[empty] = player;
+    if (player.id != null) onBench.add(player.id);
+  }
+  return { starters: nextStarters, bench: nextBench };
 }
 
 export const FORMATION_STORAGE_KEY = "ffl:squad:formation";

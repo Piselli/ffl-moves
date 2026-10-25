@@ -38,7 +38,7 @@ import type {
 import { LAB_LEADERBOARD } from "./mockData";
 import { scoringPlayerFromLab } from "./xiBreakdownHelpers";
 
-/** Formation lanes FWD top → GK bottom — driven by scheme (4-3-3 / 3-4-3). */
+/** Formation lanes FWD top → GK bottom — driven by scheme (4-3-3 / 3-4-3 / 5-3-2 / 3-5-2). */
 
 type SelectionOpts = {
   onClaim?: () => void | Promise<void>;

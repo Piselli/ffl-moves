@@ -8,6 +8,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import Image from "next/image";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -55,7 +56,7 @@ import {
 } from "./PlayerAvailabilityMark";
 import {
   DEFAULT_FORMATION,
-  formationRows,
+  PITCH_SLOT_LAYOUTS,
   slotPosition,
   type FormationId,
 } from "@/lib/formation";
@@ -351,6 +352,19 @@ function PitchFitName({
 const PLATE_FONT_SIZE = 10.5;
 const PLATE_TEXT_W = 70;
 const PLATE_CHIP_W = 76; // text + 3px pad each side
+
+function UsdcMark({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <Image
+      src="/usdc-logo.png"
+      alt=""
+      width={size}
+      height={size}
+      className={cn("shrink-0", className)}
+      aria-hidden
+    />
+  );
+}
 
 /** Freestanding bust — atlas first, same cutout as the results XI. */
 function ChipCutout({
@@ -1357,13 +1371,14 @@ export function LockerTablet({
       });
   }, [players, posFilter, teamFilter, query]);
 
-  const rows = formationRows(formationId);
+  const pitchSlots =
+    PITCH_SLOT_LAYOUTS[formationId] ?? PITCH_SLOT_LAYOUTS[DEFAULT_FORMATION];
   const slotPos = (i: number) => slotPosition(i, formationId);
   const chipCompact = isNarrow;
-  const prizeLabel =
+  const prizeAmountLabel =
     chainLoading || prizePoolRaw == null
-      ? "—"
-      : `${prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en")} ${prize.symbol}`;
+      ? null
+      : prize.formatHero(prizePoolRaw, locale === "uk" ? "uk" : "en");
   const deadlineExpired = Boolean(deadlineParts?.expired);
   const deadlineUrgent = Boolean(
     deadlineParts &&
@@ -1565,12 +1580,24 @@ export function LockerTablet({
           </p>
           <p
             className={cn(
-              "mt-0.5 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]",
+              "mt-0.5 flex min-w-0 items-center gap-1 truncate text-[11px] font-black tabular-nums leading-none text-[color:var(--lt-ink)]",
               metaPending && "animate-pulse text-[color:var(--lt-muted)]",
             )}
             style={DISPLAY}
+            title={
+              prizeAmountLabel
+                ? `${prizeAmountLabel} ${prize.symbol}`
+                : undefined
+            }
           >
-            {chainLoading ? "…" : prizeLabel}
+            {chainLoading || prizeAmountLabel == null ? (
+              "…"
+            ) : (
+              <>
+                <span className="min-w-0 truncate">{prizeAmountLabel}</span>
+                <UsdcMark size={11} className="size-[11px]" />
+              </>
+            )}
           </p>
         </div>
         <div
@@ -1620,7 +1647,9 @@ export function LockerTablet({
         </div>
       </motion.div>
 
-      <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2 md:p-2.5 md:pt-2 md:grid md:auto-rows-auto md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.28fr)_minmax(0,0.98fr)] md:grid-rows-[minmax(0,1fr)_auto]">
+      {/* Pitch a touch wider for flat 5-across gaps; sides still readable.
+          Reset/shuffle under pitch; register alone under player list. */}
+      <main className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden p-2 pt-2 max-md:px-2.5 md:gap-2 md:p-2.5 md:pt-2 md:grid md:auto-rows-auto md:grid-cols-[minmax(0,0.84fr)_minmax(0,1.5fr)_minmax(0,0.88fr)] md:grid-rows-[minmax(0,1fr)_auto]">
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.fixtures)}
           className="order-2 flex h-full min-h-0 min-w-0 flex-col max-md:hidden md:order-none md:col-start-1 md:row-start-1"
@@ -1831,8 +1860,12 @@ export function LockerTablet({
             tourAnchor="formation"
           />
 
+          {/*
+            Slot % are relative to the green playable area only — not the fringe
+            (pb-7/8). Otherwise GK @ 90% sinks into the toolbar and off the pitch.
+          */}
           <div
-            className="relative z-10 flex h-full min-h-0 flex-col justify-evenly px-0.5 py-0.5 pb-7 md:py-1 md:pb-8"
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 bottom-7 md:bottom-8"
             data-tour-anchor={
               pickTour.tourActive &&
               pickTour.step === "captain" &&
@@ -1841,58 +1874,60 @@ export function LockerTablet({
                 : undefined
             }
           >
-            {rows.map((row) => (
-              <div key={row.join("-")} className="flex justify-evenly gap-0.5">
-                {row.map((idx) => {
-                  const p = starters[idx];
-                  const pos = slotPos(idx);
-                  const active = slotGuideActive(idx);
-                  const firstStarter =
-                    starters.findIndex((s) => s != null);
-                  const captainAnchor =
-                    Boolean(p) &&
-                    pickTour.tourActive &&
-                    pickTour.step === "captain" &&
-                    idx === (captainIndex ?? firstStarter);
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      data-tour-anchor={captainAnchor ? "captain" : undefined}
-                      onClick={() =>
-                        p ? handleFilledStarterClick(idx) : handleSlotClick(idx)
-                      }
-                      className={cn(
-                        "flex flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
-                        "h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)]",
-                        "max-md:h-[clamp(40px,10vw,52px)] max-md:w-[clamp(34px,8.8vw,44px)]",
-                        p && "max-md:overflow-visible max-md:[&>span]:origin-bottom max-md:[&>span]:scale-[0.78]",
-                        active && !p && "opacity-100",
-                        active && p && "brightness-110",
-                        "data-[tour-active]:relative data-[tour-active]:z-[46]",
-                        isMotionChrome &&
-                          "hover:-translate-y-0.5 hover:brightness-125 active:scale-[0.94]",
-                      )}
-                      style={
-                        active && p
-                          ? {
-                              filter:
-                                "drop-shadow(0 0 6px rgba(255,255,255,0.35))",
-                            }
-                          : undefined
-                      }
-                      aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
-                    >
-                      {p ? (
-                        renderStarterChip(p, idx, chipCompact)
-                      ) : (
-                        <PitchEmptyChip pos={pos} active={active} compact={chipCompact} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+            {pitchSlots.map(({ formationIndex: idx, leftPct, topPct }) => {
+              const p = starters[idx];
+              const pos = slotPos(idx);
+              const active = slotGuideActive(idx);
+              const firstStarter = starters.findIndex((s) => s != null);
+              const captainAnchor =
+                Boolean(p) &&
+                pickTour.tourActive &&
+                pickTour.step === "captain" &&
+                idx === (captainIndex ?? firstStarter);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  data-tour-anchor={captainAnchor ? "captain" : undefined}
+                  onClick={() =>
+                    p ? handleFilledStarterClick(idx) : handleSlotClick(idx)
+                  }
+                  className={cn(
+                    "pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-xl bg-transparent transition-[transform,opacity,filter,left,top] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:brightness-110 active:scale-[0.96]",
+                    "h-[clamp(88px,27vw,108px)] w-[clamp(60px,20vw,82px)]",
+                    "max-md:h-[clamp(40px,10vw,52px)] max-md:w-[clamp(34px,8.8vw,44px)]",
+                    p &&
+                      "max-md:overflow-visible max-md:[&>span]:origin-bottom max-md:[&>span]:scale-[0.78]",
+                    active && !p && "opacity-100",
+                    active && p && "brightness-110",
+                    "data-[tour-active]:z-[46]",
+                    isMotionChrome && "hover:brightness-125 active:scale-[0.94]",
+                  )}
+                  style={{
+                    left: `${leftPct}%`,
+                    top: `${topPct}%`,
+                    zIndex: active ? 20 : 10,
+                    ...(active && p
+                      ? {
+                          filter:
+                            "drop-shadow(0 0 6px rgba(255,255,255,0.35))",
+                        }
+                      : null),
+                  }}
+                  aria-label={p ? p.webName ?? p.name : `Empty ${pos}`}
+                >
+                  {p ? (
+                    renderStarterChip(p, idx, chipCompact)
+                  ) : (
+                    <PitchEmptyChip
+                      pos={pos}
+                      active={active}
+                      compact={chipCompact}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </motion.section>
 
@@ -2155,48 +2190,55 @@ export function LockerTablet({
               Prize pool
             </p>
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-2.5">
-              <div className="flex min-w-0 items-baseline justify-between gap-3">
+              <div className="flex min-w-0 items-baseline justify-between gap-2">
                 <p
                   className={cn(
-                    "min-w-0 truncate text-[26px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
+                    "inline-flex min-w-0 max-w-[58%] items-center gap-1.5 truncate text-[26px] font-black leading-none tabular-nums text-[color:var(--lt-ink)]",
                     chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
                   )}
                   style={DISPLAY}
+                  title={
+                    prizeAmountLabel
+                      ? `${prizeAmountLabel} ${prize.symbol}`
+                      : undefined
+                  }
                 >
                   {chainLoading
                     ? "…"
-                    : prizePoolRaw == null
+                    : prizeAmountLabel == null
                       ? "—"
                       : (
                           <>
-                            {prize.formatHero(
-                              prizePoolRaw,
-                              locale === "uk" ? "uk" : "en",
-                            )}
-                            <span className="ml-1.5 text-[18px] font-black tracking-tight text-[color:var(--lt-ink)]">
-                              {prize.symbol}
+                            <span className="min-w-0 truncate">
+                              {prizeAmountLabel}
                             </span>
+                            <UsdcMark size={18} className="size-[18px]" />
                           </>
                         )}
                 </p>
                 <p
                   className={cn(
-                    "shrink-0 text-[15px] font-bold leading-none tabular-nums text-[color:var(--lt-ink)]",
+                    "inline-flex min-w-0 shrink items-center gap-1 text-[15px] font-bold leading-none tabular-nums text-[color:var(--lt-ink)]",
                     chainLoading && "animate-pulse text-[color:var(--lt-muted)]",
                   )}
                   style={DISPLAY}
+                  title={
+                    firstRaw != null
+                      ? `1st ${prize.formatCompact(firstRaw)} ${prize.symbol}`
+                      : undefined
+                  }
                 >
-                  <span className="mr-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)]">
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lt-muted)]">
                     1st
                   </span>
                   {chainLoading || firstRaw == null
                     ? "—"
                     : (
                         <>
-                          {prize.formatCompact(firstRaw)}
-                          <span className="ml-1 text-[12px] font-bold tracking-tight text-[color:var(--lt-ink)]">
-                            {prize.symbol}
+                          <span className="min-w-0 truncate">
+                            {prize.formatCompact(firstRaw)}
                           </span>
+                          <UsdcMark size={13} className="size-[13px]" />
                         </>
                       )}
                 </p>
@@ -2215,13 +2257,13 @@ export function LockerTablet({
 
         <motion.div
           {...panelMotion(HERO_REVEAL.delays.footer)}
-          className="order-5 grid h-full grid-cols-2 gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2"
+          className="order-5 grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2.5 max-md:hidden md:order-none md:col-start-2 md:row-start-2"
         >
           <Panel
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "flex h-full flex-col px-3.5 py-3",
+              "flex h-full min-w-0 flex-col px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
               deadlineUrgent &&
                 "ring-1 ring-[color:var(--lt-accent)]/40 shadow-[0_0_18px_rgba(0,249,72,0.12)]",
@@ -2260,7 +2302,7 @@ export function LockerTablet({
             {...(useMaterialShell ? glassProps : {})}
             className={cn(
               !useMaterialShell && PANEL,
-              "flex h-full flex-col justify-between px-3.5 py-3",
+              "flex h-full min-w-0 flex-col justify-between px-3.5 py-3",
               isPlatesChrome && "rounded-[22px]",
             )}
           >
@@ -2306,17 +2348,8 @@ export function LockerTablet({
               })}
             </div>
           </Panel>
-        </motion.div>
 
-        <motion.div
-          {...panelMotion(HERO_REVEAL.delays.footer)}
-          className={cn(
-            "relative order-6 flex h-full min-h-0 items-stretch gap-2 max-md:hidden md:order-none md:col-start-3 md:row-start-2",
-            // Above tour dim so the register CTA stays lit on step 5.
-            registerTourActive && "z-[50]",
-          )}
-        >
-          <div className="flex shrink-0 flex-col gap-2">
+          <div className="flex h-full shrink-0 flex-col justify-stretch gap-2">
             <button
               type="button"
               onClick={onReset}
@@ -2324,7 +2357,7 @@ export function LockerTablet({
               aria-label="Reset"
               title="Reset"
               className={cn(
-                "grid h-11 w-11 place-items-center transition active:scale-[0.96]",
+                "grid h-11 w-11 flex-1 place-items-center transition active:scale-[0.96]",
                 isTripledChrome || isMotionChrome
                   ? "rounded-full"
                   : "rounded-xl",
@@ -2361,7 +2394,7 @@ export function LockerTablet({
               aria-label="Shuffle squad"
               title="Shuffle squad"
               className={cn(
-                "grid h-11 w-11 place-items-center transition active:scale-[0.96]",
+                "grid h-11 w-11 flex-1 place-items-center transition active:scale-[0.96]",
                 isTripledChrome || isMotionChrome
                   ? "rounded-full"
                   : "rounded-xl",
@@ -2395,6 +2428,16 @@ export function LockerTablet({
               </svg>
             </button>
           </div>
+        </motion.div>
+
+        <motion.div
+          {...panelMotion(HERO_REVEAL.delays.footer)}
+          className={cn(
+            "relative order-6 flex h-full min-h-0 items-stretch max-md:hidden md:order-none md:col-start-3 md:row-start-2",
+            // Above tour dim so the register CTA stays lit on step 5.
+            registerTourActive && "z-[50]",
+          )}
+        >
           <div className="relative flex min-h-0 min-w-0 flex-1">
             <button
               type="button"

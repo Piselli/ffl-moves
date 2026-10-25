@@ -234,6 +234,8 @@ pub mod movematch {
         entry.prize_contribution = prize_leg;
         entry.created_at = Clock::get()?.unix_timestamp;
         entry.bump = ctx.bumps.entry;
+        // Who paid the PDA rent (`init` payer) — returned on `close_entry`.
+        entry.rent_payer = ctx.accounts.rent_payer.key();
 
         let gameweek = &mut ctx.accounts.gameweek;
         gameweek.prize_pool = gameweek
@@ -265,10 +267,19 @@ pub mod movematch {
             gameweek.status == OPEN || gameweek.status == CLOSED,
             ErrorCode::EntryCannotBeClosed
         );
-        let fee = ctx.accounts.entry.fee_paid;
+
+        let (fee, prize_leg, expected_rent_dest) = {
+            let entry_data = ctx.accounts.entry.try_borrow_data()?;
+            parse_entry_for_close(&entry_data, ctx.accounts.owner.key(), gameweek_id)?
+        };
+        require_keys_eq!(
+            ctx.accounts.rent_destination.key(),
+            expected_rent_dest,
+            ErrorCode::InvalidRentDestination
+        );
+
         let config = &ctx.accounts.config;
         // Refund the split as it was actually booked, not as the current bps would compute it.
-        let prize_leg = ctx.accounts.entry.prize_contribution;
         let house_leg = fee
             .checked_sub(prize_leg)
             .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -307,6 +318,19 @@ pub mod movematch {
             .total_prize_obligation
             .checked_sub(prize_leg)
             .ok_or(ErrorCode::ArithmeticOverflow)?;
+
+        // Manual close so legacy Entry sizes (167/168) still refund correctly.
+        let entry_info = ctx.accounts.entry.to_account_info();
+        let dest = ctx.accounts.rent_destination.to_account_info();
+        let lamports = entry_info.lamports();
+        **dest.try_borrow_mut_lamports()? = dest
+            .lamports()
+            .checked_add(lamports)
+            .ok_or(ErrorCode::ArithmeticOverflow)?;
+        **entry_info.try_borrow_mut_lamports()? = 0;
+        entry_info.assign(&anchor_lang::system_program::ID);
+        entry_info.resize(0)?;
+
         emit!(EntryClosed {
             gameweek_id,
             owner: ctx.accounts.owner.key(),
@@ -709,7 +733,10 @@ pub struct RegisterTeam<'info> {
     pub gameweek: Account<'info, Gameweek>,
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(init, payer = owner, space = Entry::SPACE, seeds = [b"entry".as_ref(), &gameweek_id.to_le_bytes(), owner.key().as_ref()], bump)]
+    /// Pays Entry PDA rent (`init` payer). Fee sponsor for gasless register, or the owner.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
+    #[account(init, payer = rent_payer, space = Entry::SPACE, seeds = [b"entry".as_ref(), &gameweek_id.to_le_bytes(), owner.key().as_ref()], bump)]
     pub entry: Account<'info, Entry>,
     #[account(address = config.usdc_mint)]
     pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -738,11 +765,19 @@ pub struct CloseEntry<'info> {
     pub admin: Signer<'info>,
     #[account(mut, seeds = [b"gw".as_ref(), &gameweek_id.to_le_bytes()], bump = gameweek.bump)]
     pub gameweek: Account<'info, Gameweek>,
-    #[account(mut, close = owner, seeds = [b"entry".as_ref(), &gameweek_id.to_le_bytes(), owner.key().as_ref()], bump = entry.bump)]
-    pub entry: Account<'info, Entry>,
-    /// CHECK: Entry's owner; constrained by its PDA seed.
+    /// CHECK: Entry PDA; closed manually so legacy 167/168-byte accounts still work.
+    #[account(
+        mut,
+        seeds = [b"entry".as_ref(), &gameweek_id.to_le_bytes(), owner.key().as_ref()],
+        bump,
+    )]
+    pub entry: UncheckedAccount<'info>,
+    /// CHECK: Entry's owner; constrained by its PDA seed. Receives the USDC refund.
     #[account(mut)]
     pub owner: UncheckedAccount<'info>,
+    /// CHECK: Receives Entry lamports; must equal `rent_payer` (new) or `owner` (legacy).
+    #[account(mut)]
+    pub rent_destination: UncheckedAccount<'info>,
     #[account(address = config.usdc_mint)]
     pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
     /// CHECK: PDA signing authority only.
@@ -756,6 +791,7 @@ pub struct CloseEntry<'info> {
     pub house_ata: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut, associated_token::mint = usdc_mint, associated_token::authority = owner)]
     pub owner_ata: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub system_program: Program<'info, System>,
     #[account(address = anchor_spl::token::ID)]
     pub token_program: Interface<'info, TokenInterface>,
 }
@@ -1030,10 +1066,16 @@ pub struct Entry {
     pub prize_contribution: u64,
     pub created_at: i64,
     pub bump: u8,
+    /// Who paid the PDA rent at `register_team`; receives lamports on `close_entry`.
+    pub rent_payer: Pubkey,
 }
 impl Entry {
+    /// Pre-captain mainnet layout (no `captain_index`).
+    pub const SPACE_LEGACY_NO_CAPTAIN: usize = 167;
+    /// Layout with `captain_index` but before `rent_payer`.
+    pub const SPACE_WITH_CAPTAIN: usize = 168;
     pub const SPACE: usize =
-        8 + 32 + 4 + (4 * TEAM_SIZE) + TEAM_SIZE + (2 * TEAM_SIZE) + 1 + 8 + 8 + 8 + 1;
+        8 + 32 + 4 + (4 * TEAM_SIZE) + TEAM_SIZE + (2 * TEAM_SIZE) + 1 + 8 + 8 + 8 + 1 + 32;
 }
 
 #[account]
@@ -1142,14 +1184,14 @@ fn validate_team(
             _ => return err!(ErrorCode::InvalidPosition),
         }
     }
-    // Allowed XI: 4-3-3 or 3-4-3. Bench slots are position-checked above, not counted here.
-    require!(
-        goalkeepers == 1
-            && forwards == 3
-            && ((defenders == 4 && midfielders == 3)
-                || (defenders == 3 && midfielders == 4)),
-        ErrorCode::InvalidFormation
+    // Allowed XI: 4-3-3, 3-4-3, 5-3-2, or 3-5-2. Bench slots are position-checked
+    // above, not counted here.
+    require!(goalkeepers == 1, ErrorCode::InvalidFormation);
+    let formation_ok = matches!(
+        (defenders, midfielders, forwards),
+        (4, 3, 3) | (3, 4, 3) | (5, 3, 2) | (3, 5, 2)
     );
+    require!(formation_ok, ErrorCode::InvalidFormation);
     Ok(())
 }
 
@@ -1214,6 +1256,60 @@ fn verify_proof(
     Ok(sum)
 }
 
+/// `(fee_paid, prize_contribution, rent_destination)` for any Entry layout still on-chain.
+fn parse_entry_for_close(
+    data: &[u8],
+    expected_owner: Pubkey,
+    expected_gameweek: u32,
+) -> Result<(u64, u64, Pubkey)> {
+    require!(data.len() >= 8, ErrorCode::InvalidEntryAccount);
+    let disc = Entry::DISCRIMINATOR;
+    require!(data[0..8] == disc[..], ErrorCode::InvalidEntryAccount);
+
+    let owner = Pubkey::try_from(&data[8..40]).map_err(|_| ErrorCode::InvalidEntryAccount)?;
+    require_keys_eq!(owner, expected_owner, ErrorCode::InvalidEntryAccount);
+    let mut gw_bytes = [0u8; 4];
+    gw_bytes.copy_from_slice(&data[40..44]);
+    require!(
+        u32::from_le_bytes(gw_bytes) == expected_gameweek,
+        ErrorCode::InvalidEntryAccount
+    );
+
+    // Shared prefix after clubs: … clubs(28) end at offset 8+32+4+56+14+28 = 142.
+    const AFTER_CLUBS: usize = 8 + 32 + 4 + (4 * TEAM_SIZE) + TEAM_SIZE + (2 * TEAM_SIZE);
+    let (fee_paid, prize_contribution, rent_destination) = match data.len() {
+        // No captain_index: fee_paid starts immediately after clubs.
+        Entry::SPACE_LEGACY_NO_CAPTAIN => {
+            let fee = read_u64_at(data, AFTER_CLUBS)?;
+            let prize = read_u64_at(data, AFTER_CLUBS + 8)?;
+            (fee, prize, expected_owner)
+        }
+        // captain_index present, no rent_payer.
+        Entry::SPACE_WITH_CAPTAIN => {
+            let fee = read_u64_at(data, AFTER_CLUBS + 1)?;
+            let prize = read_u64_at(data, AFTER_CLUBS + 1 + 8)?;
+            (fee, prize, expected_owner)
+        }
+        // Full layout with rent_payer at the end.
+        n if n == Entry::SPACE => {
+            let fee = read_u64_at(data, AFTER_CLUBS + 1)?;
+            let prize = read_u64_at(data, AFTER_CLUBS + 1 + 8)?;
+            let rent_payer = Pubkey::try_from(&data[Entry::SPACE - 32..Entry::SPACE])
+                .map_err(|_| ErrorCode::InvalidEntryAccount)?;
+            (fee, prize, rent_payer)
+        }
+        _ => return err!(ErrorCode::InvalidEntryAccount),
+    };
+    Ok((fee_paid, prize_contribution, rent_destination))
+}
+
+fn read_u64_at(data: &[u8], offset: usize) -> Result<u64> {
+    require!(data.len() >= offset + 8, ErrorCode::InvalidEntryAccount);
+    let mut bytes = [0u8; 8];
+    bytes.copy_from_slice(&data[offset..offset + 8]);
+    Ok(u64::from_le_bytes(bytes))
+}
+
 fn transfer_from_owner<'info>(
     token_program: &Interface<'info, TokenInterface>,
     from: &InterfaceAccount<'info, TokenAccount>,
@@ -1273,6 +1369,10 @@ fn transfer_from_treasury<'info>(
 pub enum ErrorCode {
     #[msg("The provided basis points exceed 10,000.")]
     InvalidBasisPoints,
+    #[msg("Entry account data is corrupt or an unsupported layout.")]
+    InvalidEntryAccount,
+    #[msg("rent_destination must be the Entry rent payer (or the owner for legacy entries).")]
+    InvalidRentDestination,
     #[msg("The signer is not a configured admin.")]
     UnauthorizedAdmin,
     #[msg("The configured oracle did not sign.")]

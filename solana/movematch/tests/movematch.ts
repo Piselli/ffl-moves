@@ -120,6 +120,18 @@ describe("movematch", () => {
     clubs: [10, 11, 11, 12, 13, 13, 14, 14, 15, 15, 16, 17, 18, 19],
   });
 
+  const validTeam532 = () => ({
+    playerIds: Array.from({ length: TEAM_SIZE }, (_, index) => index + 201),
+    positions: [GK, DEF, DEF, DEF, DEF, DEF, MID, MID, MID, FWD, FWD, GK, DEF, MID],
+    clubs: [10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 17, 18],
+  });
+
+  const validTeam352 = () => ({
+    playerIds: Array.from({ length: TEAM_SIZE }, (_, index) => index + 301),
+    positions: [GK, DEF, DEF, DEF, MID, MID, MID, MID, MID, FWD, FWD, GK, DEF, FWD],
+    clubs: [10, 11, 11, 12, 13, 13, 14, 14, 15, 15, 16, 17, 18, 19],
+  });
+
   async function fundedPlayer(): Promise<Player> {
     const key = Keypair.generate();
     const signature = await provider.connection.requestAirdrop(
@@ -147,6 +159,7 @@ describe("movematch", () => {
         config,
         gameweek: gameweekPda(gameweek),
         owner: player.key.publicKey,
+        rentPayer: player.key.publicKey,
         entry: entryPda(gameweek, player.key.publicKey),
         usdcMint: mint,
         ownerAta: player.ata,
@@ -389,6 +402,12 @@ describe("movematch", () => {
 
     const ok343 = await fundedPlayer();
     await registerWithTeam(2, ok343, validTeam343());
+
+    const ok532 = await fundedPlayer();
+    await registerWithTeam(2, ok532, validTeam532());
+
+    const ok352 = await fundedPlayer();
+    await registerWithTeam(2, ok352, validTeam352());
 
     const badBench = await fundedPlayer();
     const bench = validTeam();
@@ -698,7 +717,7 @@ describe("movematch", () => {
     expect(gameweek.prizePool.toNumber()).to.equal(0);
   });
 
-  function closeEntry(id: number, player: Player) {
+  function closeEntry(id: number, player: Player, rentDestination?: PublicKey) {
     return program.methods
       .closeEntry(id)
       .accountsPartial({
@@ -707,12 +726,14 @@ describe("movematch", () => {
         gameweek: gameweekPda(id),
         entry: entryPda(id, player.key.publicKey),
         owner: player.key.publicKey,
+        rentDestination: rentDestination ?? player.key.publicKey,
         usdcMint: mint,
         treasury,
         treasuryAta,
         houseAuthority: house.publicKey,
         houseAta,
         ownerAta: player.ata,
+        systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([house])

@@ -270,9 +270,11 @@ function decodeGameweek(data: Uint8Array): GameweekSummary {
   };
 }
 
-/** `Entry::SPACE` once `captain_index` exists; the original mainnet program used 167. */
-const ENTRY_ACCOUNT_LEN_WITH_CAPTAIN = 168;
+/** `Entry::SPACE` layouts still present on mainnet (and the current program). */
 const ENTRY_ACCOUNT_LEN_LEGACY = 167;
+const ENTRY_ACCOUNT_LEN_WITH_CAPTAIN = 168;
+/** Current on-chain Entry with `rent_payer` (returned on close_entry). */
+const ENTRY_ACCOUNT_LEN_WITH_RENT_PAYER = 200;
 /** Out-of-range slot: no starter matches, so no captain bonus is applied. */
 export const NO_CAPTAIN_INDEX = 255;
 
@@ -575,7 +577,11 @@ export async function getGameweekEntrants(gameweekId: number): Promise<string[]>
   const connection = getConnection();
   const gwBytes = new Uint8Array(4);
   new DataView(gwBytes.buffer).setUint32(0, gameweekId, true);
-  const lengths = [ENTRY_ACCOUNT_LEN_LEGACY, ENTRY_ACCOUNT_LEN_WITH_CAPTAIN];
+  const lengths = [
+    ENTRY_ACCOUNT_LEN_LEGACY,
+    ENTRY_ACCOUNT_LEN_WITH_CAPTAIN,
+    ENTRY_ACCOUNT_LEN_WITH_RENT_PAYER,
+  ];
   const batches = await Promise.all(
     lengths.map((dataSize) =>
       connection.getProgramAccounts(PROGRAM_ID, {
@@ -591,6 +597,82 @@ export async function getGameweekEntrants(gameweekId: number): Promise<string[]>
     const reader = readAccount(account.data, "Entry");
     return [String(readPubkey(reader))];
   });
+}
+
+export type EntryRecord = {
+  owner: string;
+  gameweekId: number;
+  captainIndex: number;
+  feePaid: bigint;
+  prizeContribution: bigint;
+  /** Unix seconds. */
+  createdAt: number | null;
+  playerIds: number[];
+};
+
+/** Every Entry account of the program, across all gameweeks (one RPC call per layout). */
+export async function getAllEntryRecords(): Promise<EntryRecord[]> {
+  const connection = getConnection();
+  const lengths = [
+    ENTRY_ACCOUNT_LEN_LEGACY,
+    ENTRY_ACCOUNT_LEN_WITH_CAPTAIN,
+    ENTRY_ACCOUNT_LEN_WITH_RENT_PAYER,
+  ];
+  const batches = await Promise.all(
+    lengths.map((dataSize) =>
+      connection.getProgramAccounts(PROGRAM_ID, {
+        filters: [
+          { dataSize },
+          { memcmp: { offset: 0, bytes: base58Encode(discriminator("account", "Entry")) } },
+        ],
+      }),
+    ),
+  );
+  return batches.flat().map(({ account }) => {
+    const data = account.data;
+    const reader = readAccount(data, "Entry");
+    const owner = String(readPubkey(reader));
+    const gameweekId = readU32(reader);
+    const playerIds = Array.from({ length: TEAM_SIZE }, () => readU32(reader));
+    reader.offset += TEAM_SIZE + TEAM_SIZE * 2;
+    const captainIndex = data.length >= ENTRY_ACCOUNT_LEN_WITH_CAPTAIN ? readU8(reader) : NO_CAPTAIN_INDEX;
+    const feePaid = readU64(reader);
+    const prizeContribution = readU64(reader);
+    const createdAtRaw = readU64(reader);
+    const createdAt =
+      createdAtRaw > BigInt(0) && createdAtRaw <= BigInt(Number.MAX_SAFE_INTEGER)
+        ? Number(createdAtRaw)
+        : null;
+    return { owner, gameweekId, captainIndex, feePaid, prizeContribution, createdAt, playerIds };
+  });
+}
+
+/** USDC balances (base units) for many wallets; missing ATA → 0. */
+export async function getUsdcBalances(owners: string[]): Promise<Map<string, bigint>> {
+  const out = new Map<string, bigint>();
+  for (let start = 0; start < owners.length; start += 100) {
+    const batch = owners.slice(start, start + 100);
+    const atas = batch.map((owner) => {
+      try {
+        return getAssociatedTokenAddressSync(USDC_MINT, key(owner), true);
+      } catch {
+        return null;
+      }
+    });
+    const valid = atas.filter((a): a is PublicKey => a !== null);
+    const infos = valid.length ? await getConnection().getMultipleAccountsInfo(valid) : [];
+    let vi = 0;
+    batch.forEach((owner, i) => {
+      if (!atas[i]) return;
+      const info = infos[vi++];
+      if (!info || info.data.length < 72) {
+        out.set(owner, BigInt(0));
+        return;
+      }
+      out.set(owner, Buffer.from(info.data).readBigUInt64LE(64));
+    });
+  }
+  return out;
 }
 
 type PublishedResults = { results: TeamResult[] };
@@ -1005,12 +1087,14 @@ export async function buildRegisterTeam(
   owner: string,
   gameweekId: number,
   squad: UserTeam,
+  /** Pays Entry PDA rent; defaults to the owner. Fee sponsorship rewrites this to the sponsor. */
+  rentPayer?: string,
 ): Promise<TransactionInstruction[]> {
   if (squad.playerIds.length !== TEAM_SIZE || squad.positions.length !== TEAM_SIZE || squad.clubs.length !== TEAM_SIZE) {
     throw new Error("A FORM8 squad must contain exactly 14 players.");
   }
   if (!isValidStarterFormation(squad.positions)) {
-    throw new Error("Starting XI must be 4-3-3 or 3-4-3.");
+    throw new Error("Starting XI must be 4-3-3, 3-4-3, 5-3-2, or 3-5-2.");
   }
   if (
     !Number.isInteger(squad.captainIndex) ||
@@ -1021,6 +1105,7 @@ export async function buildRegisterTeam(
   }
   assertSquadMatchesProgramRules(squad);
   const ownerKey = key(owner);
+  const rentPayerKey = key(rentPayer ?? owner);
   const config = await getConfig();
   if (!config) throw new Error("FORM8 has not been initialized on this network.");
   const treasury = treasuryPda();
@@ -1034,7 +1119,8 @@ export async function buildRegisterTeam(
   const register = ix(
     "register_team",
     [
-      meta(configPda(), false, true), meta(gameweekPda(gameweekId), false, true), meta(ownerKey, true, true),
+      meta(configPda(), false, true), meta(gameweekPda(gameweekId), false, true),
+      meta(ownerKey, true, true), meta(rentPayerKey, true, true),
       meta(entryPda(gameweekId, owner), false, true), meta(USDC_MINT), meta(ownerAta, false, true),
       meta(treasury), meta(treasuryAta, false, true), meta(houseWallet), meta(houseAta, false, true),
       meta(SystemProgram.programId), meta(TOKEN_PROGRAM_ID),
