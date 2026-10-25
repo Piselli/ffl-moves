@@ -784,8 +784,8 @@ function MatchRow({
   /** Filter players list to this club's full name. */
   onClubSelect?: (clubName: string) => void;
 }) {
-  // Narrow left rail: keep crest small so 3-letter codes (esp. MUN / NEW) never ellipsize.
-  const badge = "h-6 w-6 shrink-0 object-contain";
+  // Narrow left rail: crest sized so 3-letter codes (esp. MUN / NEW) stay fully visible.
+  const badge = "h-[26px] w-[26px] shrink-0 object-contain";
   const hasScore =
     match.scoreH != null &&
     match.scoreA != null &&
@@ -848,7 +848,7 @@ function MatchRow({
       return (
         <div
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-1",
+            "flex min-w-0 flex-1 items-center gap-1.5",
             align === "end" && "justify-end",
           )}
         >
@@ -863,7 +863,7 @@ function MatchRow({
         onClick={() => onClubSelect(side.name)}
         title={`Show ${side.name} players`}
         className={cn(
-          "flex min-w-0 flex-1 items-center gap-1 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
           align === "start" ? "justify-start pr-0.5" : "justify-end pl-0.5",
           "hover:bg-white/[0.08] active:scale-[0.98]",
         )}
