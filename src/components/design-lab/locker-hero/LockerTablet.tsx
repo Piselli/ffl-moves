@@ -784,8 +784,8 @@ function MatchRow({
   /** Filter players list to this club's full name. */
   onClubSelect?: (clubName: string) => void;
 }) {
-  // Narrow left rail: crest sized so 3-letter codes (esp. MUN / NEW) stay fully visible.
-  const badge = "h-[26px] w-[26px] shrink-0 object-contain";
+  // Narrow left rail: keep codes nowrap so MUN / NEW never ellipsize.
+  const badge = "h-7 w-7 shrink-0 object-contain";
   const hasScore =
     match.scoreH != null &&
     match.scoreA != null &&
@@ -821,13 +821,13 @@ function MatchRow({
                 (e.target as HTMLImageElement).style.opacity = "0";
               }}
             />
-            <span className="shrink-0 whitespace-nowrap text-[12px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
+            <span className="shrink-0 whitespace-nowrap text-[13px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
               {side.shortName}
             </span>
           </>
         ) : (
           <>
-            <span className="shrink-0 whitespace-nowrap text-right text-[12px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
+            <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
               {side.shortName}
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -891,11 +891,11 @@ function MatchRow({
             {match.scoreA}
           </span>
         ) : scorePending ? (
-          <span className="text-[12px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-muted)]">
+          <span className="text-[13px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-muted)]">
             —
           </span>
         ) : (
-          <span className="text-[12px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+          <span className="text-[13px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {formatKickoffTime(match.kickoffTime, locale)}
           </span>
         )}
