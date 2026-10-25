@@ -784,8 +784,8 @@ function MatchRow({
   /** Filter players list to this club's full name. */
   onClubSelect?: (clubName: string) => void;
 }) {
-  const badge =
-    "h-7 w-7 shrink-0 object-contain";
+  // Narrow left rail: keep crest small so 3-letter codes (esp. MUN / NEW) never ellipsize.
+  const badge = "h-6 w-6 shrink-0 object-contain";
   const hasScore =
     match.scoreH != null &&
     match.scoreA != null &&
@@ -821,13 +821,13 @@ function MatchRow({
                 (e.target as HTMLImageElement).style.opacity = "0";
               }}
             />
-            <span className="truncate text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
+            <span className="shrink-0 whitespace-nowrap text-[12px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
               {side.shortName}
             </span>
           </>
         ) : (
           <>
-            <span className="truncate text-right text-[13px] font-extrabold leading-none text-[color:var(--lt-ink)]">
+            <span className="shrink-0 whitespace-nowrap text-right text-[12px] font-extrabold leading-none tracking-tight text-[color:var(--lt-ink)]">
               {side.shortName}
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -848,7 +848,7 @@ function MatchRow({
       return (
         <div
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2",
+            "flex min-w-0 flex-1 items-center gap-1",
             align === "end" && "justify-end",
           )}
         >
@@ -863,8 +863,8 @@ function MatchRow({
         onClick={() => onClubSelect(side.name)}
         title={`Show ${side.name} players`}
         className={cn(
-          "flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          align === "start" ? "justify-start pr-1" : "justify-end pl-1",
+          "flex min-w-0 flex-1 items-center gap-1 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          align === "start" ? "justify-start pr-0.5" : "justify-end pl-0.5",
           "hover:bg-white/[0.08] active:scale-[0.98]",
         )}
       >
@@ -876,13 +876,13 @@ function MatchRow({
   return (
     <div
       className={cn(
-        "flex min-h-[32px] items-center gap-1.5 px-1 py-0.5",
+        "flex min-h-[32px] items-center gap-1 px-0.5 py-0.5",
         interactive && !onClubSelect && "rounded-lg hover:bg-white/[0.04]",
         live && "rounded-lg bg-[#00f948]/[0.06]",
       )}
     >
       <ClubSide side={match.teamH} align="start" />
-      <div className="flex w-[52px] shrink-0 flex-col items-center justify-center">
+      <div className="flex w-[48px] shrink-0 flex-col items-center justify-center">
         {hasScore ? (
           <span className="text-[13px] font-black tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {match.scoreH}
