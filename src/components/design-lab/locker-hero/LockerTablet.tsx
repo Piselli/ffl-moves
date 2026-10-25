@@ -882,33 +882,33 @@ function MatchRow({
       )}
     >
       <ClubSide side={match.teamH} align="start" />
-      <div className="flex w-[48px] shrink-0 flex-col items-center justify-center">
+      {/* Time/score shares the crest baseline; FT/Live sits absolutely under it. */}
+      <div className="relative flex w-[48px] shrink-0 items-center justify-center">
         {hasScore ? (
-          <span className="text-[13px] font-black tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+          <span className="text-[13px] font-black leading-none tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {match.scoreH}
             <span className="px-0.5 text-[color:var(--lt-ink)]/35">–</span>
             {match.scoreA}
           </span>
         ) : scorePending ? (
-          <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-muted)]">
+          <span className="text-[12px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-muted)]">
             —
           </span>
         ) : (
-          <span className="text-[12px] font-bold tabular-nums tracking-tight text-[color:var(--lt-ink)]">
+          <span className="text-[12px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--lt-ink)]">
             {formatKickoffTime(match.kickoffTime, locale)}
           </span>
         )}
-        {/* Always reserve status-line height so Live/FT doesn't reflow the list. */}
         <span
           className={cn(
-            "mt-0.5 h-[10px] text-[8px] font-bold uppercase leading-none tracking-[0.12em]",
+            "pointer-events-none absolute left-1/2 top-full mt-0.5 -translate-x-1/2 text-[8px] font-bold uppercase leading-none tracking-[0.12em]",
             hasScore
               ? live
                 ? "text-[color:var(--lt-accent)]"
                 : "text-[color:var(--lt-muted)]"
               : scorePending
                 ? "text-[color:var(--lt-muted)]"
-                : "text-transparent",
+                : "invisible",
           )}
         >
           {hasScore ? (live ? "Live" : "FT") : scorePending ? "…" : "·"}
