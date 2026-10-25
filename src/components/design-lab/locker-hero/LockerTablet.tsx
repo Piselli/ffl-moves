@@ -844,17 +844,10 @@ function MatchRow({
       </>
     );
 
-    // Pack crest+code toward the kickoff column (not the outer edges).
-    const towardCenter = align === "start" ? "justify-end" : "justify-start";
-
+    // Midpoint between outer-edge packing and flush-to-kickoff.
     if (!onClubSelect) {
       return (
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 items-center gap-1.5",
-            towardCenter,
-          )}
-        >
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
           {body}
         </div>
       );
@@ -865,12 +858,7 @@ function MatchRow({
         type="button"
         onClick={() => onClubSelect(side.name)}
         title={`Show ${side.name} players`}
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          towardCenter,
-          align === "start" ? "pr-0.5" : "pl-0.5",
-          "hover:bg-white/[0.08] active:scale-[0.98]",
-        )}
+        className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.98]"
       >
         {body}
       </button>
