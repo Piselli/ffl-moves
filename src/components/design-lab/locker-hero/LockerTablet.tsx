@@ -844,10 +844,17 @@ function MatchRow({
       </>
     );
 
-    // Midpoint between outer-edge packing and flush-to-kickoff.
+    // Align packs with the Gameweek / matches header edges (not centered in the half).
+    const toHeaderEdge = align === "start" ? "justify-start" : "justify-end";
+
     if (!onClubSelect) {
       return (
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-1.5",
+            toHeaderEdge,
+          )}
+        >
           {body}
         </div>
       );
@@ -858,7 +865,11 @@ function MatchRow({
         type="button"
         onClick={() => onClubSelect(side.name)}
         title={`Show ${side.name} players`}
-        className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/[0.08] active:scale-[0.98]"
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-0.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          toHeaderEdge,
+          "hover:bg-white/[0.08] active:scale-[0.98]",
+        )}
       >
         {body}
       </button>
@@ -868,7 +879,7 @@ function MatchRow({
   return (
     <div
       className={cn(
-        "flex min-h-[32px] items-center gap-1.5 px-0.5 py-0.5",
+        "flex min-h-[32px] items-center gap-1.5 px-0 py-0.5",
         interactive && !onClubSelect && "rounded-lg hover:bg-white/[0.04]",
         live && "rounded-lg bg-[#00f948]/[0.06]",
       )}
@@ -1673,7 +1684,7 @@ export function LockerTablet({
 
           <div
             data-lt-scroll
-            className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-0.5 py-0.5"
+            className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-1 py-0.5"
             style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
           >
             {fixturesLoading ? (
