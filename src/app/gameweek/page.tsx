@@ -20,7 +20,7 @@ import {
   DEFAULT_FORMATION,
   inferFormationFromPositions,
   loadFormationId,
-  remapStartersToFormation,
+  remapSquadToFormation,
   saveFormationId,
   slotPosition,
   type FormationId,
@@ -162,7 +162,9 @@ export default function GameweekPage() {
   const setFormationId = (id: FormationId) => {
     setFormationIdState(id);
     saveFormationId(id);
-    setStarters((prev) => remapStartersToFormation(prev, id));
+    const remapped = remapSquadToFormation(starters, bench, id);
+    setStarters(remapped.starters);
+    setBench(remapped.bench);
   };
 
   const officialResolved = useMemo(() => {
