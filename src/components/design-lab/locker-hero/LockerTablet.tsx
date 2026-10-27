@@ -54,6 +54,7 @@ import {
   PlayerAvailabilityMark,
   useTourInjuries,
 } from "./PlayerAvailabilityMark";
+import { availabilityFromFpl } from "@/lib/playerAvailability";
 import {
   DEFAULT_FORMATION,
   PITCH_SLOT_LAYOUTS,
@@ -2049,10 +2050,14 @@ export function LockerTablet({
                 const clubCapped =
                   !taken && (clubCounts[p.teamId] ?? 0) >= MAX_PER_CLUB;
                 const flash = flashPickId === p.id;
+                // Prefer match-specific API-Sports rows; fall back to FPL i/d/s
+                // (upcoming tours often have empty `/injuries` until near KO).
                 const avail =
-                  p.apiId != null && p.apiId > 0
+                  (p.apiId != null && p.apiId > 0
                     ? tourInjuries.byApiId[String(p.apiId)]
-                    : undefined;
+                    : undefined) ??
+                  availabilityFromFpl(p) ??
+                  undefined;
                 const rowDisabled = squadLocked || taken || clubCapped;
                 return (
                   <div

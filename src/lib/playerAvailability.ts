@@ -1,6 +1,9 @@
 /**
- * Tour availability from API-Sports `/injuries` (per-fixture).
- * No FPL status — intentional; we already pay for API-Sports and own the mapping.
+ * Tour availability marks for the squad picker.
+ *
+ * Primary: API-Sports `/injuries` for the open tour's fixtures.
+ * Fallback: FPL bootstrap status (i/d/s) — API-Sports often has no rows for
+ * upcoming fixtures until closer to kickoff, which would otherwise hide every mark.
  */
 
 export type AvailabilityKind = "out" | "doubt" | "suspended";
@@ -65,4 +68,58 @@ export function preferAvailability(
 ): PlayerAvailability {
   if (!a) return b;
   return KIND_RANK[b.kind] > KIND_RANK[a.kind] ? b : a;
+}
+
+/**
+ * Map FPL element status → picker mark.
+ * FPL: a=available, d=doubtful, i=injured, s=suspended, u=unavailable (filtered upstream).
+ */
+export function availabilityFromFpl(input: {
+  status?: string | null;
+  news?: string | null;
+  chanceOfPlaying?: number | null;
+}): PlayerAvailability | null {
+  const status = (input.status || "").trim().toLowerCase();
+  if (!status || status === "a") return null;
+
+  const news = (input.news || "").trim();
+  const chance =
+    input.chanceOfPlaying != null && Number.isFinite(Number(input.chanceOfPlaying))
+      ? Number(input.chanceOfPlaying)
+      : null;
+
+  if (status === "i") {
+    return {
+      kind: "out",
+      type: "Injured",
+      reason: news || "Injury",
+    };
+  }
+  if (status === "s") {
+    return {
+      kind: "suspended",
+      type: "Suspended",
+      reason: news || "Suspended",
+    };
+  }
+  if (status === "d") {
+    const reason =
+      news ||
+      (chance != null ? `Doubtful (${chance}% chance)` : "Doubtful");
+    return {
+      kind: "doubt",
+      type: "Questionable",
+      reason,
+    };
+  }
+
+  // Rare FPL codes (n=not available, etc.) — treat as out when news exists.
+  if (news) {
+    return {
+      kind: "out",
+      type: status,
+      reason: news,
+    };
+  }
+  return null;
 }

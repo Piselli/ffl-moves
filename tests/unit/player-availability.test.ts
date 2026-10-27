@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  availabilityFromFpl,
   classifyInjuryRow,
   preferAvailability,
   type PlayerAvailability,
@@ -32,4 +33,24 @@ test("preferAvailability keeps the more severe mark", () => {
   };
   assert.equal(preferAvailability(doubt, out).kind, "out");
   assert.equal(preferAvailability(out, doubt).kind, "out");
+});
+
+test("availabilityFromFpl maps i/d/s and ignores available", () => {
+  assert.equal(availabilityFromFpl({ status: "a" }), null);
+  assert.equal(
+    availabilityFromFpl({ status: "i", news: "Knee injury" })?.kind,
+    "out",
+  );
+  assert.equal(
+    availabilityFromFpl({
+      status: "d",
+      chanceOfPlaying: 75,
+      news: "Hip injury - 75% chance of playing",
+    })?.kind,
+    "doubt",
+  );
+  assert.equal(
+    availabilityFromFpl({ status: "s", news: "Suspended until 8 Nov" })?.kind,
+    "suspended",
+  );
 });
