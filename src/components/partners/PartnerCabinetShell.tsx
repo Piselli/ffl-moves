@@ -63,10 +63,9 @@ function fmtFee(n: number): string {
   return Number(n ?? 0).toFixed(1);
 }
 
-function campaignLabel(raw: string): string {
-  if (!raw || raw === "(default)") return "Main link";
-  return raw;
-}
+/** Shared fixed cols so Codes + Campaigns line up (Code | Campaign | metrics…). */
+const STAT_COLS =
+  "grid w-full grid-cols-[minmax(5.5rem,1fr)_minmax(5.5rem,1fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)] gap-x-2 items-center text-sm";
 
 export function PartnerCabinetShell() {
   const reduceMotion = useReducedMotion();
@@ -421,10 +420,6 @@ export function PartnerCabinetShell() {
                       under a code{" "}
                       <code className="text-white/50">/r/code/creo1</code>
                     </li>
-                    <li>
-                      <span className="font-semibold text-white/65">Main link</span> in campaigns
-                      = visits without a creative suffix.
-                    </li>
                     <li>Fee vol is estimated entry-fee volume for manual payouts.</li>
                   </ul>
                 </GlassPanel>
@@ -445,46 +440,45 @@ export function PartnerCabinetShell() {
                   </button>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
-                        <th className="py-2 pr-3 font-medium">Code</th>
-                        <th className="px-3 py-2 text-right font-medium">Clicks</th>
-                        <th className="px-3 py-2 text-right font-medium">Signups</th>
-                        <th className="px-3 py-2 text-right font-medium">Fee</th>
-                        <th className="px-3 py-2 text-right font-medium">CR</th>
-                        <th className="py-2 pl-3 text-right font-medium">Last</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.codes.map((s, i) => (
-                        <motion.tr
-                          key={s.code}
-                          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.04, duration: 0.25 }}
-                          className="border-b border-white/[0.05] last:border-0"
-                        >
-                          <td className="py-2.5 pr-3 font-mono text-[#00f948]">{s.code}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                            {s.clicks}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
-                            {s.signups}
-                          </td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-emerald-300/85">
-                            {fmtFee(s.estimatedFeeVolumeUsdc)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                            {pct(s.conversionRate)}
-                          </td>
-                          <td className="py-2.5 pl-3 text-right text-white/35">
-                            {fmtDate(s.lastActivity)}
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div
+                    className={cn(
+                      STAT_COLS,
+                      "border-b border-white/10 py-2 text-[10px] uppercase tracking-wider text-white/35",
+                    )}
+                  >
+                    <span className="font-medium">Code</span>
+                    <span aria-hidden className="font-medium opacity-0">
+                      Campaign
+                    </span>
+                    <span className="text-right font-medium">Clicks</span>
+                    <span className="text-right font-medium">Signups</span>
+                    <span className="text-right font-medium">Fee</span>
+                    <span className="text-right font-medium">CR</span>
+                    <span className="text-right font-medium">Last</span>
+                  </div>
+                  {data.codes.map((s, i) => (
+                    <motion.div
+                      key={s.code}
+                      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.25 }}
+                      className={cn(STAT_COLS, "border-b border-white/[0.05] py-2.5 last:border-0")}
+                    >
+                      <span className="truncate font-mono text-[#00f948]">{s.code}</span>
+                      <span aria-hidden />
+                      <span className="text-right tabular-nums text-white/75">{s.clicks}</span>
+                      <span className="text-right font-semibold tabular-nums text-white">
+                        {s.signups}
+                      </span>
+                      <span className="text-right tabular-nums text-emerald-300/85">
+                        {fmtFee(s.estimatedFeeVolumeUsdc)}
+                      </span>
+                      <span className="text-right tabular-nums text-white/75">
+                        {pct(s.conversionRate)}
+                      </span>
+                      <span className="text-right text-white/35">{fmtDate(s.lastActivity)}</span>
+                    </motion.div>
+                  ))}
                 </div>
 
                 {(data.campaigns?.length ?? 0) > 0 ? (
@@ -493,49 +487,45 @@ export function PartnerCabinetShell() {
                       Campaigns
                     </p>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
-                            <th className="py-2 pr-3 font-medium">Code</th>
-                            <th className="px-3 py-2 font-medium">Campaign</th>
-                            <th className="px-3 py-2 text-right font-medium">Clicks</th>
-                            <th className="px-3 py-2 text-right font-medium">Signups</th>
-                            <th className="px-3 py-2 text-right font-medium">Fee</th>
-                            <th className="px-3 py-2 text-right font-medium">CR</th>
-                            <th className="py-2 pl-3 text-right font-medium">Last</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {data.campaigns!.map((s) => (
-                            <tr
-                              key={`${s.code}:${s.campaign}`}
-                              className="border-b border-white/[0.05] last:border-0"
-                            >
-                              <td className="py-2.5 pr-3 font-mono text-emerald-300/80">
-                                {s.code}
-                              </td>
-                              <td className="px-3 py-2.5 text-white/80">
-                                {campaignLabel(s.campaign)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                                {s.clicks}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
-                                {s.signups}
-                              </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-emerald-300/85">
-                                {fmtFee(s.estimatedFeeVolumeUsdc)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                                {pct(s.conversionRate)}
-                              </td>
-                              <td className="py-2.5 pl-3 text-right text-white/35">
-                                {fmtDate(s.lastActivity)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div
+                        className={cn(
+                          STAT_COLS,
+                          "border-b border-white/10 py-2 text-[10px] uppercase tracking-wider text-white/35",
+                        )}
+                      >
+                        <span className="font-medium">Code</span>
+                        <span className="font-medium">Campaign</span>
+                        <span className="text-right font-medium">Clicks</span>
+                        <span className="text-right font-medium">Signups</span>
+                        <span className="text-right font-medium">Fee</span>
+                        <span className="text-right font-medium">CR</span>
+                        <span className="text-right font-medium">Last</span>
+                      </div>
+                      {data.campaigns!.map((s) => (
+                        <div
+                          key={`${s.code}:${s.campaign}`}
+                          className={cn(
+                            STAT_COLS,
+                            "border-b border-white/[0.05] py-2.5 last:border-0",
+                          )}
+                        >
+                          <span className="truncate font-mono text-emerald-300/80">{s.code}</span>
+                          <span className="truncate text-white/80">{s.campaign}</span>
+                          <span className="text-right tabular-nums text-white/75">{s.clicks}</span>
+                          <span className="text-right font-semibold tabular-nums text-white">
+                            {s.signups}
+                          </span>
+                          <span className="text-right tabular-nums text-emerald-300/85">
+                            {fmtFee(s.estimatedFeeVolumeUsdc)}
+                          </span>
+                          <span className="text-right tabular-nums text-white/75">
+                            {pct(s.conversionRate)}
+                          </span>
+                          <span className="text-right text-white/35">
+                            {fmtDate(s.lastActivity)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : null}

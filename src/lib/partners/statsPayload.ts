@@ -50,13 +50,18 @@ export async function buildPartnerStatsPayload(partner: ReferralPartner) {
     lastActivity: s.lastActivity,
   }));
 
+  // Only real creatives (/r/code/creo). Bare /r/code traffic lives in Codes only.
   const campaignRows = campaigns
-    .filter((s) => allow.has(normalizeCode(s.code) ?? s.code))
+    .filter((s) => {
+      if (!allow.has(normalizeCode(s.code) ?? s.code)) return false;
+      const camp = (s.campaign || "").trim();
+      return Boolean(camp) && camp !== "(default)";
+    })
     .map((s) => ({
       code: s.code,
-      campaign: s.campaign || "(default)",
-      link: buildShortReferralLink(base, s.code, s.campaign || null),
-      linkClassic: buildReferralLink(base, s.code, s.campaign || null),
+      campaign: s.campaign,
+      link: buildShortReferralLink(base, s.code, s.campaign),
+      linkClassic: buildReferralLink(base, s.code, s.campaign),
       clicks: s.clicks,
       signups: s.signups,
       conversionRate: s.conversionRate,
