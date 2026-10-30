@@ -128,7 +128,7 @@ export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
                 <div className="mb-5 flex justify-center">
                   <Form8Lockup wordmarkClassName="text-white/85" />
                 </div>
-                <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#00f948]/80">
+                <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
                   Partners
                 </p>
                 <h2

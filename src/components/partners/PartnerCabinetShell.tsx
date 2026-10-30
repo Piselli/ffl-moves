@@ -65,11 +65,15 @@ function fmtFee(n: number): string {
   return Number(n ?? 0).toFixed(1);
 }
 
-/** Code hugs content; metrics share the remaining width so Last doesn't wrap. */
-const STAT_COLS_BASE =
-  "grid w-full items-center gap-x-3 text-sm sm:gap-x-5 grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(8.75rem,1.2fr)]";
-const STAT_COLS_WITH_CREO =
-  "grid w-full items-center gap-x-3 text-sm sm:gap-x-5 grid-cols-[auto_minmax(5.5rem,0.95fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(8.75rem,1.2fr)]";
+/** Side rail: Your codes + How links work share this width. */
+const SIDE_GRID = "grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]";
+
+const LABEL =
+  "text-[10px] font-bold uppercase tracking-[0.14em] text-white/60";
+const TH =
+  "py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70";
+const QUIET_BTN =
+  "rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white/80 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white disabled:opacity-40";
 
 type StatTableRow =
   | { kind: "code"; stat: ReferralStat }
@@ -156,7 +160,6 @@ export function PartnerCabinetShell() {
   }, [selectedCode, newCampaign]);
 
   const hasCreatives = (data?.campaigns?.length ?? 0) > 0;
-  const statCols = hasCreatives ? STAT_COLS_WITH_CREO : STAT_COLS_BASE;
 
   const tableRows = useMemo((): StatTableRow[] => {
     if (!data) return [];
@@ -278,47 +281,37 @@ export function PartnerCabinetShell() {
             ) : null}
 
             <div className="flex flex-col gap-5">
-              {/* Stats + Your codes — same row, equal height */}
-              <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+              {/* Stats + Your codes */}
+              <div className={SIDE_GRID}>
                 <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-5 sm:px-5 sm:py-6">
                   <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Registrations
-                      </p>
-                      <p className="mt-1 font-display text-4xl font-black tabular-nums tracking-tight text-[#00f948] sm:text-[2.75rem]">
+                      <p className={LABEL}>Registrations</p>
+                      <p className="mt-1 font-display text-4xl font-black tabular-nums tracking-tight text-white sm:text-[2.75rem]">
                         {data.totals.signups.toLocaleString()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Clicks
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      <p className={LABEL}>Clicks</p>
+                      <p className="mt-1 font-display text-3xl font-black tabular-nums text-white">
                         {data.totals.clicks.toLocaleString()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        CR
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      <p className={LABEL}>CR</p>
+                      <p className="mt-1 font-display text-3xl font-black tabular-nums text-white">
                         {pct(data.totals.conversionRate)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Fee vol
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums text-white/90">
+                      <p className={LABEL}>Fee vol</p>
+                      <p className="mt-1 font-display text-3xl font-black tabular-nums text-white">
                         {fmtFee(data.totals.estimatedFeeVolumeUsdc)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Wallets
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      <p className={LABEL}>Wallets</p>
+                      <p className="mt-1 font-display text-3xl font-black tabular-nums text-white">
                         {conversionCount.toLocaleString()}
                       </p>
                     </div>
@@ -331,9 +324,7 @@ export function PartnerCabinetShell() {
                 </GlassPanel>
 
                 <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Your codes
-                  </p>
+                  <p className={LABEL}>Your codes</p>
                   <ul className="mt-3 flex-1 space-y-2">
                     {data.partner.codes.map((c) => (
                       <li key={c}>
@@ -346,12 +337,12 @@ export function PartnerCabinetShell() {
                           className={cn(
                             "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition",
                             selectedCode === c
-                              ? "border-[#00f948]/35 bg-[#00f948]/10"
-                              : "border-white/10 bg-black/30 hover:border-white/20",
+                              ? "border-white/30 bg-white/[0.08]"
+                              : "border-white/12 bg-black/30 hover:border-white/22",
                           )}
                         >
-                          <span className="font-mono text-sm text-[#00f948]">{c}</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+                          <span className="font-mono text-sm text-white/90">{c}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">
                             {copied === `code-${c}` ? "Copied" : "Copy"}
                           </span>
                         </button>
@@ -361,16 +352,14 @@ export function PartnerCabinetShell() {
                 </GlassPanel>
               </div>
 
-              {/* Create link + how it works */}
-              <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              {/* Create link + How links work — same side rail width */}
+              <div className={SIDE_GRID}>
                 <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-5 sm:px-5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Create link
-                  </p>
+                  <p className={LABEL}>Create link</p>
 
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="mb-1.5 text-[11px] font-semibold text-white/55">
+                      <p className="mb-1.5 text-[12px] font-medium text-white/70">
                         New referral code
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -384,15 +373,15 @@ export function PartnerCabinetShell() {
                           type="button"
                           disabled={creating || !newCode.trim()}
                           onClick={() => void createCode()}
-                          className="shrink-0 rounded-xl border border-[#00f948]/35 bg-[#00f948]/15 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#00f948] transition hover:bg-[#00f948]/25 disabled:opacity-40"
+                          className={cn(QUIET_BTN, "shrink-0 px-4")}
                         >
                           {creating ? "Creating…" : "Create code"}
                         </button>
                       </div>
                     </div>
 
-                    <div className="border-t border-white/[0.06] pt-4">
-                      <p className="mb-1.5 text-[11px] font-semibold text-white/55">
+                    <div className="border-t border-white/[0.08] pt-4">
+                      <p className="mb-1.5 text-[12px] font-medium text-white/70">
                         Creative under a code
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -410,22 +399,22 @@ export function PartnerCabinetShell() {
                         <input
                           value={newCampaign}
                           onChange={(e) => setNewCampaign(e.target.value)}
-                          placeholder="creative (stories-1, creo1…)"
+                          placeholder="stories-1, creo1…"
                           className="min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/28 focus:outline-none"
                         />
                       </div>
                     </div>
 
                     {generatedLink ? (
-                      <div className="border-t border-white/[0.06] pt-4">
+                      <div className="border-t border-white/[0.08] pt-4">
                         <div className="flex items-center gap-2">
-                          <code className="min-w-0 flex-1 break-all rounded-xl border border-white/10 bg-black/45 px-3 py-2.5 text-[13px] text-[#00f948]">
+                          <code className="min-w-0 flex-1 break-all rounded-xl border border-white/10 bg-black/45 px-3 py-2.5 font-mono text-[13px] text-white/85">
                             {generatedLink}
                           </code>
                           <button
                             type="button"
                             onClick={() => copy(generatedLink, "gen")}
-                            className="shrink-0 rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white/75 transition hover:border-white/30 hover:text-white"
+                            className={cn(QUIET_BTN, "shrink-0")}
                           >
                             {copied === "gen" ? "Copied" : "Copy"}
                           </button>
@@ -435,121 +424,125 @@ export function PartnerCabinetShell() {
                   </div>
                 </GlassPanel>
 
-                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4 sm:px-5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    How links work
-                  </p>
-                  <div className="mt-4 flex flex-1 flex-col">
-                    <div className="space-y-0 divide-y divide-white/[0.06]">
-                      <div className="pb-3.5">
-                        <code className="block font-mono text-[12px] leading-none text-[#00f948]">
-                          /r/bonus50
-                        </code>
-                        <p className="mt-1.5 text-[12px] leading-snug text-white/42">
-                          Code — total for the main link
-                        </p>
-                      </div>
-                      <div className="py-3.5">
-                        <code className="block font-mono text-[12px] leading-none text-white/70">
-                          /r/bonus50/stories-1
-                        </code>
-                        <p className="mt-1.5 text-[12px] leading-snug text-white/42">
-                          Creative — same code, tagged traffic
-                        </p>
-                      </div>
-                    </div>
-                    <p className="mt-auto border-t border-white/[0.06] pt-3.5 text-[11px] leading-snug text-white/30">
-                      Fee vol estimates entry-fee volume for payouts.
-                    </p>
-                  </div>
+                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
+                  <p className={LABEL}>How links work</p>
+                  <ol className="mt-3 flex flex-1 flex-col gap-3.5">
+                    <li>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">
+                        1 · Code
+                      </p>
+                      <code className="mt-1.5 block font-mono text-[12px] text-white/88">
+                        /r/bonus50
+                      </code>
+                      <p className="mt-1 text-[12px] leading-snug text-white/55">
+                        Main link. Totals live on this row.
+                      </p>
+                    </li>
+                    <li>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">
+                        2 · Creative
+                      </p>
+                      <code className="mt-1.5 block font-mono text-[12px] text-white/88">
+                        /r/bonus50/stories-1
+                      </code>
+                      <p className="mt-1 text-[12px] leading-snug text-white/55">
+                        Same code, tagged traffic — extra row when it has clicks.
+                      </p>
+                    </li>
+                    <li className="mt-auto border-t border-white/[0.08] pt-3">
+                      <p className="text-[11px] leading-snug text-white/45">
+                        Fee vol = estimated entry-fee volume for payouts.
+                      </p>
+                    </li>
+                  </ol>
                 </GlassPanel>
               </div>
 
               <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Links
-                  </p>
+                  <p className={LABEL}>Links</p>
                   <button
                     type="button"
                     onClick={() => void loadStats()}
                     disabled={statsLoading}
-                    className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40 transition hover:text-white/70 disabled:opacity-40"
+                    className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55 transition hover:text-white disabled:opacity-40"
                   >
                     {statsLoading ? "Refreshing…" : "Refresh"}
                   </button>
                 </div>
                 <div className="overflow-x-auto">
-                  <div
-                    className={cn(
-                      statCols,
-                      "border-b border-white/10 py-2 text-[10px] uppercase tracking-wider text-white/35",
-                    )}
-                  >
-                    <span className="font-medium">Code</span>
-                    {hasCreatives ? (
-                      <span className="font-medium">Creative</span>
-                    ) : null}
-                    <span className="text-right font-medium">Clicks</span>
-                    <span className="text-right font-medium">Signups</span>
-                    <span className="text-right font-medium">Fee</span>
-                    <span className="text-right font-medium">CR</span>
-                    <span className="text-right font-medium">Last</span>
-                  </div>
-                  {tableRows.map((row, i) => {
-                    const s = row.stat;
-                    const isCreo = row.kind === "campaign";
-                    return (
-                      <motion.div
-                        key={
-                          isCreo
-                            ? `${s.code}:${(s as CampaignStat).campaign}`
-                            : s.code
-                        }
-                        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.03, duration: 0.22 }}
-                        className={cn(
-                          statCols,
-                          "border-b border-white/[0.05] py-2.5 last:border-0",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "whitespace-nowrap font-mono",
-                            isCreo ? "pl-3 text-white/35" : "text-[#00f948]",
-                          )}
-                        >
-                          {s.code}
-                        </span>
+                  <table className="w-full min-w-[36rem] table-fixed border-collapse text-sm">
+                    <colgroup>
+                      <col className={hasCreatives ? "w-[18%]" : "w-[22%]"} />
+                      {hasCreatives ? <col className="w-[16%]" /> : null}
+                      <col className="w-[12%]" />
+                      <col className="w-[12%]" />
+                      <col className="w-[12%]" />
+                      <col className="w-[12%]" />
+                      <col className="w-[18%]" />
+                    </colgroup>
+                    <thead>
+                      <tr className="border-b border-white/15">
+                        <th className={cn(TH, "pr-3 text-left")}>Code</th>
                         {hasCreatives ? (
-                          <span
-                            className={cn(
-                              "truncate",
-                              isCreo ? "text-white/85" : "text-white/25",
-                            )}
-                          >
-                            {isCreo ? (s as CampaignStat).campaign : "—"}
-                          </span>
+                          <th className={cn(TH, "px-2 text-left")}>Creative</th>
                         ) : null}
-                        <span className="text-right tabular-nums text-white/75">
-                          {s.clicks}
-                        </span>
-                        <span className="text-right font-semibold tabular-nums text-white">
-                          {s.signups}
-                        </span>
-                        <span className="text-right tabular-nums text-emerald-300/85">
-                          {fmtFee(s.estimatedFeeVolumeUsdc)}
-                        </span>
-                        <span className="text-right tabular-nums text-white/75">
-                          {pct(s.conversionRate)}
-                        </span>
-                        <span className="whitespace-nowrap text-right text-white/35">
-                          {fmtDate(s.lastActivity)}
-                        </span>
-                      </motion.div>
-                    );
-                  })}
+                        <th className={cn(TH, "px-1 text-center")}>Clicks</th>
+                        <th className={cn(TH, "px-1 text-center")}>Signups</th>
+                        <th className={cn(TH, "px-1 text-center")}>Fee</th>
+                        <th className={cn(TH, "px-1 text-center")}>CR</th>
+                        <th className={cn(TH, "pl-2 text-right")}>Last</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableRows.map((row, i) => {
+                        const s = row.stat;
+                        const isCreo = row.kind === "campaign";
+                        return (
+                          <motion.tr
+                            key={
+                              isCreo
+                                ? `${s.code}:${(s as CampaignStat).campaign}`
+                                : s.code
+                            }
+                            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.03, duration: 0.2 }}
+                            className="border-b border-white/[0.06] last:border-0"
+                          >
+                            <td
+                              className={cn(
+                                "py-2.5 pr-3 font-mono whitespace-nowrap",
+                                isCreo ? "pl-3 text-white/45" : "text-white",
+                              )}
+                            >
+                              {s.code}
+                            </td>
+                            {hasCreatives ? (
+                              <td className="truncate px-2 py-2.5 text-white/80">
+                                {isCreo ? (s as CampaignStat).campaign : "—"}
+                              </td>
+                            ) : null}
+                            <td className="px-1 py-2.5 text-center tabular-nums text-white/85">
+                              {s.clicks}
+                            </td>
+                            <td className="px-1 py-2.5 text-center font-semibold tabular-nums text-white">
+                              {s.signups}
+                            </td>
+                            <td className="px-1 py-2.5 text-center tabular-nums text-white/85">
+                              {fmtFee(s.estimatedFeeVolumeUsdc)}
+                            </td>
+                            <td className="px-1 py-2.5 text-center tabular-nums text-white/85">
+                              {pct(s.conversionRate)}
+                            </td>
+                            <td className="whitespace-nowrap py-2.5 pl-2 text-right text-white/55">
+                              {fmtDate(s.lastActivity)}
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </GlassPanel>
             </div>

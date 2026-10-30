@@ -1,0 +1,17 @@
+---
+description: FORM8 UI — load anti-slop / product / modal / motion skills before visual work
+globs: src/components/**/*.{tsx,ts,css}, src/app/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# FORM8 UI work
+
+Before changing visible UI on this repo, read and follow:
+
+1. `.cursor/skills/form8-anti-slop/SKILL.md`
+2. `.cursor/skills/form8-product-ui/SKILL.md` (cabinets, tables, side rails)
+3. `.cursor/skills/form8-modals/SKILL.md` (any overlay / z-index / login)
+4. `.cursor/skills/form8-motion/SKILL.md` + `.agents/skills/emil-design-eng/SKILL.md` when animating
+5. `.agents/skills/refero-design/SKILL.md` for net-new visual direction
+
+Do not ship neon glow CTAs, unreadable labels, or stacked modals over the wallet picker.
