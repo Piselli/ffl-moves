@@ -54,7 +54,11 @@ function publicEnvFromEnvLocal() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["helius-wallet-kit", "@turnkey/react-wallet-kit"],
+  transpilePackages: [
+    "helius-wallet-kit",
+    "@turnkey/react-wallet-kit",
+    "@imgly/background-removal",
+  ],
   env: publicEnvFromEnvLocal(),
   async redirects() {
     return [
@@ -78,18 +82,59 @@ const nextConfig = {
       },
     ];
   },
-  webpack: (config, { dev, webpack: webpackApi }) => {
+  webpack: (config, { dev, isServer, webpack: webpackApi }) => {
     config.resolve.fallback = {
       fs: false,
       net: false,
       tls: false,
       buffer: require.resolve("buffer/"),
     };
+    // Browser cutout (@imgly) — never pull Node ORT / sharp into the client bundle.
+    // ort.node*.mjs also breaks Terser (import.meta / ESM outside module).
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      sharp$: false,
+      "onnxruntime-node$": false,
+      "onnxruntime-web/dist/ort.node.min.mjs": false,
+      "onnxruntime-web/dist/ort.node.min.js": false,
+    };
     config.plugins.push(
       new webpackApi.ProvidePlugin({
         Buffer: ["buffer", "Buffer"],
       }),
+      new webpackApi.IgnorePlugin({
+        resourceRegExp: /ort\.node\.(min\.)?(mjs|js)$/,
+      }),
     );
+    // onnxruntime-web ships prebundled ESM; Terser chokes on import.meta inside it.
+    if (!dev && Array.isArray(config.optimization?.minimizer)) {
+      for (const plugin of config.optimization.minimizer) {
+        if (plugin?.constructor?.name !== "TerserPlugin") continue;
+        const prev = plugin.options?.exclude;
+        plugin.options = {
+          ...plugin.options,
+          exclude: [
+            ...(Array.isArray(prev) ? prev : prev ? [prev] : []),
+            /node_modules[\\/]onnxruntime-web[\\/]/,
+          ],
+        };
+      }
+    }
+    if (!isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals)
+          ? config.externals
+          : config.externals
+            ? [config.externals]
+            : []),
+        ({ request }, callback) => {
+          if (request && /ort\.node\./.test(request)) {
+            return callback(null, "commonjs " + request);
+          }
+          callback();
+        },
+      ];
+    }
     // macOS часто дає EMFILE на нативному watch — polling зменшує кількість file descriptors
     if (dev) {
       config.watchOptions = {
