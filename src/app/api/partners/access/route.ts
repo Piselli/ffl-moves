@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * GET ?wallet= — whether this connected wallet should see the Partners nav tab.
+ * GET ?wallet= — whether this connected wallet may open Partners (account area).
  * Does not grant cabinet access (that still requires a signed login).
  */
 export async function GET(req: NextRequest) {

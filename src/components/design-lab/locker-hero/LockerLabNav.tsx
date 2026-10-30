@@ -193,10 +193,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
   });
 
   const partnerAccess = usePartnerAccess(address);
-  const links = [
-    ...primarySiteNavLinks(m),
-    ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
-  ];
+  const links = primarySiteNavLinks(m);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -279,9 +276,6 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
 
               <Links
                 liveLinks={liveLinks}
-                extraLinks={
-                  partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []
-                }
                 className="relative z-10 shrink-0"
                 linkClassName={cn(
                   "text-white",
@@ -451,6 +445,15 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
                 >
                   {myNickname ?? (address ? shortenAddress(address) : walletName ?? "…")}
                 </button>
+                {partnerAccess ? (
+                  <Link
+                    href="/partners"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/[0.05] hover:text-white"
+                  >
+                    {m.nav.partners}
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => {

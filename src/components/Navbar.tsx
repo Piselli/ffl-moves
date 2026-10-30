@@ -7,7 +7,6 @@ import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
-import { usePartnerAccess } from "@/hooks/usePartnerAccess";
 import { cn, shortenAddress } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { claimNickname } from "@/lib/nicknamesClient";
@@ -53,7 +52,6 @@ export function Navbar() {
   const wcSurface = isWorldCupSurfaceVisible();
   const { connected, connecting, authReady, address, disconnect, walletName, signMessage } =
     useWallet();
-  const partnerAccess = usePartnerAccess(address);
   const navLinks = (wcCampaign
     ? [
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup, featured: true }] : []),
@@ -65,12 +63,10 @@ export function Navbar() {
             ]
           : []),
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
-        ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
       ]
     : [
         ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
-        ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();

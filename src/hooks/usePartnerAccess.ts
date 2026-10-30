@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-/** Whether the connected wallet should see the Partners nav item. */
+/** Whether the connected wallet may open Partners (nickname sheet / account area). */
 export function usePartnerAccess(wallet: string | null | undefined) {
   const [allowed, setAllowed] = useState(false);
 

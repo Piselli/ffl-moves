@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GlassPanel } from "@/components/design-lab/locker-hero/GlassPanel";
 import {
@@ -10,6 +11,7 @@ import {
   normalizeInviteCode,
   storeInviteCode,
 } from "@/lib/inviteClient";
+import { usePartnerAccess } from "@/hooks/usePartnerAccess";
 import { cn } from "@/lib/utils";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
 
@@ -46,6 +48,7 @@ export function NicknameModal({
   const inv = useSiteMessages().pages.inviteEntry;
   const m = useSiteMessages();
   const reduce = Boolean(useReducedMotion());
+  const partnerAccess = usePartnerAccess(address);
   const [value, setValue] = useState(currentNickname ?? "");
   const [inviteCode, setInviteCode] = useState("");
   const [savedInvite, setSavedInvite] = useState<string | null>(null);
@@ -299,6 +302,25 @@ export function NicknameModal({
                     </p>
                   </div>
                 </div>
+              ) : null}
+
+              {partnerAccess ? (
+                <Link
+                  href="/partners"
+                  onClick={handleDismiss}
+                  className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/15 bg-black/25 px-3.5 py-3 text-[13px] font-bold uppercase tracking-[0.08em] text-white/75 transition-[border-color,background-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-white/30 hover:bg-white/[0.05] hover:text-white active:scale-[0.99]"
+                >
+                  {m.nav.partners}
+                  <svg className="h-4 w-4 text-white/40" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M9 6l6 6-6 6"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Link>
               ) : null}
 
               <div className="mt-5 flex gap-2">
