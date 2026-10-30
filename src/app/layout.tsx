@@ -10,6 +10,7 @@ import { DevChainBanner } from "@/components/DevChainBanner";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { InviteCapture } from "@/components/InviteCapture";
+import { AuthConnectTracker } from "@/components/AuthConnectTracker";
 import { PrizeAssetProvider } from "@/components/PrizeAssetProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -74,6 +75,17 @@ export default function RootLayout({
             which Next 14 postcss cannot compile from node_modules). */}
         <link rel="stylesheet" href="/vendor/turnkey-wallet-kit.css" />
         <link rel="stylesheet" href="/vendor/helius-wallet-kit.css" />
+        {/* Pitch chips — CSS link avoids a second next/font Google fetch at build. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&display=swap"
+        />
         <link
           rel="preload"
           as="image"
@@ -96,6 +108,7 @@ export default function RootLayout({
               <LoginProvider>
               <ReferralCapture />
               <InviteCapture />
+              <AuthConnectTracker />
               <div className="min-h-screen bg-[#0D0F12] text-white">
               <DevChainBanner />
               <main className="relative z-10 min-h-0">{children}</main>

@@ -116,6 +116,7 @@ const nextConfig = {
           exclude: [
             ...(Array.isArray(prev) ? prev : prev ? [prev] : []),
             /node_modules[\\/]onnxruntime-web[\\/]/,
+            /ort\.(node|webgpu|wasm|all|bundle)/,
           ],
         };
       }

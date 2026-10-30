@@ -1,20 +1,8 @@
 /**
  * Pitch chip surname face — IBM Plex on locker · Inter on share plates.
+ * Uses CSS vars from root layout (no next/font here — avoids flaky Google
+ * font fetches during Vercel production builds).
  */
-
-import { IBM_Plex_Sans, Inter } from "next/font/google";
-
-const ibmPlex = IBM_Plex_Sans({
-  weight: ["500", "600", "700"],
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  weight: ["600", "700"],
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export type PitchChipFontId = "ibm-plex" | "inter";
 
@@ -31,7 +19,7 @@ export const PITCH_CHIP_FONT: PitchChipFont = {
   id: "ibm-plex",
   name: "IBM Plex Sans",
   tagline: "Sharp technical UI",
-  family: ibmPlex.style.fontFamily,
+  family: "\"IBM Plex Sans\", var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   weight: 600,
   tracking: "-0.01em",
 };
@@ -40,7 +28,7 @@ export const SHARE_PITCH_CHIP_FONT: PitchChipFont = {
   id: "inter",
   name: "Inter",
   tagline: "Share card plates",
-  family: inter.style.fontFamily,
+  family: "var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif",
   weight: 700,
   tracking: "-0.02em",
 };
