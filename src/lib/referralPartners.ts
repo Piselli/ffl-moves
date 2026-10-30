@@ -1,10 +1,17 @@
 /**
- * Partner-scoped referral access for Google Sheets / external dashboards.
+ * Partner-scoped referral access for Google Sheets / partner cabinet.
  *
  * Env `REFERRAL_PARTNERS` — JSON array:
- *   [{ "id": "acme", "label": "Acme", "key": "secret", "codes": ["acme", "acme2"] }]
+ *   [{
+ *     "id": "acme",
+ *     "label": "Acme",
+ *     "key": "secret",
+ *     "codes": ["acme", "acme2"],
+ *     "emails": ["partner@gmail.com"]
+ *   }]
  *
- * Each partner key only unlocks their own codes (never the full admin dump).
+ * `key` unlocks Sheets/API export. `emails` unlocks the /partners web cabinet
+ * (Google sign-in). Each partner only sees their own codes.
  */
 import { normalizeCode, type ReferralStat } from "@/lib/referral";
 import { safeEqual } from "@/lib/server/clientIp";
@@ -14,7 +21,16 @@ export type ReferralPartner = {
   label: string;
   key: string;
   codes: string[];
+  /** Lowercased allowlist for /partners Google login. */
+  emails: string[];
 };
+
+export function normalizePartnerEmail(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const email = raw.trim().toLowerCase().slice(0, 254);
+  if (!email || !email.includes("@") || email.includes(" ")) return null;
+  return email;
+}
 
 export function parseReferralPartners(raw: string | undefined | null): ReferralPartner[] {
   if (!raw?.trim()) return [];
@@ -46,7 +62,15 @@ export function parseReferralPartners(raw: string | undefined | null): ReferralP
       ),
     ];
     if (codes.length === 0) continue;
-    out.push({ id, label, key, codes });
+    const emailsRaw = Array.isArray(o.emails) ? o.emails : [];
+    const emails = [
+      ...new Set(
+        emailsRaw
+          .map((e) => (typeof e === "string" ? normalizePartnerEmail(e) : null))
+          .filter((e): e is string => !!e),
+      ),
+    ];
+    out.push({ id, label, key, codes, emails });
   }
   return out;
 }
@@ -61,6 +85,18 @@ export function resolveReferralPartner(provided: string): ReferralPartner | null
   if (!key) return null;
   for (const partner of getReferralPartners()) {
     if (safeEqual(key, partner.key)) return partner;
+  }
+  return null;
+}
+
+/** Resolve partner by whitelisted email (cabinet login). */
+export function resolveReferralPartnerByEmail(
+  rawEmail: string | null | undefined,
+): ReferralPartner | null {
+  const email = normalizePartnerEmail(rawEmail);
+  if (!email) return null;
+  for (const partner of getReferralPartners()) {
+    if (partner.emails.includes(email)) return partner;
   }
   return null;
 }

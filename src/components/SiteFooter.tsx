@@ -12,6 +12,8 @@ const HIDE_FOOTER_EXACT = new Set([
   "/",
   "/leaderboard",
   "/season-leaderboard",
+  "/pool",
+  "/matchday",
   "/faq",
   "/terms",
   "/privacy",
@@ -21,6 +23,7 @@ const HIDE_FOOTER_EXACT = new Set([
   "/my-result",
   "/admin",
   "/admin/referrals",
+  "/partners",
   "/design-lab/locker-hero",
   "/design-lab/locker-leaderboard",
   "/design-lab/leaderboard-concepts",
@@ -31,6 +34,7 @@ const HIDE_FOOTER_EXACT = new Set([
 const HIDE_FOOTER_PREFIXES = [
   "/leaderboard/",
   "/season-leaderboard/",
+  "/matchday/",
   "/design-lab/desk-results/",
   "/design-lab/locker-leaderboard/",
 ] as const;

@@ -1,29 +1,14 @@
 import { clientIp } from "@/lib/server/clientIp";
 import { rateLimit } from "@/lib/server/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
+import { buildPartnerStatsPayload } from "@/lib/partners/statsPayload";
 import {
-  getCampaignStats,
-  getReferralConversionsDetailed,
-  getStats,
-  isReferralStoreDurable,
-  getReferralHealth,
-  normalizeCode,
-} from "@/lib/referral";
-import {
-  fillMissingPartnerCodes,
-  filterStatsForPartner,
   getReferralPartners,
   resolveReferralPartner,
 } from "@/lib/referralPartners";
-import { buildReferralLink, buildShortReferralLink } from "@/lib/referralLink";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function siteBase(): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  return configured || "https://www.form8.football";
-}
 
 /**
  * GET /api/referral/partner
@@ -67,87 +52,23 @@ export async function GET(req: NextRequest) {
   }
 
   const format = (searchParams.get("format") ?? "json").toLowerCase();
-  const [allStats, campaigns, detailed, health] = await Promise.all([
-    getStats(),
-    getCampaignStats(partner.codes),
-    getReferralConversionsDetailed(),
-    getReferralHealth(),
-  ]);
+  const payload = await buildPartnerStatsPayload(partner);
 
-  const codes = fillMissingPartnerCodes(
-    filterStatsForPartner(allStats, partner),
-    partner,
-  );
-  const allow = new Set(partner.codes);
-  const base = siteBase();
-
-  const codeRows = codes.map((s) => ({
-    code: s.code,
-    link: buildShortReferralLink(base, s.code),
-    linkClassic: buildReferralLink(base, s.code),
-    clicks: s.clicks,
-    signups: s.signups,
-    conversionRate: s.conversionRate,
-    estimatedFeeVolumeUsdc: s.estimatedFeeVolumeUsdc,
-    firstSeen: s.firstSeen,
-    lastActivity: s.lastActivity,
-  }));
-
-  const campaignRows = campaigns
-    .filter((s) => allow.has(normalizeCode(s.code) ?? s.code))
-    .map((s) => ({
-      code: s.code,
-      campaign: s.campaign || "(default)",
-      link: buildShortReferralLink(base, s.code, s.campaign || null),
-      linkClassic: buildReferralLink(base, s.code, s.campaign || null),
-      clicks: s.clicks,
-      signups: s.signups,
-      conversionRate: s.conversionRate,
-      estimatedFeeVolumeUsdc: s.estimatedFeeVolumeUsdc,
-      firstSeen: s.firstSeen,
-      lastActivity: s.lastActivity,
-    }));
-
-  const conversions = detailed
-    .filter((row) => allow.has(normalizeCode(row.code) ?? row.code))
-    .map((row) => ({
-      wallet: row.wallet,
-      code: normalizeCode(row.code) ?? row.code,
-      campaign: row.campaign || "(default)",
-    }))
-    .sort(
-      (a, b) =>
-        a.code.localeCompare(b.code) ||
-        a.campaign.localeCompare(b.campaign) ||
-        a.wallet.localeCompare(b.wallet),
-    );
-
-  const totals = codeRows.reduce(
-    (acc, s) => {
-      acc.clicks += s.clicks;
-      acc.signups += s.signups;
-      acc.estimatedFeeVolumeUsdc += s.estimatedFeeVolumeUsdc;
-      return acc;
-    },
-    { clicks: 0, signups: 0, estimatedFeeVolumeUsdc: 0 },
-  );
-
-  const payload = {
-    partner: { id: partner.id, label: partner.label },
-    updatedAt: new Date().toISOString(),
-    durable: isReferralStoreDurable() && health.reachable,
-    totals: {
-      ...totals,
-      conversionRate: totals.clicks > 0 ? totals.signups / totals.clicks : 0,
-    },
-    codes: codeRows,
-    campaigns: campaignRows,
-    conversions,
-    note:
-      "Short links: /r/CODE and /r/CODE/CAMPAIGN (webmaster style). Classic ?ref=&c= still works. Fee volume is estimated.",
+  // Sheets clients expect partner without codes array in the nested object shape
+  // they already use — keep id/label only for backward compatibility.
+  const sheetsPayload = {
+    partner: { id: payload.partner.id, label: payload.partner.label },
+    updatedAt: payload.updatedAt,
+    durable: payload.durable,
+    totals: payload.totals,
+    codes: payload.codes,
+    campaigns: payload.campaigns,
+    conversions: payload.conversions,
+    note: payload.note,
   };
 
   if (format === "csv") {
+    const { codes: codeRows, campaigns: campaignRows, conversions } = payload;
     const lines = [
       "sheet,code,campaign,link,clicks,signups,conversion_rate,estimated_fee_usdc,first_seen,last_activity,wallet",
       ...codeRows.map((r) =>
@@ -200,7 +121,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json(payload, {
+  return NextResponse.json(sheetsPayload, {
     status: 200,
     headers: { "Cache-Control": "no-store" },
   });

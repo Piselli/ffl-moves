@@ -5,7 +5,7 @@ Partners pull **only their** `?ref=` codes into a Google Sheet. No admin key, no
 ## 1. Configure the partner (Vercel / `.env`)
 
 ```bash
-REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_SECRET","codes":["acme"]}]'
+REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_SECRET","codes":["acme"],"emails":["partner@gmail.com"]}]'
 ```
 
 | Field | Purpose |
@@ -14,6 +14,7 @@ REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_
 | `label` | Shown in the sheet header |
 | `key` | Secret the partner’s Apps Script uses (not the admin key) |
 | `codes` | Their `?ref=` codes only |
+| `emails` | Optional — whitelist for the hidden [`/partners`](./partner-cabinet.md) cabinet |
 
 Redeploy after setting the env var.
 
@@ -26,7 +27,7 @@ Redeploy after setting the env var.
    - `PARTNER_KEY` = the partner `key` from step 1
    - `API_BASE` = `https://www.form8.football` (optional; default in script)
 5. Run `syncPartnerStats` once → approve permissions.
-6. Run `installHourlyTrigger` once → auto-refresh every hour.
+6. Run `installHourlyTrigger` once → auto-refresh every 5 minutes.
 
 ## 3. What the sheet contains
 

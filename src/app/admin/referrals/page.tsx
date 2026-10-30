@@ -307,8 +307,9 @@ export default function ReferralDashboardPage() {
         <ol className="list-decimal list-inside space-y-1.5 text-sm text-white/55 mb-3">
           <li>
             У Vercel додай{" "}
-            <code className="text-emerald-300/80">REFERRAL_PARTNERS</code> (JSON з id, key, codes) і
-            задеплой.
+            <code className="text-emerald-300/80">REFERRAL_PARTNERS</code> (JSON з id, key, codes,
+            emails) і задеплой. Кабінет:{" "}
+            <code className="text-white/70">/partners</code>.
           </li>
           <li>Створи Google Sheet → Extensions → Apps Script → встав скрипт з репо.</li>
           <li>
@@ -318,7 +319,7 @@ export default function ReferralDashboardPage() {
           </li>
         </ol>
         <pre className="overflow-x-auto rounded-lg bg-black/50 border border-white/10 px-3 py-2.5 text-[11px] leading-relaxed text-emerald-200/90 mb-3">
-{`REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"<secret>","codes":["acme"]}]'`}
+{`REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"<secret>","codes":["acme"],"emails":["partner@gmail.com"]}]'`}
         </pre>
         <p className="text-white/30 text-xs">
           Інструкція + скрипт:{" "}
