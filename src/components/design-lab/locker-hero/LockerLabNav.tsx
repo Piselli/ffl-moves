@@ -188,6 +188,7 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
     connecting,
     authReady,
     address,
+    enabled: !pathname.startsWith("/partners"),
     onOpen: openNickname,
   });
 

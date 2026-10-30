@@ -8,6 +8,7 @@ import { Form8Lockup } from "@/components/Form8Mark";
 import { REGISTER_CTA_CLASS } from "@/components/season/seasonActionShared";
 import { useLogin } from "@/components/LoginProvider";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import { clearLoginIntent } from "@/lib/loginIntent";
 import { shortenAddress, cn } from "@/lib/utils";
 
 const CRYSTAL_SHEET = {
@@ -30,29 +31,34 @@ type Props = {
 
 export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
   const reduce = Boolean(useReducedMotion());
-  const { openLogin } = useLogin();
+  const { openLogin, open: loginOpen } = useLogin();
   const { connected, address, signMessage } = useWallet();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Hide while the site login/wallet picker is open so it isn't trapped under z-[210].
+  const visible = open && !loginOpen;
 
   useEffect(() => {
     setPortalRoot(document.body);
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [visible]);
 
   const enter = async () => {
     setLocalError(null);
     if (!address) {
       openLogin();
+      // Partner sign-in is separate from the public Welcome/Nickname flow.
+      clearLoginIntent();
       return;
     }
     if (!signMessage) {
@@ -92,7 +98,7 @@ export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
 
   return createPortal(
     <AnimatePresence>
-      {open ? (
+      {visible ? (
         <motion.div
           key="partner-login-root"
           className="fixed inset-0 z-[210] flex items-center justify-center px-4"
@@ -123,17 +129,16 @@ export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
                   <Form8Lockup wordmarkClassName="text-white/85" />
                 </div>
                 <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#00f948]/80">
-                  Partner access
+                  Partners
                 </p>
                 <h2
                   id="partner-login-title"
                   className="mt-2 text-center font-display text-2xl font-black uppercase tracking-tight text-white sm:text-[1.65rem]"
                 >
-                  Partner cabinet
+                  Partners cabinet
                 </h2>
                 <p className="mx-auto mt-2 max-w-xs text-center text-[13px] leading-relaxed text-white/45">
-                  Only whitelisted wallets. Connect your FORM8 wallet and sign once to
-                  open your cabinet.
+                  Connect your whitelisted wallet and sign once.
                 </p>
 
                 {showError ? (
@@ -161,15 +166,9 @@ export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
                     {busy
                       ? "Signing…"
                       : connected
-                        ? "Sign in with wallet"
+                        ? "Sign in"
                         : "Connect wallet"}
                   </button>
-
-                  {!connected ? (
-                    <p className="text-center text-[11px] text-white/30">
-                      Use the same wallet that is on the partner whitelist.
-                    </p>
-                  ) : null}
                 </div>
               </GlassPanel>
             </div>
