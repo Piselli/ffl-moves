@@ -149,9 +149,9 @@ export function PartnerLoginModal({ open, error, onSignedIn }: Props) {
 
                 <div className="mt-6 space-y-3">
                   {connected && address ? (
-                    <p className="text-center text-[12px] text-white/40">
+                    <p className="text-center text-[12px] text-white/55">
                       Connected ·{" "}
-                      <span className="font-mono text-white/65">
+                      <span className="font-mono text-white/80">
                         {shortenAddress(address)}
                       </span>
                     </p>
