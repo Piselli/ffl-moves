@@ -160,12 +160,24 @@ export async function runTelegramAlerts(opts?: {
             msgRegistrationClosed(gw.totalEntries, gw.prizePool),
             dryRun,
           );
-          if (closedFire) fired.push(closedFire);
+          if (closedFire) {
+            fired.push(closedFire);
+            const sent = closedFire.broadcast.sent;
+            checked.regClosedOutcome = sent > 0 ? "sent" : "failed";
+            // Failed send releases the slot — keep chaining so the next tick retries.
+            checked.regClosedPending = sent === 0 && closedFire.broadcast.attempted > 0;
+          } else {
+            // Slot already claimed (sent earlier or in-flight lock).
+            checked.regClosedOutcome = "already_claimed";
+            checked.regClosedPending = false;
+          }
         }
       }
     }
   } catch (err) {
     checked.regClosedError = err instanceof Error ? err.message : String(err);
+    // Close already happened on-chain; keep trying the alert on the next chain tick.
+    checked.regClosedPending = true;
   }
 
   // ── Claim ready (latest resolved EPL GW) ────────────────────────────────

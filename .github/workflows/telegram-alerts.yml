@@ -8,12 +8,17 @@
 #   TELEGRAM_ALERTS_URL — default https://www.form8.football/api/cron/telegram-alerts
 #
 # Also requires Vercel env: TELEGRAM_BOT_TOKEN, UPSTASH_REDIS_REST_*, TELEGRAM_ALERTS_ENABLED
+#
+# Reliability: GH schedule still lags hours. Once ANY successful poke lands inside
+# ~25h of kickoff, the API self-chains through 24h/12h/3h/1h. This workflow is the
+# cold-start wake-up; traffic watchdog is the other. For a hard guarantee without
+# Vercel Pro, also ping the same URL every 5–15 min from cron-job.org (Bearer secret).
 
 name: Telegram alerts
 
 on:
   schedule:
-    # Every 5 min. GitHub still delays hours sometimes — traffic watchdog is primary.
+    # Every 5 min. Often delayed — still useful as the first poke that arms self-chain.
     - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:

@@ -284,6 +284,11 @@ cron (cron-job.org тощо) кожні 5–15 хв з хедером
 `Authorization: Bearer $CRON_SECRET` на
 `https://www.form8.football/api/cron/close-gameweek`.
 
+Telegram deadline alerts (24h / 12h / 3h / 1h): після **одного** успішного poke
+всередині ~25 год до kickoff API сам self-chain’ить до дедлайну (без Vercel Pro).
+Cold-start (ніхто не заходив і GH проспав) — той самий зовнішній ping на
+`https://www.form8.football/api/cron/telegram-alerts` кожні 5–15 хв.
+
 Dry-run:
 
 ```bash

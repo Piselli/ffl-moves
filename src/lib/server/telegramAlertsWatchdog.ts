@@ -5,6 +5,10 @@
  * Hot public routes poke this watchdog: at most once per THROTTLE_SEC it hits
  * `/api/cron/telegram-alerts` in its own invocation. Idempotent via Redis alert slots.
  *
+ * Inside ~25h of kickoff that cron self-chains through 24h/12h/3h/1h, so one
+ * successful poke (traffic or GH) is enough — later reminders no longer need
+ * another visitor.
+ *
  * Do NOT run `runTelegramAlerts` in this request. On Vercel the isolate freezes as
  * soon as the response is sent; a fire-and-forget FPL+RPC+broadcast never finishes
  * (same GW7 finding as auto-publish: many /api/fixtures hits, zero pokes).
