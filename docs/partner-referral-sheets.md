@@ -5,7 +5,7 @@ Partners pull **only their** `?ref=` codes into a Google Sheet. No admin key, no
 ## 1. Configure the partner (Vercel / `.env`)
 
 ```bash
-REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_SECRET","codes":["acme"],"emails":["partner@gmail.com"]}]'
+REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_SECRET","codes":["acme"],"wallets":["SoLanaBase58…"]}]'
 ```
 
 | Field | Purpose |
@@ -14,7 +14,7 @@ REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"REPLACE_WITH_LONG_RANDOM_
 | `label` | Shown in the sheet header |
 | `key` | Secret the partner’s Apps Script uses (not the admin key) |
 | `codes` | Their `?ref=` codes only |
-| `emails` | Optional — whitelist for the hidden [`/partners`](./partner-cabinet.md) cabinet |
+| `wallets` | Whitelist for the [`/partners`](./partner-cabinet.md) cabinet (wallet sign-in) |
 
 Redeploy after setting the env var.
 

@@ -3,9 +3,8 @@ import { describe, it } from "node:test";
 import {
   fillMissingPartnerCodes,
   filterStatsForPartner,
-  normalizePartnerEmail,
   parseReferralPartners,
-  resolveReferralPartnerByEmail,
+  resolveReferralPartnerByWallet,
 } from "../../src/lib/referralPartners";
 import { normalizeCampaign, type ReferralStat } from "../../src/lib/referral";
 import {
@@ -22,7 +21,7 @@ describe("parseReferralPartners", () => {
         label: "Acme Co",
         key: "secret1",
         codes: ["Acme", "acme-2"],
-        emails: [" Partner@Gmail.com ", "bad", "other@acme.io"],
+        wallets: ["5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW", "not-a-wallet"],
       },
       { id: "bad", key: "x", codes: [] },
       { not: "a partner" },
@@ -34,7 +33,7 @@ describe("parseReferralPartners", () => {
       label: "Acme Co",
       key: "secret1",
       codes: ["acme", "acme-2"],
-      emails: ["partner@gmail.com", "other@acme.io"],
+      wallets: ["5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW"],
     });
   });
 
@@ -45,13 +44,7 @@ describe("parseReferralPartners", () => {
 });
 
 describe("filter / fill partner stats", () => {
-  const partner = {
-    id: "acme",
-    label: "Acme",
-    key: "k",
-    codes: ["acme", "acme2"],
-    emails: ["a@b.co"],
-  };
+  const codes = ["acme", "acme2"];
 
   const stats: ReferralStat[] = [
     {
@@ -75,13 +68,13 @@ describe("filter / fill partner stats", () => {
   ];
 
   it("keeps only partner codes", () => {
-    const filtered = filterStatsForPartner(stats, partner);
+    const filtered = filterStatsForPartner(stats, codes);
     assert.equal(filtered.length, 1);
     assert.equal(filtered[0]!.code, "acme");
   });
 
   it("fills zero rows for unused codes", () => {
-    const filled = fillMissingPartnerCodes(filterStatsForPartner(stats, partner), partner);
+    const filled = fillMissingPartnerCodes(filterStatsForPartner(stats, codes), codes);
     assert.equal(filled.length, 2);
     assert.equal(filled[0]!.signups, 2);
     assert.equal(filled[1]!.code, "acme2");
@@ -89,35 +82,30 @@ describe("filter / fill partner stats", () => {
   });
 });
 
-describe("partner email whitelist", () => {
-  it("normalizes emails", () => {
-    assert.equal(normalizePartnerEmail("  Foo@Bar.COM "), "foo@bar.com");
-    assert.equal(normalizePartnerEmail("nope"), null);
-    assert.equal(normalizePartnerEmail(""), null);
-  });
-
-  it("resolves partner by email from env JSON", () => {
+describe("partner wallet whitelist", () => {
+  it("resolves partner by wallet from env JSON", () => {
     const prev = process.env.REFERRAL_PARTNERS;
+    const wallet = "5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW";
     process.env.REFERRAL_PARTNERS = JSON.stringify([
       {
         id: "acme",
         label: "Acme",
         key: "secret1",
         codes: ["acme"],
-        emails: ["partner@gmail.com"],
+        wallets: [wallet],
       },
       {
         id: "other",
         label: "Other",
         key: "secret2",
         codes: ["other"],
-        emails: ["other@gmail.com"],
+        wallets: ["11111111111111111111111111111111"],
       },
     ]);
     try {
-      const hit = resolveReferralPartnerByEmail("Partner@Gmail.com");
+      const hit = resolveReferralPartnerByWallet(wallet);
       assert.equal(hit?.id, "acme");
-      assert.equal(resolveReferralPartnerByEmail("nobody@gmail.com"), null);
+      assert.equal(resolveReferralPartnerByWallet("22222222222222222222222222222222"), null);
     } finally {
       if (prev === undefined) delete process.env.REFERRAL_PARTNERS;
       else process.env.REFERRAL_PARTNERS = prev;

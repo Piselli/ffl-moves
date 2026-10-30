@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getEffectivePartnerCodes } from "@/lib/partners/partnerCodes";
 import {
-  isPartnersDevLoginAllowed,
-  isPartnersGoogleConfigured,
   readPartnerSession,
   resolvePartnerFromSession,
 } from "@/lib/partners/session";
@@ -13,27 +12,22 @@ export async function GET(req: NextRequest) {
   const resolved = resolvePartnerFromSession(readPartnerSession(req));
   if (!resolved) {
     return NextResponse.json(
-      {
-        authenticated: false,
-        googleConfigured: isPartnersGoogleConfigured(),
-        devLoginAllowed: isPartnersDevLoginAllowed(),
-      },
+      { authenticated: false },
       { status: 200, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   const { session, partner } = resolved;
+  const codes = await getEffectivePartnerCodes(partner.id);
   return NextResponse.json(
     {
       authenticated: true,
-      email: session.email,
+      wallet: session.wallet,
       partner: {
         id: partner.id,
         label: partner.label,
-        codes: partner.codes,
+        codes,
       },
-      googleConfigured: isPartnersGoogleConfigured(),
-      devLoginAllowed: isPartnersDevLoginAllowed(),
     },
     { headers: { "Cache-Control": "no-store" } },
   );

@@ -1,21 +1,21 @@
 /**
- * Sealed httpOnly session for the hidden /partners cabinet.
- * Payload: partner id + signed-in email (no Google tokens stored).
+ * Sealed httpOnly session for /partners cabinet (wallet-bound).
  */
 import { createHmac, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 import {
   getReferralPartners,
-  normalizePartnerEmail,
+  resolveReferralPartnerByWallet,
   type ReferralPartner,
 } from "@/lib/referralPartners";
+import { normalizeWallet } from "@/lib/walletNormalize";
 
 export const PARTNER_SESSION_COOKIE = "ffl_partner_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 30; // 30 days
 
 export type PartnerSession = {
   partnerId: string;
-  email: string;
+  wallet: string;
 };
 
 function secret(): string {
@@ -42,12 +42,12 @@ function fromB64url(s: string): Buffer {
 }
 
 export function sealPartnerSession(session: PartnerSession): string {
-  const email = normalizePartnerEmail(session.email);
-  if (!email) throw new Error("invalid partner session email");
+  const wallet = normalizeWallet(session.wallet);
+  if (!wallet) throw new Error("invalid partner session wallet");
   const payload = b64url(
     JSON.stringify({
       partnerId: session.partnerId,
-      email,
+      wallet,
       exp: Date.now() + MAX_AGE_SEC * 1000,
     }),
   );
@@ -72,12 +72,13 @@ export function unsealPartnerSession(
   try {
     const data = JSON.parse(fromB64url(payload).toString("utf8")) as PartnerSession & {
       exp?: number;
+      email?: string; // legacy email sessions → reject
     };
-    if (!data?.partnerId || !data?.email) return null;
+    if (!data?.partnerId || !data?.wallet || data.email) return null;
     if (typeof data.exp === "number" && data.exp < Date.now()) return null;
-    const email = normalizePartnerEmail(data.email);
-    if (!email) return null;
-    return { partnerId: String(data.partnerId).slice(0, 64), email };
+    const wallet = normalizeWallet(data.wallet);
+    if (!wallet) return null;
+    return { partnerId: String(data.partnerId).slice(0, 64), wallet };
   } catch {
     return null;
   }
@@ -112,8 +113,8 @@ export function readPartnerSession(req: NextRequest): PartnerSession | null {
 }
 
 /**
- * Re-check whitelist on every request so removing an email from env
- * immediately locks the cabinet after redeploy (session alone is not enough).
+ * Re-check wallet whitelist on every request so removing a wallet from env
+ * locks the cabinet after redeploy.
  */
 export function resolvePartnerFromSession(
   session: PartnerSession | null,
@@ -121,27 +122,9 @@ export function resolvePartnerFromSession(
   if (!session) return null;
   const partner = getReferralPartners().find((p) => p.id === session.partnerId);
   if (!partner) return null;
-  if (!partner.emails.includes(session.email)) return null;
+  if (!partner.wallets.includes(session.wallet)) return null;
+  // Also ensure this wallet still maps to this partner id
+  const byWallet = resolveReferralPartnerByWallet(session.wallet);
+  if (!byWallet || byWallet.id !== partner.id) return null;
   return { session, partner };
-}
-
-export function isPartnersGoogleConfigured(): boolean {
-  return !!(
-    process.env.PARTNERS_GOOGLE_CLIENT_ID?.trim() &&
-    process.env.PARTNERS_GOOGLE_CLIENT_SECRET?.trim()
-  );
-}
-
-/** Local / explicit opt-in: email passwordless without Google (must still be whitelisted). */
-export function isPartnersDevLoginAllowed(): boolean {
-  if (
-    process.env.PARTNERS_ALLOW_DEV_LOGIN === "true" ||
-    process.env.PARTNERS_ALLOW_DEV_LOGIN === "1"
-  ) {
-    return true;
-  }
-  if (process.env.NODE_ENV !== "production" && !isPartnersGoogleConfigured()) {
-    return true;
-  }
-  return false;
 }

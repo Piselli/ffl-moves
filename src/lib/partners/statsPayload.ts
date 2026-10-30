@@ -15,6 +15,7 @@ import {
   filterStatsForPartner,
   type ReferralPartner,
 } from "@/lib/referralPartners";
+import { getEffectivePartnerCodes } from "@/lib/partners/partnerCodes";
 
 function siteBase(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
@@ -22,18 +23,19 @@ function siteBase(): string {
 }
 
 export async function buildPartnerStatsPayload(partner: ReferralPartner) {
+  const codesList = await getEffectivePartnerCodes(partner.id);
   const [allStats, campaigns, detailed, health] = await Promise.all([
     getStats(),
-    getCampaignStats(partner.codes),
+    getCampaignStats(codesList),
     getReferralConversionsDetailed(),
     getReferralHealth(),
   ]);
 
   const codes = fillMissingPartnerCodes(
-    filterStatsForPartner(allStats, partner),
-    partner,
+    filterStatsForPartner(allStats, codesList),
+    codesList,
   );
-  const allow = new Set(partner.codes);
+  const allow = new Set(codesList);
   const base = siteBase();
 
   const codeRows = codes.map((s) => ({
@@ -88,7 +90,7 @@ export async function buildPartnerStatsPayload(partner: ReferralPartner) {
   );
 
   return {
-    partner: { id: partner.id, label: partner.label, codes: partner.codes },
+    partner: { id: partner.id, label: partner.label, codes: codesList },
     updatedAt: new Date().toISOString(),
     durable: isReferralStoreDurable() && health.reachable,
     health,
@@ -100,6 +102,6 @@ export async function buildPartnerStatsPayload(partner: ReferralPartner) {
     campaigns: campaignRows,
     conversions,
     note:
-      "Short links: /r/CODE and /r/CODE/CAMPAIGN. Classic ?ref=&c= still works. Fee volume is estimated.",
+      "Code = main ?ref= / /r/CODE. Campaign = creative under a code (/r/CODE/creo). Fee volume is estimated.",
   };
 }

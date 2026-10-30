@@ -1,13 +1,13 @@
 # Partner cabinet (`/partners`)
 
-Hidden web cabinet for referral partners. Not linked in nav/footer/sitemap; `noindex`. Access only via direct URL + whitelisted Google email.
+Cabinet for referral partners. Not in the public sitemap (`noindex`). The **Partners** nav tab appears only when the connected wallet is on the partner whitelist.
 
-## Setup
+## Auth
 
-### 1. Partner config
+Wallet only. Connect in FORM8 → sign a short message → session cookie.
 
 ```bash
-REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"LONG_SECRET","codes":["acme"],"emails":["partner@gmail.com"]}]'
+REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"LONG_SECRET","codes":["acme"],"wallets":["SoLanaBase58…"]}]'
 ```
 
 | Field | Purpose |
@@ -15,52 +15,20 @@ REFERRAL_PARTNERS='[{"id":"acme","label":"Acme","key":"LONG_SECRET","codes":["ac
 | `id` | Internal slug |
 | `label` | Shown in the cabinet |
 | `key` | Sheets / API export (`/api/referral/partner`) |
-| `codes` | Their `?ref=` / `/r/` codes only |
-| `emails` | Google / invite accounts for `/partners` (several emails → same cabinet) |
+| `codes` | Seed `?ref=` / `/r/` codes |
+| `wallets` | Solana wallets that may open `/partners` for this partner |
 
-Redeploy after changing env.
+Multiple wallets on one partner share the same cabinet. Partners can create **extra codes** in the UI (stored in Redis).
 
-### 2. Invite links (works without Google)
+## Code vs campaign
 
-```bash
-node --env-file=.env.local scripts/mint-partner-login.mjs broadbabyauthor@gmail.com youshibravo@gmail.com
-```
+- **Code** — main referral id: `https://www.form8.football/r/bonus50`
+- **Campaign** — creative under a code: `https://www.form8.football/r/bonus50/creo1`  
+  Same partner ownership; splits clicks/signups by creative. No pre-registration.
 
-Partner opens the printed URL once → session cookie → `/partners`. Use the **same** `PARTNERS_SESSION_SECRET` (or `CRON_SECRET`) on Vercel as locally when minting prod links.
-
-### 3. Google OAuth (optional, nicer login modal)
-
-1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → Create OAuth client (Web application).
-2. Authorized redirect URIs:
-   - `http://localhost:3000/api/partners/auth/callback`
-   - `https://www.form8.football/api/partners/auth/callback`
-3. Set on Vercel / `.env.local`:
-
-```bash
-PARTNERS_GOOGLE_CLIENT_ID=...
-PARTNERS_GOOGLE_CLIENT_SECRET=...
-PARTNERS_GOOGLE_REDIRECT_URI=https://www.form8.football/api/partners/auth/callback
-```
-
-Until those are set, the cabinet modal points partners to their invite link.
-
-### 4. Give the partner access
-
-- Invite URL from the mint script, **or**
-- `https://www.form8.football/partners` + Google (when configured)
-
-## Local testing without Google
-
-If Google is not configured and `NODE_ENV !== production`, the login modal shows a **Local preview** email field (must still be on `emails`). Or set `PARTNERS_ALLOW_DEV_LOGIN=true`.
-
-## Isolation
-
-- Session cookie is sealed (HMAC) with partner id + email.
-- Every `/api/partners/stats` call re-checks the email whitelist after redeploy.
-- Removing an email from `REFERRAL_PARTNERS` locks that account on next deploy.
-- Multiple emails on one partner share the same cabinet.
+Totals in the Codes table are per code. Campaign rows are that traffic split; sum of campaigns for one code ≈ that code’s clicks (including `(default)` bare links).
 
 ## Related
 
 - Sheets pull: [partner-referral-sheets.md](./partner-referral-sheets.md)
-- Admin (all codes): `/admin/referrals` (local / key-gated)
+- Admin (all codes): `/admin/referrals`

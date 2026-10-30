@@ -7,12 +7,13 @@ import { LockerLabNav } from "@/components/design-lab/locker-hero/LockerLabNav";
 import { PartnerLoginModal } from "@/components/partners/PartnerLoginModal";
 import { SeasonPageWash } from "@/components/season/seasonPageChrome";
 import { PRODUCT_PAGE_TOP } from "@/components/SiteBackHome";
+import { useWallet } from "@/hooks/useSolanaWallet";
 import {
   buildReferralLink,
   buildShortReferralLink,
   normalizeRefCode,
 } from "@/lib/referralClient";
-import { cn } from "@/lib/utils";
+import { cn, shortenAddress } from "@/lib/utils";
 
 type ReferralStat = {
   code: string;
@@ -29,10 +30,8 @@ type CampaignStat = ReferralStat & { campaign: string };
 
 type MeResponse = {
   authenticated: boolean;
-  email?: string;
+  wallet?: string;
   partner?: { id: string; label: string; codes: string[] };
-  googleConfigured: boolean;
-  devLoginAllowed: boolean;
 };
 
 type StatsResponse = {
@@ -46,17 +45,7 @@ type StatsResponse = {
   };
   codes: ReferralStat[];
   campaigns?: CampaignStat[];
-};
-
-const ERR_COPY: Record<string, string> = {
-  google_not_configured: "Google sign-in is not configured yet — use your invite link.",
-  not_allowed: "This Google account is not on the partner whitelist.",
-  email_unverified: "Verify your Google email, then try again.",
-  oauth_failed: "Sign-in failed. Try again.",
-  bad_state: "Login session expired. Try again.",
-  missing_code: "Google did not return a code. Try again.",
-  magic_invalid: "Invite link is invalid or expired. Ask for a new one.",
-  rate_limited: "Too many attempts. Wait a minute.",
+  conversions?: { wallet: string; code: string; campaign: string }[];
 };
 
 const BASE_URL = "https://www.form8.football";
@@ -76,13 +65,24 @@ function fmtDate(ms: number | null): string {
 
 export function PartnerCabinetShell() {
   const reduceMotion = useReducedMotion();
+  const { address, signMessage } = useWallet();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [data, setData] = useState<StatsResponse | null>(null);
   const [booting, setBooting] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // surface ?err= from dead Google/magic links
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get("err");
+    if (err === "use_wallet") {
+      setError("Email / invite login is off. Connect a whitelisted wallet and sign.");
+      window.history.replaceState({}, "", "/partners");
+    }
+  }, []);
   const [copied, setCopied] = useState<string | null>(null);
   const [newCampaign, setNewCampaign] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [selectedCode, setSelectedCode] = useState("");
 
   const loadMe = useCallback(async () => {
@@ -116,19 +116,16 @@ export function PartnerCabinetShell() {
     }
   }, []);
 
+  const refreshAuthed = useCallback(async () => {
+    const body = await loadMe();
+    if (body.authenticated) await loadStats();
+  }, [loadMe, loadStats]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const err = params.get("err");
-        if (err) {
-          setError(ERR_COPY[err] ?? `Sign-in error: ${err}`);
-          window.history.replaceState({}, "", "/partners");
-        }
-        const body = await loadMe();
-        if (cancelled) return;
-        if (body.authenticated) await loadStats();
+        await refreshAuthed();
       } catch {
         if (!cancelled) setError("Could not check session.");
       } finally {
@@ -138,7 +135,7 @@ export function PartnerCabinetShell() {
     return () => {
       cancelled = true;
     };
-  }, [loadMe, loadStats]);
+  }, [refreshAuthed]);
 
   const generatedLink = useMemo(() => {
     const code = normalizeRefCode(selectedCode);
@@ -164,34 +161,49 @@ export function PartnerCabinetShell() {
 
   const logout = useCallback(async () => {
     await fetch("/api/partners/auth/logout", { method: "POST" });
-    setMe({
-      authenticated: false,
-      googleConfigured: me?.googleConfigured ?? false,
-      devLoginAllowed: me?.devLoginAllowed ?? false,
-    });
+    setMe({ authenticated: false });
     setData(null);
-  }, [me]);
+  }, []);
 
-  const devLogin = useCallback(
-    async (email: string) => {
-      setError(null);
-      const res = await fetch("/api/partners/auth/dev", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "Login failed");
+  const createCode = useCallback(async () => {
+    const code = normalizeRefCode(newCode);
+    if (!code || !address || !signMessage) {
+      setError(!address ? "Connect your partner wallet." : "Enter a valid code.");
+      return;
+    }
+    setCreating(true);
+    setError(null);
+    try {
+      const ts = Date.now();
+      const message = `FORM8 partner create code\nWallet: ${address}\nCode: ${code}\nTs: ${ts}`;
+      const signature = await signMessage(message);
+      if (!signature) {
+        setError("Signature cancelled.");
         return;
       }
-      const body = await loadMe();
-      if (body.authenticated) await loadStats();
-    },
-    [loadMe, loadStats],
-  );
+      const res = await fetch("/api/partners/codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, wallet: address, ts, signature }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error ?? `Could not create code (${res.status})`);
+        return;
+      }
+      setData(body as StatsResponse);
+      setSelectedCode(code);
+      setNewCode("");
+      await loadMe();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not create code");
+    } finally {
+      setCreating(false);
+    }
+  }, [address, loadMe, newCode, signMessage]);
 
   const authed = !!me?.authenticated && !!data;
+  const conversionCount = data?.conversions?.length ?? data?.totals.signups ?? 0;
 
   return (
     <div className="relative min-h-screen bg-[#0D0F12] text-white">
@@ -200,16 +212,12 @@ export function PartnerCabinetShell() {
 
       <PartnerLoginModal
         open={!booting && !me?.authenticated}
-        googleConfigured={!!me?.googleConfigured}
         error={error}
-        devLoginAllowed={!!me?.devLoginAllowed}
-        onDevLogin={devLogin}
+        onSignedIn={refreshAuthed}
       />
 
       <div className={cn("relative mx-auto max-w-7xl px-5 sm:px-8", PRODUCT_PAGE_TOP, "pb-16")}>
-        {booting ? (
-          <p className="py-12 text-sm text-white/35">Loading…</p>
-        ) : null}
+        {booting ? <p className="py-12 text-sm text-white/35">Loading…</p> : null}
 
         {authed ? (
           <>
@@ -222,11 +230,14 @@ export function PartnerCabinetShell() {
                   Cabinet
                 </h1>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/50">
-                  Your referral links, clicks, and registrations. Only your codes.
+                  Create referral codes, split traffic by campaign, track clicks and
+                  registrations.
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <p className="text-[11px] text-white/40">{me.email}</p>
+                <p className="font-mono text-[11px] text-white/40">
+                  {shortenAddress(me.wallet ?? "")}
+                </p>
                 <button
                   type="button"
                   onClick={() => void logout()}
@@ -243,219 +254,165 @@ export function PartnerCabinetShell() {
               </p>
             ) : null}
 
-            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
-              <div className="flex min-w-0 flex-col gap-5">
-                <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5 sm:py-6">
-                  <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Registrations
-                      </p>
-                      <p className="mt-1 font-display text-4xl font-black tabular-nums tracking-tight text-[#00f948] sm:text-[2.75rem]">
-                        {data.totals.signups.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Clicks
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums">
-                        {data.totals.clicks.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        CR
-                      </p>
-                      <p className="mt-1 font-display text-3xl font-black tabular-nums">
-                        {pct(data.totals.conversionRate)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Fee vol
-                      </p>
-                      <p className="mt-1 font-display text-2xl font-black tabular-nums text-white/90">
-                        ~{Number(data.totals.estimatedFeeVolumeUsdc ?? 0).toFixed(1)}
-                      </p>
-                    </div>
-                  </div>
-                  {!data.durable ? (
-                    <p className="mt-4 text-[11px] text-amber-200/70">
-                      Storage is in-memory or Redis unreachable — numbers may reset.
+            <div className="flex flex-col gap-5">
+              <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5 sm:py-6">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      Registrations
                     </p>
-                  ) : null}
-                </GlassPanel>
-
-                <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Link generator
-                  </p>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <select
-                      value={selectedCode}
-                      onChange={(e) => setSelectedCode(e.target.value)}
-                      className="rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white focus:border-white/28 focus:outline-none sm:w-40"
-                    >
-                      {(data.partner.codes.length
-                        ? data.partner.codes
-                        : me.partner?.codes ?? []
-                      ).map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={newCampaign}
-                      onChange={(e) => setNewCampaign(e.target.value)}
-                      placeholder="campaign (creo1, stories…)"
-                      className="min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/28 focus:outline-none"
-                    />
+                    <p className="mt-1 font-display text-4xl font-black tabular-nums tracking-tight text-[#00f948] sm:text-[2.75rem]">
+                      {data.totals.signups.toLocaleString()}
+                    </p>
                   </div>
-                  {generatedLink ? (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <code className="min-w-0 flex-1 break-all rounded-xl border border-white/10 bg-black/45 px-3 py-2.5 text-[13px] text-[#00f948]">
-                          {generatedLink}
-                        </code>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      Clicks
+                    </p>
+                    <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      {data.totals.clicks.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      CR
+                    </p>
+                    <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      {pct(data.totals.conversionRate)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      Fee vol
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-black tabular-nums text-white/90">
+                      ~{Number(data.totals.estimatedFeeVolumeUsdc ?? 0).toFixed(1)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      Wallets
+                    </p>
+                    <p className="mt-1 font-display text-3xl font-black tabular-nums">
+                      {conversionCount.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                {!data.durable ? (
+                  <p className="mt-4 text-[11px] text-amber-200/70">
+                    Storage is in-memory or Redis unreachable — numbers may reset.
+                  </p>
+                ) : null}
+              </GlassPanel>
+
+              {/* Link tools + glossary — same row, equal height */}
+              <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-5 sm:px-5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                    Create link
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold text-white/55">
+                        New referral code
+                      </p>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={newCode}
+                          onChange={(e) => setNewCode(e.target.value)}
+                          placeholder="e.g. bonus50-tg"
+                          className="min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/28 focus:outline-none"
+                        />
                         <button
                           type="button"
-                          onClick={() => copy(generatedLink, "gen")}
-                          className="shrink-0 rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white/75 transition hover:border-white/30 hover:text-white"
+                          disabled={creating || !newCode.trim()}
+                          onClick={() => void createCode()}
+                          className="shrink-0 rounded-xl border border-[#00f948]/35 bg-[#00f948]/15 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#00f948] transition hover:bg-[#00f948]/25 disabled:opacity-40"
                         >
-                          {copied === "gen" ? "Copied" : "Copy"}
+                          {creating ? "Creating…" : "Create code"}
                         </button>
                       </div>
-                      {generatedClassic ? (
-                        <p className="break-all text-[11px] text-white/28">
-                          classic · <span className="text-white/45">{generatedClassic}</span>
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <p className="mt-3 text-[11px] leading-relaxed text-white/32">
-                    Short links{" "}
-                    <code className="text-white/50">/r/code</code> and{" "}
-                    <code className="text-white/50">/r/code/campaign</code>. Campaigns appear
-                    after the first click — no pre-registration.
-                  </p>
-                </GlassPanel>
-
-                <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                      Codes
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => void loadStats()}
-                      disabled={statsLoading}
-                      className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40 transition hover:text-white/70 disabled:opacity-40"
-                    >
-                      {statsLoading ? "Refreshing…" : "Refresh"}
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
-                          <th className="py-2 pr-3 font-medium">Code</th>
-                          <th className="px-3 py-2 text-right font-medium">Clicks</th>
-                          <th className="px-3 py-2 text-right font-medium">Signups</th>
-                          <th className="px-3 py-2 text-right font-medium">Fee</th>
-                          <th className="px-3 py-2 text-right font-medium">CR</th>
-                          <th className="py-2 pl-3 text-right font-medium">Last</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.codes.map((s, i) => (
-                          <motion.tr
-                            key={s.code}
-                            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.04, duration: 0.25 }}
-                            className="border-b border-white/[0.05] last:border-0"
-                          >
-                            <td className="py-2.5 pr-3 font-mono text-[#00f948]">{s.code}</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                              {s.clicks}
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
-                              {s.signups}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-emerald-300/85">
-                              ~{Number(s.estimatedFeeVolumeUsdc ?? 0).toFixed(2)}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                              {pct(s.conversionRate)}
-                            </td>
-                            <td className="py-2.5 pl-3 text-right text-white/35">
-                              {fmtDate(s.lastActivity)}
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {(data.campaigns?.length ?? 0) > 0 ? (
-                    <div className="mt-8">
-                      <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                        Campaigns
+                      <p className="mt-1.5 text-[11px] text-white/30">
+                        A <span className="text-white/50">code</span> is your main link:{" "}
+                        <code className="text-white/45">/r/your-code</code>
                       </p>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
-                              <th className="py-2 pr-3 font-medium">Code</th>
-                              <th className="px-3 py-2 font-medium">Campaign</th>
-                              <th className="px-3 py-2 text-right font-medium">Clicks</th>
-                              <th className="px-3 py-2 text-right font-medium">Signups</th>
-                              <th className="py-2 pl-3 text-right font-medium">CR</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {data.campaigns!.map((s) => (
-                              <tr
-                                key={`${s.code}:${s.campaign}`}
-                                className="border-b border-white/[0.05] last:border-0"
-                              >
-                                <td className="py-2.5 pr-3 font-mono text-emerald-300/80">
-                                  {s.code}
-                                </td>
-                                <td className="px-3 py-2.5 text-white/80">{s.campaign}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
-                                  {s.clicks}
-                                </td>
-                                <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
-                                  {s.signups}
-                                </td>
-                                <td className="py-2.5 pl-3 text-right tabular-nums text-white/75">
-                                  {pct(s.conversionRate)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
                     </div>
-                  ) : null}
-                </GlassPanel>
-              </div>
 
-              <aside className="flex flex-col gap-4 xl:sticky xl:top-24">
-                <GlassPanel matte className="!rounded-xl px-4 py-4">
+                    <div className="border-t border-white/[0.06] pt-4">
+                      <p className="mb-1.5 text-[11px] font-semibold text-white/55">
+                        Campaign under a code
+                      </p>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <select
+                          value={selectedCode}
+                          onChange={(e) => setSelectedCode(e.target.value)}
+                          className="rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white focus:border-white/28 focus:outline-none sm:w-40"
+                        >
+                          {data.partner.codes.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={newCampaign}
+                          onChange={(e) => setNewCampaign(e.target.value)}
+                          placeholder="campaign (creo1, stories…)"
+                          className="min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/28 focus:outline-none"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-white/30">
+                        A <span className="text-white/50">campaign</span> splits the same
+                        code by creative:{" "}
+                        <code className="text-white/45">/r/code/creo1</code> — no need to
+                        pre-register the name.
+                      </p>
+                    </div>
+
+                    {generatedLink ? (
+                      <div className="space-y-2 border-t border-white/[0.06] pt-4">
+                        <div className="flex items-center gap-2">
+                          <code className="min-w-0 flex-1 break-all rounded-xl border border-white/10 bg-black/45 px-3 py-2.5 text-[13px] text-[#00f948]">
+                            {generatedLink}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => copy(generatedLink, "gen")}
+                            className="shrink-0 rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white/75 transition hover:border-white/30 hover:text-white"
+                          >
+                            {copied === "gen" ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        {generatedClassic ? (
+                          <p className="break-all text-[11px] text-white/28">
+                            classic · <span className="text-white/45">{generatedClassic}</span>
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </GlassPanel>
+
+                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
                     Your codes
                   </p>
-                  <ul className="mt-3 space-y-2">
+                  <ul className="mt-3 flex-1 space-y-2">
                     {data.partner.codes.map((c) => (
                       <li key={c}>
                         <button
                           type="button"
-                          onClick={() => copy(buildShortReferralLink(BASE_URL, c), `code-${c}`)}
-                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-left transition hover:border-white/20"
+                          onClick={() => {
+                            setSelectedCode(c);
+                            copy(buildShortReferralLink(BASE_URL, c), `code-${c}`);
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition",
+                            selectedCode === c
+                              ? "border-[#00f948]/35 bg-[#00f948]/10"
+                              : "border-white/10 bg-black/30 hover:border-white/20",
+                          )}
                         >
                           <span className="font-mono text-sm text-[#00f948]">{c}</span>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">
@@ -465,17 +422,119 @@ export function PartnerCabinetShell() {
                       </li>
                     ))}
                   </ul>
+                  <div className="mt-4 border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed text-white/40">
+                    <p className="font-semibold text-white/55">Code vs campaign</p>
+                    <p className="mt-1">
+                      <span className="text-white/70">Codes</span> table = totals per
+                      referral id.{" "}
+                      <span className="text-white/70">Campaigns</span> = same clicks split
+                      by creative. Sum of campaigns for one code ≈ that code’s clicks
+                      (including “(default)” bare links).
+                    </p>
+                  </div>
                 </GlassPanel>
-                <GlassPanel matte className="!rounded-xl px-4 py-4">
+              </div>
+
+              <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5">
+                <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Note
+                    Codes — totals
                   </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-white/45">
-                    Partner refs do not award Season Points. Fee volume is an estimate for
-                    manual commission.
-                  </p>
-                </GlassPanel>
-              </aside>
+                  <button
+                    type="button"
+                    onClick={() => void loadStats()}
+                    disabled={statsLoading}
+                    className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40 transition hover:text-white/70 disabled:opacity-40"
+                  >
+                    {statsLoading ? "Refreshing…" : "Refresh"}
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
+                        <th className="py-2 pr-3 font-medium">Code</th>
+                        <th className="px-3 py-2 text-right font-medium">Clicks</th>
+                        <th className="px-3 py-2 text-right font-medium">Signups</th>
+                        <th className="px-3 py-2 text-right font-medium">Fee</th>
+                        <th className="px-3 py-2 text-right font-medium">CR</th>
+                        <th className="py-2 pl-3 text-right font-medium">Last</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.codes.map((s, i) => (
+                        <motion.tr
+                          key={s.code}
+                          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.04, duration: 0.25 }}
+                          className="border-b border-white/[0.05] last:border-0"
+                        >
+                          <td className="py-2.5 pr-3 font-mono text-[#00f948]">{s.code}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
+                            {s.clicks}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
+                            {s.signups}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-emerald-300/85">
+                            ~{Number(s.estimatedFeeVolumeUsdc ?? 0).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
+                            {pct(s.conversionRate)}
+                          </td>
+                          <td className="py-2.5 pl-3 text-right text-white/35">
+                            {fmtDate(s.lastActivity)}
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {(data.campaigns?.length ?? 0) > 0 ? (
+                  <div className="mt-8">
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+                      Campaigns — by creative
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/35">
+                            <th className="py-2 pr-3 font-medium">Code</th>
+                            <th className="px-3 py-2 font-medium">Campaign</th>
+                            <th className="px-3 py-2 text-right font-medium">Clicks</th>
+                            <th className="px-3 py-2 text-right font-medium">Signups</th>
+                            <th className="py-2 pl-3 text-right font-medium">CR</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.campaigns!.map((s) => (
+                            <tr
+                              key={`${s.code}:${s.campaign}`}
+                              className="border-b border-white/[0.05] last:border-0"
+                            >
+                              <td className="py-2.5 pr-3 font-mono text-emerald-300/80">
+                                {s.code}
+                              </td>
+                              <td className="px-3 py-2.5 text-white/80">{s.campaign}</td>
+                              <td className="px-3 py-2.5 text-right tabular-nums text-white/75">
+                                {s.clicks}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-white">
+                                {s.signups}
+                              </td>
+                              <td className="py-2.5 pl-3 text-right tabular-nums text-white/75">
+                                {pct(s.conversionRate)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+              </GlassPanel>
             </div>
           </>
         ) : null}

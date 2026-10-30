@@ -6,31 +6,26 @@
  *     "id": "acme",
  *     "label": "Acme",
  *     "key": "secret",
- *     "codes": ["acme", "acme2"],
- *     "emails": ["partner@gmail.com"]
+ *     "codes": ["acme"],
+ *     "wallets": ["SoLanaBase58Address…"]
  *   }]
  *
- * `key` unlocks Sheets/API export. `emails` unlocks the /partners web cabinet
- * (Google sign-in). Each partner only sees their own codes.
+ * `key` → Sheets/API export. `wallets` → /partners cabinet (sign-in).
+ * Extra codes created in the cabinet are stored in Redis (see partnerCodes.ts).
  */
 import { normalizeCode, type ReferralStat } from "@/lib/referral";
 import { safeEqual } from "@/lib/server/clientIp";
+import { normalizeWallet } from "@/lib/walletNormalize";
 
 export type ReferralPartner = {
   id: string;
   label: string;
   key: string;
+  /** Seed codes from env (cabinet may add more in Redis). */
   codes: string[];
-  /** Lowercased allowlist for /partners Google login. */
-  emails: string[];
+  /** Solana wallets allowed into /partners for this partner. */
+  wallets: string[];
 };
-
-export function normalizePartnerEmail(raw: string | null | undefined): string | null {
-  if (typeof raw !== "string") return null;
-  const email = raw.trim().toLowerCase().slice(0, 254);
-  if (!email || !email.includes("@") || email.includes(" ")) return null;
-  return email;
-}
 
 export function parseReferralPartners(raw: string | undefined | null): ReferralPartner[] {
   if (!raw?.trim()) return [];
@@ -62,15 +57,15 @@ export function parseReferralPartners(raw: string | undefined | null): ReferralP
       ),
     ];
     if (codes.length === 0) continue;
-    const emailsRaw = Array.isArray(o.emails) ? o.emails : [];
-    const emails = [
+    const walletsRaw = Array.isArray(o.wallets) ? o.wallets : [];
+    const wallets = [
       ...new Set(
-        emailsRaw
-          .map((e) => (typeof e === "string" ? normalizePartnerEmail(e) : null))
-          .filter((e): e is string => !!e),
+        walletsRaw
+          .map((w) => (typeof w === "string" ? normalizeWallet(w) : null))
+          .filter((w): w is string => !!w),
       ),
     ];
-    out.push({ id, label, key, codes, emails });
+    out.push({ id, label, key, codes, wallets });
   }
   return out;
 }
@@ -89,33 +84,33 @@ export function resolveReferralPartner(provided: string): ReferralPartner | null
   return null;
 }
 
-/** Resolve partner by whitelisted email (cabinet login). */
-export function resolveReferralPartnerByEmail(
-  rawEmail: string | null | undefined,
+/** Resolve partner by whitelisted wallet (cabinet login / nav). */
+export function resolveReferralPartnerByWallet(
+  rawWallet: string | null | undefined,
 ): ReferralPartner | null {
-  const email = normalizePartnerEmail(rawEmail);
-  if (!email) return null;
+  const wallet = normalizeWallet(rawWallet);
+  if (!wallet) return null;
   for (const partner of getReferralPartners()) {
-    if (partner.emails.includes(email)) return partner;
+    if (partner.wallets.includes(wallet)) return partner;
   }
   return null;
 }
 
 export function filterStatsForPartner(
   stats: ReferralStat[],
-  partner: ReferralPartner,
+  codes: string[],
 ): ReferralStat[] {
-  const allow = new Set(partner.codes);
+  const allow = new Set(codes.map((c) => normalizeCode(c) ?? c));
   return stats.filter((s) => allow.has(normalizeCode(s.code) ?? s.code));
 }
 
 /** Ensure every configured code appears even with zero traffic. */
 export function fillMissingPartnerCodes(
   stats: ReferralStat[],
-  partner: ReferralPartner,
+  codes: string[],
 ): ReferralStat[] {
   const byCode = new Map(stats.map((s) => [normalizeCode(s.code) ?? s.code, s]));
-  return partner.codes.map((code) => {
+  return codes.map((code) => {
     const existing = byCode.get(code);
     if (existing) return existing;
     return {

@@ -7,6 +7,7 @@ import { isWorldCupCampaignActive } from "@/lib/worldcup";
 import { isWorldCupSurfaceVisible } from "@/lib/worldCupAccess";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useSolanaWallet";
+import { usePartnerAccess } from "@/hooks/usePartnerAccess";
 import { cn, shortenAddress } from "@/lib/utils";
 import { useNickname } from "@/hooks/useNickname";
 import { claimNickname } from "@/lib/nicknamesClient";
@@ -34,6 +35,8 @@ const HIDE_NAV_PATHS = new Set([
   "/",
   "/leaderboard",
   "/season-leaderboard",
+  "/pool",
+  "/matchday",
   "/design-preview/homepage",
   "/design-lab/locker-hero",
   "/design-lab/locker-leaderboard",
@@ -41,13 +44,16 @@ const HIDE_NAV_PATHS = new Set([
 ]);
 
 /** Heavy 3D routes — skip viewport prefetch so lighter pages stay snappy. */
-const HEAVY_ROUTES = new Set(["/", "/leaderboard", "/season-leaderboard"]);
+const HEAVY_ROUTES = new Set(["/", "/leaderboard", "/season-leaderboard", "/pool"]);
 
 export function Navbar() {
   const m = useSiteMessages();
   const pathname = usePathname();
   const wcCampaign = isWorldCupCampaignActive();
   const wcSurface = isWorldCupSurfaceVisible();
+  const { connected, connecting, authReady, address, disconnect, walletName, signMessage } =
+    useWallet();
+  const partnerAccess = usePartnerAccess(address);
   const navLinks = (wcCampaign
     ? [
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup, featured: true }] : []),
@@ -59,13 +65,13 @@ export function Navbar() {
             ]
           : []),
         { href: "/season-leaderboard", label: m.nav.seasonPoints },
+        ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
       ]
     : [
         ...primarySiteNavLinks(m),
         ...(wcSurface ? [{ href: "/world-cup", label: m.nav.worldCup }] : []),
+        ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
       ]) as Array<{ href: string; label: string; featured?: boolean }>;
-  const { connected, connecting, authReady, address, disconnect, walletName, signMessage } =
-    useWallet();
   const { openLogin } = useLogin();
   const { openDeposit } = useDeposit();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,7 +81,8 @@ export function Navbar() {
   const navShellRef = useRef<HTMLDivElement>(null);
   const cinematicHeroTop = wcCampaign && pathname === "/" && !scrolled;
   const { setNickname, hasNickname, myNickname } = useNickname(address);
-  const hideNav = HIDE_NAV_PATHS.has(pathname);
+  const hideNav =
+    HIDE_NAV_PATHS.has(pathname) || pathname.startsWith("/matchday/");
   const reduceMotion = useReducedMotion() ?? false;
 
   useWelcomeModalAutoOpen({

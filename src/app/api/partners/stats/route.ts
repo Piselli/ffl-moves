@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       ...payload,
-      email: resolved.session.email,
+      wallet: resolved.session.wallet,
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );

@@ -5,20 +5,22 @@ import {
   unsealPartnerSession,
 } from "../../src/lib/partners/session";
 
+const WALLET = "5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW";
+
 describe("partner session seal", () => {
-  it("round-trips partner id + email", () => {
+  it("round-trips partner id + wallet", () => {
     const token = sealPartnerSession({
       partnerId: "acme",
-      email: "Partner@Gmail.com",
+      wallet: WALLET,
     });
     const session = unsealPartnerSession(token);
-    assert.deepEqual(session, { partnerId: "acme", email: "partner@gmail.com" });
+    assert.deepEqual(session, { partnerId: "acme", wallet: WALLET });
   });
 
-  it("rejects tampered tokens", () => {
+  it("rejects tampered tokens and legacy email sessions", () => {
     const token = sealPartnerSession({
       partnerId: "acme",
-      email: "a@b.co",
+      wallet: WALLET,
     });
     const [payload] = token.split(".");
     assert.equal(unsealPartnerSession(`${payload}.deadbeef`), null);

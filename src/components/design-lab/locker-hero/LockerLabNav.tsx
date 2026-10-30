@@ -15,6 +15,7 @@ import { SocialLinkTelegram } from "@/components/SocialLinkTelegram";
 import { SocialLinkX } from "@/components/SocialLinkX";
 import { useWallet } from "@/hooks/useSolanaWallet";
 import { useNickname } from "@/hooks/useNickname";
+import { usePartnerAccess } from "@/hooks/usePartnerAccess";
 import { claimNickname } from "@/lib/nicknamesClient";
 import { useWelcomeModalAutoOpen } from "@/hooks/useWelcomeModalAutoOpen";
 import { useSiteMessages } from "@/i18n/LocaleProvider";
@@ -45,13 +46,15 @@ function Links({
   className,
   linkClassName,
   liveLinks = false,
+  extraLinks = [],
 }: {
   className?: string;
   linkClassName?: string;
   liveLinks?: boolean;
+  extraLinks?: Array<{ href: string; label: string }>;
 }) {
   const m = useSiteMessages();
-  const links = primarySiteNavLinks(m);
+  const links = [...primarySiteNavLinks(m), ...extraLinks];
 
   return (
     <nav className={cn("hidden items-center md:flex", className)}>
@@ -188,7 +191,11 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
     onOpen: openNickname,
   });
 
-  const links = primarySiteNavLinks(m);
+  const partnerAccess = usePartnerAccess(address);
+  const links = [
+    ...primarySiteNavLinks(m),
+    ...(partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []),
+  ];
 
   useEffect(() => {
     setMobileOpen(false);
@@ -271,6 +278,9 @@ export function LockerLabNav({ liveLinks = false, tabletShell = false }: Props) 
 
               <Links
                 liveLinks={liveLinks}
+                extraLinks={
+                  partnerAccess ? [{ href: "/partners", label: m.nav.partners }] : []
+                }
                 className="relative z-10 shrink-0"
                 linkClassName={cn(
                   "text-white",
