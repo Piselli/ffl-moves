@@ -52,21 +52,24 @@ function pct(n: number): string {
 
 function fmtDate(ms: number | null): string {
   if (!ms) return "—";
-  return new Date(ms).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return new Date(ms)
+    .toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+    .replace(/\s*р\.?\s*$/u, "");
 }
 
 function fmtFee(n: number): string {
   return Number(n ?? 0).toFixed(1);
 }
 
+/** Code hugs content; metrics share the remaining width so Last doesn't wrap. */
 const STAT_COLS_BASE =
-  "grid w-full gap-x-2 items-center text-sm grid-cols-[minmax(6rem,1.2fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)]";
+  "grid w-full items-center gap-x-3 text-sm sm:gap-x-5 grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(8.75rem,1.2fr)]";
 const STAT_COLS_WITH_CREO =
-  "grid w-full gap-x-2 items-center text-sm grid-cols-[minmax(5.5rem,1fr)_minmax(5.5rem,1fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)]";
+  "grid w-full items-center gap-x-3 text-sm sm:gap-x-5 grid-cols-[auto_minmax(5.5rem,0.95fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(8.75rem,1.2fr)]";
 
 type StatTableRow =
   | { kind: "code"; stat: ReferralStat }
@@ -358,8 +361,8 @@ export function PartnerCabinetShell() {
                 </GlassPanel>
               </div>
 
-              {/* Create link + tips */}
-              <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+              {/* Create link + how it works */}
+              <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
                 <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-5 sm:px-5">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
                     Create link
@@ -432,22 +435,33 @@ export function PartnerCabinetShell() {
                   </div>
                 </GlassPanel>
 
-                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
+                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4 sm:px-5">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Tips
+                    How links work
                   </p>
-                  <ul className="mt-3 flex-1 space-y-3 text-[12px] leading-relaxed text-white/45">
-                    <li>
-                      <span className="font-semibold text-white/65">Code</span> — main link{" "}
-                      <code className="text-white/50">/r/code</code>
-                    </li>
-                    <li>
-                      <span className="font-semibold text-white/65">Creative</span> — tag under a
-                      code{" "}
-                      <code className="text-white/50">/r/code/stories-1</code>
-                    </li>
-                    <li>Fee vol is estimated entry-fee volume for manual payouts.</li>
-                  </ul>
+                  <div className="mt-4 flex flex-1 flex-col">
+                    <div className="space-y-0 divide-y divide-white/[0.06]">
+                      <div className="pb-3.5">
+                        <code className="block font-mono text-[12px] leading-none text-[#00f948]">
+                          /r/bonus50
+                        </code>
+                        <p className="mt-1.5 text-[12px] leading-snug text-white/42">
+                          Code — total for the main link
+                        </p>
+                      </div>
+                      <div className="py-3.5">
+                        <code className="block font-mono text-[12px] leading-none text-white/70">
+                          /r/bonus50/stories-1
+                        </code>
+                        <p className="mt-1.5 text-[12px] leading-snug text-white/42">
+                          Creative — same code, tagged traffic
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-auto border-t border-white/[0.06] pt-3.5 text-[11px] leading-snug text-white/30">
+                      Fee vol estimates entry-fee volume for payouts.
+                    </p>
+                  </div>
                 </GlassPanel>
               </div>
 
@@ -502,7 +516,7 @@ export function PartnerCabinetShell() {
                       >
                         <span
                           className={cn(
-                            "truncate font-mono",
+                            "whitespace-nowrap font-mono",
                             isCreo ? "pl-3 text-white/35" : "text-[#00f948]",
                           )}
                         >
@@ -530,7 +544,7 @@ export function PartnerCabinetShell() {
                         <span className="text-right tabular-nums text-white/75">
                           {pct(s.conversionRate)}
                         </span>
-                        <span className="text-right text-white/35">
+                        <span className="whitespace-nowrap text-right text-white/35">
                           {fmtDate(s.lastActivity)}
                         </span>
                       </motion.div>
