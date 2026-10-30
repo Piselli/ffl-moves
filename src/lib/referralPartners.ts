@@ -56,7 +56,6 @@ export function parseReferralPartners(raw: string | undefined | null): ReferralP
           .filter((c): c is string => !!c),
       ),
     ];
-    if (codes.length === 0) continue;
     const walletsRaw = Array.isArray(o.wallets) ? o.wallets : [];
     const wallets = [
       ...new Set(
@@ -65,6 +64,8 @@ export function parseReferralPartners(raw: string | undefined | null): ReferralP
           .filter((w): w is string => !!w),
       ),
     ];
+    // Seed codes optional — new partners may create codes only in the cabinet.
+    if (codes.length === 0 && wallets.length === 0) continue;
     out.push({ id, label, key, codes, wallets });
   }
   return out;

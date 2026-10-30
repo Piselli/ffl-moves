@@ -23,11 +23,18 @@ describe("parseReferralPartners", () => {
         codes: ["Acme", "acme-2"],
         wallets: ["5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW", "not-a-wallet"],
       },
-      { id: "bad", key: "x", codes: [] },
+      { id: "bad", key: "x", codes: [], wallets: [] },
+      {
+        id: "fresh",
+        label: "Fresh",
+        key: "secret2",
+        codes: [],
+        wallets: ["AbqP5u7okXonFJBb4jo1kbD8rey1MgPARj6FxPbaTXFA"],
+      },
       { not: "a partner" },
     ]);
     const partners = parseReferralPartners(raw);
-    assert.equal(partners.length, 1);
+    assert.equal(partners.length, 2);
     assert.deepEqual(partners[0], {
       id: "acme",
       label: "Acme Co",
@@ -35,6 +42,11 @@ describe("parseReferralPartners", () => {
       codes: ["acme", "acme-2"],
       wallets: ["5tbJd2HZjoHB5hhGLyYvwovK7fPKMH2Ss1fsyPNouyjW"],
     });
+    assert.equal(partners[1]!.id, "fresh");
+    assert.deepEqual(partners[1]!.codes, []);
+    assert.deepEqual(partners[1]!.wallets, [
+      "AbqP5u7okXonFJBb4jo1kbD8rey1MgPARj6FxPbaTXFA",
+    ]);
   });
 
   it("returns empty on invalid JSON", () => {

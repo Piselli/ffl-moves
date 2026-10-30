@@ -311,32 +311,40 @@ export function PartnerCabinetShell() {
                   ) : null}
                 </GlassPanel>
 
-                <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
+                <GlassPanel matte className="flex h-full flex-col justify-center !rounded-xl px-4 py-4">
                   <p className={LABEL}>Your codes</p>
-                  <ul className="mt-3 flex-1 space-y-1.5">
-                    {data.partner.codes.map((c) => (
-                      <li key={c}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCode(c);
-                            copy(buildShortReferralLink(BASE_URL, c), `code-${c}`);
-                          }}
-                          className={cn(
-                            "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-[border-color,background-color] duration-150",
-                            selectedCode === c
-                              ? "border-white/30 bg-white/[0.08]"
-                              : "border-white/12 bg-black/25 hover:border-white/22",
-                          )}
-                        >
-                          <span className="font-mono text-sm text-white/90">{c}</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">
-                            {copied === `code-${c}` ? "Copied" : "Copy"}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {data.partner.codes.length === 0 ? (
+                    <p className="mt-3 text-[13px] leading-snug text-white/55">
+                      No codes yet — create one below.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-2">
+                      {data.partner.codes.map((c) => (
+                        <li key={c}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCode(c);
+                              copy(buildShortReferralLink(BASE_URL, c), `code-${c}`);
+                            }}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-3 rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color] duration-150",
+                              selectedCode === c
+                                ? "border-white/30 bg-white/[0.08]"
+                                : "border-white/12 bg-black/25 hover:border-white/22",
+                            )}
+                          >
+                            <span className="font-mono text-[15px] font-medium text-white">
+                              {c}
+                            </span>
+                            <span className="rounded-md border border-white/15 bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/75">
+                              {copied === `code-${c}` ? "Copied" : "Copy"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </GlassPanel>
               </div>
 
@@ -366,28 +374,30 @@ export function PartnerCabinetShell() {
                       </div>
                     </div>
 
-                    <div className="border-t border-white/[0.08] pt-4">
-                      <p className="mb-1.5 text-[12px] font-medium text-white/70">Creative</p>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <select
-                          value={selectedCode}
-                          onChange={(e) => setSelectedCode(e.target.value)}
-                          className={cn(FIELD, "sm:w-40")}
-                        >
-                          {data.partner.codes.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={newCampaign}
-                          onChange={(e) => setNewCampaign(e.target.value)}
-                          placeholder="stories-1"
-                          className={cn(FIELD, "flex-1")}
-                        />
+                    {data.partner.codes.length > 0 ? (
+                      <div className="border-t border-white/[0.08] pt-4">
+                        <p className="mb-1.5 text-[12px] font-medium text-white/70">Creative</p>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <select
+                            value={selectedCode}
+                            onChange={(e) => setSelectedCode(e.target.value)}
+                            className={cn(FIELD, "sm:w-40")}
+                          >
+                            {data.partner.codes.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            value={newCampaign}
+                            onChange={(e) => setNewCampaign(e.target.value)}
+                            placeholder="stories-1"
+                            className={cn(FIELD, "flex-1")}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
 
                     {generatedLink ? (
                       <div className="border-t border-white/[0.08] pt-4">
@@ -410,29 +420,33 @@ export function PartnerCabinetShell() {
 
                 <GlassPanel matte className="flex h-full flex-col !rounded-xl px-4 py-4">
                   <p className={LABEL}>How links work</p>
-                  <div className="mt-3 flex flex-1 flex-col gap-4">
+                  <div className="mt-3 flex flex-1 flex-col gap-3.5">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">
                         Code
                       </p>
                       <code className="mt-1.5 block font-mono text-[12px] text-white/90">
-                        /r/bonus50
+                        /r/yourcode
                       </code>
-                      <p className="mt-1 text-[12px] leading-snug text-white/55">Main totals</p>
+                      <p className="mt-1 text-[12px] leading-snug text-white/55">
+                        Share this. All clicks & signups for that code land in Links.
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">
                         Creative
                       </p>
                       <code className="mt-1.5 block font-mono text-[12px] text-white/90">
-                        /r/bonus50/stories-1
+                        /r/yourcode/stories-1
                       </code>
                       <p className="mt-1 text-[12px] leading-snug text-white/55">
-                        Tagged traffic under the code
+                        Same code, different post/ad. Type a tag in Create link — no setup
+                        needed. Row appears after first click.
                       </p>
                     </div>
-                    <p className="mt-auto border-t border-white/[0.08] pt-3 text-[11px] leading-snug text-white/45">
-                      Fee vol · estimated entry fees for payouts
+                    <p className="mt-auto border-t border-white/[0.08] pt-3 text-[11px] leading-snug text-white/50">
+                      Fee vol · estimated entry fees for payouts. Copy a code anytime from
+                      Your codes.
                     </p>
                   </div>
                 </GlassPanel>
