@@ -63,9 +63,14 @@ function fmtFee(n: number): string {
   return Number(n ?? 0).toFixed(1);
 }
 
-/** Shared fixed cols so Codes + Campaigns line up (Code | Campaign | metrics…). */
-const STAT_COLS =
-  "grid w-full grid-cols-[minmax(5.5rem,1fr)_minmax(5.5rem,1fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)] gap-x-2 items-center text-sm";
+const STAT_COLS_BASE =
+  "grid w-full gap-x-2 items-center text-sm grid-cols-[minmax(6rem,1.2fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)]";
+const STAT_COLS_WITH_CREO =
+  "grid w-full gap-x-2 items-center text-sm grid-cols-[minmax(5.5rem,1fr)_minmax(5.5rem,1fr)_3.75rem_4rem_3.25rem_3.75rem_minmax(5.5rem,6.5rem)]";
+
+type StatTableRow =
+  | { kind: "code"; stat: ReferralStat }
+  | { kind: "campaign"; stat: CampaignStat };
 
 export function PartnerCabinetShell() {
   const reduceMotion = useReducedMotion();
@@ -146,6 +151,27 @@ export function PartnerCabinetShell() {
     if (!code) return "";
     return buildShortReferralLink(BASE_URL, code, newCampaign.trim() || null);
   }, [selectedCode, newCampaign]);
+
+  const hasCreatives = (data?.campaigns?.length ?? 0) > 0;
+  const statCols = hasCreatives ? STAT_COLS_WITH_CREO : STAT_COLS_BASE;
+
+  const tableRows = useMemo((): StatTableRow[] => {
+    if (!data) return [];
+    const byCode = new Map<string, CampaignStat[]>();
+    for (const c of data.campaigns ?? []) {
+      const list = byCode.get(c.code) ?? [];
+      list.push(c);
+      byCode.set(c.code, list);
+    }
+    const rows: StatTableRow[] = [];
+    for (const code of data.codes) {
+      rows.push({ kind: "code", stat: code });
+      for (const camp of byCode.get(code.code) ?? []) {
+        rows.push({ kind: "campaign", stat: camp });
+      }
+    }
+    return rows;
+  }, [data]);
 
   const copy = useCallback(async (text: string, label: string) => {
     try {
@@ -364,7 +390,7 @@ export function PartnerCabinetShell() {
 
                     <div className="border-t border-white/[0.06] pt-4">
                       <p className="mb-1.5 text-[11px] font-semibold text-white/55">
-                        Campaign under a code
+                        Creative under a code
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <select
@@ -381,7 +407,7 @@ export function PartnerCabinetShell() {
                         <input
                           value={newCampaign}
                           onChange={(e) => setNewCampaign(e.target.value)}
-                          placeholder="campaign (creo1, stories…)"
+                          placeholder="creative (stories-1, creo1…)"
                           className="min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/28 focus:outline-none"
                         />
                       </div>
@@ -416,9 +442,9 @@ export function PartnerCabinetShell() {
                       <code className="text-white/50">/r/code</code>
                     </li>
                     <li>
-                      <span className="font-semibold text-white/65">Campaign</span> — creative
-                      under a code{" "}
-                      <code className="text-white/50">/r/code/creo1</code>
+                      <span className="font-semibold text-white/65">Creative</span> — tag under a
+                      code{" "}
+                      <code className="text-white/50">/r/code/stories-1</code>
                     </li>
                     <li>Fee vol is estimated entry-fee volume for manual payouts.</li>
                   </ul>
@@ -428,7 +454,7 @@ export function PartnerCabinetShell() {
               <GlassPanel matte className="!rounded-xl px-4 py-5 sm:px-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                    Codes
+                    Links
                   </p>
                   <button
                     type="button"
@@ -442,93 +468,75 @@ export function PartnerCabinetShell() {
                 <div className="overflow-x-auto">
                   <div
                     className={cn(
-                      STAT_COLS,
+                      statCols,
                       "border-b border-white/10 py-2 text-[10px] uppercase tracking-wider text-white/35",
                     )}
                   >
                     <span className="font-medium">Code</span>
-                    <span aria-hidden className="font-medium opacity-0">
-                      Campaign
-                    </span>
+                    {hasCreatives ? (
+                      <span className="font-medium">Creative</span>
+                    ) : null}
                     <span className="text-right font-medium">Clicks</span>
                     <span className="text-right font-medium">Signups</span>
                     <span className="text-right font-medium">Fee</span>
                     <span className="text-right font-medium">CR</span>
                     <span className="text-right font-medium">Last</span>
                   </div>
-                  {data.codes.map((s, i) => (
-                    <motion.div
-                      key={s.code}
-                      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04, duration: 0.25 }}
-                      className={cn(STAT_COLS, "border-b border-white/[0.05] py-2.5 last:border-0")}
-                    >
-                      <span className="truncate font-mono text-[#00f948]">{s.code}</span>
-                      <span aria-hidden />
-                      <span className="text-right tabular-nums text-white/75">{s.clicks}</span>
-                      <span className="text-right font-semibold tabular-nums text-white">
-                        {s.signups}
-                      </span>
-                      <span className="text-right tabular-nums text-emerald-300/85">
-                        {fmtFee(s.estimatedFeeVolumeUsdc)}
-                      </span>
-                      <span className="text-right tabular-nums text-white/75">
-                        {pct(s.conversionRate)}
-                      </span>
-                      <span className="text-right text-white/35">{fmtDate(s.lastActivity)}</span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {(data.campaigns?.length ?? 0) > 0 ? (
-                  <div className="mt-8">
-                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
-                      Campaigns
-                    </p>
-                    <div className="overflow-x-auto">
-                      <div
+                  {tableRows.map((row, i) => {
+                    const s = row.stat;
+                    const isCreo = row.kind === "campaign";
+                    return (
+                      <motion.div
+                        key={
+                          isCreo
+                            ? `${s.code}:${(s as CampaignStat).campaign}`
+                            : s.code
+                        }
+                        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.03, duration: 0.22 }}
                         className={cn(
-                          STAT_COLS,
-                          "border-b border-white/10 py-2 text-[10px] uppercase tracking-wider text-white/35",
+                          statCols,
+                          "border-b border-white/[0.05] py-2.5 last:border-0",
                         )}
                       >
-                        <span className="font-medium">Code</span>
-                        <span className="font-medium">Campaign</span>
-                        <span className="text-right font-medium">Clicks</span>
-                        <span className="text-right font-medium">Signups</span>
-                        <span className="text-right font-medium">Fee</span>
-                        <span className="text-right font-medium">CR</span>
-                        <span className="text-right font-medium">Last</span>
-                      </div>
-                      {data.campaigns!.map((s) => (
-                        <div
-                          key={`${s.code}:${s.campaign}`}
+                        <span
                           className={cn(
-                            STAT_COLS,
-                            "border-b border-white/[0.05] py-2.5 last:border-0",
+                            "truncate font-mono",
+                            isCreo ? "pl-3 text-white/35" : "text-[#00f948]",
                           )}
                         >
-                          <span className="truncate font-mono text-emerald-300/80">{s.code}</span>
-                          <span className="truncate text-white/80">{s.campaign}</span>
-                          <span className="text-right tabular-nums text-white/75">{s.clicks}</span>
-                          <span className="text-right font-semibold tabular-nums text-white">
-                            {s.signups}
+                          {s.code}
+                        </span>
+                        {hasCreatives ? (
+                          <span
+                            className={cn(
+                              "truncate",
+                              isCreo ? "text-white/85" : "text-white/25",
+                            )}
+                          >
+                            {isCreo ? (s as CampaignStat).campaign : "—"}
                           </span>
-                          <span className="text-right tabular-nums text-emerald-300/85">
-                            {fmtFee(s.estimatedFeeVolumeUsdc)}
-                          </span>
-                          <span className="text-right tabular-nums text-white/75">
-                            {pct(s.conversionRate)}
-                          </span>
-                          <span className="text-right text-white/35">
-                            {fmtDate(s.lastActivity)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                        ) : null}
+                        <span className="text-right tabular-nums text-white/75">
+                          {s.clicks}
+                        </span>
+                        <span className="text-right font-semibold tabular-nums text-white">
+                          {s.signups}
+                        </span>
+                        <span className="text-right tabular-nums text-emerald-300/85">
+                          {fmtFee(s.estimatedFeeVolumeUsdc)}
+                        </span>
+                        <span className="text-right tabular-nums text-white/75">
+                          {pct(s.conversionRate)}
+                        </span>
+                        <span className="text-right text-white/35">
+                          {fmtDate(s.lastActivity)}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </GlassPanel>
             </div>
           </>
