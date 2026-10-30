@@ -1,17 +1,18 @@
 ---
-description: FORM8 UI — load anti-slop / product / modal / motion skills before visual work
+description: FORM8 UI — load the design skill stack before visual / copy / motion work
 globs: src/components/**/*.{tsx,ts,css}, src/app/**/*.{tsx,css}
 alwaysApply: false
 ---
 
 # FORM8 UI work
 
-Before changing visible UI on this repo, read and follow:
+At the start of visual work on this repo, read `.cursor/skills/form8-ui-stack/SKILL.md`
+and load the skills it lists for the task (anti-slop, product UI, copy, audit,
+references; plus modals/motion when relevant).
 
-1. `.cursor/skills/form8-anti-slop/SKILL.md`
-2. `.cursor/skills/form8-product-ui/SKILL.md` (cabinets, tables, side rails)
-3. `.cursor/skills/form8-modals/SKILL.md` (any overlay / z-index / login)
-4. `.cursor/skills/form8-motion/SKILL.md` + `.agents/skills/emil-design-eng/SKILL.md` when animating
-5. `.agents/skills/refero-design/SKILL.md` for net-new visual direction
+Also use installed craft skills as needed: `refero-design`, `emil-design-eng`,
+`frontend-design`, `impeccable`, `ui-ux-pro-max`, `copywriting`, `copy-editing`,
+`review-animations`, `improve-animations`.
 
-Do not ship neon glow CTAs, unreadable labels, or stacked modals over the wallet picker.
+Do not apply Anthropic brand colors. FORM8 tokens win: `#0D0F12`, sparse `#00f948`,
+`font-display`, quiet plaque CTAs — not neon glow stacks.
