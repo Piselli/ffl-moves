@@ -20,7 +20,7 @@ import {
   recordSponsorSpend,
 } from "@/lib/server/sponsorRateLimit";
 import { clientIp } from "@/lib/server/clientIp";
-import { isRegistrationClosed } from "@/lib/server/registrationWindow";
+import { getGameweek } from "@/lib/chainClient";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -44,8 +44,12 @@ function tooMany(message: string, retryAfterSec: number) {
  * Does not create recipient ATAs for withdraws (see feeSponsor allowlist).
  *
  * Abuse controls, in order: kill switch → per-IP attempts → structural allowlist →
- * signature validity → per-wallet attempts → legal gate → registration window →
+ * signature validity → per-wallet attempts → legal gate → on-chain open GW →
  * daily spend budgets → top-up justification (live balance) → send → record spend.
+ *
+ * Registration open/closed follows the on-chain gameweek status (admin Close / Re-open /
+ * auto-close cron). Do not soft-close from the FPL first-kickoff clock here — that rejected
+ * legit entries while the tour was still OPEN in admin.
  */
 export async function POST(request: Request) {
   if (isSponsorDisabled()) {
@@ -122,7 +126,8 @@ export async function POST(request: Request) {
     }
 
     for (const gameweekId of findRegisterTeamGameweeks(tx)) {
-      if (await isRegistrationClosed(gameweekId)) {
+      const gw = await getGameweek(gameweekId);
+      if (!gw || gw.status !== "open") {
         return NextResponse.json(
           { error: "Registration for this gameweek is closed.", code: "REGISTRATION_CLOSED" },
           { status: 403 },
