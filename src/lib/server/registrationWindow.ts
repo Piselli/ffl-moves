@@ -1,9 +1,9 @@
 /**
- * Soft FPL-clock check: has the first kickoff (+ grace) passed for this EPL gameweek?
+ * Is on-chain registration for this gameweek still supposed to be open?
  *
- * NOT used by fee-sponsor anymore — sponsored register follows on-chain OPEN/CLOSED
- * (admin Close / Re-open / auto-close). Keeping this helper for deadline tooling/tests.
- * Fail-open: if the deadline cannot be determined we never report closed.
+ * The program itself has no deadline — an admin/cron `close_gameweek` ends it, and that
+ * cron can lag. The fee sponsor uses this to stop *gasless* late registrations in the
+ * gap. Fail-open: if the deadline cannot be determined we never block users.
  */
 import { resolveRegistrationDeadline } from "@/lib/server/fplRegistrationDeadline";
 
